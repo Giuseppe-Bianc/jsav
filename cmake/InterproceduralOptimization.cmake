@@ -1,4 +1,4 @@
-macro(myproject_enable_ipo)
+macro(jsav_enable_ipo)
   include(CheckIPOSupported)
 
   # Check compiler support for Interprocedural Optimization

@@ -51,4 +51,4 @@ message(STATUS "Completed compiler diagnostics configuration for ${CMAKE_CXX_COM
 
 # run vcvarsall when msvc is used
 include("${CMAKE_CURRENT_LIST_DIR}/VCEnvironment.cmake")
-myproject_run_vcvarsall()
+jsav_run_vcvarsall()

@@ -1,6 +1,6 @@
 # Uses ycm (permissive BSD-3-Clause license) and ForwardArguments (permissive MIT license)
 
-function(myproject_package_project)
+function(jsav_package_project)
   cmake_policy(SET CMP0103 NEW) # disallow multiple calls with the same NAME
   cmake_policy(SET CMP0169 OLD) # fetch content  use FetchContent_Populate
 

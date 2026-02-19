@@ -1,5 +1,5 @@
 # Enable cache if available
-function(myproject_enable_cache)
+function(jsav_enable_cache)
   # Definisce le opzioni valide per il sistema di cache
   set(VALID_CACHE_OPTIONS "ccache" "sccache")
 
