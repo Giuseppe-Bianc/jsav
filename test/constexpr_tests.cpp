@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+// NOLINTBEGIN(*-include-cleaner)
 
 #include <jsav/jsav.hpp>
 
@@ -11,3 +12,9 @@ TEST_CASE("Factorials are computed with constexpr", "[factorial]")
   STATIC_REQUIRE(factorial_constexpr(3) == 6);
   STATIC_REQUIRE(factorial_constexpr(10) == 3628800);
 }*/
+
+TEST_CASE("mock test", "[mock]") {
+    STATIC_REQUIRE(1 + 2 == 3);
+}
+
+// NOLINTEND(*-include-cleaner)

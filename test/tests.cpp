@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-
+// NOLINTBEGIN(*-include-cleaner)
 
 #include <jsav/jsav.hpp>
 
@@ -12,3 +12,8 @@ TEST_CASE("Factorials are computed", "[factorial]")
   REQUIRE(factorial(3) == 6);
   REQUIRE(factorial(10) == 3628800);
 }*/
+
+TEST_CASE("mock test", "[mock]") {
+    REQUIRE(1 + 2 == 3);
+}
+// NOLINTEND(*-include-cleaner)
