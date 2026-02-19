@@ -101,7 +101,7 @@ auto main(int argc, const char *const argv[]) -> int {
         const auto processing_time = timer.to_string();
         LINFO(processing_time);
 
-        const std::string_view code(str);
+        [[maybe_unused]] const std::string_view code(str);
         //LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;
