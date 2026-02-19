@@ -8,7 +8,7 @@
 
 - **Language**: C++23
 - **Build System**: CMake 3.21+ with Ninja generator
-- **Dependencies**: Managed via CPM (fmt, spdlog, Catch2, CLI11)
+- **Dependencies**: Managed via CPM.cmake (CMake Package Manager): fmt, spdlog, Catch2, CLI11
 - **Testing**: Catch2 framework with constexpr, runtime, and fuzz testing support
 - **Static Analysis**: clang-tidy, cppcheck, lizard (complexity analysis)
 - **Sanitizers**: AddressSanitizer, UndefinedBehaviorSanitizer
@@ -74,7 +74,7 @@ jsav/
 
 **Required:**
 
-- C++23 compatible compiler (GCC 11+, Clang 13+, MSVC 2019+)
+- C++23 compatible compiler (GCC 13+, Clang 16+, MSVC 2022+)
 - CMake 3.21+
 - Ninja build system (recommended)
 
@@ -167,7 +167,7 @@ gcovr -r .. --config=../gcovr.cfg
 
 1. **Modern C++ Features**
    - Use `std::format` and `std::print` instead of iostream/printf
-   - Mark functions `constexpr` by default (C++23)
+   - Prefer marking functions `constexpr` when possible (leveraging C++23's expanded constexpr capabilities)
    - Use concepts to constrain template parameters
    - Prefer `[[nodiscard]]` on functions returning values
    - Use scoped enums (`enum class`)
@@ -266,6 +266,7 @@ cmake --build build --target lizard_html
 ```
 
 **Complexity Thresholds:**
+
 - Cyclomatic Complexity: ≤15
 - Function Length: ≤100 lines
 - Parameters: ≤6
@@ -320,6 +321,7 @@ brew install llvm cppcheck ccache
 ### Sanitizer Errors
 
 **Do not disable sanitizers.** Fix the underlying issues:
+
 - AddressSanitizer errors → Memory access issues
 - UndefinedBehaviorSanitizer errors → Undefined behavior
 
