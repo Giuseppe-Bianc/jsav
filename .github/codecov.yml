@@ -9,7 +9,7 @@ coverage:
     project:
       default:
         # Avoid false negatives
-        threshold: 1%
+        threshold: 0.5%
 
 # Ignore test files and main.cpp
 ignore:
