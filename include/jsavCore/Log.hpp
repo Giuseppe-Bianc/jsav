@@ -192,7 +192,7 @@ inline void setup_logger() {
  * @see spdlog::set_default_logger
  */
 #define INIT_LOG()                                                                                                                         \
-    do{                                                                                                                                    \
+    do {                                                                                                                                   \
     spdlog::set_error_handler(my_error_handler);                                                                                           \
     try {                                                                                                                                  \
         setup_logger();                                                                                                                    \
@@ -201,7 +201,7 @@ inline void setup_logger() {
     } catch(const std::exception &e) { std::cerr << "Unhandled exception: " << e.what() << '\n'; } catch(...) {                            \
         std::cerr << "An unknown error occurred. Logger initialization failed.\n";                                                         \
     }                                                                                                                                      \
-    } while(0)
+    } while (0)
 
 /// @}
 // NOLINTEND(*-include-cleaner)

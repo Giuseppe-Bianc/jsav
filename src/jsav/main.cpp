@@ -46,7 +46,7 @@ auto main(int argc, const char *const argv[]) -> int {
     SetConsoleOutputCP(CP_UTF8);
 
     // Optional: enable virtual terminal processing for better Unicode/emoji support
-    if (HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
+    if (HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
         DWORD dwMode = 0;
         if (GetConsoleMode(hOut, &dwMode)) {
             dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;

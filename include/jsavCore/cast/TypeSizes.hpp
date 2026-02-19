@@ -54,7 +54,7 @@ namespace TypeSizes {
     /// Size of an 8-bit character type.
     static inline constexpr std::size_t sizeOfChar8T = sizeof(char8_t);
     /// Size of a wide character type.
-    inline constexpr std::size_t sizeOfWChar = sizeof(wchar_t);
+    static inline constexpr std::size_t sizeOfWChar = sizeof(wchar_t);
     /// Size of a double-precision floating-point type.
     static inline constexpr std::size_t sizeOfDouble = sizeof(double);
     /// Size of a single-precision floating-point type.
