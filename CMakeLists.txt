@@ -101,7 +101,7 @@ if(MSVC)
 endif()
 
 # set the startup project for the "play" button in MSVC
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT intro)
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT jsav)
 
 if(CMAKE_SKIP_INSTALL_RULES)
   return()
@@ -113,7 +113,7 @@ include(cmake/PackageProject.cmake)
 # we know we want to ship
 jsav_package_project(
   TARGETS
-  intro
+  jsav
   jsav_options
   jsav_warnings
   # FIXME: this does not work! CK

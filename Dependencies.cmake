@@ -48,12 +48,5 @@ function(jsav_setup_dependencies)
     cpmaddpackage("gh:CLIUtils/CLI11@2.6.1")
   endif()
 
-  if(NOT TARGET ftxui::screen)
-    cpmaddpackage("gh:ArthurSonzogni/FTXUI@6.1.9")
-  endif()
-
-  if(NOT TARGET tools::tools)
-    cpmaddpackage("gh:lefticus/tools#update_build_system")
-  endif()
 
 endfunction()

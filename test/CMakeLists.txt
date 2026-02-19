@@ -36,7 +36,7 @@ target_link_libraries(
   tests
   PRIVATE jsav::jsav_warnings
           jsav::jsav_options
-          jsav::sample_library
+          jsav::jsav_lib
           Catch2::Catch2WithMain)
 
 jsav_configure_linker(tests)
@@ -70,7 +70,7 @@ target_link_libraries(
   constexpr_tests
   PRIVATE jsav::jsav_warnings
           jsav::jsav_options
-          jsav::sample_library
+          jsav::jsav_lib
           Catch2::Catch2WithMain)
 
 jsav_configure_linker(constexpr_tests)
@@ -95,7 +95,7 @@ target_link_libraries(
   relaxed_constexpr_tests
   PRIVATE jsav::jsav_warnings
           jsav::jsav_options
-          jsav::sample_library
+          jsav::jsav_lib
           Catch2::Catch2WithMain)
 target_compile_definitions(relaxed_constexpr_tests PRIVATE -DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
 
