@@ -183,7 +183,7 @@ namespace vnd {
 }  // namespace vnd
 
 /**
- * This function is a formatter for Token using fmt.
+ * This function is a formatter for Timer using fmt.
  * \cond
  */
 template <> struct fmt::formatter<vnd::Timer> : formatter<std::string_view> {

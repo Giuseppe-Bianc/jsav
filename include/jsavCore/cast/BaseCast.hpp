@@ -394,4 +394,8 @@
 #define C_CPCU32T(x) static_cast<const uint32_t *>(static_cast<const void *>(x))
 /** @} */  // end of TypeCastingMacros group
 
+#if defined(__GNUC__) && (__GNUC__ >= 11)
+#pragma GCC diagnostic pop
+#endif
+
 // NOLINTEND(*-macro-usage)

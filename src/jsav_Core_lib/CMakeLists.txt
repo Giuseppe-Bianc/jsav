@@ -26,7 +26,7 @@ target_include_directories(jsav_core_lib
         PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-        "${CMAKE_BINARY_DIR}/configured_files/include"
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/configured_files/include>
 )
 if (jsav_BUILD_FUZZ_TESTS)
     target_link_libraries(jsav_core_lib PRIVATE -fsanitize=fuzzer-no-link)
@@ -45,5 +45,5 @@ set_target_properties(
 generate_export_header(jsav_core_lib EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/jsavCore/jsav_core_export.hpp)
 
 if (NOT BUILD_SHARED_LIBS)
-    target_compile_definitions(jsav_core_lib PUBLIC VANDIOR_LIB_STATIC_DEFINE)
+    target_compile_definitions(jsav_core_lib PUBLIC JSAV_CORE_LIB_STATIC_DEFINE)
 endif ()

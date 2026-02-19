@@ -3,7 +3,7 @@
  * @brief A set of macros for convenient use of the fmt library.
  * This file provides macros for easy integration with the fmt library, a modern C++ formatting library.
  * It includes macros for formatting strings, pointers, and joining containers with delimiters.
- * @note This file requires the fmt library to be included separately.
+ * @note This file requires the fmt library to be available as a dependency (headers are included here).
  */
 #pragma once
 
@@ -11,7 +11,7 @@
 #ifdef __cpp_lib_format
 #include <format>
 #endif
-#if defined(__GNUC__) && (__GNUC__ >= 11)
+#if defined(__GNUC__) && (__GNUC__ >= 11) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
@@ -19,7 +19,7 @@
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
-#if defined(__GNUC__) && (__GNUC__ >= 11)
+#if defined(__GNUC__) && (__GNUC__ >= 11) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
 
@@ -39,6 +39,8 @@
  * This macro wraps the std::format function for convenient string formatting.
  * @param ... The format string and arguments.
  * @return The formatted string.
+ * @warning Custom fmt::formatter specializations are not compatible with std::format.
+ *          Behavior may differ slightly from the fmt library fallback.
  */
 #define FORMATST(...) std::format(__VA_ARGS__)
 #else
@@ -53,11 +55,16 @@
 #endif
 
 /**
+ * @note FMT_PTR and FMT_JOIN are only compatible with FORMAT(), not FORMATST(),
+ *       as std::format does not provide equivalents to fmt::ptr and fmt::join.
+ */
+
+/**
  * @def FMT_PTR(ptr)
  * @brief Macro for formatting pointers using the fmt library.
  * This macro wraps the fmt::ptr function for formatting pointers.
  * @param ptr The pointer to be formatted.
- * @return The formatted pointer string.
+ * @return A wrapper object suitable for use with FORMAT() to produce a formatted pointer string.
  */
 #define FMT_PTR(ptr) fmt::ptr(ptr)
 
@@ -67,7 +74,7 @@
  * This macro wraps the fmt::join function for joining container elements with a specified delimiter.
  * @param container The container to be joined.
  * @param delimiter The delimiter to be used between elements.
- * @return The joined string.
+ * @return A view object suitable for use with FORMAT() to produce a joined string.
  */
 #define FMT_JOIN(container, delimiter) fmt::join(container, delimiter)
 // NOLINTEND(*-include-cleaner, *-macro-usage)

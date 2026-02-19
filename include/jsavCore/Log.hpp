@@ -148,21 +148,19 @@ inline std::string get_current_timestamp() {
 
 // clang-format off
 inline void my_error_handler(const std::string &msg) {
-    const std::source_location &location = std::source_location::current();
     std::cerr << FORMAT("Error occurred:\n  Timestamp: {}\n", get_current_timestamp());
     std::cerr << FORMAT("  Thread ID: {}\n", std::this_thread::get_id());
     std::cerr << FORMAT("  Message: {}\n", msg);
-    std::cerr << FORMAT("  Function: {}, File: {}, Line: {}, Column: {}\n", location.function_name(), location.file_name(), location.line(),location.column());
+    std::cerr << "  Note: Error originated within spdlog internals.\n";
 }
 // clang-format on
 
 inline void setup_logger() {
     std::vector<spdlog::sink_ptr> sinks;
 
-    // Console sink (colored, for trace to info levels)
+    // Console sink (colored, accepts all log levels starting from trace)
     const auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-    stdout_sink->set_level(spdlog::level::trace);  // Log info and below (trace, debug, info)
-
+    stdout_sink->set_level(spdlog::level::trace);  // Log all levels (trace and above)
     // Stderr sink (colored, for warn to critical levels)
     const auto stderr_sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
     stderr_sink->set_level(spdlog::level::warn);  // Log warn and above (warn, error, critical)
@@ -194,14 +192,16 @@ inline void setup_logger() {
  * @see spdlog::set_default_logger
  */
 #define INIT_LOG()                                                                                                                         \
+    do{                                                                                                                                    \
     spdlog::set_error_handler(my_error_handler);                                                                                           \
     try {                                                                                                                                  \
         setup_logger();                                                                                                                    \
     } catch(const spdlog::spdlog_ex &ex) {                                                                                                 \
         std::cerr << "Logger initialization failed: " << ex.what() << '\n';                                                                \
     } catch(const std::exception &e) { std::cerr << "Unhandled exception: " << e.what() << '\n'; } catch(...) {                            \
-        std::cerr << "An unknown error occurred Logger initialization failed.\n";                                                          \
-    }
+        std::cerr << "An unknown error occurred. Logger initialization failed.\n";                                                         \
+    }                                                                                                                                      \
+    } while(0)
 
 /// @}
 // NOLINTEND(*-include-cleaner)

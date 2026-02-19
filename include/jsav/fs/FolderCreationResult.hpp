@@ -17,8 +17,8 @@ namespace vnd {
 
         [[nodiscard]] static auto createFolder(std::string_view folderName, const fs::path &parentDir) -> FolderCreationResult {
             // Validate the parameters
-            if(folderName.empty()) {
-                LERROR("Invalid parameters: parentPath or folderName is empty.");
+            if(folderName.empty() || parentDir.empty()) {
+                LERROR("Invalid parameters: folderName is empty: {}, parentDir is empty: {}", +folderName.empty(), parentDir.empty());
                 return {false, {}};
             }
 

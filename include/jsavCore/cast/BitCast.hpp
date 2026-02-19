@@ -175,5 +175,5 @@
  */
 #define BC_LLDIVT(x) std::bit_cast<std::lldiv_t>(x)
 
-/** @} */  // end of TypeCastingMacros group
+/** @} */  // end of BitTypeCastingMacros group
 // NOLINTEND(*-include-cleaner, *-macro-usage)

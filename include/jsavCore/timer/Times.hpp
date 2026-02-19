@@ -138,7 +138,7 @@ namespace vnd {
 }  // namespace vnd
 
 /**
- * This function is a formatter for Token using fmt.
+ * This function is a formatter for ValueLabel using fmt.
  * \cond
  */
 template <> struct fmt::formatter<vnd::ValueLabel> : fmt::formatter<std::string_view> {

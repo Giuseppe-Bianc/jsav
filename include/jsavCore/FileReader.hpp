@@ -36,9 +36,23 @@ namespace vnd {
         auto fileStream = openFile(filePath);
 
         try {
-            std::ostringstream buffer;
-            buffer << fileStream.rdbuf();
-            return buffer.str();
+            // Get file size for pre-allocation
+            fileStream.seekg(0, std::ios::end);
+            const auto fileSize = fileStream.tellg();
+            fileStream.seekg(0, std::ios::beg);
+            
+            if(fileSize < 0) {
+                throw FILEREADEREERRORF("Unable to determine file size: {}", filePath);
+            }
+            
+            std::string content(static_cast<std::size_t>(fileSize), '\0');
+            fileStream.read(content.data(), fileSize);
+            
+            // Handle case where fewer bytes were read (e.g., file truncated during read)
+            const auto bytesRead = fileStream.gcount();
+            content.resize(static_cast<std::size_t>(bytesRead));
+            
+            return content;
         } catch(const std::ios_base::failure &e) {
             throw FILEREADEREERRORF("Unable to read file: {}. Reason: {}", filePath, e.what());
         } catch(const std::exception &e) {

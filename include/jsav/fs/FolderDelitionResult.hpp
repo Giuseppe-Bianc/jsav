@@ -1,7 +1,7 @@
 // NOLINTBEGIN(*-include-cleaner)
 #pragma once
 
-#include "FileDelitionResult.hpp"
+#include "FileDelitionResult.hpp" //rename to FileDeletionResult.hpp
 #include "OSOperationResult.hpp"
 
 DISABLE_WARNINGS_PUSH(4820)
@@ -29,6 +29,16 @@ namespace vnd {
 
                 // Recursively delete folder contents
                 for(const auto &entry : fs::directory_iterator(folderPath)) {
+                    // Handle symlinks first - remove the link itself, don't follow it
+                    if(fs::is_symlink(entry)) {
+                        std::error_code ec;
+                        fs::remove(entry.path(), ec);
+                        if(ec) {
+                            LERROR("Failed to remove symlink '{}': {}", entry.path(), ec.message());
+                            return {false, folderPath};
+                        }
+                        continue;
+                    }
                     if(fs::is_directory(entry)) {
                         if(auto result = deleteFolder(entry.path()); !result.success()) {
                             LERROR("Failed to delete subfolder '{}'.", entry.path());
@@ -43,7 +53,11 @@ namespace vnd {
                 }
 
                 // Remove the folder itself
-                fs::remove(folderPath);
+                std::error_code ec;
+                if(!fs::remove(folderPath, ec)) {
+                    LERROR("Failed to remove folder '{}': {}", folderPath, ec.message());
+                    return {false, folderPath};
+                }
 #ifdef INDEPT
                 LINFO("Folder '{}' deleted successfully.", folderPath);
 #endif

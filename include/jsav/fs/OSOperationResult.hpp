@@ -54,9 +54,6 @@ namespace vnd {
         }
 
         /**
-         * @brief Default constructor.
-         */
-        /**
          * @brief Default constructor
          */
         OSOperationResult() = default;
@@ -98,6 +95,11 @@ namespace vnd {
 
         ~OSOperationResult() = default;
 
+        /**
+         * @brief Swaps the contents of two OSOperationResult objects.
+         * @param lhs The first OSOperationResult object.
+         * @param rhs The second OSOperationResult object.
+         */
         friend void swap(OSOperationResult &lhs, OSOperationResult &rhs) noexcept {
             std::swap(lhs.success_, rhs.success_);
             std::swap(lhs.path_, rhs.path_);

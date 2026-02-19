@@ -42,7 +42,7 @@ target_include_directories(jsav_lib
         PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>
-        "${CMAKE_BINARY_DIR}/configured_files/include"
+        $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/configured_files/include>
 )
 if (jsav_BUILD_FUZZ_TESTS)
     target_link_libraries(jsav_lib PRIVATE -fsanitize=fuzzer-no-link)
@@ -58,8 +58,8 @@ set_target_properties(
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN YES)
 
-generate_export_header(jsav_lib EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/Vandior/jsav_export.hpp)
+generate_export_header(jsav_lib EXPORT_FILE_NAME ${PROJECT_BINARY_DIR}/include/jsav/jsav_export.hpp)
 
 if (NOT BUILD_SHARED_LIBS)
-    target_compile_definitions(jsav_lib PUBLIC VANDIOR_LIB_STATIC_DEFINE)
+    target_compile_definitions(jsav_lib PUBLIC JSAV_LIB_STATIC_DEFINE)
 endif ()

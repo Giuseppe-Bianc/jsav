@@ -37,20 +37,22 @@ DISABLE_WARNINGS_POP()
 
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
-// NOLINTNEXTLINE(*-function-cognitive-complexity)
+// NOLINTNEXTLINE(*-function-cognitive-complexity, *-exception-escape)
 auto main(int argc, const char *const argv[]) -> int {
     // NOLINTNEXTLINE
-    INIT_LOG()
+    INIT_LOG();
 #ifdef _WIN32
     // Set UTF-8 code page for Windows console
     SetConsoleOutputCP(CP_UTF8);
 
     // Optional: enable virtual terminal processing for better Unicode/emoji support
-    HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
-    DWORD dwMode = 0;
-    GetConsoleMode(hOut, &dwMode);
-    dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-    SetConsoleMode(hOut, dwMode);
+    if (HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
+        DWORD dwMode = 0;
+        if (GetConsoleMode(hOut, &dwMode)) {
+            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            SetConsoleMode(hOut, dwMode);  // Failure here is non-fatal for UTF-8 output
+        }
+    }
 #endif
     try {
         CLI::App app{FORMAT("{} version {}", jsav::cmake::project_name, jsav::cmake::project_version)};  // NOLINT(*-include-cleaner)
@@ -93,7 +95,6 @@ auto main(int argc, const char *const argv[]) -> int {
 #endif
             }
         }
-
 
         vnd::Timer timer(FORMAT("Processing file {}", porfilename));
         const auto str = vnd::readFromFile(porfilename);

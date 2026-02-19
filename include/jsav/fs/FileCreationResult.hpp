@@ -12,10 +12,10 @@ namespace vnd {
         using OSOperationResult::OSOperationResult;
         /**
          * @brief Create a file at the specified path.
-         * @param path The path of the file to creat.
+         * @param path The path of the file to create.
          * @param fileName the name of the file.
          * @param fileContent the content of the file.
-         * @return A FolderCreationResult object indicating the result of the operation.
+         * @return A FileCreationResult object indicating the result of the operation.
          */
         [[nodiscard]] static auto createFile(const fs::path &path, const std::string_view &fileName, const std::stringstream &fileContent)
             -> FileCreationResult {
@@ -26,7 +26,7 @@ namespace vnd {
          * @brief Create a file at the specified path.
          * @param filePath The path of the file create.
          * @param fileContent the content of the file.
-         * @return A FolderCreationResult object indicating the result of the operation.
+         * @return A FileCreationResult object indicating the result of the operation.
          */
         [[nodiscard]] static auto createFileFromPath(const fs::path &filePath, const std::stringstream &fileContent) -> FileCreationResult {
             try {
