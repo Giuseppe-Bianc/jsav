@@ -1,0 +1,7 @@
+paths-ignore:
+  - '**/third_party/**'
+  - '**/vendor/**'
+  - '**/external/**'
+  - '**/deps/**'
+  - '**/build/**'
+  - '**/_deps/**'          # CMake FetchContent default dir
