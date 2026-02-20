@@ -175,13 +175,13 @@ jobs:
       - name: Unix - Test
         if: runner.os != 'Windows'
         working-directory: ./build
-        run: ctest -C ${{matrix.build_type}} --rerun-failed --output-on-failure
+        run: ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure
 
       - name: Unix - Coverage
-        if: runner.os != 'Windows' && matrix.build_type == 'Debug'
+        if: runner.os != 'Windows'
         working-directory: ./build
         run: |
-          gcovr -j ${{env.nproc}} --root ../ --print-summary --xml-pretty --xml coverage.xml . --gcov-executable '${{ matrix.gcov_executable }}'
+          gcovr -j ${{ steps.cpu-cores.outputs.count }} --root ../ --print-summary --xml-pretty --xml coverage.xml . --gcov-executable '${{ matrix.gcov_executable }}'
 
       - name: Windows - Verify OpenCppCoverage
         if: runner.os == 'Windows'
