@@ -4,6 +4,8 @@
  */
 // NOLINTBEGIN(*-include-cleaner, *-env33-c)
 #include "Costanti.hpp"
+
+#include <jsav/lexer/SourceSpan.hpp>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -102,6 +104,11 @@ auto main(int argc, const char *const argv[]) -> int {
         LINFO(processing_time);
 
         [[maybe_unused]] const std::string_view code(str);
+        const jsv::SourceLocation start{0, 0, 0};
+        const jsv::SourceLocation end{0, 1, 1};
+        const auto sf_p = MAKE_SHARED(const std::string, porfilename);
+        const jsv::SourceSpan source_span{sf_p, start, end};
+        LINFO(source_span);
         // LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;
