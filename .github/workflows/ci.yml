@@ -2,7 +2,7 @@ name: ci
 on:
   pull_request:
   release:
-    types: [published]
+    types: [ published ]
   push:
     tags:
     branches:
@@ -64,8 +64,8 @@ jobs:
             enable_ipo: Off
             gcov_executable: "llvm-cov gcov"
 
-         # - os: macos-latest
-         #   enable_ipo: Off
+          # - os: macos-latest
+          #   enable_ipo: Off
 
           # Set up preferred package generators, for given build configurations
           - build_type: Release
@@ -163,15 +163,9 @@ jobs:
           gcovr: true
           opencppcoverage: true
 
-      - name: Configure CMake LLVM
-        if: ${{ matrix.compiler == 'llvm-19.1.1' }}
+      - name: Configure CMake
         run: |
-          cmake -S . -B ./build -G "${{matrix.generator}}" -D${{ env.PROJECT_NAME }}_BUILD_FUZZ_TESTS:BOOL=OFF -D${{ env.PROJECT_NAME }}_ENABLE_CLANG_TIDY:BOOL=OFF -D${{ env.PROJECT_NAME }}_ENABLE_IPO=${{matrix.enable_ipo }} -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -D${{ env.PROJECT_NAME }}_PACKAGING_MAINTAINER_MODE:BOOL=${{matrix.packaging_maintainer_mode}} -D${{ env.PROJECT_NAME }}_ENABLE_COVERAGE:BOOL=${{ matrix.build_type == 'Debug' }} -DGIT_SHA:STRING=${{ github.sha }}
-
-      - name: Configure CMake (Non-LLVM)
-        if: ${{ matrix.compiler != 'llvm-19.1.1' }}
-        run: |
-          cmake -S . -B ./build -G "${{matrix.generator}}" -D${{ env.PROJECT_NAME }}_BUILD_FUZZ_TESTS:BOOL=OFF -D${{ env.PROJECT_NAME }}_ENABLE_IPO=${{matrix.enable_ipo }} -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -D${{ env.PROJECT_NAME }}_PACKAGING_MAINTAINER_MODE:BOOL=${{matrix.packaging_maintainer_mode}} -D${{ env.PROJECT_NAME }}_ENABLE_COVERAGE:BOOL=${{ matrix.build_type == 'Debug' }} -DGIT_SHA:STRING=${{ github.sha }}
+          cmake -S . -B ./build -G "${{matrix.generator}}" -D${{ env.PROJECT_NAME }}_ENABLE_IPO=${{matrix.enable_ipo }} -DCMAKE_BUILD_TYPE:STRING=${{matrix.build_type}} -D${{ env.PROJECT_NAME }}_PACKAGING_MAINTAINER_MODE:BOOL=${{matrix.packaging_maintainer_mode}} -D${{ env.PROJECT_NAME }}_ENABLE_COVERAGE:BOOL=${{ matrix.build_type == 'Debug' }} -DGIT_SHA:STRING=${{ github.sha }}
 
       - name: Build
         # Execute the build.  You can specify a specific target with "--target <NAME>"
@@ -184,15 +178,8 @@ jobs:
         # Execute tests defined by the CMake configuration.
         # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
         run: |
-          ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure
-          gcovr -j ${{ steps.cpu-cores.outputs.count }} --verbose --delete --root ../ --print-summary --xml-pretty \
-          --config ../gcovr.cfg \
-           --gcov-executable '${{ matrix.gcov_executable }}' \
-           --gcov-ignore-errors=no_working_dir_found \
-           --exclude-unreachable-branches \
-           --exclude-noncode-lines \
-           --xml coverage.xml
-
+          ctest -C ${{matrix.build_type}}
+          gcovr -j ${{env.nproc}} --root ../ --print-summary --xml-pretty --xml coverage.xml . --gcov-executable '${{ matrix.gcov_executable }}'
       - name: Windows - Verify OpenCppCoverage
         if: runner.os == 'Windows'
         run: |
