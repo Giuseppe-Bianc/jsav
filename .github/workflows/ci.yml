@@ -191,7 +191,6 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           where OpenCppCoverage.exe
-          OpenCppCoverage.exe --version
 
       - name: Windows - Test and coverage
         if: runner.os == 'Windows'
