@@ -1,9 +1,9 @@
 include(cmake/CPM.cmake)
 
 function(AddSpdlogPackage WcharSupport WcharFilenames)
-  CPMAddPackage(
+  cpmaddpackage(
           NAME spdlog
-          VERSION 1.15.2
+          VERSION 1.17.0
           GITHUB_REPOSITORY "gabime/spdlog"
           OPTIONS
           "SPDLOG_FMT_EXTERNAL ON"
@@ -28,17 +28,13 @@ function(jsav_setup_dependencies)
     cpmaddpackage("gh:fmtlib/fmt#12.1.0")
   endif()
 
-  if(NOT TARGET spdlog::spdlog)
-    cpmaddpackage(
-      NAME
-      spdlog
-      VERSION
-      1.17.0
-      GITHUB_REPOSITORY
-      "gabime/spdlog"
-      OPTIONS
-      "SPDLOG_FMT_EXTERNAL ON")
-  endif()
+  if (NOT TARGET spdlog::spdlog)
+        if (WIN32)
+            AddSpdlogPackage(ON ON)
+        else ()
+            AddSpdlogPackage(OFF OFF)
+        endif ()
+    endif ()
 
   if(NOT TARGET Catch2::Catch2WithMain)
     cpmaddpackage("gh:catchorg/Catch2@3.13.0")
