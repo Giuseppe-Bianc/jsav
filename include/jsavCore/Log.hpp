@@ -44,8 +44,10 @@ DISABLE_WARNINGS_PUSH(
 /** \endcond */
 
 #define SPDLOG_ACTIVE_LEVEL SPDLOG_LEVEL_TRACE
+DISABLE_CLANG_WARNINGS_PUSH("-Wunused-result")
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
+DISABLE_CLANG_WARNINGS_POP()
 
 DISABLE_WARNINGS_POP()
 /** \cond */

@@ -11,17 +11,14 @@
 #ifdef __cpp_lib_format
 #include <format>
 #endif
-#if defined(__GNUC__) && (__GNUC__ >= 11) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wstringop-overflow"
-#endif
+DISABLE_CLANG_WARNINGS_PUSH("-Wunused-result")
+DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
-#if defined(__GNUC__) && (__GNUC__ >= 11) && !defined(__clang__)
-#pragma GCC diagnostic pop
-#endif
+DISABLE_CLANG_WARNINGS_POP()
+DISABLE_GCC_WARNINGS_POP()
 
 /**
  * @def FORMAT(...)

@@ -1,36 +1,41 @@
-/**
- * @file
- * @brief Header file containing macros for disabling compiler warnings.
- */
 #pragma once
 // NOLINTBEGIN(*-macro-usage)
 
+// Internal helper: stringifies a pragma for _Pragma()
+#define JSAV_DO_PRAGMA(x) _Pragma(#x)
+
 #ifdef _MSC_VER
-// Microsoft Visual C++ Compiler
-/**
- * @def DISABLE_WARNINGS_PUSH(...)
- * @brief Pushes a warning suppression for Microsoft Visual C++ Compiler.
- *
- * @param[in] ... Variable number of warning IDs to be disabled.
- */
-#define DISABLE_WARNINGS_PUSH(...) __pragma(warning(push)) __pragma(warning(disable : __VA_ARGS__))
-/**
- * @def DISABLE_WARNINGS_POP()
- * @brief Pops the previously pushed warning suppression for Microsoft Visual C++ Compiler.
- */
-#define DISABLE_WARNINGS_POP() __pragma(warning(pop))
+    #define DISABLE_WARNINGS_PUSH(...) __pragma(warning(push)) __pragma(warning(disable : __VA_ARGS__))
+    #define DISABLE_WARNINGS_POP()     __pragma(warning(pop))
+    #define DISABLE_CLANG_WARNINGS_PUSH(warning)
+    #define DISABLE_CLANG_WARNINGS_POP()
+    #define DISABLE_GCC_WARNINGS_PUSH(warning)
+    #define DISABLE_GCC_WARNINGS_POP()
+#elif defined(__clang__)
+    #define DISABLE_WARNINGS_PUSH(...)
+    #define DISABLE_WARNINGS_POP()
+    #define DISABLE_CLANG_WARNINGS_PUSH(warning) \
+        _Pragma("clang diagnostic push")         \
+        JSAV_DO_PRAGMA(clang diagnostic ignored warning)
+    #define DISABLE_CLANG_WARNINGS_POP() _Pragma("clang diagnostic pop")
+    #define DISABLE_GCC_WARNINGS_PUSH(warning)
+    #define DISABLE_GCC_WARNINGS_POP()
+#elif defined(__GNUC__)
+    #define DISABLE_WARNINGS_PUSH(...)
+    #define DISABLE_WARNINGS_POP()
+    #define DISABLE_CLANG_WARNINGS_PUSH(warning)
+    #define DISABLE_CLANG_WARNINGS_POP()
+    #define DISABLE_GCC_WARNINGS_PUSH(warning) \
+        _Pragma("GCC diagnostic push")         \
+        JSAV_DO_PRAGMA(GCC diagnostic ignored warning)
+    #define DISABLE_GCC_WARNINGS_POP() _Pragma("GCC diagnostic pop")
 #else
-/**
- * @def DISABLE_WARNINGS_PUSH(...)
- * @brief Placeholder for non-Microsoft compilers.
- *
- * @param[in] ... Variable number of warning IDs (ignored for non-Microsoft compilers).
- */
-#define DISABLE_WARNINGS_PUSH(...)
-/**
- * @def DISABLE_WARNINGS_POP()
- * @brief Placeholder for non-Microsoft compilers (ignored for non-Microsoft compilers).
- */
-#define DISABLE_WARNINGS_POP()
+    #define DISABLE_WARNINGS_PUSH(...)
+    #define DISABLE_WARNINGS_POP()
+    #define DISABLE_CLANG_WARNINGS_PUSH(warning)
+    #define DISABLE_CLANG_WARNINGS_POP()
+    #define DISABLE_GCC_WARNINGS_PUSH(warning)
+    #define DISABLE_GCC_WARNINGS_POP()
 #endif
+
 // NOLINTEND(*-macro-usage)
