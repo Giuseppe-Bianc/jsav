@@ -115,9 +115,7 @@ namespace vnd {
             const auto fileSize = fileStream.tellg();
             fileStream.seekg(0, std::ios::beg);
 
-            if(fileSize < 0) {
-                throw FILEREADEREERRORF("Unable to determine file size: {}", filePath);
-            }
+            if(fileSize < 0) { throw FILEREADEREERRORF("Unable to determine file size: {}", filePath); }
 
             std::string content(static_cast<std::size_t>(fileSize), '\0');
             fileStream.read(content.data(), fileSize);

@@ -1,0 +1,102 @@
+/*
+ * Created by gbian on 20/02/2026.
+ * Copyright (c) 2026 All rights reserved.
+ */
+
+#include "jsav/lexer/SourceSpan.hpp"
+
+namespace jsv {
+
+    // -------------------------------------------------------------------------
+    // Constructors
+    // -------------------------------------------------------------------------
+
+    SourceSpan::SourceSpan() noexcept : file_path{std::make_shared<const std::string>("")}, start{}, end{} {}
+
+    SourceSpan::SourceSpan(std::shared_ptr<const std::string> file_path, const SourceLocation &start, const SourceLocation &end) noexcept
+      : file_path{std::move(file_path)}, start{start}, end{end} {}
+
+    // -------------------------------------------------------------------------
+    // Mutation
+    // -------------------------------------------------------------------------
+
+    void SourceSpan::merge(const SourceSpan &other) noexcept {
+        if(*file_path == *other.file_path) {
+            if(other.start < start) { start = other.start; }
+            if(other.end > end) { end = other.end; }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Immutable merge
+    // -------------------------------------------------------------------------
+
+    std::optional<SourceSpan> SourceSpan::merged(const SourceSpan &other) const {
+        if(*file_path != *other.file_path) { return std::nullopt; }
+        return SourceSpan{file_path, (start < other.start) ? start : other.start, (end > other.end) ? end : other.end};
+    }
+
+    // -------------------------------------------------------------------------
+    // Ordering
+    // -------------------------------------------------------------------------
+
+    std::strong_ordering SourceSpan::operator<=>(const SourceSpan &other) const noexcept {
+        if(auto cmp = *file_path <=> *other.file_path; cmp != 0) { return cmp; }
+        if(auto cmp = start <=> other.start; cmp != 0) { return cmp; }
+        return end <=> other.end;
+    }
+
+    bool SourceSpan::operator==(const SourceSpan &other) const noexcept { return (*this <=> other) == std::strong_ordering::equal; }
+
+    // -------------------------------------------------------------------------
+    // Formatting — single source of truth used by all formatters
+    // -------------------------------------------------------------------------
+
+    std::string SourceSpan::to_string() const {
+        const auto truncated = truncate_path(std::filesystem::path{*file_path}, 2);
+        return fmt::format("{}:line {}:column {} - line {}:column {}", truncated, start.line, start.column, end.line, end.column);
+    }
+
+    std::ostream &operator<<(std::ostream &os, const SourceSpan &span) { return os << span.to_string(); }
+
+    // -------------------------------------------------------------------------
+    // truncate_path
+    // -------------------------------------------------------------------------
+
+    std::string truncate_path(const std::filesystem::path &path, std::size_t depth) {
+        std::vector<std::filesystem::path> components;
+        for(const auto &part : path) {
+            if(!part.empty()) { components.push_back(part); }
+        }
+
+        const std::size_t len = components.size();
+        std::filesystem::path result;
+
+        if(len <= depth) {
+            for(const auto &c : components) { result /= c; }
+        } else {
+            result = "..";
+            for(std::size_t i = len - depth; i < len; ++i) { result /= components[i]; }
+        }
+
+        return result.string();
+    }
+
+}  // namespace jsv
+
+// -------------------------------------------------------------------------
+// std::hash
+// -------------------------------------------------------------------------
+
+namespace std {
+
+    std::size_t hash<jsv::SourceSpan>::operator()(const jsv::SourceSpan &s) const noexcept {
+        std::size_t seed = 0;
+        auto combine = [&](std::size_t v) { seed ^= std::hash<std::size_t>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2); };
+        combine(std::hash<std::string>{}(*s.file_path));
+        combine(std::hash<jsv::SourceLocation>{}(s.start));
+        combine(std::hash<jsv::SourceLocation>{}(s.end));
+        return seed;
+    }
+
+}  // namespace std

@@ -1,24 +1,28 @@
 include(GenerateExportHeader)
 
 add_library(jsav_lib jsav.cpp
-#[[        lexer/Token.cpp
-        lexer/Tokenizer.cpp
-        lexer/TokenizerUtility.cpp
-        parser/Parser.cpp
-        parser/ASTNode.cpp
-        parser/BinaryExpressionNode.cpp
-        parser/UnaryExpressionNode.cpp
-        parser/NumberNode.cpp
-        parser/VariableNode.cpp
-        parser/TypeNode.cpp
-        parser/IndexNode.cpp
-        parser/ArrayNode.cpp
-        parser/NullptrNode.cpp
-        parser/Statement.cpp
-        transpiler/Transpiler.cpp
-        transpiler/ProjectBuilder.cpp
-        parser/AST.cpp
-        lexer/ErrorHandler.cpp]]
+        lexer/SourceLocation.cpp
+        ../../include/jsav/lexer/SourceLocation.hpp
+        lexer/SourceSpan.cpp
+        ../../include/jsav/lexer/SourceSpan.hpp
+        #[[        lexer/Token.cpp
+                lexer/Tokenizer.cpp
+                lexer/TokenizerUtility.cpp
+                parser/Parser.cpp
+                parser/ASTNode.cpp
+                parser/BinaryExpressionNode.cpp
+                parser/UnaryExpressionNode.cpp
+                parser/NumberNode.cpp
+                parser/VariableNode.cpp
+                parser/TypeNode.cpp
+                parser/IndexNode.cpp
+                parser/ArrayNode.cpp
+                parser/NullptrNode.cpp
+                parser/Statement.cpp
+                transpiler/Transpiler.cpp
+                transpiler/ProjectBuilder.cpp
+                parser/AST.cpp
+                lexer/ErrorHandler.cpp]]
 )
 
 add_library(jsav::jsav_lib ALIAS jsav_lib)
