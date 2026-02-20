@@ -187,6 +187,12 @@ jobs:
           ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure
           gcovr -j ${{env.nproc}} --verbose --delete --root ../ --print-summary --xml-pretty --xml coverage.xml . --gcov-executable '${{ matrix.gcov_executable }}' --exclude-unreachable-branches --exclude-noncode-lines --gcov-ignore-errors=no_working_dir_found
 
+      - name: Windows - Verify OpenCppCoverage
+        if: runner.os == 'Windows'
+        run: |
+          where OpenCppCoverage.exe
+          OpenCppCoverage.exe --version
+
       - name: Windows - Test and coverage
         if: runner.os == 'Windows'
         working-directory: ./build
