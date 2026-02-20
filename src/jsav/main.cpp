@@ -96,7 +96,7 @@ auto main(int argc, const char *const argv[]) -> int {
             }
         }
 
-        vnd::Timer timer(FORMAT("Processing file {}", porfilename));
+        const vnd::Timer timer(FORMAT("Processing file {}", porfilename));
         const auto str = vnd::readFromFile(porfilename);
         const auto processing_time = timer.to_string();
         LINFO(processing_time);
