@@ -178,7 +178,7 @@ jobs:
         run: ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure
 
       - name: Unix - Coverage
-        if: runner.os != 'Windows'
+        if: runner.os != 'Windows' && matrix.build_type == 'Debug'
         working-directory: ./build
         run: |
           gcovr -j ${{ steps.cpu-cores.outputs.count }} --root ../ --print-summary --xml-pretty --xml coverage.xml . --gcov-executable '${{ matrix.gcov_executable }}'
@@ -208,11 +208,12 @@ jobs:
             build/*-*${{ matrix.build_type }}*-*.*
 
 
-      - name: Publish to codecov
+      - name: Upload coverage to Codecov
+        if: ${{ !(matrix.os == 'ubuntu-latest' && matrix.build_type == 'release') }}
         uses: codecov/codecov-action@v5
         with:
           fail_ci_if_error: true # we weren't posting previously
-          flags: ${{ runner.os }}
-          name: ${{ runner.os }}-coverage
+          flags: ${{ matrix.os }}-${{ matrix.build_type }}
+          name: ${{ matrix.os }}-${{ matrix.build_type }}-coverage
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./build/coverage.xml
