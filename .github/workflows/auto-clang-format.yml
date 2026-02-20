@@ -18,6 +18,14 @@ jobs:
       with:
         author_name: Clang Robot
         author_email: robot@example.com
-        message: ':art: Committing clang-format changes'
+        message: |
+          :art: Applied clang-format to source code (auto-formatting)
+          - Updated .h, .cpp, and .hpp files to conform with the style guide.
+          - Changes include:
+            - Indentation adjustments
+            - Spacing improvements
+            - Alignment enhancements
+            - Consistency in formatting across files
+            - Removal of trailing whitespace
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
