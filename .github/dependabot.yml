@@ -2,9 +2,30 @@
 
 version: 2
 updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"  # This covers the root directory
+    open-pull-requests-limit: 5
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "[github]"
+      include: "scope"
 
   - package-ecosystem: "github-actions"
-    directory: "/"
+    directory: "/.github/actions/setup_cache"  # Tracks the .github/actions/setup_cache directory
+    open-pull-requests-limit: 3
     schedule:
-      # Check for updates to GitHub Actions every week
-      interval: "weekly"
+      interval: "daily"
+    commit-message:
+      prefix: "[github]"
+      include: "scope"
+
+  - package-ecosystem: "docker"
+    directory: ".devcontainer"
+    open-pull-requests-limit: 3
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "[github]"
+      include: "scope"
+
