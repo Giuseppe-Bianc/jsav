@@ -13,7 +13,7 @@ coverage:
 
 # Ignore test files and main.cpp
 ignore:
-  - "tests"
+  - "test"
 #  - "src/main.cpp"  # <- This line ignores the main C++ file
 #  - "src/cli.rs"
 #  - "src/utils"
