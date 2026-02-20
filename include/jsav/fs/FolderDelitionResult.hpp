@@ -54,7 +54,8 @@ namespace vnd {
 
                 // Remove the folder itself
                 std::error_code ec;
-                if(!fs::remove(folderPath, ec)) {
+                fs::remove(folderPath, ec);
+                if(ec) {
                     LERROR("Failed to remove folder '{}': {}", folderPath, ec.message());
                     return {false, folderPath};
                 }

@@ -25,7 +25,12 @@ namespace vnd {
                     LERROR("The path '{}' is not a file.", filePath);
                     return {false, filePath};
                 }
-                fs::remove(filePath);
+                std::error_code ec;
+                fs::remove(filePath, ec);
+                if(ec) {
+                    LERROR("Failed to remove file '{}': {}", filePath, ec.message());
+                    return {false, filePath};
+                }
 #ifdef INDEPT
                 LINFO("File '{}' deleted successfully.", filePath);
 #endif
