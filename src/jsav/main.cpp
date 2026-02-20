@@ -1,7 +1,7 @@
 /*
-* Created by gbian on 19/02/2026.
-* Copyright (c) 2026 All rights reserved.
-*/
+ * Created by gbian on 19/02/2026.
+ * Copyright (c) 2026 All rights reserved.
+ */
 // NOLINTBEGIN(*-include-cleaner, *-env33-c)
 #include "Costanti.hpp"
 #ifdef _WIN32
@@ -46,9 +46,9 @@ auto main(int argc, const char *const argv[]) -> int {
     SetConsoleOutputCP(CP_UTF8);
 
     // Optional: enable virtual terminal processing for better Unicode/emoji support
-    if (HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
+    if(HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
         DWORD dwMode = 0;
-        if (GetConsoleMode(hOut, &dwMode)) {
+        if(GetConsoleMode(hOut, &dwMode) != 0) {
             dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
             SetConsoleMode(hOut, dwMode);  // Failure here is non-fatal for UTF-8 output
         }
@@ -102,7 +102,7 @@ auto main(int argc, const char *const argv[]) -> int {
         LINFO(processing_time);
 
         [[maybe_unused]] const std::string_view code(str);
-        //LINFO("{}", code);
+        // LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;
         vnd::timeTokenizer(tokenizer, tokens);

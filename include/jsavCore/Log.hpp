@@ -34,7 +34,6 @@
 
 // clang-format off
 #include "disableWarn.hpp"
-#include <source_location>
 #include <iostream>
 #include "format.hpp"
 // clang-format on
@@ -193,15 +192,15 @@ inline void setup_logger() {
  */
 #define INIT_LOG()                                                                                                                         \
     do {                                                                                                                                   \
-    spdlog::set_error_handler(my_error_handler);                                                                                           \
-    try {                                                                                                                                  \
-        setup_logger();                                                                                                                    \
-    } catch(const spdlog::spdlog_ex &ex) {                                                                                                 \
-        std::cerr << "Logger initialization failed: " << ex.what() << '\n';                                                                \
-    } catch(const std::exception &e) { std::cerr << "Unhandled exception: " << e.what() << '\n'; } catch(...) {                            \
-        std::cerr << "An unknown error occurred. Logger initialization failed.\n";                                                         \
-    }                                                                                                                                      \
-    } while (0)
+        spdlog::set_error_handler(my_error_handler);                                                                                       \
+        try {                                                                                                                              \
+            setup_logger();                                                                                                                \
+        } catch(const spdlog::spdlog_ex &ex) {                                                                                             \
+            std::cerr << "Logger initialization failed: " << ex.what() << '\n';                                                            \
+        } catch(const std::exception &e) { std::cerr << "Unhandled exception: " << e.what() << '\n'; } catch(...) {                        \
+            std::cerr << "An unknown error occurred. Logger initialization failed.\n";                                                     \
+        }                                                                                                                                  \
+    } while(0)
 
 /// @}
 // NOLINTEND(*-include-cleaner)

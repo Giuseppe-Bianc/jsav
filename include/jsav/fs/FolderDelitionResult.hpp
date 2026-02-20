@@ -1,7 +1,7 @@
 // NOLINTBEGIN(*-include-cleaner)
 #pragma once
 
-#include "FileDelitionResult.hpp" //rename to FileDeletionResult.hpp
+#include "FileDelitionResult.hpp"  //rename to FileDeletionResult.hpp
 #include "OSOperationResult.hpp"
 
 DISABLE_WARNINGS_PUSH(4820)
