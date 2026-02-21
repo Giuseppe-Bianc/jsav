@@ -1,10 +1,20 @@
-#include <catch2/catch_test_macros.hpp>
 // clang-format off
 // NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded)
 // clang-format on
 #include "testsConstanst.hpp"
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers.hpp>
+#include <catch2/matchers/catch_matchers_container_properties.hpp>
+#include <catch2/matchers/catch_matchers_exception.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <future>
 #include <set>
+
+using Catch::Matchers::ContainsSubstring;
+using Catch::Matchers::EndsWith;
+using Catch::Matchers::Message;
+using Catch::Matchers::MessageMatches;
+using Catch::Matchers::StartsWith;
 
 #define REQ_FORMAT(type, string) REQUIRE(FORMAT("{}", type) == (string));
 #define REQ_FORMAT_COMPTOK(type, string) REQUIRE(FORMAT("{}", comp_tokType(type)) == (string));
@@ -30,6 +40,33 @@ TEST_CASE("Logger setup", "[setup_logger]") {
         setup_logger();
         auto logger = spdlog::default_logger();
         REQUIRE(logger->sinks().size() == 1);
+    }
+}
+
+TEST_CASE("my_error_handler(const std::string&) tests", "[error_handler]") {
+    SECTION("Basic error handling") {
+        const std::stringstream sss;
+        auto *original = std::cerr.rdbuf(sss.rdbuf());  // Redirect cerr to stringstream
+        my_error_handler("Sample error message");
+        std::cerr.rdbuf(original);  // Restore cerr
+
+        auto output = sss.str();
+        REQUIRE_THAT(output, ContainsSubstring("Error occurred:"));
+        REQUIRE_THAT(output, ContainsSubstring("Timestamp: "));
+        REQUIRE_THAT(output, ContainsSubstring("Thread ID: "));
+        REQUIRE_THAT(output, ContainsSubstring("Message: Sample error message"));
+    }
+
+    SECTION("Error handler with different messages") {
+        const std::stringstream sss;
+        auto *original = std::cerr.rdbuf(sss.rdbuf());  // Redirect cerr to stringstream
+        my_error_handler("Error 1");
+        my_error_handler("Another error");
+        std::cerr.rdbuf(original);  // Restore cerr
+
+        auto output = sss.str();
+        REQUIRE_THAT(output, ContainsSubstring("Message: Error 1"));
+        REQUIRE_THAT(output, ContainsSubstring("Message: Another error"));
     }
 }
 
@@ -390,11 +427,445 @@ TEST_CASE("deleteFolder: Handle exceptions gracefully", "[FolderDeletionResult]"
     REQUIRE_FALSE(result.success());
 }
 
+TEST_CASE("std::filesystem::path formater", "[FMT]") { REQ_FORMAT(std::filesystem::path("../ssss"), "../ssss"); }
+
+TEST_CASE("Timer: MSTimes", "[timer]") {
+    const auto timerNameData = timerName.data();
+    vnd::Timer timer{timerNameData};
+    std::this_thread::sleep_for(std::chrono::milliseconds(timerSleap));
+    const std::string output = timer.to_string();
+    const std::string new_output = (timer / timerCicles).to_string();
+    REQUIRE_THAT(output, ContainsSubstring(timerNameData));
+    REQUIRE_THAT(output, ContainsSubstring(timerNameData));
+    REQUIRE_THAT(output, ContainsSubstring(timerTime1.data()));
+    REQUIRE_THAT(new_output, ContainsSubstring(timerTime2.data()));
+}
+
+TEST_CASE("Timer: MSTimes FMT", "[timer]") {
+    const auto timerNameData = timerName.data();
+    vnd::Timer timer{timerNameData};
+    std::this_thread::sleep_for(std::chrono::milliseconds(timerSleap));
+    const std::string output = FORMAT("{}", timer);
+    const std::string new_output = FORMAT("{}", (timer / timerCicles));
+    REQUIRE_THAT(output, ContainsSubstring(timerNameData));
+    REQUIRE_THAT(output, ContainsSubstring(timerTime1.data()));
+    REQUIRE_THAT(new_output, ContainsSubstring(timerTime2.data()));
+}
+
+TEST_CASE("Timer: BigTimer", "[timer]") {
+    const auto timerNameData = timerName.data();
+    const vnd::Timer timer{timerNameData, vnd::Timer::Big};
+    const std::string output = timer.to_string();
+    REQUIRE_THAT(output, ContainsSubstring(timerNameData));
+    REQUIRE_THAT(output, ContainsSubstring(timerBigs.data()));
+}
+
+TEST_CASE("Timer: BigTimer FMT", "[timer]") {
+    const auto timerNameData = timerName.data();
+    vnd::Timer timer{timerNameData, vnd::Timer::Big};
+    const std::string output = FORMAT("{}", timer);
+    REQUIRE_THAT(output, ContainsSubstring(timerNameData));
+    REQUIRE_THAT(output, ContainsSubstring(timerBigs.data()));
+}
+
+TEST_CASE("Timer: AutoTimer", "[timer]") {
+    const vnd::Timer timer;
+    const std::string output = timer.to_string();
+    REQUIRE_THAT(output, ContainsSubstring("Timer"));
+}
+
+TEST_CASE("Timer: PrintTimer", "[timer]") {
+    std::stringstream out;
+    const vnd::Timer timer;
+    out << timer;
+    const std::string output = out.str();
+    REQUIRE_THAT(output, ContainsSubstring(timerName2.data()));
+}
+
+TEST_CASE("Timer: PrintTimer FMT", "[timer]") {
+    vnd::Timer timer;
+    const std::string output = FORMAT("{}", timer);
+    REQUIRE_THAT(output, ContainsSubstring(timerName2.data()));
+}
+
+TEST_CASE("Timer: TimeItTimer", "[timer]") {
+    vnd::Timer timer;
+    const std::string output = timer.time_it([]() { std::this_thread::sleep_for(std::chrono::milliseconds(timerSleap2)); },
+                                             timerResolution);
+    REQUIRE_THAT(output, ContainsSubstring(timerTime1.data()));
+}
+
+namespace {
+    // Helper function to create a file with content
+    // NOLINTBEGIN(*-easily-swappable-parameters, *-signed-bitwise)
+    void createFile(const std::string &infilename, const std::string &content) {
+        std::ofstream ofs(infilename, std::ios::out | std::ios::binary);
+        ofs << content;
+        ofs.close();
+    }
+    // NOLINTEND(*-easily-swappable-parameters, *-signed-bitwise)
+}  // namespace
+TEST_CASE("FolderCreationResult Constructor", "[FolderCreationResult]") {
+    SECTION("Default constructor") {
+        const vnd::FolderCreationResult result;
+        REQUIRE_FALSE(result.success());
+        REQUIRE(result.path().value_or("").empty());
+    }
+
+    SECTION("Parameterized constructor") {
+        const vnd::FolderCreationResult result(true, fs::path(testPaths));
+        REQUIRE(result.success() == true);
+        REQUIRE(result.path() == fs::path(testPaths));
+    }
+}
+
+TEST_CASE("FolderCreationResult Setters", "[FolderCreationResult]") {
+    vnd::FolderCreationResult result;
+
+    SECTION("Set success") {
+        result.set_success(true);
+        REQUIRE(result.success() == true);
+    }
+
+    SECTION("Set path") {
+        fs::path testPath(testPaths);
+        REQUIRE(result.path().value_or("").empty());
+        result.set_path(testPaths);
+        REQUIRE(result.path() == testPath);
+    }
+
+    SECTION("Set path with empty string") {
+        REQUIRE_THROWS_MATCHES(result.set_path(fs::path()), std::invalid_argument, Message("Path cannot be empty"));
+    }
+}
+
+TEST_CASE("FolderCreationResult operator<< outputs correctly", "[FolderCreationResult]") {
+    SECTION("Test with successful folder creation and valid path") {
+        const fs::path folderPath = "/test/directory";
+        const vnd::FolderCreationResult result(true, folderPath);
+
+        std::ostringstream oss;
+        oss << result;
+
+        REQUIRE(oss.str() == "success_: true, path_: /test/directory");
+    }
+
+    SECTION("Test with unsuccessful folder creation and no path") {
+        const vnd::FolderCreationResult result(false, fs::path{});
+
+        std::ostringstream oss;
+        oss << result;
+
+        REQUIRE(oss.str() == "success_: false, path_: None");
+    }
+
+    SECTION("Test with successful folder creation but empty path") {
+        const vnd::FolderCreationResult result(true, fs::path{});
+
+        std::ostringstream oss;
+        oss << result;
+
+        REQUIRE(oss.str() == "success_: true, path_: None");
+    }
+
+    SECTION("Test with unsuccessful folder creation and valid path") {
+        const fs::path folderPath = "/another/test/directory";
+        const vnd::FolderCreationResult result(false, folderPath);
+
+        std::ostringstream oss;
+        oss << result;
+
+        REQUIRE(oss.str() == "success_: false, path_: /another/test/directory");
+    }
+
+    SECTION("Test with default constructed FolderCreationResult") {
+        const vnd::FolderCreationResult result;
+
+        std::ostringstream oss;
+        oss << result;
+
+        REQUIRE(oss.str() == "success_: false, path_: None");
+    }
+}
+
+TEST_CASE("FolderCreationResult: Equality and Swap", "[FolderCreationResult]") {
+    fs::path path1("/folder1");
+    fs::path path2("/folder2");
+
+    vnd::FolderCreationResult result1(true, path1);
+    vnd::FolderCreationResult result2(false, path2);
+
+    SECTION("Equality operator") {
+        REQUIRE(result1 != result2);
+        vnd::FolderCreationResult result3(true, path1);
+        REQUIRE(result1 == result3);
+    }
+
+    SECTION("swap() function") {
+        swap(result1, result2);
+        REQUIRE(result1.success() == false);
+        REQUIRE(result1.path().value() == path2);
+        REQUIRE(result2.success() == true);
+        REQUIRE(result2.path().value() == path1);
+    }
+}
+
+TEST_CASE("FolderCreationResult Hash Value", "[FolderCreationResult]") {
+    SECTION("Hash value is consistent for the same object") {
+        const vnd::FolderCreationResult result(true, fs::path("/test/directory"));
+        const std::size_t hash1 = hash_value(result);
+        const std::size_t hash2 = hash_value(result);
+
+        REQUIRE(hash1 == hash2);
+    }
+
+    SECTION("Hash value changes with different success status") {
+        const vnd::FolderCreationResult result1(true, fs::path("/test/directory"));
+        const vnd::FolderCreationResult result2(false, fs::path("/test/directory"));
+
+        const std::size_t hash1 = hash_value(result1);
+        const std::size_t hash2 = hash_value(result2);
+
+        REQUIRE(hash1 != hash2);
+    }
+
+    SECTION("Hash value changes with different paths") {
+        const vnd::FolderCreationResult result1(true, fs::path("/test/directory"));
+        const vnd::FolderCreationResult result2(true, fs::path("/different/directory"));
+
+        const std::size_t hash1 = hash_value(result1);
+        const std::size_t hash2 = hash_value(result2);
+
+        REQUIRE(hash1 != hash2);
+    }
+
+    SECTION("Identical objects have the same hash value") {
+        const vnd::FolderCreationResult result1(true, fs::path("/test/directory"));
+        const vnd::FolderCreationResult result2(true, fs::path("/test/directory"));
+
+        const std::size_t hash1 = hash_value(result1);
+        const std::size_t hash2 = hash_value(result2);
+
+        REQUIRE(hash1 == hash2);
+    }
+
+    SECTION("Different objects have different hash values") {
+        const vnd::FolderCreationResult result1(true, fs::path("/test/directory"));
+        const vnd::FolderCreationResult result2(false, fs::path("/another/directory"));
+
+        const std::size_t hash1 = hash_value(result1);
+        const std::size_t hash2 = hash_value(result2);
+
+        REQUIRE(hash1 != hash2);
+    }
+
+    SECTION("Hash for default constructed object is consistent") {
+        const vnd::FolderCreationResult result1;
+        const vnd::FolderCreationResult result2;
+
+        const std::size_t hash1 = hash_value(result1);
+        const std::size_t hash2 = hash_value(result2);
+
+        REQUIRE(hash1 == hash2);
+    }
+
+    SECTION("Hash for default object vs object with empty path") {
+        const vnd::FolderCreationResult result1;
+        const vnd::FolderCreationResult result2(false, fs::path{});
+
+        const std::size_t hash1 = hash_value(result1);
+        const std::size_t hash2 = hash_value(result2);
+
+        REQUIRE(hash1 == hash2);
+    }
+}
+
+TEST_CASE("FolderCreationResult Folder Creation Functions", "[FolderCreationResult]") {
+    // Create a temporary directory for testing
+    auto tempDir = fs::temp_directory_path() / "vnd_test";
+    const std::string folderName = "test_folder";
+    const fs::path folderPath = tempDir / folderName;
+    fs::create_directories(tempDir);
+
+    SECTION("Create folder with valid parameters") {
+        const vnd::FolderCreationResult result = vnd::FolderCreationResult::createFolder(folderName, tempDir);
+        REQUIRE(result.success() == true);
+        REQUIRE(result.path() == folderPath);
+        [[maybe_unused]] auto unused = fs::remove_all(folderPath);
+    }
+
+    SECTION("Create folder with empty folder name") {
+        const std::string emptyFolderName;
+        const vnd::FolderCreationResult result = vnd::FolderCreationResult::createFolder(emptyFolderName, tempDir);
+        REQUIRE_FALSE(result.success());
+        REQUIRE(result.path()->empty());
+    }
+
+    SECTION("Create folder in non-existent parent directory") {
+        const fs::path nonExistentParentDir = tempDir / "non_existent_dir";
+        const vnd::FolderCreationResult result = vnd::FolderCreationResult::createFolder(folderName, nonExistentParentDir);
+        REQUIRE(result.success() == true);
+        REQUIRE(!result.path()->empty());
+    }
+
+    SECTION("Create folder in existing directory") {
+        const fs::path nonExistentParentDir = tempDir / "non_existent_dir";
+        const vnd::FolderCreationResult result = vnd::FolderCreationResult::createFolder(folderName, nonExistentParentDir);
+        REQUIRE(result.success() == true);
+        REQUIRE(!result.path()->empty());
+        const std::string folderName2 = "test_folder";
+        const vnd::FolderCreationResult result2 = vnd::FolderCreationResult::createFolder(folderName2, nonExistentParentDir);
+        REQUIRE(result2.success() == true);
+        REQUIRE(!result2.path()->empty());
+    }
+
+    SECTION("Create folder next to non-existent file") {
+        const fs::path nonExistentFilePath = tempDir / "non_existent_file.txt";
+        const vnd::FolderCreationResult result = vnd::FolderCreationResult::createFolderNextToFile(nonExistentFilePath, folderName);
+        REQUIRE(result.success() == true);
+        REQUIRE(!result.path()->empty());
+        REQUIRE(!result.pathcref()->empty());
+    }
+
+    SECTION("Create folder next to existing file") {
+        // Create a file in the temporary directory
+        const fs::path filePathInner = tempDir / "test_file.txt";
+        std::ofstream ofs(filePathInner);
+        ofs.close();
+
+        const vnd::FolderCreationResult result = vnd::FolderCreationResult::createFolderNextToFile(filePathInner, folderName);
+        REQUIRE(result.success() == true);
+        REQUIRE(result.path() == folderPath);
+
+        [[maybe_unused]] auto unused = fs::remove(filePathInner);
+        [[maybe_unused]] auto unuseds = fs::remove_all(folderPath);
+    }
+    [[maybe_unused]] auto unused = fs::remove_all(tempDir);
+}
+
+TEST_CASE("vnd::readFromFile - Valid File", "[file]") {
+    const std::string infilename = "testfile.txt";
+    const std::string content = "This is a test.";
+
+    createFile(infilename, content);
+
+    auto result = vnd::readFromFile(infilename);
+    REQUIRE(result == content);  // Ensure the content matches
+
+    [[maybe_unused]] auto unsed = fs::remove(infilename);
+}
+
+TEST_CASE("vnd::readFromFile - Non-existent File", "[file]") {
+    const std::string nonExistentFile = "nonexistent.txt";
+
+    REQUIRE_THROWS_MATCHES(vnd::readFromFile(nonExistentFile), std::runtime_error, MSG_FORMAT("File not found: {}", nonExistentFile));
+}
+
+TEST_CASE("vnd::readFromFile - Non-regular File", "[file]") {
+    const std::string dirName = "testdir";
+
+    fs::create_directory(dirName);
+
+    REQUIRE_THROWS_MATCHES(vnd::readFromFile(dirName), std::runtime_error, MSG_FORMAT("Path is not a regular file: {}", dirName));
+    [[maybe_unused]] auto unsed = fs::remove(dirName);
+}
+
+TEST_CASE("vnd::readFromFile - Empty File", "[file]") {
+    const std::string emtfilename = "emptyfile.txt";
+
+    createFile(emtfilename, "");
+
+    SECTION("Read from an empty file") {
+        const auto result = vnd::readFromFile(emtfilename);
+        REQUIRE(result.empty());  // Ensure the result is empty
+    }
+
+    [[maybe_unused]] auto unsed = fs::remove(emtfilename);
+}
+
+TEST_CASE("vnd::readFromFile - Large File", "[file]") {
+    const std::string lrgfilename = "largefile.txt";
+    const std::string largeContent(C_ST(1024 * 1024) * 10, 'a');  // 10 MB of 'a'
+
+    createFile(lrgfilename, largeContent);
+
+    SECTION("Read from a large file") {
+        auto result = vnd::readFromFile(lrgfilename);
+        REQUIRE(result == largeContent);  // Ensure content matches
+    }
+
+    [[maybe_unused]] auto unsed = fs::remove(lrgfilename);
+}
+
+TEST_CASE("GetBuildFolder - Standard Cases") {
+    SECTION("Normal path without trailing slash") {
+        const fs::path inputPath = fs::path("home/user/project").make_preferred();
+        const fs::path expectedOutput = fs::path("home/user/vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Path with trailing slash") {
+        const fs::path inputPath = fs::path("home/user/project/").make_preferred();
+        const fs::path expectedOutput = fs::path("home/user/vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Nested directory structure") {
+        const fs::path inputPath = fs::path("home/user/projects/client/app").make_preferred();
+        const fs::path expectedOutput = fs::path("home/user/projects/client/vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+}
+
+TEST_CASE("GetBuildFolder - Edge Cases") {
+    SECTION("Root directory input") {
+        const fs::path inputPath = fs::path("/").make_preferred();
+        const fs::path expectedOutput = fs::path("/vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Empty path") {
+        const fs::path inputPath = fs::path("").make_preferred();
+        const fs::path expectedOutput = fs::path(VANDIOR_BUILDFOLDER).make_preferred();  // No parent; expects vnbuild in current directory
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Relative path") {
+        const fs::path inputPath = fs::path("folder/subfolder").make_preferred();
+        const fs::path expectedOutput = fs::path("folder/vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Single directory path") {
+        const fs::path inputPath = fs::path("parent").make_preferred();
+        const fs::path expectedOutput = fs::path(VANDIOR_BUILDFOLDER).make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Current directory input") {
+        const fs::path inputPath = fs::path(".").make_preferred();
+        const fs::path expectedOutput = fs::path(VANDIOR_BUILDFOLDER).make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Parent directory input") {
+        const fs::path inputPath = fs::path("..").make_preferred();
+        const fs::path expectedOutput = fs::path("../vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+
+    SECTION("Path with special characters") {
+        const fs::path inputPath = fs::path("/path/with special@chars!").make_preferred();
+        const fs::path expectedOutput = fs::path("/path/vnbuild").make_preferred();
+        REQUIRE(vnd::GetBuildFolder(inputPath) == expectedOutput);
+    }
+}
+
 // ============================================================================
 // SourceLocation Tests (Non-constexpr)
 // ============================================================================
 
-TEST_CASE("SourceLocation default constructor zero-initializes all fields", "[SourceLocation][constructor][default][happy]") {
+TEST_CASE("SourceLocation default constructor zero-initializes all fields", "[SourceLocation]") {
     const jsv::SourceLocation loc;
 
     REQUIRE(loc.line == 0u);
@@ -402,7 +873,7 @@ TEST_CASE("SourceLocation default constructor zero-initializes all fields", "[So
     REQUIRE(loc.absolute_pos == 0u);
 }
 
-TEST_CASE("SourceLocation parameterized constructor initializes fields correctly", "[SourceLocation][constructor][parameterized][happy]") {
+TEST_CASE("SourceLocation parameterized constructor initializes fields correctly", "[SourceLocation]") {
     SECTION("typical values") {
         const jsv::SourceLocation loc(3u, 5u, 20u);
 
@@ -437,7 +908,7 @@ TEST_CASE("SourceLocation parameterized constructor initializes fields correctly
     }
 }
 
-TEST_CASE("SourceLocation spaceship operator provides correct ordering", "[SourceLocation][operator<=>][comparison][happy]") {
+TEST_CASE("SourceLocation spaceship operator provides correct ordering", "[SourceLocation]") {
     SECTION("equal locations") {
         const jsv::SourceLocation loc1(5u, 10u, 100u);
         const jsv::SourceLocation loc2(5u, 10u, 100u);
@@ -495,7 +966,7 @@ TEST_CASE("SourceLocation spaceship operator provides correct ordering", "[Sourc
     }
 }
 
-TEST_CASE("SourceLocation to_string formats correctly", "[SourceLocation][to_string][formatting][happy]") {
+TEST_CASE("SourceLocation to_string formats correctly", "[SourceLocation]") {
     SECTION("typical values") {
         const jsv::SourceLocation loc(3u, 5u, 20u);
         const std::string result = loc.to_string();
@@ -525,7 +996,7 @@ TEST_CASE("SourceLocation to_string formats correctly", "[SourceLocation][to_str
     }
 }
 
-TEST_CASE("SourceLocation stream operator outputs correctly", "[SourceLocation][operator<<][stream][happy]") {
+TEST_CASE("SourceLocation stream operator outputs correctly", "[SourceLocation]") {
     SECTION("typical values") {
         const jsv::SourceLocation loc(3u, 5u, 20u);
         std::ostringstream oss;
@@ -552,7 +1023,7 @@ TEST_CASE("SourceLocation stream operator outputs correctly", "[SourceLocation][
     }
 }
 
-TEST_CASE("SourceLocation hash function produces consistent results", "[SourceLocation][hash][happy]") {
+TEST_CASE("SourceLocation hash function produces consistent results", "[SourceLocation]") {
     SECTION("equal locations produce equal hashes") {
         const jsv::SourceLocation loc1(5u, 10u, 100u);
         const jsv::SourceLocation loc2(5u, 10u, 100u);
@@ -591,7 +1062,7 @@ TEST_CASE("SourceLocation hash function produces consistent results", "[SourceLo
     }
 }
 
-TEST_CASE("SourceLocation std::format integration", "[SourceLocation][format][std::formatter][happy]") {
+TEST_CASE("SourceLocation std::format integration", "[SourceLocation]") {
     SECTION("format with default specifier") {
         const jsv::SourceLocation loc(3u, 5u, 20u);
         const std::string result = FORMAT("{}", loc);
@@ -615,7 +1086,7 @@ TEST_CASE("SourceLocation std::format integration", "[SourceLocation][format][st
     }
 }
 
-TEST_CASE("SourceLocation fmt::format integration", "[SourceLocation][format][fmt::formatter][happy]") {
+TEST_CASE("SourceLocation fmt::format integration", "[SourceLocation]") {
     SECTION("fmt::format with default specifier") {
         const jsv::SourceLocation loc(3u, 5u, 20u);
         const std::string result = fmt::format("{}", loc);
@@ -639,7 +1110,7 @@ TEST_CASE("SourceLocation fmt::format integration", "[SourceLocation][format][fm
     }
 }
 
-TEST_CASE("SourceLocation noexcept guarantees on operations", "[SourceLocation][noexcept][contract]") {
+TEST_CASE("SourceLocation noexcept guarantees on operations", "[SourceLocation]") {
     SECTION("default constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_default_constructible_v<jsv::SourceLocation>); }
 
     SECTION("parameterized constructor is noexcept") {
@@ -680,7 +1151,7 @@ TEST_CASE("SourceLocation noexcept guarantees on operations", "[SourceLocation][
     }
 }
 
-TEST_CASE("SourceLocation usage in standard containers", "[SourceLocation][containers][integration]") {
+TEST_CASE("SourceLocation usage in standard containers", "[SourceLocation]") {
     SECTION("can be used as std::vector element") {
         std::vector<jsv::SourceLocation> locations;
         locations.emplace_back(1u, 1u, 0u);
@@ -728,7 +1199,7 @@ TEST_CASE("SourceLocation usage in standard containers", "[SourceLocation][conta
     }
 }
 
-TEST_CASE("SourceLocation edge cases with extreme values", "[SourceLocation][edge][boundary]") {
+TEST_CASE("SourceLocation edge cases with extreme values", "[SourceLocation]") {
     SECTION("maximum size_t values") {
         constexpr std::size_t max = std::numeric_limits<std::size_t>::max();
         const jsv::SourceLocation loc(max, max, max);
@@ -775,7 +1246,7 @@ TEST_CASE("SourceLocation edge cases with extreme values", "[SourceLocation][edg
     }
 }
 
-TEST_CASE("SourceLocation copy and move semantics", "[SourceLocation][copy][move][semantics]") {
+TEST_CASE("SourceLocation copy and move semantics", "[SourceLocation]") {
     SECTION("copy construction preserves all fields") {
         const jsv::SourceLocation original(10u, 20u, 300u);
         const jsv::SourceLocation copied = original;
@@ -830,7 +1301,7 @@ TEST_CASE("SourceLocation copy and move semantics", "[SourceLocation][copy][move
     }
 }
 
-TEST_CASE("SourceLocation member field mutability", "[SourceLocation][members][mutability]") {
+TEST_CASE("SourceLocation member field mutability", "[SourceLocation]") {
     SECTION("fields can be modified after construction") {
         jsv::SourceLocation loc(1u, 1u, 0u);
 
@@ -874,7 +1345,7 @@ TEST_CASE("SourceLocation member field mutability", "[SourceLocation][members][m
 // SourceSpan Tests (Non-constexpr)
 // ============================================================================
 
-TEST_CASE("SourceSpan default constructor initializes correctly", "[SourceSpan][constructor][default][happy]") {
+TEST_CASE("SourceSpan default constructor initializes correctly", "[SourceSpan]") {
     const jsv::SourceSpan span;
 
     REQUIRE(span.file_path != nullptr);
@@ -887,7 +1358,7 @@ TEST_CASE("SourceSpan default constructor initializes correctly", "[SourceSpan][
     REQUIRE(span.end.absolute_pos == 0u);
 }
 
-TEST_CASE("SourceSpan parameterized constructor initializes correctly", "[SourceSpan][constructor][parameterized][happy]") {
+TEST_CASE("SourceSpan parameterized constructor initializes correctly", "[SourceSpan]") {
     SECTION("typical values") {
         const auto filePath = std::make_shared<const std::string>("test/file.cpp");
         const jsv::SourceLocation start(1u, 1u, 0u);
@@ -939,7 +1410,7 @@ TEST_CASE("SourceSpan parameterized constructor initializes correctly", "[Source
     }
 }
 
-TEST_CASE("SourceSpan merge mutates in-place correctly", "[SourceSpan][merge][mutation][happy]") {
+TEST_CASE("SourceSpan merge mutates in-place correctly", "[SourceSpan]") {
     SECTION("merge overlapping spans from same file") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start1(1u, 1u, 0u);
@@ -1025,7 +1496,7 @@ TEST_CASE("SourceSpan merge mutates in-place correctly", "[SourceSpan][merge][mu
     }
 }
 
-TEST_CASE("SourceSpan merged returns optional correctly", "[SourceSpan][merged][optional][happy]") {
+TEST_CASE("SourceSpan merged returns optional correctly", "[SourceSpan]") {
     SECTION("merge spans from same file returns value") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start1(1u, 1u, 0u);
@@ -1099,7 +1570,7 @@ TEST_CASE("SourceSpan merged returns optional correctly", "[SourceSpan][merged][
     }
 }
 
-TEST_CASE("SourceSpan spaceship operator provides correct ordering", "[SourceSpan][operator<=>][comparison][happy]") {
+TEST_CASE("SourceSpan spaceship operator provides correct ordering", "[SourceSpan]") {
     SECTION("equal spans") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start(1u, 1u, 0u);
@@ -1243,7 +1714,7 @@ TEST_CASE("SourceSpan to_string formats correctly", "[SourceSpan]") {
     }
 }
 
-TEST_CASE("SourceSpan stream operator outputs correctly", "[SourceSpan][operator<<][stream][happy]") {
+TEST_CASE("SourceSpan stream operator outputs correctly", "[SourceSpan]") {
     SECTION("typical span") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start(1u, 5u, 0u);
@@ -1283,7 +1754,7 @@ TEST_CASE("SourceSpan stream operator outputs correctly", "[SourceSpan][operator
     }
 }
 
-TEST_CASE("SourceSpan hash function produces consistent results", "[SourceSpan][hash][happy]") {
+TEST_CASE("SourceSpan hash function produces consistent results", "[SourceSpan]") {
     SECTION("equal spans produce equal hashes") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start(1u, 5u, 0u);
@@ -1331,7 +1802,7 @@ TEST_CASE("SourceSpan hash function produces consistent results", "[SourceSpan][
     }
 }
 
-TEST_CASE("SourceSpan std::format integration", "[SourceSpan][format][std::formatter][happy]") {
+TEST_CASE("SourceSpan std::format integration", "[SourceSpan]") {
     SECTION("format with default specifier") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start(1u, 5u, 0u);
@@ -1365,7 +1836,7 @@ TEST_CASE("SourceSpan std::format integration", "[SourceSpan][format][std::forma
     }
 }
 
-TEST_CASE("SourceSpan fmt::format integration", "[SourceSpan][format][fmt::formatter][happy]") {
+TEST_CASE("SourceSpan fmt::format integration", "[SourceSpan]") {
     SECTION("fmt::format with default specifier") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceLocation start(1u, 5u, 0u);
@@ -1399,7 +1870,7 @@ TEST_CASE("SourceSpan fmt::format integration", "[SourceSpan][format][fmt::forma
     }
 }
 
-TEST_CASE("SourceSpan noexcept guarantees on operations", "[SourceSpan][noexcept][contract]") {
+TEST_CASE("SourceSpan noexcept guarantees on operations", "[SourceSpan]") {
     SECTION("default constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_default_constructible_v<jsv::SourceSpan>); }
 
     SECTION("parameterized constructor is noexcept") {
@@ -1476,7 +1947,7 @@ TEST_CASE("SourceSpan noexcept guarantees on operations", "[SourceSpan][noexcept
     }
 }
 
-TEST_CASE("SourceSpan usage in standard containers", "[SourceSpan][containers][integration]") {
+TEST_CASE("SourceSpan usage in standard containers", "[SourceSpan]") {
     SECTION("can be used as std::vector element") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         std::vector<jsv::SourceSpan> spans;
@@ -1526,7 +1997,7 @@ TEST_CASE("SourceSpan usage in standard containers", "[SourceSpan][containers][i
     }
 }
 
-TEST_CASE("SourceSpan edge cases with extreme values", "[SourceSpan][edge][boundary]") {
+TEST_CASE("SourceSpan edge cases with extreme values", "[SourceSpan]") {
     SECTION("maximum size_t values in locations") {
         constexpr std::size_t max = std::numeric_limits<std::size_t>::max();
         const auto filePath = std::make_shared<const std::string>("test.cpp");
@@ -1588,7 +2059,7 @@ TEST_CASE("SourceSpan edge cases with extreme values", "[SourceSpan][edge][bound
     }
 }
 
-TEST_CASE("SourceSpan copy and move semantics", "[SourceSpan][copy][move][semantics]") {
+TEST_CASE("SourceSpan copy and move semantics", "[SourceSpan]") {
     SECTION("copy construction preserves all fields") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         const jsv::SourceSpan original(filePath, {10u, 20u, 100u}, {30u, 40u, 300u});
@@ -1768,7 +2239,7 @@ TEST_CASE("HasSpan abstract interface works correctly", "[HasSpan][interface][po
     }
 }
 
-TEST_CASE("SourceSpan file_path sharing behavior", "[SourceSpan][shared_ptr][memory]") {
+TEST_CASE("SourceSpan file_path sharing behavior", "[SourceSpan]") {
     SECTION("multiple spans can share same file_path") {
         const auto filePath = std::make_shared<const std::string>("shared.cpp");
 
