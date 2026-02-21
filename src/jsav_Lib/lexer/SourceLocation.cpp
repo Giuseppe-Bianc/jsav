@@ -25,4 +25,4 @@ namespace std {
 
 }  // namespace std
 
-// NOLINTEND(*-include-cleaner, readability-identifier-length)
+// NOLINTEND(*-include-cleaner, *-identifier-length)

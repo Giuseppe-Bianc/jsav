@@ -40,7 +40,7 @@ else
 fi
 cd  "$JSAV_ROOT"
 clear
-cmake -S . -B ./build -Wno-dev -GNinja -Djsav_WARNINGS_AS_ERRORS=ON -Djsav_ENABLE_CLANG_TIDY:BOOL=ON  -Djsav_ENABLE_COVERAGE:BOOL=ON -Djsav_ENABLE_CPPCHECK:BOOL=OFF
+cmake -S . -B ./build -Wno-dev -GNinja -Djsav_WARNINGS_AS_ERRORS=ON -Djsav_ENABLE_CLANG_TIDY:BOOL=ON  -Djsav_ENABLE_COVERAGE:BOOL=ON -Djsav_ENABLE_CPPCHECK:BOOL=OFF -Djsav_ENABLE_IPO:BOOL=OFF
 cmake --build ./build --target tests -j 3
 cmake --build ./build --target constexpr_tests -j 3
 cmake --build ./build --target relaxed_constexpr_tests -j 3

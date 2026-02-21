@@ -11,10 +11,13 @@ namespace jsv {
     // Constructors
     // -------------------------------------------------------------------------
 
-    SourceSpan::SourceSpan() noexcept : file_path{std::make_shared<const std::string>("")}, start{}, end{} {}
+    SourceSpan::SourceSpan() noexcept : file_path{std::make_shared<const std::string>("")} {}
 
-    SourceSpan::SourceSpan(std::shared_ptr<const std::string> file_path, const SourceLocation &start, const SourceLocation &end) noexcept
-      : file_path{std::move(file_path)}, start{start}, end{end} {}
+    // NOLINTBEGIN(*-easily-swappable-parameters)
+    // Start/end parameter ordering is a well-established convention; names are semantically distinct
+    SourceSpan::SourceSpan(std::shared_ptr<const std::string> p_file_path, const SourceLocation &p_start, const SourceLocation &p_end) noexcept
+      : file_path{std::move(p_file_path)}, start{p_start}, end{p_end} {}
+    // NOLINTEND(*-easily-swappable-parameters)
 
     // -------------------------------------------------------------------------
     // Mutation

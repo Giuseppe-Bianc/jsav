@@ -38,9 +38,9 @@ namespace jsv {
         /// @param start      Starting position (inclusive)
         /// @param end        Ending position (exclusive)
         SourceSpan(
-            std::shared_ptr<const std::string> file_path,
-            const SourceLocation& start,
-            const SourceLocation& end) noexcept;
+            std::shared_ptr<const std::string> p_file_path,
+            const SourceLocation& p_start,
+            const SourceLocation& p_end) noexcept;
 
         /// Merges another span into this one in-place.
         /// Only merges if spans are from the same file.

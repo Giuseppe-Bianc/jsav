@@ -52,8 +52,8 @@ namespace jsv {
         /// assert(loc.line == 3);
         /// assert(loc.column == 5);
         /// assert(loc.absolute_pos == 20);
-        constexpr SourceLocation(std::size_t line, std::size_t column, std::size_t absolute_pos) noexcept
-          : line{line}, column{column}, absolute_pos{absolute_pos} {}
+        constexpr SourceLocation(std::size_t p_line, std::size_t p_column, std::size_t p_absolute_pos) noexcept
+          : line{p_line}, column{p_column}, absolute_pos{p_absolute_pos} {}
 
         /// Lexicographic ordering: line → column → absolute_pos.
         /// Automatically generates ==, !=, <, <=, >, >= from a single definition.
