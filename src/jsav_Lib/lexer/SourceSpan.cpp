@@ -15,7 +15,8 @@ namespace jsv {
 
     // NOLINTBEGIN(*-easily-swappable-parameters)
     // Start/end parameter ordering is a well-established convention; names are semantically distinct
-    SourceSpan::SourceSpan(std::shared_ptr<const std::string> p_file_path, const SourceLocation &p_start, const SourceLocation &p_end) noexcept
+    SourceSpan::SourceSpan(std::shared_ptr<const std::string> p_file_path, const SourceLocation &p_start,
+                           const SourceLocation &p_end) noexcept
       : file_path{std::move(p_file_path)}, start{p_start}, end{p_end} {}
     // NOLINTEND(*-easily-swappable-parameters)
 
@@ -66,17 +67,16 @@ namespace jsv {
     // truncate_path
     // -------------------------------------------------------------------------
 
-    std::string truncate_path(const std::filesystem::path &path, std::size_t depth) {
-        std::vector<std::filesystem::path> components;
-        for(const auto &part : path) {
-            if(!part.empty()) { components.push_back(part); }
-        }
+    std::string truncate_path(const fs::path &path, std::size_t depth) {
+        std::vector<fs::path> components;
+        std::ranges::copy_if(path, std::back_inserter(components), [](const auto &part) { return !part.empty(); });
 
         const std::size_t len = components.size();
-        std::filesystem::path result;
+        fs::path result;
 
         if(len <= depth) {
-            for(const auto &c : components) { result /= c; }
+            result = std::accumulate(components.begin(), components.end(), fs::path{},
+                                     [](const fs::path &acc, const auto &c) { return acc / c; });
         } else {
             result = "..";
             for(std::size_t i = len - depth; i < len; ++i) { result /= components[i]; }
