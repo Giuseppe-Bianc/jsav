@@ -2,6 +2,7 @@
  * Created by gbian on 20/02/2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-include-cleaner)
 
 #include "jsav/lexer/SourceLocation.hpp"
 namespace jsv {
@@ -24,3 +25,5 @@ namespace std {
     }
 
 }  // namespace std
+
+// NOLINTEND(*-include-cleaner)
