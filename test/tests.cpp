@@ -2,9 +2,9 @@
 // clang-format off
 // NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization)
 // clang-format on
-#include <future>
-
 #include "testsConstanst.hpp"
+#include <future>
+#include <set>
 
 #define REQ_FORMAT(type, string) REQUIRE(FORMAT("{}", type) == (string));
 #define REQ_FORMAT_COMPTOK(type, string) REQUIRE(FORMAT("{}", comp_tokType(type)) == (string));
@@ -389,6 +389,1428 @@ TEST_CASE("deleteFolder: Handle exceptions gracefully", "[FolderDeletionResult]"
 
     REQUIRE_FALSE(result.success());
 }
+
+// ============================================================================
+// SourceLocation Tests (Non-constexpr)
+// ============================================================================
+
+TEST_CASE("SourceLocation default constructor zero-initializes all fields", "[SourceLocation][constructor][default][happy]") {
+    const jsv::SourceLocation loc;
+
+    REQUIRE(loc.line == 0u);
+    REQUIRE(loc.column == 0u);
+    REQUIRE(loc.absolute_pos == 0u);
+}
+
+TEST_CASE("SourceLocation parameterized constructor initializes fields correctly", "[SourceLocation][constructor][parameterized][happy]") {
+    SECTION("typical values") {
+        const jsv::SourceLocation loc(3u, 5u, 20u);
+
+        REQUIRE(loc.line == 3u);
+        REQUIRE(loc.column == 5u);
+        REQUIRE(loc.absolute_pos == 20u);
+    }
+
+    SECTION("zero values") {
+        const jsv::SourceLocation loc(0u, 0u, 0u);
+
+        REQUIRE(loc.line == 0u);
+        REQUIRE(loc.column == 0u);
+        REQUIRE(loc.absolute_pos == 0u);
+    }
+
+    SECTION("large values") {
+        constexpr std::size_t maxLine = std::numeric_limits<std::size_t>::max();
+        const jsv::SourceLocation loc(maxLine, maxLine - 1, maxLine - 2);
+
+        REQUIRE(loc.line == maxLine);
+        REQUIRE(loc.column == maxLine - 1);
+        REQUIRE(loc.absolute_pos == maxLine - 2);
+    }
+
+    SECTION("first character of file") {
+        const jsv::SourceLocation loc(1u, 1u, 0u);
+
+        REQUIRE(loc.line == 1u);
+        REQUIRE(loc.column == 1u);
+        REQUIRE(loc.absolute_pos == 0u);
+    }
+}
+
+TEST_CASE("SourceLocation spaceship operator provides correct ordering", "[SourceLocation][operator<=>][comparison][happy]") {
+    SECTION("equal locations") {
+        const jsv::SourceLocation loc1(5u, 10u, 100u);
+        const jsv::SourceLocation loc2(5u, 10u, 100u);
+
+        REQUIRE(loc1 == loc2);
+        REQUIRE_FALSE(loc1 != loc2);
+        REQUIRE_FALSE(loc1 < loc2);
+        REQUIRE_FALSE(loc1 > loc2);
+        REQUIRE(loc1 <= loc2);
+        REQUIRE(loc1 >= loc2);
+    }
+
+    SECTION("different line numbers") {
+        const jsv::SourceLocation loc1(3u, 5u, 20u);
+        const jsv::SourceLocation loc2(5u, 5u, 20u);
+
+        REQUIRE(loc1 < loc2);
+        REQUIRE(loc2 > loc1);
+        REQUIRE_FALSE(loc1 == loc2);
+        REQUIRE(loc1 != loc2);
+    }
+
+    SECTION("same line, different columns") {
+        const jsv::SourceLocation loc1(5u, 3u, 20u);
+        const jsv::SourceLocation loc2(5u, 7u, 20u);
+
+        REQUIRE(loc1 < loc2);
+        REQUIRE(loc2 > loc1);
+        REQUIRE_FALSE(loc1 == loc2);
+    }
+
+    SECTION("same line and column, different absolute_pos") {
+        const jsv::SourceLocation loc1(5u, 10u, 50u);
+        const jsv::SourceLocation loc2(5u, 10u, 100u);
+
+        REQUIRE(loc1 < loc2);
+        REQUIRE(loc2 > loc1);
+        REQUIRE_FALSE(loc1 == loc2);
+    }
+
+    SECTION("lexicographic ordering prioritizes line over column") {
+        // Even though loc1 has larger column, loc2 has larger line
+        const jsv::SourceLocation loc1(3u, 100u, 500u);
+        const jsv::SourceLocation loc2(4u, 1u, 10u);
+
+        REQUIRE(loc1 < loc2);
+    }
+
+    SECTION("lexicographic ordering prioritizes column over absolute_pos") {
+        // Even though loc1 has larger absolute_pos, loc2 has larger column
+        const jsv::SourceLocation loc1(5u, 5u, 1000u);
+        const jsv::SourceLocation loc2(5u, 10u, 100u);
+
+        REQUIRE(loc1 < loc2);
+    }
+}
+
+TEST_CASE("SourceLocation to_string formats correctly", "[SourceLocation][to_string][formatting][happy]") {
+    SECTION("typical values") {
+        const jsv::SourceLocation loc(3u, 5u, 20u);
+        const std::string result = loc.to_string();
+
+        REQUIRE(result == "line 3:column 5 (offset: 20)");
+    }
+
+    SECTION("first character of file") {
+        const jsv::SourceLocation loc(1u, 1u, 0u);
+        const std::string result = loc.to_string();
+
+        REQUIRE(result == "line 1:column 1 (offset: 0)");
+    }
+
+    SECTION("large values") {
+        const jsv::SourceLocation loc(1000u, 500u, 123456u);
+        const std::string result = loc.to_string();
+
+        REQUIRE(result == "line 1000:column 500 (offset: 123456)");
+    }
+
+    SECTION("zero-initialized location") {
+        const jsv::SourceLocation loc;
+        const std::string result = loc.to_string();
+
+        REQUIRE(result == "line 0:column 0 (offset: 0)");
+    }
+}
+
+TEST_CASE("SourceLocation stream operator outputs correctly", "[SourceLocation][operator<<][stream][happy]") {
+    SECTION("typical values") {
+        const jsv::SourceLocation loc(3u, 5u, 20u);
+        std::ostringstream oss;
+        oss << loc;
+
+        REQUIRE(oss.str() == "line 3:column 5 (offset: 20)");
+    }
+
+    SECTION("chained stream output") {
+        const jsv::SourceLocation loc1(1u, 2u, 3u);
+        const jsv::SourceLocation loc2(4u, 5u, 6u);
+        std::ostringstream oss;
+        oss << "First: " << loc1 << ", Second: " << loc2;
+
+        REQUIRE(oss.str() == "First: line 1:column 2 (offset: 3), Second: line 4:column 5 (offset: 6)");
+    }
+
+    SECTION("empty location") {
+        const jsv::SourceLocation loc;
+        std::ostringstream oss;
+        oss << loc;
+
+        REQUIRE(oss.str() == "line 0:column 0 (offset: 0)");
+    }
+}
+
+TEST_CASE("SourceLocation hash function produces consistent results", "[SourceLocation][hash][happy]") {
+    SECTION("equal locations produce equal hashes") {
+        const jsv::SourceLocation loc1(5u, 10u, 100u);
+        const jsv::SourceLocation loc2(5u, 10u, 100u);
+
+        const std::hash<jsv::SourceLocation> hasher;
+        REQUIRE(hasher(loc1) == hasher(loc2));
+    }
+
+    SECTION("different locations produce different hashes") {
+        const jsv::SourceLocation loc1(5u, 10u, 100u);
+        const jsv::SourceLocation loc2(5u, 10u, 101u);
+
+        const std::hash<jsv::SourceLocation> hasher;
+        // Note: Hash collisions are possible but unlikely for simple cases
+        REQUIRE(hasher(loc1) != hasher(loc2));
+    }
+
+    SECTION("hash is stable across multiple calls") {
+        const jsv::SourceLocation loc(3u, 7u, 42u);
+        const std::hash<jsv::SourceLocation> hasher;
+
+        const std::size_t hash1 = hasher(loc);
+        const std::size_t hash2 = hasher(loc);
+        const std::size_t hash3 = hasher(loc);
+
+        REQUIRE(hash1 == hash2);
+        REQUIRE(hash2 == hash3);
+    }
+
+    SECTION("default constructed location has consistent hash") {
+        const jsv::SourceLocation loc1;
+        const jsv::SourceLocation loc2;
+
+        const std::hash<jsv::SourceLocation> hasher;
+        REQUIRE(hasher(loc1) == hasher(loc2));
+    }
+}
+
+TEST_CASE("SourceLocation std::format integration", "[SourceLocation][format][std::formatter][happy]") {
+    SECTION("format with default specifier") {
+        const jsv::SourceLocation loc(3u, 5u, 20u);
+        const std::string result = FORMAT("{}", loc);
+
+        REQUIRE(result == "line 3:column 5 (offset: 20)");
+    }
+
+    SECTION("format in larger string") {
+        const jsv::SourceLocation loc(10u, 20u, 500u);
+        const std::string result = FORMAT("Error at {}", loc);
+
+        REQUIRE(result == "Error at line 10:column 20 (offset: 500)");
+    }
+
+    SECTION("format multiple locations") {
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 10u, 250u);
+        const std::string result = FORMAT("From {} to {}", start, end);
+
+        REQUIRE(result == "From line 1:column 1 (offset: 0) to line 5:column 10 (offset: 250)");
+    }
+}
+
+TEST_CASE("SourceLocation fmt::format integration", "[SourceLocation][format][fmt::formatter][happy]") {
+    SECTION("fmt::format with default specifier") {
+        const jsv::SourceLocation loc(3u, 5u, 20u);
+        const std::string result = fmt::format("{}", loc);
+
+        REQUIRE(result == "line 3:column 5 (offset: 20)");
+    }
+
+    SECTION("fmt::format in larger string") {
+        const jsv::SourceLocation loc(10u, 20u, 500u);
+        const std::string result = fmt::format("Error at {}", loc);
+
+        REQUIRE(result == "Error at line 10:column 20 (offset: 500)");
+    }
+
+    SECTION("fmt::format multiple locations") {
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 10u, 250u);
+        const std::string result = fmt::format("From {} to {}", start, end);
+
+        REQUIRE(result == "From line 1:column 1 (offset: 0) to line 5:column 10 (offset: 250)");
+    }
+}
+
+TEST_CASE("SourceLocation noexcept guarantees on operations", "[SourceLocation][noexcept][contract]") {
+    SECTION("default constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_default_constructible_v<jsv::SourceLocation>); }
+
+    SECTION("parameterized constructor is noexcept") {
+        STATIC_REQUIRE(std::is_nothrow_constructible_v<jsv::SourceLocation, std::size_t, std::size_t, std::size_t>);
+    }
+
+    SECTION("copy constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_copy_constructible_v<jsv::SourceLocation>); }
+
+    SECTION("move constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_move_constructible_v<jsv::SourceLocation>); }
+
+    SECTION("copy assignment is noexcept") { STATIC_REQUIRE(std::is_nothrow_copy_assignable_v<jsv::SourceLocation>); }
+
+    SECTION("move assignment is noexcept") { STATIC_REQUIRE(std::is_nothrow_move_assignable_v<jsv::SourceLocation>); }
+
+    SECTION("destructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_destructible_v<jsv::SourceLocation>); }
+
+    SECTION("spaceship operator is noexcept") {
+        const jsv::SourceLocation loc1;
+        const jsv::SourceLocation loc2;
+        REQUIRE_NOTHROW(std::ignore = (loc1 <=> loc2));
+    }
+
+    SECTION("to_string does not throw on any state") {
+        const jsv::SourceLocation loc(100u, 200u, 50000u);
+        REQUIRE_NOTHROW(std::ignore = loc.to_string());
+    }
+
+    SECTION("stream operator does not throw") {
+        const jsv::SourceLocation loc(100u, 200u, 50000u);
+        std::ostringstream oss;
+        REQUIRE_NOTHROW(oss << loc);
+    }
+
+    SECTION("hash does not throw") {
+        const jsv::SourceLocation loc(100u, 200u, 50000u);
+        const std::hash<jsv::SourceLocation> hasher;
+        REQUIRE_NOTHROW(std::ignore = hasher(loc));
+    }
+}
+
+TEST_CASE("SourceLocation usage in standard containers", "[SourceLocation][containers][integration]") {
+    SECTION("can be used as std::vector element") {
+        std::vector<jsv::SourceLocation> locations;
+        locations.emplace_back(1u, 1u, 0u);
+        locations.emplace_back(2u, 5u, 10u);
+        locations.emplace_back(3u, 10u, 25u);
+
+        REQUIRE(locations.size() == 3u);
+        REQUIRE(locations[0].line == 1u);
+        REQUIRE(locations[1].column == 5u);
+        REQUIRE(locations[2].absolute_pos == 25u);
+    }
+
+    SECTION("can be used as std::map key") {
+        std::map<jsv::SourceLocation, std::string> locationMap;
+        locationMap[{1u, 1u, 0u}] = "start";
+        locationMap[{5u, 10u, 100u}] = "middle";
+        locationMap[{10u, 20u, 500u}] = "end";
+
+        REQUIRE(locationMap.size() == 3u);
+        REQUIRE(locationMap.at({1u, 1u, 0u}) == "start");
+        REQUIRE(locationMap.at({5u, 10u, 100u}) == "middle");
+        REQUIRE(locationMap.at({10u, 20u, 500u}) == "end");
+    }
+
+    SECTION("can be used as std::unordered_map key with custom hash") {
+        std::unordered_map<jsv::SourceLocation, std::string, std::hash<jsv::SourceLocation>> locationMap;
+        locationMap[{1u, 1u, 0u}] = "start";
+        locationMap[{5u, 10u, 100u}] = "middle";
+
+        REQUIRE(locationMap.size() == 2u);
+        REQUIRE(locationMap.at({1u, 1u, 0u}) == "start");
+        REQUIRE(locationMap.at({5u, 10u, 100u}) == "middle");
+    }
+
+    SECTION("can be used in std::set") {
+        std::set<jsv::SourceLocation> locationSet;
+        locationSet.insert({3u, 5u, 20u});
+        locationSet.insert({1u, 1u, 0u});
+        locationSet.insert({5u, 10u, 100u});
+        locationSet.insert({1u, 1u, 0u});  // duplicate
+
+        REQUIRE(locationSet.size() == 3u);
+        REQUIRE(locationSet.begin()->line == 1u);           // smallest
+        REQUIRE(std::prev(locationSet.end())->line == 5u);  // largest
+    }
+}
+
+TEST_CASE("SourceLocation edge cases with extreme values", "[SourceLocation][edge][boundary]") {
+    SECTION("maximum size_t values") {
+        constexpr std::size_t max = std::numeric_limits<std::size_t>::max();
+        const jsv::SourceLocation loc(max, max, max);
+
+        REQUIRE(loc.line == max);
+        REQUIRE(loc.column == max);
+        REQUIRE(loc.absolute_pos == max);
+
+        // Verify to_string handles large numbers
+        const std::string result = loc.to_string();
+        REQUIRE_FALSE(result.empty());
+        REQUIRE(result.find("line") != std::string::npos);
+    }
+
+    SECTION("mixed zero and non-zero values") {
+        const jsv::SourceLocation loc1(0u, 5u, 10u);
+        const jsv::SourceLocation loc2(5u, 0u, 10u);
+        const jsv::SourceLocation loc3(5u, 5u, 0u);
+
+        REQUIRE(loc1.line == 0u);
+        REQUIRE(loc2.column == 0u);
+        REQUIRE(loc3.absolute_pos == 0u);
+    }
+
+    SECTION("comparison with mixed extreme values") {
+        const jsv::SourceLocation small(0u, 0u, 0u);
+        constexpr std::size_t max = std::numeric_limits<std::size_t>::max();
+        const jsv::SourceLocation large(max, max, max);
+
+        REQUIRE(small < large);
+        REQUIRE(large > small);
+        REQUIRE_FALSE(small == large);
+    }
+
+    SECTION("self-comparison") {
+        const jsv::SourceLocation loc(42u, 42u, 42u);
+
+        REQUIRE(loc == loc);
+        REQUIRE_FALSE(loc != loc);
+        REQUIRE_FALSE(loc < loc);
+        REQUIRE_FALSE(loc > loc);
+        REQUIRE(loc <= loc);
+        REQUIRE(loc >= loc);
+    }
+}
+
+TEST_CASE("SourceLocation copy and move semantics", "[SourceLocation][copy][move][semantics]") {
+    SECTION("copy construction preserves all fields") {
+        const jsv::SourceLocation original(10u, 20u, 300u);
+        const jsv::SourceLocation copied = original;
+
+        REQUIRE(copied.line == original.line);
+        REQUIRE(copied.column == original.column);
+        REQUIRE(copied.absolute_pos == original.absolute_pos);
+        REQUIRE(copied == original);
+    }
+
+    SECTION("copy assignment preserves all fields") {
+        jsv::SourceLocation loc1(1u, 2u, 3u);
+        const jsv::SourceLocation loc2(10u, 20u, 300u);
+
+        loc1 = loc2;
+
+        REQUIRE(loc1.line == 10u);
+        REQUIRE(loc1.column == 20u);
+        REQUIRE(loc1.absolute_pos == 300u);
+        REQUIRE(loc1 == loc2);
+    }
+
+    SECTION("move construction preserves all fields") {
+        jsv::SourceLocation original(10u, 20u, 300u);
+        const jsv::SourceLocation moved = std::move(original);
+
+        REQUIRE(moved.line == 10u);
+        REQUIRE(moved.column == 20u);
+        REQUIRE(moved.absolute_pos == 300u);
+    }
+
+    SECTION("move assignment preserves all fields") {
+        jsv::SourceLocation loc1(1u, 2u, 3u);
+        jsv::SourceLocation loc2(10u, 20u, 300u);
+
+        loc1 = std::move(loc2);
+
+        REQUIRE(loc1.line == 10u);
+        REQUIRE(loc1.column == 20u);
+        REQUIRE(loc1.absolute_pos == 300u);
+    }
+
+    SECTION("self-assignment is safe") {
+        jsv::SourceLocation loc(42u, 42u, 42u);
+
+        // Copy self-assignment
+        // NOLINTNEXTLINE(*-self-assign)
+        loc = loc;
+        REQUIRE(loc.line == 42u);
+        REQUIRE(loc.column == 42u);
+        REQUIRE(loc.absolute_pos == 42u);
+    }
+}
+
+TEST_CASE("SourceLocation member field mutability", "[SourceLocation][members][mutability]") {
+    SECTION("fields can be modified after construction") {
+        jsv::SourceLocation loc(1u, 1u, 0u);
+
+        loc.line = 10u;
+        loc.column = 20u;
+        loc.absolute_pos = 500u;
+
+        REQUIRE(loc.line == 10u);
+        REQUIRE(loc.column == 20u);
+        REQUIRE(loc.absolute_pos == 500u);
+    }
+
+    SECTION("modification affects comparisons") {
+        jsv::SourceLocation loc1(5u, 5u, 50u);
+        const jsv::SourceLocation loc2(5u, 5u, 50u);
+
+        REQUIRE(loc1 == loc2);
+
+        loc1.line = 10u;
+
+        REQUIRE(loc1 != loc2);
+        REQUIRE(loc1 > loc2);
+    }
+
+    SECTION("modification affects hash") {
+        jsv::SourceLocation loc(5u, 10u, 100u);
+        const std::hash<jsv::SourceLocation> hasher;
+
+        const std::size_t hashBefore = hasher(loc);
+
+        loc.line = 100u;
+
+        const std::size_t hashAfter = hasher(loc);
+
+        // Hash should change when content changes
+        REQUIRE(hashBefore != hashAfter);
+    }
+}
+
+// ============================================================================
+// SourceSpan Tests (Non-constexpr)
+// ============================================================================
+
+TEST_CASE("SourceSpan default constructor initializes correctly", "[SourceSpan][constructor][default][happy]") {
+    const jsv::SourceSpan span;
+
+    REQUIRE(span.file_path != nullptr);
+    REQUIRE(*span.file_path == "");
+    REQUIRE(span.start.line == 0u);
+    REQUIRE(span.start.column == 0u);
+    REQUIRE(span.start.absolute_pos == 0u);
+    REQUIRE(span.end.line == 0u);
+    REQUIRE(span.end.column == 0u);
+    REQUIRE(span.end.absolute_pos == 0u);
+}
+
+TEST_CASE("SourceSpan parameterized constructor initializes correctly", "[SourceSpan][constructor][parameterized][happy]") {
+    SECTION("typical values") {
+        const auto filePath = std::make_shared<const std::string>("test/file.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 10u, 250u);
+
+        const jsv::SourceSpan span(filePath, start, end);
+
+        REQUIRE(*span.file_path == "test/file.cpp");
+        REQUIRE(span.start.line == 1u);
+        REQUIRE(span.start.column == 1u);
+        REQUIRE(span.start.absolute_pos == 0u);
+        REQUIRE(span.end.line == 5u);
+        REQUIRE(span.end.column == 10u);
+        REQUIRE(span.end.absolute_pos == 250u);
+    }
+
+    SECTION("empty span at same position") {
+        const auto filePath = std::make_shared<const std::string>("empty.cpp");
+        const jsv::SourceLocation pos(3u, 5u, 20u);
+
+        const jsv::SourceSpan span(filePath, pos, pos);
+
+        REQUIRE(*span.file_path == "empty.cpp");
+        REQUIRE(span.start.line == 3u);
+        REQUIRE(span.end.line == 3u);
+        REQUIRE(span.start == span.end);
+    }
+
+    SECTION("deep path") {
+        const auto filePath = std::make_shared<const std::string>("a/b/c/d/e/file.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(1u, 1u, 10u);
+
+        const jsv::SourceSpan span(filePath, start, end);
+
+        REQUIRE(*span.file_path == "a/b/c/d/e/file.cpp");
+    }
+
+    SECTION("shared pointer is shared correctly") {
+        const auto filePath = std::make_shared<const std::string>("shared.cpp");
+        const jsv::SourceLocation start;
+        const jsv::SourceLocation end(1u, 1u, 10u);
+
+        const jsv::SourceSpan span1(filePath, start, end);
+        const jsv::SourceSpan span2(filePath, start, end);
+
+        REQUIRE(span1.file_path == span2.file_path);
+        REQUIRE(span1.file_path.use_count() >= 2);
+    }
+}
+
+TEST_CASE("SourceSpan merge mutates in-place correctly", "[SourceSpan][merge][mutation][happy]") {
+    SECTION("merge overlapping spans from same file") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation end1(2u, 5u, 50u);
+        jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceLocation start2(2u, 1u, 30u);
+        const jsv::SourceLocation end2(3u, 10u, 100u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        span1.merge(span2);
+
+        REQUIRE(span1.start.line == 1u);  // earlier start
+        REQUIRE(span1.end.line == 3u);    // later end
+        REQUIRE(span1.end.column == 10u);
+        REQUIRE(span1.end.absolute_pos == 100u);
+    }
+
+    SECTION("merge with earlier start extends backward") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(5u, 10u, 100u);
+        const jsv::SourceLocation end1(10u, 5u, 500u);
+        jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceLocation start2(2u, 3u, 20u);
+        const jsv::SourceLocation end2(6u, 1u, 200u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        span1.merge(span2);
+
+        REQUIRE(span1.start.line == 2u);  // extended backward
+        REQUIRE(span1.end.line == 10u);   // unchanged (later)
+    }
+
+    SECTION("merge with later end extends forward") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(5u, 10u, 100u);
+        const jsv::SourceLocation end1(10u, 5u, 500u);
+        jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceLocation start2(6u, 1u, 200u);
+        const jsv::SourceLocation end2(15u, 10u, 1000u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        span1.merge(span2);
+
+        REQUIRE(span1.start.line == 5u);  // unchanged (earlier)
+        REQUIRE(span1.end.line == 15u);   // extended forward
+    }
+
+    SECTION("merge from different file does nothing") {
+        const auto filePath1 = std::make_shared<const std::string>("file1.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("file2.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation end1(5u, 5u, 100u);
+        jsv::SourceSpan span1(filePath1, start1, end1);
+
+        const jsv::SourceLocation start2(2u, 2u, 50u);
+        const jsv::SourceLocation end2(10u, 10u, 500u);
+        const jsv::SourceSpan span2(filePath2, start2, end2);
+
+        const jsv::SourceLocation originalStart = span1.start;
+        const jsv::SourceLocation originalEnd = span1.end;
+
+        span1.merge(span2);
+
+        // Should remain unchanged
+        REQUIRE(span1.start == originalStart);
+        REQUIRE(span1.end == originalEnd);
+    }
+
+    SECTION("merge identical spans") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+        jsv::SourceSpan span1(filePath, start, end);
+        const jsv::SourceSpan span2(filePath, start, end);
+
+        span1.merge(span2);
+
+        REQUIRE(span1.start == start);
+        REQUIRE(span1.end == end);
+    }
+}
+
+TEST_CASE("SourceSpan merged returns optional correctly", "[SourceSpan][merged][optional][happy]") {
+    SECTION("merge spans from same file returns value") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation end1(2u, 5u, 50u);
+        const jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceLocation start2(2u, 1u, 30u);
+        const jsv::SourceLocation end2(3u, 10u, 100u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        const std::optional<jsv::SourceSpan> result = span1.merged(span2);
+
+        REQUIRE(result.has_value());
+        REQUIRE(result->start.line == 1u);  // earlier start
+        REQUIRE(result->end.line == 3u);    // later end
+        REQUIRE(*result->file_path == "test.cpp");
+    }
+
+    SECTION("merge spans from different files returns nullopt") {
+        const auto filePath1 = std::make_shared<const std::string>("file1.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("file2.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation end1(5u, 5u, 100u);
+        const jsv::SourceSpan span1(filePath1, start1, end1);
+
+        const jsv::SourceLocation start2(2u, 2u, 50u);
+        const jsv::SourceLocation end2(10u, 10u, 500u);
+        const jsv::SourceSpan span2(filePath2, start2, end2);
+
+        const std::optional<jsv::SourceSpan> result = span1.merged(span2);
+
+        REQUIRE_FALSE(result.has_value());
+    }
+
+    SECTION("merged does not mutate original spans") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(5u, 5u, 100u);
+        const jsv::SourceLocation end1(10u, 10u, 500u);
+        jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceLocation start2(1u, 1u, 0u);
+        const jsv::SourceLocation end2(15u, 15u, 1000u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        const std::optional<jsv::SourceSpan> result = span1.merged(span2);
+
+        // Originals unchanged
+        REQUIRE(span1.start == start1);
+        REQUIRE(span1.end == end1);
+        REQUIRE(span2.start == start2);
+        REQUIRE(span2.end == end2);
+
+        // Result has merged values
+        REQUIRE(result.has_value());
+        REQUIRE(result->start.line == 1u);
+        REQUIRE(result->end.line == 15u);
+    }
+
+    SECTION("merge with empty span") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(5u, 5u, 100u);
+        const jsv::SourceLocation end1(10u, 10u, 500u);
+        const jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceSpan span2;  // default constructed (empty file path)
+
+        const std::optional<jsv::SourceSpan> result = span1.merged(span2);
+
+        // Different file paths (one empty)
+        REQUIRE_FALSE(result.has_value());
+    }
+}
+
+TEST_CASE("SourceSpan spaceship operator provides correct ordering", "[SourceSpan][operator<=>][comparison][happy]") {
+    SECTION("equal spans") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+        const jsv::SourceSpan span1(filePath, start, end);
+        const jsv::SourceSpan span2(filePath, start, end);
+
+        REQUIRE(span1 == span2);
+        REQUIRE_FALSE(span1 != span2);
+        REQUIRE_FALSE(span1 < span2);
+        REQUIRE_FALSE(span1 > span2);
+        REQUIRE(span1 <= span2);
+        REQUIRE(span1 >= span2);
+    }
+
+    SECTION("different file paths") {
+        const auto filePath1 = std::make_shared<const std::string>("a.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("b.cpp");
+        const jsv::SourceLocation start;
+        const jsv::SourceLocation end(1u, 1u, 10u);
+        const jsv::SourceSpan span1(filePath1, start, end);
+        const jsv::SourceSpan span2(filePath2, start, end);
+
+        REQUIRE(span1 < span2);
+        REQUIRE(span2 > span1);
+        REQUIRE_FALSE(span1 == span2);
+    }
+
+    SECTION("same file, different start") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation start2(3u, 1u, 50u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+        const jsv::SourceSpan span1(filePath, start1, end);
+        const jsv::SourceSpan span2(filePath, start2, end);
+
+        REQUIRE(span1 < span2);
+        REQUIRE(span2 > span1);
+    }
+
+    SECTION("same file and start, different end") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end1(5u, 5u, 100u);
+        const jsv::SourceLocation end2(10u, 10u, 500u);
+        const jsv::SourceSpan span1(filePath, start, end1);
+        const jsv::SourceSpan span2(filePath, start, end2);
+
+        REQUIRE(span1 < span2);
+        REQUIRE(span2 > span1);
+    }
+
+    SECTION("lexicographic ordering prioritizes file_path over start") {
+        const auto filePath1 = std::make_shared<const std::string>("a.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("z.cpp");
+        const jsv::SourceLocation start1(100u, 100u, 10000u);
+        const jsv::SourceLocation start2(1u, 1u, 0u);
+        const jsv::SourceLocation end;
+        const jsv::SourceSpan span1(filePath1, start1, end);
+        const jsv::SourceSpan span2(filePath2, start2, end);
+
+        // File path comparison takes precedence
+        REQUIRE(span1 < span2);
+    }
+
+    SECTION("lexicographic ordering prioritizes start over end") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation start2(2u, 1u, 50u);
+        const jsv::SourceLocation end1(100u, 100u, 10000u);
+        const jsv::SourceLocation end2(5u, 5u, 100u);
+        const jsv::SourceSpan span1(filePath, start1, end1);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        // Start comparison takes precedence over end
+        REQUIRE(span1 < span2);
+    }
+}
+
+TEST_CASE("SourceSpan to_string formats correctly", "[SourceSpan]") {
+    SECTION("typical span") {
+        const auto filePath = std::make_shared<const std::string>("test/file.cpp");
+        const jsv::SourceLocation start(1u, 5u, 0u);
+        const jsv::SourceLocation end(3u, 10u, 100u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = span.to_string();
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+        REQUIRE(result == "test\\file.cpp:line 1:column 5 - line 3:column 10");
+#else
+        REQUIRE(result == "test/file.cpp:line 1:column 5 - line 3:column 10");
+#endif
+    }
+
+    SECTION("single character span") {
+        const auto filePath = std::make_shared<const std::string>("main.cpp");
+        const jsv::SourceLocation pos(5u, 10u, 50u);
+        const jsv::SourceSpan span(filePath, pos, pos);
+
+        const std::string result = span.to_string();
+
+        REQUIRE(result == "main.cpp:line 5:column 10 - line 5:column 10");
+    }
+
+    SECTION("deep path is truncated to 2 components") {
+        const auto filePath = std::make_shared<const std::string>("a/b/c/d/e/file.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(1u, 1u, 10u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = span.to_string();
+
+        // Should show ".." + last 2 components (OS-independent)
+        REQUIRE(result.find("..") == 0);
+        REQUIRE(result.find("file.cpp") != std::string::npos);
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+        REQUIRE(result.find("e\\file.cpp") != std::string::npos);
+#else
+        REQUIRE(result.find("e/file.cpp") != std::string::npos);
+#endif
+    }
+
+    SECTION("short path is not truncated") {
+        const auto filePath = std::make_shared<const std::string>("main.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(1u, 1u, 10u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = span.to_string();
+
+        REQUIRE(result == "main.cpp:line 1:column 1 - line 1:column 1");
+    }
+
+    SECTION("empty file path") {
+        const jsv::SourceSpan span;  // default constructed
+
+        const std::string result = span.to_string();
+
+        REQUIRE(result.find(":line 0:column 0 - line 0:column 0") != std::string::npos);
+    }
+}
+
+TEST_CASE("SourceSpan stream operator outputs correctly", "[SourceSpan][operator<<][stream][happy]") {
+    SECTION("typical span") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 5u, 0u);
+        const jsv::SourceLocation end(3u, 10u, 100u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        std::ostringstream oss;
+        oss << span;
+
+        REQUIRE(oss.str() == "test.cpp:line 1:column 5 - line 3:column 10");
+    }
+
+    SECTION("chained stream output") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start1(1u, 1u, 0u);
+        const jsv::SourceLocation end1(2u, 2u, 50u);
+        const jsv::SourceSpan span1(filePath, start1, end1);
+
+        const jsv::SourceLocation start2(3u, 3u, 100u);
+        const jsv::SourceLocation end2(4u, 4u, 150u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        std::ostringstream oss;
+        oss << "From " << span1 << " to " << span2;
+
+        REQUIRE(oss.str() == "From test.cpp:line 1:column 1 - line 2:column 2 to test.cpp:line 3:column 3 - line 4:column 4");
+    }
+
+    SECTION("default constructed span") {
+        const jsv::SourceSpan span;
+
+        std::ostringstream oss;
+        oss << span;
+
+        REQUIRE_FALSE(oss.str().empty());
+        REQUIRE(oss.str().find(":line 0:column 0 - line 0:column 0") != std::string::npos);
+    }
+}
+
+TEST_CASE("SourceSpan hash function produces consistent results", "[SourceSpan][hash][happy]") {
+    SECTION("equal spans produce equal hashes") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 5u, 0u);
+        const jsv::SourceLocation end(3u, 10u, 100u);
+        const jsv::SourceSpan span1(filePath, start, end);
+        const jsv::SourceSpan span2(filePath, start, end);
+
+        const std::hash<jsv::SourceSpan> hasher;
+        REQUIRE(hasher(span1) == hasher(span2));
+    }
+
+    SECTION("different spans produce different hashes") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 5u, 0u);
+        const jsv::SourceLocation end1(3u, 10u, 100u);
+        const jsv::SourceLocation end2(5u, 15u, 200u);
+        const jsv::SourceSpan span1(filePath, start, end1);
+        const jsv::SourceSpan span2(filePath, start, end2);
+
+        const std::hash<jsv::SourceSpan> hasher;
+        REQUIRE(hasher(span1) != hasher(span2));
+    }
+
+    SECTION("hash is stable across multiple calls") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::hash<jsv::SourceSpan> hasher;
+        const std::size_t hash1 = hasher(span);
+        const std::size_t hash2 = hasher(span);
+        const std::size_t hash3 = hasher(span);
+
+        REQUIRE(hash1 == hash2);
+        REQUIRE(hash2 == hash3);
+    }
+
+    SECTION("default constructed span has consistent hash") {
+        const jsv::SourceSpan span1;
+        const jsv::SourceSpan span2;
+
+        const std::hash<jsv::SourceSpan> hasher;
+        REQUIRE(hasher(span1) == hasher(span2));
+    }
+}
+
+TEST_CASE("SourceSpan std::format integration", "[SourceSpan][format][std::formatter][happy]") {
+    SECTION("format with default specifier") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 5u, 0u);
+        const jsv::SourceLocation end(3u, 10u, 100u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = FORMAT("{}", span);
+
+        REQUIRE(result == "test.cpp:line 1:column 5 - line 3:column 10");
+    }
+
+    SECTION("format in larger string") {
+        const auto filePath = std::make_shared<const std::string>("main.cpp");
+        const jsv::SourceLocation start(5u, 10u, 50u);
+        const jsv::SourceLocation end(10u, 20u, 500u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = FORMAT("Error at {}", span);
+
+        REQUIRE(result == "Error at main.cpp:line 5:column 10 - line 10:column 20");
+    }
+
+    SECTION("format multiple spans") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span1(filePath, {1u, 1u, 0u}, {2u, 2u, 50u});
+        const jsv::SourceSpan span2(filePath, {3u, 3u, 100u}, {4u, 4u, 150u});
+
+        const std::string result = FORMAT("From {} to {}", span1, span2);
+
+        REQUIRE(result == "From test.cpp:line 1:column 1 - line 2:column 2 to test.cpp:line 3:column 3 - line 4:column 4");
+    }
+}
+
+TEST_CASE("SourceSpan fmt::format integration", "[SourceSpan][format][fmt::formatter][happy]") {
+    SECTION("fmt::format with default specifier") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 5u, 0u);
+        const jsv::SourceLocation end(3u, 10u, 100u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = fmt::format("{}", span);
+
+        REQUIRE(result == "test.cpp:line 1:column 5 - line 3:column 10");
+    }
+
+    SECTION("fmt::format in larger string") {
+        const auto filePath = std::make_shared<const std::string>("main.cpp");
+        const jsv::SourceLocation start(5u, 10u, 50u);
+        const jsv::SourceLocation end(10u, 20u, 500u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        const std::string result = fmt::format("Error at {}", span);
+
+        REQUIRE(result == "Error at main.cpp:line 5:column 10 - line 10:column 20");
+    }
+
+    SECTION("fmt::format multiple spans") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span1(filePath, {1u, 1u, 0u}, {2u, 2u, 50u});
+        const jsv::SourceSpan span2(filePath, {3u, 3u, 100u}, {4u, 4u, 150u});
+
+        const std::string result = fmt::format("From {} to {}", span1, span2);
+
+        REQUIRE(result == "From test.cpp:line 1:column 1 - line 2:column 2 to test.cpp:line 3:column 3 - line 4:column 4");
+    }
+}
+
+TEST_CASE("SourceSpan noexcept guarantees on operations", "[SourceSpan][noexcept][contract]") {
+    SECTION("default constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_default_constructible_v<jsv::SourceSpan>); }
+
+    SECTION("parameterized constructor is noexcept") {
+        STATIC_REQUIRE(std::is_nothrow_constructible_v<jsv::SourceSpan, std::shared_ptr<const std::string>, const jsv::SourceLocation &,
+                                                       const jsv::SourceLocation &>);
+    }
+
+    SECTION("copy constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_copy_constructible_v<jsv::SourceSpan>); }
+
+    SECTION("move constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_move_constructible_v<jsv::SourceSpan>); }
+
+    SECTION("copy assignment is noexcept") { STATIC_REQUIRE(std::is_nothrow_copy_assignable_v<jsv::SourceSpan>); }
+
+    SECTION("move assignment is noexcept") { STATIC_REQUIRE(std::is_nothrow_move_assignable_v<jsv::SourceSpan>); }
+
+    SECTION("destructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_destructible_v<jsv::SourceSpan>); }
+
+    SECTION("merge does not throw on same file") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        jsv::SourceSpan span1(filePath, {1u, 1u, 0u}, {5u, 5u, 100u});
+        const jsv::SourceSpan span2(filePath, {2u, 2u, 50u}, {10u, 10u, 500u});
+
+        REQUIRE_NOTHROW(span1.merge(span2));
+    }
+
+    SECTION("merge does not throw on different files") {
+        const auto filePath1 = std::make_shared<const std::string>("file1.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("file2.cpp");
+        jsv::SourceSpan span1(filePath1, {1u, 1u, 0u}, {5u, 5u, 100u});
+        const jsv::SourceSpan span2(filePath2, {2u, 2u, 50u}, {10u, 10u, 500u});
+
+        REQUIRE_NOTHROW(span1.merge(span2));
+    }
+
+    SECTION("merged does not throw on same file") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span1(filePath, {1u, 1u, 0u}, {5u, 5u, 100u});
+        const jsv::SourceSpan span2(filePath, {2u, 2u, 50u}, {10u, 10u, 500u});
+
+        REQUIRE_NOTHROW(std::ignore = span1.merged(span2));
+    }
+
+    SECTION("merged does not throw on different files") {
+        const auto filePath1 = std::make_shared<const std::string>("file1.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("file2.cpp");
+        const jsv::SourceSpan span1(filePath1, {1u, 1u, 0u}, {5u, 5u, 100u});
+        const jsv::SourceSpan span2(filePath2, {2u, 2u, 50u}, {10u, 10u, 500u});
+
+        REQUIRE_NOTHROW(std::ignore = span1.merged(span2));
+    }
+
+    SECTION("spaceship operator does not throw") {
+        const jsv::SourceSpan span1;
+        const jsv::SourceSpan span2;
+        REQUIRE_NOTHROW(std::ignore = (span1 <=> span2));
+    }
+
+    SECTION("to_string does not throw on any state") {
+        const auto filePath = std::make_shared<const std::string>("a/b/c/d/e/f/g/file.cpp");
+        const jsv::SourceSpan span(filePath, {1u, 1u, 0u}, {100u, 100u, 10000u});
+        REQUIRE_NOTHROW(std::ignore = span.to_string());
+    }
+
+    SECTION("stream operator does not throw") {
+        const jsv::SourceSpan span;
+        std::ostringstream oss;
+        REQUIRE_NOTHROW(oss << span);
+    }
+
+    SECTION("hash does not throw") {
+        const jsv::SourceSpan span;
+        const std::hash<jsv::SourceSpan> hasher;
+        REQUIRE_NOTHROW(std::ignore = hasher(span));
+    }
+}
+
+TEST_CASE("SourceSpan usage in standard containers", "[SourceSpan][containers][integration]") {
+    SECTION("can be used as std::vector element") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        std::vector<jsv::SourceSpan> spans;
+        spans.emplace_back(filePath, jsv::SourceLocation{1u, 1u, 0u}, jsv::SourceLocation{2u, 2u, 50u});
+        spans.emplace_back(filePath, jsv::SourceLocation{3u, 3u, 100u}, jsv::SourceLocation{4u, 4u, 150u});
+        spans.emplace_back(filePath, jsv::SourceLocation{5u, 5u, 200u}, jsv::SourceLocation{6u, 6u, 250u});
+
+        REQUIRE(spans.size() == 3u);
+        REQUIRE(spans[0].start.line == 1u);
+        REQUIRE(spans[1].start.line == 3u);
+        REQUIRE(spans[2].start.line == 5u);
+    }
+
+    SECTION("can be used as std::map key") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        std::map<jsv::SourceSpan, std::string> spanMap;
+        spanMap[{filePath, {1u, 1u, 0u}, {2u, 2u, 50u}}] = "first";
+        spanMap[{filePath, {3u, 3u, 100u}, {4u, 4u, 150u}}] = "second";
+        spanMap[{filePath, {5u, 5u, 200u}, {6u, 6u, 250u}}] = "third";
+
+        REQUIRE(spanMap.size() == 3u);
+        REQUIRE(spanMap.at({filePath, {1u, 1u, 0u}, {2u, 2u, 50u}}) == "first");
+        REQUIRE(spanMap.at({filePath, {3u, 3u, 100u}, {4u, 4u, 150u}}) == "second");
+    }
+
+    SECTION("can be used as std::unordered_map key with custom hash") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        std::unordered_map<jsv::SourceSpan, std::string, std::hash<jsv::SourceSpan>> spanMap;
+        spanMap[{filePath, {1u, 1u, 0u}, {2u, 2u, 50u}}] = "first";
+        spanMap[{filePath, {3u, 3u, 100u}, {4u, 4u, 150u}}] = "second";
+
+        REQUIRE(spanMap.size() == 2u);
+        REQUIRE(spanMap.at({filePath, {1u, 1u, 0u}, {2u, 2u, 50u}}) == "first");
+    }
+
+    SECTION("can be used in std::set") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        std::set<jsv::SourceSpan> spanSet;
+        spanSet.insert({filePath, {3u, 3u, 100u}, {4u, 4u, 150u}});
+        spanSet.insert({filePath, {1u, 1u, 0u}, {2u, 2u, 50u}});
+        spanSet.insert({filePath, {5u, 5u, 200u}, {6u, 6u, 250u}});
+        spanSet.insert({filePath, {1u, 1u, 0u}, {2u, 2u, 50u}});  // duplicate
+
+        REQUIRE(spanSet.size() == 3u);
+        REQUIRE(spanSet.begin()->start.line == 1u);           // smallest
+        REQUIRE(std::prev(spanSet.end())->start.line == 5u);  // largest
+    }
+}
+
+TEST_CASE("SourceSpan edge cases with extreme values", "[SourceSpan][edge][boundary]") {
+    SECTION("maximum size_t values in locations") {
+        constexpr std::size_t max = std::numeric_limits<std::size_t>::max();
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(max, max, max);
+        const jsv::SourceLocation end(max, max, max);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        REQUIRE(span.start.line == max);
+        REQUIRE(span.end.line == max);
+
+        // Verify to_string handles large numbers
+        const std::string result = span.to_string();
+        REQUIRE_FALSE(result.empty());
+    }
+
+    SECTION("empty span (start equals end)") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation pos(5u, 10u, 100u);
+        const jsv::SourceSpan span(filePath, pos, pos);
+
+        REQUIRE(span.start == span.end);
+        REQUIRE(span.start.line == 5u);
+        REQUIRE(span.end.line == 5u);
+    }
+
+    SECTION("span with end before start (valid but unusual)") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(10u, 10u, 500u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+        const jsv::SourceSpan span(filePath, start, end);
+
+        // This is technically valid - just represents an inverted span
+        REQUIRE(span.start.line == 10u);
+        REQUIRE(span.end.line == 5u);
+    }
+
+    SECTION("comparison with mixed extreme values") {
+        const auto filePath1 = std::make_shared<const std::string>("a.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("z.cpp");
+        const jsv::SourceSpan small(filePath1, {0u, 0u, 0u}, {0u, 0u, 0u});
+        constexpr std::size_t max = std::numeric_limits<std::size_t>::max();
+        const jsv::SourceSpan large(filePath2, {max, max, max}, {max, max, max});
+
+        REQUIRE(small < large);
+        REQUIRE(large > small);
+        REQUIRE_FALSE(small == large);
+    }
+
+    SECTION("self-comparison") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span(filePath, {42u, 42u, 420u}, {84u, 84u, 840u});
+
+        REQUIRE(span == span);
+        REQUIRE_FALSE(span != span);
+        REQUIRE_FALSE(span < span);
+        REQUIRE_FALSE(span > span);
+        REQUIRE(span <= span);
+        REQUIRE(span >= span);
+    }
+}
+
+TEST_CASE("SourceSpan copy and move semantics", "[SourceSpan][copy][move][semantics]") {
+    SECTION("copy construction preserves all fields") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan original(filePath, {10u, 20u, 100u}, {30u, 40u, 300u});
+        const jsv::SourceSpan copied = original;
+
+        REQUIRE(copied.file_path == original.file_path);
+        REQUIRE(copied.start == original.start);
+        REQUIRE(copied.end == original.end);
+        REQUIRE(copied == original);
+    }
+
+    SECTION("copy assignment preserves all fields") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        jsv::SourceSpan loc1(filePath, {1u, 2u, 3u}, {4u, 5u, 6u});
+        const jsv::SourceSpan loc2(filePath, {10u, 20u, 100u}, {30u, 40u, 300u});
+
+        loc1 = loc2;
+
+        REQUIRE(loc1.start.line == 10u);
+        REQUIRE(loc1.end.column == 40u);
+        REQUIRE(loc1 == loc2);
+    }
+
+    SECTION("move construction preserves all fields") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        jsv::SourceSpan original(filePath, {10u, 20u, 100u}, {30u, 40u, 300u});
+        const jsv::SourceSpan moved = std::move(original);
+
+        REQUIRE(moved.start.line == 10u);
+        REQUIRE(moved.end.column == 40u);
+    }
+
+    SECTION("move assignment preserves all fields") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        jsv::SourceSpan loc1(filePath, {1u, 2u, 3u}, {4u, 5u, 6u});
+        jsv::SourceSpan loc2(filePath, {10u, 20u, 100u}, {30u, 40u, 300u});
+
+        loc1 = std::move(loc2);
+
+        REQUIRE(loc1.start.line == 10u);
+        REQUIRE(loc1.end.column == 40u);
+    }
+
+    SECTION("self-assignment is safe") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        jsv::SourceSpan span(filePath, {42u, 42u, 420u}, {84u, 84u, 840u});
+
+        // Copy self-assignment
+        // NOLINTNEXTLINE(*-self-assign)
+        span = span;
+        REQUIRE(span.start.line == 42u);
+        REQUIRE(span.end.column == 84u);
+    }
+}
+
+TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][happy]") {
+    SECTION("path shorter than depth is unchanged") {
+        const fs::path path = "a/b/c";
+        const std::string result = jsv::truncate_path(path, 5);
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+        REQUIRE(result == "a\\b\\c");
+#else
+        REQUIRE(result == "a/b/c");
+#endif
+    }
+
+    SECTION("path equal to depth is unchanged") {
+        const fs::path path = "a/b/c";
+        const std::string result = jsv::truncate_path(path, 3);
+
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+        REQUIRE(result == "a\\b\\c");
+#else
+        REQUIRE(result == "a/b/c");
+#endif
+    }
+
+    SECTION("path longer than depth is truncated with ..") {
+        const fs::path path = "a/b/c/d/e";
+        const std::string result = jsv::truncate_path(path, 2);
+
+        REQUIRE(result.find("..") == 0);
+#if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
+        REQUIRE(result.find("d\\e") != std::string::npos);
+#else
+        REQUIRE(result.find("d/e") != std::string::npos);
+#endif
+    }
+
+    SECTION("depth of 1 shows only last component") {
+        const fs::path path = "a/b/c/d/file.cpp";
+        const std::string result = jsv::truncate_path(path, 1);
+
+        REQUIRE(result.find("..") == 0);
+        REQUIRE(result.find("file.cpp") != std::string::npos);
+    }
+
+    SECTION("depth of 0 shows only ..") {
+        const fs::path path = "a/b/c";
+        const std::string result = jsv::truncate_path(path, 0);
+
+        REQUIRE(result == "..");
+    }
+
+    SECTION("absolute path is handled") {
+#if defined(_WIN32)
+        const fs::path path = "C:\\a\\b\\c\\d\\e";
+#else
+        const fs::path path = "/a/b/c/d/e";
+#endif
+        const std::string result = jsv::truncate_path(path, 2);
+
+        // Should still truncate to last 2 components
+        REQUIRE_FALSE(result.empty());
+    }
+
+    SECTION("empty path returns empty string") {
+        const fs::path path;
+        const std::string result = jsv::truncate_path(path, 2);
+
+        REQUIRE(result.empty());
+    }
+
+    SECTION("single component path") {
+        const fs::path path = "file.cpp";
+        const std::string result = jsv::truncate_path(path, 2);
+
+        REQUIRE(result == "file.cpp");
+    }
+}
+
+TEST_CASE("HasSpan abstract interface works correctly", "[HasSpan][interface][polymorphism]") {
+    struct TestHasSpan : jsv::HasSpan {
+        jsv::SourceSpan stored_span;
+
+        explicit TestHasSpan(const jsv::SourceSpan &span) : stored_span(span) {}
+
+        [[nodiscard]] const jsv::SourceSpan &span() const noexcept override { return stored_span; }
+    };
+
+    SECTION("can store and retrieve span through interface") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span(filePath, {1u, 1u, 0u}, {5u, 5u, 100u});
+
+        const TestHasSpan has_span(span);
+
+        REQUIRE(has_span.span() == span);
+    }
+
+    SECTION("polymorphic access through base pointer") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span(filePath, {10u, 20u, 100u}, {30u, 40u, 300u});
+
+        const std::unique_ptr<jsv::HasSpan> ptr = std::make_unique<TestHasSpan>(span);
+
+        REQUIRE(ptr->span() == span);
+    }
+
+    SECTION("polymorphic access through base reference") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceSpan span(filePath, {5u, 10u, 50u}, {15u, 20u, 150u});
+
+        const TestHasSpan has_span(span);
+        const jsv::HasSpan &ref = has_span;
+
+        REQUIRE(ref.span() == span);
+    }
+
+    SECTION("virtual destructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_destructible_v<jsv::HasSpan>); }
+
+    SECTION("span method is noexcept") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const TestHasSpan has_span({filePath, {1u, 1u, 0u}, {5u, 5u, 100u}});
+
+        REQUIRE_NOTHROW(std::ignore = has_span.span());
+    }
+}
+
+TEST_CASE("SourceSpan file_path sharing behavior", "[SourceSpan][shared_ptr][memory]") {
+    SECTION("multiple spans can share same file_path") {
+        const auto filePath = std::make_shared<const std::string>("shared.cpp");
+
+        const jsv::SourceSpan span1(filePath, {1u, 1u, 0u}, {2u, 2u, 50u});
+        const jsv::SourceSpan span2(filePath, {3u, 3u, 100u}, {4u, 4u, 150u});
+        const jsv::SourceSpan span3(filePath, {5u, 5u, 200u}, {6u, 6u, 250u});
+
+        REQUIRE(span1.file_path == span2.file_path);
+        REQUIRE(span2.file_path == span3.file_path);
+        REQUIRE(span1.file_path.use_count() >= 3);
+    }
+
+    SECTION("modifying shared_ptr use_count does not affect span equality") {
+        const auto filePath = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+
+        const jsv::SourceSpan span1(filePath, start, end);
+        const jsv::SourceSpan span2(filePath, start, end);
+
+        // Create another span to increase use_count
+        [[maybe_unused]] const jsv::SourceSpan span3(filePath, start, end);
+
+        REQUIRE(span1 == span2);
+    }
+
+    SECTION("different shared_ptr instances with same content compare equal") {
+        const auto filePath1 = std::make_shared<const std::string>("test.cpp");
+        const auto filePath2 = std::make_shared<const std::string>("test.cpp");
+        const jsv::SourceLocation start(1u, 1u, 0u);
+        const jsv::SourceLocation end(5u, 5u, 100u);
+
+        const jsv::SourceSpan span1(filePath1, start, end);
+        const jsv::SourceSpan span2(filePath2, start, end);
+
+        // file_path pointers are different, but content comparison uses string value
+        REQUIRE(span1.file_path != span2.file_path);
+        // But spans compare by value (file_path content, start, end)
+        REQUIRE(span1 == span2);
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization)
 // clang-format on

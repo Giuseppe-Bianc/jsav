@@ -9,4 +9,5 @@
 #include "headers.hpp"
 #include "fs/fs.hpp"
 #include "lexer/SourceLocation.hpp"
+#include "lexer/SourceSpan.hpp"
 // clang-format on
