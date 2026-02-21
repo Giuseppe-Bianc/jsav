@@ -752,4 +752,10 @@ concept StringOrStringView = std::same_as<std::remove_cvref_t<T>, std::string> |
                                  { t.size() } -> std::integral;
                                  { t.length() } -> std::integral;
                              });
+
+constexpr std::size_t golden_ratio_mix = sizeof(std::size_t) == 8 ? 0x9e3779b97f4a7c15ULL  // 64-bit
+                                                                  : 0x9e3779b9U;           // 32-bit
+inline void hash_combine(std::size_t &seed, std::size_t v) {
+    seed ^= std::hash<std::size_t>{}(v) + golden_ratio_mix + (seed << 6) + (seed >> 2);
+}
 // NOLINTEND(*-include-cleaner, *-identifier-length)

@@ -52,12 +52,8 @@ namespace jsv {
         /// assert(loc.line == 3);
         /// assert(loc.column == 5);
         /// assert(loc.absolute_pos == 20);
-        constexpr SourceLocation(
-            std::size_t line,
-            std::size_t column,
-            std::size_t absolute_pos) noexcept
-            : line{line}, column{column}, absolute_pos{absolute_pos}
-        {}
+        constexpr SourceLocation(std::size_t line, std::size_t column, std::size_t absolute_pos) noexcept
+          : line{line}, column{column}, absolute_pos{absolute_pos} {}
 
         /// Lexicographic ordering: line → column → absolute_pos.
         /// Automatically generates ==, !=, <, <=, >, >= from a single definition.
@@ -69,25 +65,21 @@ namespace jsv {
 
         friend std::ostream &operator<<(std::ostream &os, const SourceLocation &loc);
     };
-
 }  // namespace jsv
 
 // -------------------------------------------------------------------------
 // std::hash
 // -------------------------------------------------------------------------
 namespace std {
-    template <>
-    struct hash<jsv::SourceLocation> {
+    template <> struct hash<jsv::SourceLocation> {
         [[nodiscard]] std::size_t operator()(const jsv::SourceLocation &loc) const noexcept;
     };
 
     // -------------------------------------------------------------------------
     // std::formatter  (C++23 <format>)
     // -------------------------------------------------------------------------
-    template <>
-    struct formatter<jsv::SourceLocation> : formatter<string> {
-        template <typename FormatContext>
-        auto format(const jsv::SourceLocation &loc, FormatContext &ctx) const {
+    template <> struct formatter<jsv::SourceLocation> : formatter<string> {
+        template <typename FormatContext> auto format(const jsv::SourceLocation &loc, FormatContext &ctx) const {
             return formatter<string>::format(loc.to_string(), ctx);
         }
     };
@@ -96,10 +88,8 @@ namespace std {
 // -------------------------------------------------------------------------
 // fmt::formatter  (fmtlib)
 // -------------------------------------------------------------------------
-template <>
-struct fmt::formatter<jsv::SourceLocation> : fmt::formatter<std::string> {
-    template <typename FormatContext>
-    auto format(const jsv::SourceLocation &loc, FormatContext &ctx) const {
+template <> struct fmt::formatter<jsv::SourceLocation> : fmt::formatter<std::string> {
+    template <typename FormatContext> auto format(const jsv::SourceLocation &loc, FormatContext &ctx) const {
         return fmt::formatter<std::string>::format(loc.to_string(), ctx);
     }
 };

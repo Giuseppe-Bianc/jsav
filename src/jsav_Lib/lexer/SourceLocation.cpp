@@ -2,7 +2,7 @@
  * Created by gbian on 20/02/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 
 #include "jsav/lexer/SourceLocation.hpp"
 namespace jsv {
@@ -17,13 +17,12 @@ namespace std {
 
     std::size_t hash<jsv::SourceLocation>::operator()(const jsv::SourceLocation &loc) const noexcept {
         std::size_t seed = 0;
-        auto combine = [&](std::size_t v) { seed ^= std::hash<std::size_t>{}(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2); };
-        combine(loc.line);
-        combine(loc.column);
-        combine(loc.absolute_pos);
+        hash_combine(seed, loc.line);
+        hash_combine(seed, loc.column);
+        hash_combine(seed, loc.absolute_pos);
         return seed;
     }
 
 }  // namespace std
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, readability-identifier-length)
