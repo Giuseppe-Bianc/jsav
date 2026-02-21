@@ -75,8 +75,7 @@ namespace jsv {
         fs::path result;
 
         if(len <= depth) {
-            result = std::accumulate(components.begin(), components.end(), fs::path{},
-                                     [](const fs::path &acc, const auto &c) { return acc / c; });
+            result = std::ranges::fold_left(components, fs::path{}, std::divides{});
         } else {
             result = "..";
             for(std::size_t i = len - depth; i < len; ++i) { result /= components[i]; }

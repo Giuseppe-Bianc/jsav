@@ -1292,9 +1292,11 @@ TEST_CASE("SourceLocation copy and move semantics", "[SourceLocation]") {
     SECTION("self-assignment is safe") {
         jsv::SourceLocation loc(42u, 42u, 42u);
 
+        DISABLE_CLANG_WARNINGS_PUSH("-Wself-assign-overloaded")
         // Copy self-assignment
         // NOLINTNEXTLINE(*-self-assign)
         loc = loc;
+        DISABLE_CLANG_WARNINGS_POP()
         REQUIRE(loc.line == 42u);
         REQUIRE(loc.column == 42u);
         REQUIRE(loc.absolute_pos == 42u);
@@ -2107,9 +2109,11 @@ TEST_CASE("SourceSpan copy and move semantics", "[SourceSpan]") {
         const auto filePath = std::make_shared<const std::string>("test.cpp");
         jsv::SourceSpan span(filePath, {42u, 42u, 420u}, {84u, 84u, 840u});
 
+        DISABLE_CLANG_WARNINGS_PUSH("-Wself-assign-overloaded")
         // Copy self-assignment
         // NOLINTNEXTLINE(*-self-assign)
         span = span;
+        DISABLE_CLANG_WARNINGS_POP()
         REQUIRE(span.start.line == 42u);
         REQUIRE(span.end.column == 84u);
     }
