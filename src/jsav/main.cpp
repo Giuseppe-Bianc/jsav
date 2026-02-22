@@ -37,24 +37,25 @@ DISABLE_WARNINGS_POP()
 
 static inline constexpr std::array<std::string_view, 5> UNITS = {"B", "KB", "MB", "GB", "TB"};
 static inline constexpr std::size_t UNIT_LEN = UNITS.size() - 1;
+static inline constexpr long double UNIT_DIVIDER = 1024.0;
 
 struct FormattedSize {
-    double value;
+    long double value;
     std::string_view unit;
 
     [[nodiscard]] std::string to_string() const { return FORMAT("{} {}", value, unit); }
 };
 
 [[nodiscard]] constexpr FormattedSize format_size(std::size_t bytes) noexcept {
-    double size = C_D(bytes);
+    auto size = C_LD(bytes);
     std::size_t unit = 0;
 
-    while(size >= 1024.0 && unit < UNIT_LEN) {
-        size /= 1024.0;
+    while(size >= UNIT_DIVIDER && unit < UNIT_LEN) {
+        size /= UNIT_DIVIDER;
         ++unit;
     }
 
-    return {size, UNITS[unit]};
+    return {.value = size, .unit = UNITS[unit]};
 }
 
 template <> struct std::formatter<FormattedSize> : std::formatter<std::string> {
