@@ -9,10 +9,10 @@ function(check_simd_support RESULT_VAR FEATURE_NAME MSVC_FLAG OTHER_FLAG TEST_SO
 
     set(CMAKE_REQUIRED_FLAGS "${required_flags}")
     include(CheckCXXSourceCompiles)
-    check_cxx_source_compiles("${TEST_SOURCE}" ${RESULT_VAR})
+    check_cxx_source_compiles("${TEST_SOURCE}" "${RESULT_VAR}")
 
     set(CMAKE_REQUIRED_FLAGS "${original_flags}")
-    set(${RESULT_VAR} ${${RESULT_VAR}} PARENT_SCOPE)
+    set("${RESULT_VAR}" "${${RESULT_VAR}}" PARENT_SCOPE)
 endfunction()
 
 function(check_all_simd_features)
@@ -61,19 +61,19 @@ function(check_all_simd_features)
 
     # Perform SIMD checks and propagate results to parent scope
     check_simd_support(HAS_SSE "SSE" "/arch:SSE" "-msse" "${SSE_TEST}")
-    set(HAS_SSE ${HAS_SSE} PARENT_SCOPE)
+    set(HAS_SSE "${HAS_SSE}" PARENT_SCOPE)
 
     check_simd_support(HAS_SSE2 "SSE2" "/arch:SSE2" "-msse2" "${SSE2_TEST}")
-    set(HAS_SSE2 ${HAS_SSE2} PARENT_SCOPE)
+    set(HAS_SSE2 "${HAS_SSE2}" PARENT_SCOPE)
 
     check_simd_support(HAS_AVX "AVX" "/arch:AVX" "-mavx" "${AVX_TEST}")
-    set(HAS_AVX ${HAS_AVX} PARENT_SCOPE)
+    set(HAS_AVX "${HAS_AVX}" PARENT_SCOPE)
 
     check_simd_support(HAS_AVX2 "AVX2" "/arch:AVX2" "-mavx2" "${AVX2_TEST}")
-    set(HAS_AVX2 ${HAS_AVX2} PARENT_SCOPE)
+    set(HAS_AVX2 "${HAS_AVX2}" PARENT_SCOPE)
 
     check_simd_support(HAS_AVX512F "AVX512F" "/arch:AVX512" "-mavx512f" "${AVX512_TEST}")
-    set(HAS_AVX512F ${HAS_AVX512F} PARENT_SCOPE)
+    set(HAS_AVX512F "${HAS_AVX512F}" PARENT_SCOPE)
 endfunction()
 
 function(print_simd_support)
@@ -114,46 +114,42 @@ function(print_simd_support)
     else ()
         message(WARNING "AVX512F not supported")
     endif ()
-    set(SIMD_INSTRUCTION_TYPE ${SIMD_INSTRUCTION_TYPE} PARENT_SCOPE)
+    set(SIMD_INSTRUCTION_TYPE "${SIMD_INSTRUCTION_TYPE}" PARENT_SCOPE)
 endfunction()
 function(set_simd_instructions target_name)
 
-    if (SIMD_INSTRUCTION_TYPE STREQUAL "AVX2")
-        target_compile_options(${target_name} PRIVATE
-                $<$<CXX_COMPILER_ID:MSVC>:/arch:AVX2>
-                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-mavx2>
+    if ("${SIMD_INSTRUCTION_TYPE}" STREQUAL "AVX512F")
+        target_compile_options("${target_name}" PRIVATE
+                $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/arch:AVX512>
+                $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-mavx512f>
         )
-    elseif (SIMD_INSTRUCTION_TYPE STREQUAL "AVX")
-        target_compile_options(${target_name} PRIVATE
-                $<$<CXX_COMPILER_ID:MSVC>:/arch:AVX>
-                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-mavx>
+    elseif ("${SIMD_INSTRUCTION_TYPE}" STREQUAL "AVX2")
+        target_compile_options("${target_name}" PRIVATE
+                $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/arch:AVX2>
+                $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-mavx2>
         )
-    elseif (SIMD_INSTRUCTION_TYPE STREQUAL "AVX512F")
-        target_compile_options(${target_name} PRIVATE
-                $<$<CXX_COMPILER_ID:MSVC>:/arch:AVX512>
-                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-mavx512f>
+    elseif ("${SIMD_INSTRUCTION_TYPE}" STREQUAL "AVX")
+        target_compile_options("${target_name}" PRIVATE
+                $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/arch:AVX>
+                $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-mavx>
         )
-    elseif (SIMD_INSTRUCTION_TYPE STREQUAL "SSE2")
-        target_compile_options(${target_name} PRIVATE
-                $<$<CXX_COMPILER_ID:MSVC>:/arch:SSE2>
-                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-msse2>
+    elseif ("${SIMD_INSTRUCTION_TYPE}" STREQUAL "SSE2")
+        target_compile_options("${target_name}" PRIVATE
+                $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/arch:SSE2>
+                $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-msse2>
         )
-    elseif (SIMD_INSTRUCTION_TYPE STREQUAL "SSE")
-        target_compile_options(${target_name} PRIVATE
-                $<$<CXX_COMPILER_ID:MSVC>:/arch:SSE>
-                $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-msse>
+    elseif ("${SIMD_INSTRUCTION_TYPE}" STREQUAL "SSE")
+        target_compile_options("${target_name}" PRIVATE
+                $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/arch:SSE>
+                $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-msse>
         )
     endif ()
-
     # Compiler compatibility check
-    if (CMAKE_CXX_COMPILER_ID MATCHES ".*Clang")
-        message(STATUS "Set SIMD instructions to ${SIMD_INSTRUCTION_TYPE} for target '${target_name}' with '${CMAKE_CXX_COMPILER_ID}' compiler.")
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        message(STATUS "Set SIMD instructions to ${SIMD_INSTRUCTION_TYPE} for target '${target_name}' with '${CMAKE_CXX_COMPILER_ID}' compiler.")
-    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND MSVC_VERSION GREATER 1900)
-        message(STATUS "Set SIMD instructions to ${SIMD_INSTRUCTION_TYPE} for target '${target_name}' with '${CMAKE_CXX_COMPILER_ID}' compiler.")
+    if (CMAKE_CXX_COMPILER_ID MATCHES ".*Clang" OR
+            CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR
+    (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" AND MSVC_VERSION GREATER 1900))
+        message(STATUS "Set SIMD instructions to '${SIMD_INSTRUCTION_TYPE}' for target '${target_name}' with '${CMAKE_CXX_COMPILER_ID}' compiler.")
     else ()
-        message(STATUS "Cannot set SIMD instructions to ${SIMD_INSTRUCTION_TYPE} for target '${target_name}' with '${CMAKE_CXX_COMPILER_ID}' compiler.")
+        message(STATUS "Cannot set SIMD instructions to '${SIMD_INSTRUCTION_TYPE}' for target '${target_name}' with '${CMAKE_CXX_COMPILER_ID}' compiler.")
     endif ()
-
 endfunction()
