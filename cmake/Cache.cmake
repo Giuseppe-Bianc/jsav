@@ -3,33 +3,33 @@ function(jsav_enable_cache)
   # Definisce le opzioni valide per il sistema di cache
   set(VALID_CACHE_OPTIONS "ccache" "sccache")
 
-  # Se non è già definita, imposta l'opzione di cache di default su "ccache"
-  if (NOT DEFINED CACHE_OPTION)
-    set(CACHE_OPTION "ccache" CACHE STRING "Compiler cache to be used (choices: 'ccache', 'sccache')")
-  endif()
+  # If the user has not already provided CACHE_OPTION, default to "ccache".
+  if (NOT DEFINED CACHE{CACHE_OPTION})
+    set(CACHE_OPTION "ccache" CACHE STRING "Compiler cache backend to use. Accepted values: 'ccache', 'sccache'.")
+  endif ()
 
-  # Imposta i valori ammissibili per CACHE_OPTION (visibili nella GUI o nei file di cache)
-  set_property(CACHE CACHE_OPTION PROPERTY STRINGS ${VALID_CACHE_OPTIONS})
+  # Populate the GUI / cmake-gui dropdown with the known-valid choices.
+  set_property(CACHE CACHE_OPTION PROPERTY STRINGS "${VALID_CACHE_OPTIONS}")
 
-  # Verifica se il valore scelto è tra quelli ammessi
   list(FIND VALID_CACHE_OPTIONS "${CACHE_OPTION}" CACHE_OPTION_INDEX)
   if (CACHE_OPTION_INDEX EQUAL -1)
     message(STATUS
-            "Using custom compiler cache system: '${CACHE_OPTION}'. Supported options are: ${CACHE_OPTION_VALUES}"
+            "Using custom compiler cache backend: '${CACHE_OPTION}'. Natively supported options are: ${CACHE_OPTION_VALUES}."
     )
   endif ()
 
-  # Cerca il binario corrispondente al sistema di cache selezionato (ccache o sccache)
   find_program(CACHE_BINARY "${CACHE_OPTION}" HINTS ENV PATH NO_CACHE)
   if (CACHE_BINARY)
-    message(STATUS "Compiler cache system '${CACHE_BINARY}' found. Enabling cache.")
-    # Configura il launcher del compilatore per C e C++ per utilizzare il sistema di cache
-    set(CMAKE_C_COMPILER_LAUNCHER "${CACHE_BINARY}" CACHE FILEPATH "C compiler cache" FORCE)
-    set(CMAKE_CXX_COMPILER_LAUNCHER "${CACHE_BINARY}" CACHE FILEPATH "C++ compiler cache" FORCE)
-  else()
-    message(WARNING "Il sistema di cache selezionato '${CACHE_OPTION}' non è stato trovato nel PATH. La cache del compilatore non verrà abilitata.")
-  endif()
+    message(STATUS "Compiler cache '${CACHE_BINARY}' found. Setting C and C++ compiler launchers.")
+        # FORCE is required because CMAKE_C/CXX_COMPILER_LAUNCHER may already be
+        # cached from a previous configure run with a different backend.
+    set(CMAKE_C_COMPILER_LAUNCHER "${CACHE_BINARY}" CACHE FILEPATH "C compiler cache launcher." FORCE)
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CACHE_BINARY}" CACHE FILEPATH "C++ compiler cache launcher." FORCE)
+  else ()
+    message(WARNING "Compiler cache backend '${CACHE_OPTION}' was not found on PATH. Compiler caching will not be enabled.")
+    endif ()
 
-  # Segna l'opzione CACHE_OPTION come avanzata per non ingombrare la visualizzazione principale della cache
+    # Hide CACHE_OPTION from the default cmake-gui / ccmake view to reduce
+    # noise; advanced users can still toggle it with the 'advanced' filter.
   mark_as_advanced(CACHE_OPTION)
 endfunction()
