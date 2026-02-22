@@ -203,11 +203,9 @@ DISABLE_WARNINGS_POP()
  * // Output: "2024-01-15 14:30:45.123"
  * @endcode
  */
-inline std::string get_current_timestamp() {
-    const auto now = std::chrono::system_clock::now();
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-
-    return FORMAT("{}.{:03d}", std::chrono::system_clock::from_time_t(std::chrono::system_clock::to_time_t(now)), ms.count());
+[[nodiscard]] inline std::string get_current_timestamp() {
+    const auto now = ch::floor<ch::milliseconds>(ch::system_clock::now());
+    return FORMAT("{:%Y-%m-%d %H:%M:%S}", now);
 }
 
 // clang-format off
@@ -225,11 +223,12 @@ inline std::string get_current_timestamp() {
  *
  * @note The function writes to std::cerr for error output.
  */
-inline void my_error_handler(const std::string &msg) {
-    std::cerr << FORMAT("Error occurred:\n  Timestamp: {}\n", get_current_timestamp());
-    std::cerr << FORMAT("  Thread ID: {}\n", std::this_thread::get_id());
-    std::cerr << FORMAT("  Message: {}\n", msg);
-    std::cerr << "  Note: Error originated within spdlog internals.\n";
+inline void my_error_handler(const std::string& msg) {
+    fmt::print(stderr,
+        "Error occurred:\n  Timestamp: {}\n  Thread ID: {}\n  Message:   {}\n  Note: Error originated within spdlog internals.\n",
+        get_current_timestamp(),
+        std::this_thread::get_id(),
+        msg);
 }
 // clang-format on
 

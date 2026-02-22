@@ -22,6 +22,7 @@
 DISABLE_WARNINGS_PUSH(4834)
 DISABLE_CLANG_WARNINGS_PUSH("-Wunused-result")
 DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
+#include <fmt/chrono.h>  // Added: needed for chrono formatting in Log.hpp
 #include <fmt/core.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
