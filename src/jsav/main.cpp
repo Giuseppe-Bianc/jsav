@@ -64,21 +64,21 @@ auto main(int argc, const char *const argv[]) -> int {
         app.add_option("-i,--input", path, "The input file");
         bool show_version = false;
         bool compile = false;
-        bool run = false;
-        bool clean = false;
-        bool create_cmake = false;
+        // bool run = false;
+        // bool clean = false;
+        // bool create_cmake = false;
         app.add_flag("--version, -v", show_version, "Show version information");
         app.add_flag("--compile, -c", compile, "Compile the resulting code");
-        app.add_flag("--run, -r", run, "Compile the resulting code and execute it");
-        app.add_flag("--clean, -x", clean, "Clean before building");
-        app.add_flag("--cmake, -m", create_cmake, "Create a CMakeLists.txt file");
+        // app.add_flag("--run, -r", run, "Compile the resulting code and execute it");
+        // app.add_flag("--clean, -x", clean, "Clean before building");
+        // app.add_flag("--cmake, -m", create_cmake, "Create a CMakeLists.txt file");
         CLI11_PARSE(app, argc, argv)
         if(show_version) {
             LINFO("{}", jsav::cmake::project_version);
             return EXIT_SUCCESS;
         }
         const auto porfilename = fs::canonical(fs::path(path.value_or(filename.data())).lexically_normal()).string();
-        if(clean) {
+        /*if(clean) {
             const auto folderPath = vnd::GetBuildFolder(fs::path(porfilename));
             LINFO("Cleaning the project");
 #ifdef INDEPT
@@ -97,11 +97,12 @@ auto main(int argc, const char *const argv[]) -> int {
 #endif
             }
         }
+        */
 
+        const vnd::AutoTimer compilationTime("Total Execution");
         const vnd::Timer timer(FORMAT("Processing file {}", porfilename));
         const auto str = vnd::readFromFile(porfilename);
-        const auto processing_time = timer.to_string();
-        LINFO(processing_time);
+        LINFO("{}", timer);
 
         [[maybe_unused]] const std::string_view code(str);
         const jsv::SourceLocation start{0, 0, 0};
