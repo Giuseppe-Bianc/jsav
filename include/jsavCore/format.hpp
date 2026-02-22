@@ -22,14 +22,18 @@
 DISABLE_WARNINGS_PUSH(4834)
 DISABLE_CLANG_WARNINGS_PUSH("-Wunused-result")
 DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
+#include <fmt/format.h>
+DISABLE_CLANG_WARNINGS_POP()
+DISABLE_GCC_WARNINGS_POP()
+DISABLE_WARNINGS_POP()
+DISABLE_CLANG_WARNINGS_PUSH("-Wunused-result")
+DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
 #include <fmt/chrono.h>  // Added: needed for chrono formatting in Log.hpp
 #include <fmt/core.h>
-#include <fmt/format.h>
 #include <fmt/ranges.h>
 #include <fmt/std.h>
 DISABLE_CLANG_WARNINGS_POP()
 DISABLE_GCC_WARNINGS_POP()
-DISABLE_WARNINGS_POP()
 /**
  * @def FORMAT(...)
  * @brief Macro for formatting strings using the fmt library.
