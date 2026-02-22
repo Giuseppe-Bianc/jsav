@@ -6,6 +6,6 @@
 #pragma once
 
 #include "FileCreationResult.hpp"
-#include "FileDelitionResult.hpp"
+#include "FileDeletionResult.hpp"
 #include "FolderCreationResult.hpp"
-#include "FolderDelitionResult.hpp"
+#include "FolderDeletionResult.hpp"
