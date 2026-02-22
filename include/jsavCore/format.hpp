@@ -19,6 +19,7 @@
 #ifdef __cpp_lib_format
 #include <format>
 #endif
+DISABLE_WARNINGS_PUSH(4834)
 DISABLE_CLANG_WARNINGS_PUSH("-Wunused-result")
 DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
 #include <fmt/core.h>
@@ -27,7 +28,7 @@ DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
 #include <fmt/std.h>
 DISABLE_CLANG_WARNINGS_POP()
 DISABLE_GCC_WARNINGS_POP()
-
+DISABLE_WARNINGS_POP()
 /**
  * @def FORMAT(...)
  * @brief Macro for formatting strings using the fmt library.

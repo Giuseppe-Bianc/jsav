@@ -7,11 +7,11 @@ macro(jsav_enable_ipo)
           OUTPUT ipo_output
           LANGUAGES CXX
   )
-  if (result)
+  if ("${ipo_supported}")
     message(STATUS "Inter Procedural Optimization (IPO) is supported. Enabling IPO.")
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
   else ()
-    message(WARNING "Inter Procedural Optimization (IPO) is not supported: ${output}")
+    message(WARNING "Inter Procedural Optimization (IPO) is not supported: ${ipo_output}")
     message(STATUS "Please check your compiler settings or update your compiler.")
   endif ()
 endmacro()
