@@ -4,8 +4,6 @@
  */
 // NOLINTBEGIN(*-include-cleaner, *-env33-c)
 #include "Costanti.hpp"
-
-#include <jsav/lexer/SourceSpan.hpp>
 #ifdef _WIN32
 #include <windows.h>
 #endif
@@ -37,6 +35,38 @@ DISABLE_WARNINGS_POP()
 
 */
 
+static inline constexpr std::array<std::string_view, 5> UNITS = {"B", "KB", "MB", "GB", "TB"};
+static inline constexpr std::size_t UNIT_LEN = UNITS.size() - 1;
+
+struct FormattedSize {
+    double value;
+    std::string_view unit;
+
+    [[nodiscard]] std::string to_string() const { return FORMAT("{} {}", value, unit); }
+};
+
+[[nodiscard]] constexpr FormattedSize format_size(std::size_t bytes) noexcept {
+    double size = C_D(bytes);
+    std::size_t unit = 0;
+
+    while(size >= 1024.0 && unit < UNIT_LEN) {
+        size /= 1024.0;
+        ++unit;
+    }
+
+    return {size, UNITS[unit]};
+}
+
+template <> struct std::formatter<FormattedSize> : std::formatter<std::string> {
+    template <typename FormatContext> auto format(const FormattedSize &fs, FormatContext &ctx) const {
+        return std::formatter<std::string>::format(fs.to_string(), ctx);
+    }
+};
+template <> struct fmt::formatter<FormattedSize> : fmt::formatter<std::string> {
+    template <typename FormatContext> auto format(const FormattedSize &fs, FormatContext &ctx) const {
+        return fmt::formatter<std::string>::format(fs.to_string(), ctx);
+    }
+};
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
 // NOLINTNEXTLINE(*-function-cognitive-complexity, *-exception-escape)
@@ -102,9 +132,13 @@ auto main(int argc, const char *const argv[]) -> int {
         const vnd::AutoTimer compilationTime("Total Execution");
         const vnd::Timer timer(FORMAT("Processing file {}", porfilename));
         const auto str = vnd::readFromFile(porfilename);
-        LINFO("{}", timer);
+        const auto processing_time = timer.to_string();
+        LINFO(processing_time);
 
-        [[maybe_unused]] const std::string_view code(str);
+        const std::string_view code(str);
+        const auto size_bytes = str.size();
+        const auto fsz = format_size(size_bytes);
+        LINFO("{} total of bytes read: {}", porfilename, fsz);
         const jsv::SourceLocation start{0, 0, 0};
         const jsv::SourceLocation end{0, 1, 1};
         const auto sf_p = MAKE_SHARED(const std::string, porfilename);

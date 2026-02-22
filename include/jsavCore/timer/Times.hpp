@@ -46,9 +46,9 @@ namespace vnd {
          * @post micro = nanoseconds_ / MICROSECONDSFACTOR
          * @post nano = nanoseconds_
          */
-        explicit constexpr TimeValues(const long double nanoseconds_) noexcept
-          : seconds(nanoseconds_ / SECONDSFACTOR), millis(nanoseconds_ / MILLISECONDSFACTOR), micro(nanoseconds_ / MICROSECONDSFACTOR),
-            nano(nanoseconds_) {}
+        explicit constexpr TimeValues(const long double nanoseconds) noexcept
+          : m_seconds(nanoseconds / SECONDSFACTOR), m_millis(nanoseconds / MILLISECONDSFACTOR), m_micro(nanoseconds / MICROSECONDSFACTOR),
+            m_nano(nanoseconds) {}
 
         /**
          * @brief Constructs TimeValues from explicit values for each unit.
@@ -66,8 +66,8 @@ namespace vnd {
          *       (i.e., they don't need to represent the same duration).
          */
         // NOLINTNEXTLINE(*-easily-swappable-parameters)
-        constexpr TimeValues(long double seconds_, long double millis_, long double micro_, long double nano_) noexcept
-          : seconds(seconds_), millis(millis_), micro(micro_), nano(nano_) {}
+        constexpr TimeValues(long double seconds, long double millis, long double micro, long double nano) noexcept
+          : m_seconds(seconds), m_millis(millis), m_micro(micro), m_nano(nano) {}
 
         ///@name Copy and Move Operations
         ///@{
@@ -109,35 +109,35 @@ namespace vnd {
          *
          * @return The time value in seconds as long double.
          */
-        [[nodiscard]] constexpr long double get_seconds() const noexcept { return seconds; }
+        [[nodiscard]] constexpr long double get_seconds() const noexcept { return m_seconds; }
 
         /**
          * @brief Gets the time value in milliseconds.
          *
          * @return The time value in milliseconds as long double.
          */
-        [[nodiscard]] constexpr long double get_millis() const noexcept { return millis; }
+        [[nodiscard]] constexpr long double get_millis() const noexcept { return m_millis; }
 
         /**
          * @brief Gets the time value in microseconds.
          *
          * @return The time value in microseconds as long double.
          */
-        [[nodiscard]] constexpr long double get_micro() const noexcept { return micro; }
+        [[nodiscard]] constexpr long double get_micro() const noexcept { return m_micro; }
 
         /**
          * @brief Gets the time value in nanoseconds.
          *
          * @return The time value in nanoseconds as long double.
          */
-        [[nodiscard]] constexpr long double get_nano() const noexcept { return nano; }
+        [[nodiscard]] constexpr long double get_nano() const noexcept { return m_nano; }
         ///@}
 
     private:
-        long double seconds{};  ///< Time value in seconds.
-        long double millis{};   ///< Time value in milliseconds.
-        long double micro{};    ///< Time value in microseconds.
-        long double nano{};     ///< Time value in nanoseconds.
+        long double m_seconds{};  ///< Time value in seconds.
+        long double m_millis{};   ///< Time value in milliseconds.
+        long double m_micro{};    ///< Time value in microseconds.
+        long double m_nano{};     ///< Time value in nanoseconds.
     };
 
     /**
@@ -273,7 +273,7 @@ namespace vnd {
          *
          * @example Input: 1.234567890 → Output: "1s,234ms,567us,890ns"
          */
-        [[nodiscard]] std::string transformTimeSeconds(const long double inputTimeSeconds) const noexcept {
+        [[nodiscard]] static std::string transformTimeSeconds(const long double inputTimeSeconds) {
             using namespace std::chrono;
 
             const auto durationSecs = seclld(inputTimeSeconds);
@@ -428,14 +428,10 @@ namespace vnd {
             const auto millis = values.get_millis();
             const auto micro = values.get_micro();
 
-            if(seconds > 1.0L) {  // seconds NOLINT(*-branch-clone)
-                return {seconds, labelseconds};
-            } else if(millis > 1.0L) {  // millis
-                return {millis, labelmillis};
-            } else if(micro > 1.0L) {  // micros
-                return {micro, labelmicro};
-            }
-            return {values.get_nano(), labelnano};  // nanos
+            if(seconds > 1.0L) { return {seconds, labelseconds}; }
+            if(millis > 1.0L) { return {millis, labelmillis}; }
+            if(micro > 1.0L) { return {micro, labelmicro}; }
+            return {values.get_nano(), labelnano};
         }
 
     private:
