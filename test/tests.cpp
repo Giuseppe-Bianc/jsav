@@ -2123,7 +2123,7 @@ TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][ha
         const std::string result = jsv::truncate_path(path, 5);
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-        REQUIRE(result == "a\\b\\c");
+        REQUIRE(result == R"(a\b\c)");
 #else
         REQUIRE(result == "a/b/c");
 #endif
@@ -2134,7 +2134,7 @@ TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][ha
         const std::string result = jsv::truncate_path(path, 3);
 
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-        REQUIRE(result == "a\\b\\c");
+        REQUIRE(result == R"(a\b\c)");
 #else
         REQUIRE(result == "a/b/c");
 #endif
@@ -2146,7 +2146,7 @@ TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][ha
 
         REQUIRE(result.find("..") == 0);
 #if defined(_WIN32) || defined(__WIN32__) || defined(WIN32)
-        REQUIRE(result.find("d\\e") != std::string::npos);
+        REQUIRE(result.find(R"(d\e)") != std::string::npos);
 #else
         REQUIRE(result.find("d/e") != std::string::npos);
 #endif
@@ -2169,7 +2169,7 @@ TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][ha
 
     SECTION("absolute path is handled") {
 #if defined(_WIN32)
-        const fs::path path = "C:\\a\\b\\c\\d\\e";
+        const fs::path path = R"(C:\a\b\c\d\e)";
 #else
         const fs::path path = "/a/b/c/d/e";
 #endif
