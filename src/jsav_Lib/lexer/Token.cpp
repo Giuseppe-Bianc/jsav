@@ -7,12 +7,8 @@
 
 namespace jsv {
 
-    std::string Token::to_string() const {
-        return FORMAT("{}({})", to_string(m_kind), m_text);
-    }
+    std::string Token::to_string() const { return FORMAT(R"({}("{}") {})", tokenKindToString(m_kind), m_text, m_span); }
 
-    std::ostream &operator<<(std::ostream &os, const Token &token) {
-        return os << token.to_string();
-    }
+    std::ostream &operator<<(std::ostream &os, const Token &token) { return os << token.to_string(); }
 
 }  // namespace jsv

@@ -63,6 +63,98 @@ TEST_CASE("the constexpr size of types", "[TypeSizes]") {
     STATIC_REQUIRE(TypeSizes::sizeOfU32StringView == sizeof(std::u32string_view));
 }
 
+TEST_CASE("TokenKind tokenKindToString returns correct string representation", "[TokenKind]") {
+    // Two-character operators
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::PlusEqual) == "PLUS_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::MinusEqual) == "MINUS_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::EqualEqual) == "EQUAL_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::NotEqual) == "NOT_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::LessEqual) == "LESS_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::GreaterEqual) == "GREATER_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::PlusPlus) == "PLUS_PLUS");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::MinusMinus) == "MINUS_MINUS");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::OrOr) == "OR_OR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::AndAnd) == "AND_AND");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::ShiftLeft) == "SHIFT_LEFT");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::ShiftRight) == "SHIFT_RIGHT");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::PercentEqual) == "PERCENT_EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::XorEqual) == "XOR_EQUAL");
+
+    // Single-character operators
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Plus) == "PLUS");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Minus) == "MINUS");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Star) == "STAR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Slash) == "SLASH");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Less) == "LESS");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Greater) == "GREATER");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Not) == "NOT");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Xor) == "XOR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Percent) == "PERCENT");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Or) == "OR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::And) == "AND");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Equal) == "EQUAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Colon) == "COLON");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Comma) == "COMMA");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Dot) == "DOT");
+
+    // Keywords
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordFun) == "FUN");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordIf) == "IF");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordElse) == "ELSE");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordReturn) == "RETURN");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordWhile) == "WHILE");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordFor) == "FOR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordMain) == "MAIN");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordVar) == "VAR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordConst) == "CONST");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordNullptr) == "NULLPTR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordBreak) == "BREAK");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordContinue) == "CONTINUE");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::KeywordBool) == "BOOL");
+
+    // Identifiers
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::IdentifierAscii) == "IDENTIFIER");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::IdentifierUnicode) == "IDENTIFIER");
+
+    // Numeric literals
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Numeric) == "NUMERIC");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Binary) == "BINARY");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Octal) == "OCTAL");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Hexadecimal) == "HEX");
+
+    // String/char literals
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::StringLiteral) == "STRING");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::CharLiteral) == "CHAR");
+
+    // Brackets/braces/parens
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::OpenParen) == "OPEN_PAREN");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::CloseParen) == "CLOSE_PAREN");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::OpenBracket) == "OPEN_BRACKET");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::CloseBracket) == "CLOSE_BRACKET");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::OpenBrace) == "OPEN_BRACE");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::CloseBrace) == "CLOSE_BRACE");
+
+    // Primitive types
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeI8) == "I8");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeI16) == "I16");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeI32) == "I32");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeI64) == "I64");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeU8) == "U8");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeU16) == "U16");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeU32) == "U32");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeU64) == "U64");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeF32) == "F32");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeF64) == "F64");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeChar) == "CHAR");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeString) == "STRING");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::TypeBool) == "BOOL");
+
+    // Miscellaneous
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Semicolon) == "SEMICOLON");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Eof) == "EOF");
+    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Error) == "ERROR");
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization)
 // clang-format on

@@ -3,6 +3,7 @@
 // clang-format on
 #include "testsConstanst.hpp"
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_container_properties.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
@@ -2275,6 +2276,487 @@ TEST_CASE("SourceSpan file_path sharing behavior", "[SourceSpan]") {
         REQUIRE(span1.file_path != span2.file_path);
         // But spans compare by value (file_path content, start, end)
         REQUIRE(span1 == span2);
+    }
+}
+
+// =============================================================================
+// Token Tests
+// =============================================================================
+
+TEST_CASE("Token construction and basic accessors", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 5u, 10u);
+    const jsv::SourceLocation end(1u, 8u, 13u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("Token constructed with all parameters") {
+        const jsv::Token token(jsv::TokenKind::KeywordFun, "fun", span);
+
+        REQUIRE(token.getKind() == jsv::TokenKind::KeywordFun);
+        REQUIRE(token.getText() == "fun");
+        REQUIRE(token.getSpan().file_path == filePath);
+        REQUIRE(token.getSpan().start.line == 1u);
+        REQUIRE(token.getSpan().start.column == 5u);
+        REQUIRE(token.getSpan().end.line == 1u);
+        REQUIRE(token.getSpan().end.column == 8u);
+    }
+
+    SECTION("Token with different token kinds") {
+        const jsv::Token identifier(jsv::TokenKind::IdentifierAscii, "myVar", span);
+        const jsv::Token number(jsv::TokenKind::Numeric, "42", span);
+        const jsv::Token op(jsv::TokenKind::PlusEqual, "+=", span);
+
+        REQUIRE(identifier.getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(number.getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(op.getKind() == jsv::TokenKind::PlusEqual);
+
+        REQUIRE(identifier.getText() == "myVar");
+        REQUIRE(number.getText() == "42");
+        REQUIRE(op.getText() == "+=");
+    }
+
+    SECTION("Token with empty text") {
+        const jsv::Token token(jsv::TokenKind::Eof, "", span);
+        REQUIRE(token.getText().empty());
+        REQUIRE(token.getKind() == jsv::TokenKind::Eof);
+    }
+
+    SECTION("Token with unicode identifier") {
+        const jsv::Token token(jsv::TokenKind::IdentifierUnicode, "变量", span);
+        REQUIRE(token.getText() == "变量");
+        REQUIRE(token.getKind() == jsv::TokenKind::IdentifierUnicode);
+    }
+}
+
+TEST_CASE("Token copy and move semantics", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("Token copy constructor") {
+        const jsv::Token original(jsv::TokenKind::KeywordIf, "if", span);
+        const jsv::Token copied(original);
+
+        REQUIRE(copied.getKind() == original.getKind());
+        REQUIRE(copied.getText() == original.getText());
+        REQUIRE(copied.getSpan() == original.getSpan());
+    }
+
+    SECTION("Token copy assignment") {
+        jsv::Token token1(jsv::TokenKind::KeywordWhile, "while", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordFor, "for", span);
+
+        token1 = token2;
+
+        REQUIRE(token1.getKind() == token2.getKind());
+        REQUIRE(token1.getText() == token2.getText());
+        REQUIRE(token1.getSpan() == token2.getSpan());
+    }
+
+    SECTION("Token move constructor") {
+        jsv::Token original(jsv::TokenKind::KeywordReturn, "return", span);
+        const jsv::Token moved(std::move(original));
+
+        REQUIRE(moved.getKind() == jsv::TokenKind::KeywordReturn);
+        REQUIRE(moved.getText() == "return");
+    }
+
+    SECTION("Token move assignment") {
+        jsv::Token token1(jsv::TokenKind::KeywordBreak, "break", span);
+        jsv::Token token2(jsv::TokenKind::KeywordContinue, "continue", span);
+
+        token1 = std::move(token2);
+
+        REQUIRE(token1.getKind() == jsv::TokenKind::KeywordContinue);
+        REQUIRE(token1.getText() == "continue");
+    }
+
+    SECTION("Token self-assignment") {
+        jsv::Token token(jsv::TokenKind::KeywordVar, "var", span);
+        const jsv::Token *tokenPtr = &token;
+
+        // NOLINTNEXTLINE(*-self-assign)
+        token = *tokenPtr;
+
+        REQUIRE(token.getKind() == jsv::TokenKind::KeywordVar);
+        REQUIRE(token.getText() == "var");
+    }
+}
+
+TEST_CASE("Token equality and comparison operators", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("Equal tokens compare equal") {
+        const jsv::Token token1(jsv::TokenKind::KeywordFun, "fun", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordFun, "fun", span);
+
+        REQUIRE(token1 == token2);
+        REQUIRE_FALSE(token1 != token2);
+    }
+
+    SECTION("Tokens with different kind are not equal") {
+        const jsv::Token token1(jsv::TokenKind::KeywordFun, "fun", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordMain, "main", span);
+
+        REQUIRE(token1 != token2);
+        REQUIRE_FALSE(token1 == token2);
+    }
+
+    SECTION("Tokens with different text are not equal") {
+        const jsv::Token token1(jsv::TokenKind::IdentifierAscii, "var1", span);
+        const jsv::Token token2(jsv::TokenKind::IdentifierAscii, "var2", span);
+
+        REQUIRE(token1 != token2);
+    }
+
+    SECTION("Tokens with different span are not equal") {
+        const jsv::SourceLocation start2(2u, 1u, 10u);
+        const jsv::SourceLocation end2(2u, 5u, 14u);
+        const jsv::SourceSpan span2(filePath, start2, end2);
+
+        const jsv::Token token1(jsv::TokenKind::KeywordIf, "if", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordIf, "if", span2);
+
+        REQUIRE(token1 != token2);
+    }
+
+    SECTION("Three-way comparison operator") {
+        const jsv::Token token1(jsv::TokenKind::KeywordIf, "if", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordIf, "if", span);
+        const jsv::Token token3(jsv::TokenKind::KeywordElse, "else", span);
+
+        REQUIRE((token1 <=> token2) == std::strong_ordering::equal);
+        REQUIRE((token1 <=> token3) != std::strong_ordering::equal);
+    }
+}
+
+TEST_CASE("Token to_string method", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("to_string for keyword token") {
+        const jsv::Token token(jsv::TokenKind::KeywordFun, "fun", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(FUN("fun") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for operator token") {
+        const jsv::Token token(jsv::TokenKind::PlusEqual, "+=", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(PLUS_EQUAL("+=") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for identifier token") {
+        const jsv::Token token(jsv::TokenKind::IdentifierAscii, "myVariable", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(IDENTIFIER("myVariable") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for numeric literal token") {
+        const jsv::Token token(jsv::TokenKind::Numeric, "123.456", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(NUMERIC("123.456") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for string literal token") {
+        const jsv::Token token(jsv::TokenKind::StringLiteral, R"(hello "world")", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(STRING("hello "world"") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for type token") {
+        const jsv::Token token(jsv::TokenKind::TypeI32, "i32", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(I32("i32") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for EOF token") {
+        const jsv::Token token(jsv::TokenKind::Eof, "", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(EOF("") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("to_string for error token") {
+        const jsv::Token token(jsv::TokenKind::Error, "@invalid", span);
+        const std::string result = token.to_string();
+
+        REQUIRE(result == R"(ERROR("@invalid") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+}
+
+TEST_CASE("Token stream output operator", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("ostream operator outputs to_string result") {
+        const jsv::Token token(jsv::TokenKind::KeywordReturn, "return", span);
+        std::ostringstream oss;
+        oss << token;
+
+        REQUIRE(oss.str() == R"(RETURN("return") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("ostream operator with multiple tokens") {
+        const jsv::Token token1(jsv::TokenKind::KeywordIf, "if", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordElse, "else", span);
+
+        std::ostringstream oss;
+        oss << token1 << " else " << token2;
+
+        REQUIRE(oss.str() == R"(IF("if") test.jsv:line 1:column 1 - line 1:column 5 else ELSE("else") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("ostream operator preserves stream state") {
+        const jsv::Token token(jsv::TokenKind::Numeric, "42", span);
+        std::ostringstream oss;
+        oss << std::uppercase << std::hex << 255;  // Set stream state
+        oss << " " << token;
+
+        const std::string result = oss.str();
+        REQUIRE_THAT(result, ContainsSubstring("FF"));
+        REQUIRE_THAT(result, ContainsSubstring(R"(NUMERIC("42"))"));
+    }
+}
+
+TEST_CASE("Token std::formatter integration", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("std::format with default format") {
+        const jsv::Token token(jsv::TokenKind::KeywordFor, "for", span);
+        const std::string result = std::format("{}", token);
+
+        REQUIRE(result == R"(FOR("for") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("std::format in format string") {
+        const jsv::Token token(jsv::TokenKind::KeywordWhile, "while", span);
+        const std::string result = std::format("Token: {}", token);
+
+        REQUIRE(result == R"(Token: WHILE("while") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("std::format with multiple tokens") {
+        const jsv::Token token1(jsv::TokenKind::OpenParen, "(", span);
+        const jsv::Token token2(jsv::TokenKind::CloseParen, ")", span);
+
+        const std::string result = std::format("{} {}", token1, token2);
+
+        // "(()" + "())" = "((())())"
+        REQUIRE(
+            result ==
+            "OPEN_PAREN(\"(\") test.jsv:line 1:column 1 - line 1:column 5 CLOSE_PAREN(\")\") test.jsv:line 1:column 1 - line 1:column 5");
+    }
+}
+
+TEST_CASE("Token fmt::formatter integration", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("fmt::format with default format") {
+        const jsv::Token token(jsv::TokenKind::KeywordMain, "main", span);
+        const std::string result = fmt::format("{}", token);
+
+        REQUIRE(result == R"(MAIN("main") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+
+    SECTION("fmt::format in format string") {
+        const jsv::Token token(jsv::TokenKind::KeywordVar, "var", span);
+        const std::string result = fmt::format("Token: {}", token);
+
+        REQUIRE(result == R"(Token: VAR("var") test.jsv:line 1:column 1 - line 1:column 5)");
+    }
+}
+
+TEST_CASE("Token corner cases and edge cases", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 1u, 0u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("Token with very long text") {
+        const std::string longText(1000, 'a');
+        const jsv::Token token(jsv::TokenKind::IdentifierAscii, longText, span);
+
+        REQUIRE(token.getText().size() == 1000u);
+        REQUIRE(token.to_string().size() > 1000u);
+    }
+
+    SECTION("Token with special characters in text") {
+        const jsv::Token token(jsv::TokenKind::StringLiteral, R"(\n\t\r\"\')", span);
+        REQUIRE(token.getText() == R"(\n\t\r\"\')");
+    }
+
+    SECTION("Token with null character in text") {
+        const std::string textWithNull = "hello\0world";
+        const jsv::Token token(jsv::TokenKind::StringLiteral, std::string_view(textWithNull.data(), 11), span);
+
+        REQUIRE(token.getText().size() == 11u);
+    }
+
+    SECTION("Token at position zero") {
+        const jsv::SourceLocation zeroLoc(0u, 0u, 0u);
+        const jsv::SourceSpan zeroSpan(filePath, zeroLoc, zeroLoc);
+        const jsv::Token token(jsv::TokenKind::Eof, "", zeroSpan);
+
+        REQUIRE(token.getSpan().start.line == 0u);
+        REQUIRE(token.getSpan().start.column == 0u);
+        REQUIRE(token.getSpan().start.absolute_pos == 0u);
+    }
+
+    SECTION("Token at large position values") {
+        constexpr std::size_t largeLine = std::numeric_limits<std::size_t>::max() - 1000u;
+        constexpr std::size_t largeCol = std::numeric_limits<std::size_t>::max() - 500u;
+        constexpr std::size_t largeOffset = std::numeric_limits<std::size_t>::max() - 100u;
+
+        const jsv::SourceLocation largeLoc(largeLine, largeCol, largeOffset);
+        const jsv::SourceSpan largeSpan(filePath, largeLoc, largeLoc);
+        const jsv::Token token(jsv::TokenKind::IdentifierAscii, "x", largeSpan);
+
+        REQUIRE(token.getSpan().start.line == largeLine);
+        REQUIRE(token.getSpan().start.column == largeCol);
+        REQUIRE(token.getSpan().start.absolute_pos == largeOffset);
+    }
+}
+
+TEST_CASE("Token noexcept contracts", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    STATIC_REQUIRE(std::is_nothrow_copy_constructible_v<jsv::Token>);
+    STATIC_REQUIRE(std::is_nothrow_copy_assignable_v<jsv::Token>);
+    STATIC_REQUIRE(std::is_nothrow_move_constructible_v<jsv::Token>);
+    STATIC_REQUIRE(std::is_nothrow_move_assignable_v<jsv::Token>);
+
+    SECTION("getKind does not throw") {
+        const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
+        REQUIRE_NOTHROW(std::ignore = token.getKind());
+    }
+
+    SECTION("getText does not throw") {
+        const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
+        REQUIRE_NOTHROW(std::ignore = token.getText());
+    }
+
+    SECTION("getSpan does not throw") {
+        const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
+        REQUIRE_NOTHROW(std::ignore = token.getSpan());
+    }
+
+    SECTION("to_string does not throw") {
+        const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
+        REQUIRE_NOTHROW(std::ignore = token.to_string());
+    }
+
+    SECTION("copy operations do not throw") {
+        const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
+        REQUIRE_NOTHROW([&]() { jsv::Token copied(token); }());
+        REQUIRE_NOTHROW([&]() { jsv::Token assigned = token; }());
+    }
+
+    SECTION("move operations do not throw") {
+        jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
+        REQUIRE_NOTHROW([&]() { jsv::Token moved(std::move(token)); }());
+
+        jsv::Token token2(jsv::TokenKind::KeywordElse, "else", span);
+        REQUIRE_NOTHROW(token2 = std::move(token));
+    }
+
+    SECTION("comparison operators do not throw") {
+        const jsv::Token token1(jsv::TokenKind::KeywordIf, "if", span);
+        const jsv::Token token2(jsv::TokenKind::KeywordIf, "if", span);
+
+        REQUIRE_NOTHROW(std::ignore = (token1 == token2));
+        REQUIRE_NOTHROW(std::ignore = (token1 != token2));
+        REQUIRE_NOTHROW(std::ignore = (token1 <=> token2));
+    }
+}
+
+TEST_CASE("Token data-driven tests", "[Token]") {
+    const auto filePath = std::make_shared<const std::string>("test.jsv");
+    const jsv::SourceLocation start(1u, 1u, 0u);
+    const jsv::SourceLocation end(1u, 5u, 4u);
+    const jsv::SourceSpan span(filePath, start, end);
+
+    SECTION("various keyword tokens") {
+        auto [kind, text, expected] = GENERATE(table<jsv::TokenKind, const char *, const char *>({
+            {jsv::TokenKind::KeywordFun, "fun", R"(FUN("fun") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordIf, "if", R"(IF("if") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordElse, "else", R"(ELSE("else") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordReturn, "return", R"(RETURN("return") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordWhile, "while", R"(WHILE("while") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordFor, "for", R"(FOR("for") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordMain, "main", R"(MAIN("main") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordVar, "var", R"(VAR("var") test.jsv:line 1:column 1 - line 1:column 5)"},
+            {jsv::TokenKind::KeywordConst, "const", R"(CONST("const") test.jsv:line 1:column 1 - line 1:column 5)"},
+        }));
+        CAPTURE(kind, text, expected);
+
+        const jsv::Token token(kind, text, span);
+        REQUIRE(token.to_string() == expected);
+    }
+
+    SECTION("various operator tokens") {
+        auto [kind, text] = GENERATE(table<jsv::TokenKind, const char *>({
+            {jsv::TokenKind::Plus, "+"},
+            {jsv::TokenKind::Minus, "-"},
+            {jsv::TokenKind::Star, "*"},
+            {jsv::TokenKind::Slash, "/"},
+            {jsv::TokenKind::Equal, "="},
+            {jsv::TokenKind::EqualEqual, "=="},
+            {jsv::TokenKind::NotEqual, "!="},
+            {jsv::TokenKind::Less, "<"},
+            {jsv::TokenKind::Greater, ">"},
+            {jsv::TokenKind::LessEqual, "<="},
+            {jsv::TokenKind::GreaterEqual, ">="},
+        }));
+        CAPTURE(kind, text);
+
+        const jsv::Token token(kind, text, span);
+        REQUIRE(token.getText() == text);
+        REQUIRE(token.getKind() == kind);
+    }
+
+    SECTION("various type tokens") {
+        auto [kind, text] = GENERATE(table<jsv::TokenKind, const char *>({
+            {jsv::TokenKind::TypeI8, "i8"},
+            {jsv::TokenKind::TypeI16, "i16"},
+            {jsv::TokenKind::TypeI32, "i32"},
+            {jsv::TokenKind::TypeI64, "i64"},
+            {jsv::TokenKind::TypeU8, "u8"},
+            {jsv::TokenKind::TypeU16, "u16"},
+            {jsv::TokenKind::TypeU32, "u32"},
+            {jsv::TokenKind::TypeU64, "u64"},
+            {jsv::TokenKind::TypeF32, "f32"},
+            {jsv::TokenKind::TypeF64, "f64"},
+            {jsv::TokenKind::TypeBool, "bool"},
+        }));
+        CAPTURE(kind, text);
+
+        const jsv::Token token(kind, text, span);
+        REQUIRE(token.getText() == text);
+        REQUIRE(token.getKind() == kind);
     }
 }
 
