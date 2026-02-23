@@ -350,7 +350,6 @@ namespace vnd {
             return make_time_str(time);
         }
 
-        //   LCOV_EXCL_START
         /**
          * @brief Formats a raw nanoseconds value into a human-readable string.
          *
@@ -364,6 +363,7 @@ namespace vnd {
          * @note Marked with LCOV_EXCL_STOP to exclude from coverage reports (trivial getter).
          * @see Times::getRelevantTimeframe()
          */
+        // LCOV_EXCL_START
         [[nodiscard]] static ValueLabel make_time_str(const long double time) noexcept {
             return make_named_times(time).getRelevantTimeframe();
         }
