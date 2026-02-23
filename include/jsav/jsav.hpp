@@ -10,4 +10,5 @@
 #include "fs/fs.hpp"
 #include "lexer/SourceLocation.hpp"
 #include "lexer/SourceSpan.hpp"
+#include "lexer/Token.hpp"
 // clang-format on
