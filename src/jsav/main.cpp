@@ -37,7 +37,7 @@ DISABLE_WARNINGS_POP()
 // NOLINTBEGIN(*-diagnostic-double-promotion, *-pro-bounds-constant-array-index, *-identifier-length)
 static inline constexpr std::array<std::string_view, 5> UNITS = {"B", "KB", "MB", "GB", "TB"};
 static inline constexpr std::size_t UNIT_LEN = UNITS.size() - 1;
-static inline constexpr long double UNIT_DIVIDER = 1024.0;
+static inline constexpr long double UNIT_DIVIDER = 1024.0L;
 struct FormattedSize {
     long double value;
     std::string_view unit;
