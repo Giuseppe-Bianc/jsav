@@ -18,7 +18,7 @@ Checks: "*,
         -misc-use-internal-linkage
 "
 WarningsAsErrors: ''
-HeaderFilterRegex: '^(?!.*(_deps|build|cmake|configured_files)).*$'
+HeaderFilterRegex: '^(?!.*(/|^)(_deps|build|cmake|configured_files)(/|$)).*$'
 FormatStyle:     none
 
 CheckOptions:

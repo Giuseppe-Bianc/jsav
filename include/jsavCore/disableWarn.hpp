@@ -18,6 +18,64 @@
 #define JSAV_DO_PRAGMA(x) _Pragma(#x)
 
 #ifdef _MSC_VER
+#if defined(__clang__)
+/**
+ * @brief Temporarily disables a specific Clang compiler warning.
+ *
+ * @details Saves the current Clang diagnostic state and disables the
+ *          specified warning until the corresponding call to DISABLE_CLANG_WARNINGS_POP().
+ *          The warning format must include quotes (e.g., "-Wunused-variable").
+ *
+ * @param[in] warning String literal identifying the Clang warning to disable.
+ *
+ * @note Available only when compiling with Clang in MSVC compatibility mode
+ *       (both __clang__ and _MSC_VER defined).
+ * @see DISABLE_CLANG_WARNINGS_POP() to restore the previous state.
+ *
+ * @par Example:
+ * @code{.cpp}
+ * DISABLE_CLANG_WARNINGS_PUSH("-Wunused-variable")
+ * // Code that generates unused variable warning
+ * DISABLE_CLANG_WARNINGS_POP()
+ * @endcode
+ */
+#define DISABLE_CLANG_WARNINGS_PUSH(warning) _Pragma("clang diagnostic push") JSAV_DO_PRAGMA(clang diagnostic ignored warning)
+
+/**
+ * @brief Restores the previously saved Clang diagnostic state.
+ *
+ * @details Must be called after DISABLE_CLANG_WARNINGS_PUSH() to end the
+ *          code region with disabled warnings and restore the
+ *          previous configuration.
+ *
+ * @note Available only when compiling with Clang in MSVC compatibility mode
+ *       (both __clang__ and _MSC_VER defined).
+ * @see DISABLE_CLANG_WARNINGS_PUSH() to begin a region with disabled warnings.
+ */
+#define DISABLE_CLANG_WARNINGS_POP() _Pragma("clang diagnostic pop")
+
+/**
+ * @brief Empty macro for cross-compiler compatibility on Clang in MSVC mode.
+ *
+ * @details On Clang in MSVC compatibility mode this macro has no effect since
+ *          GCC-specific warnings are not applicable.
+ *
+ * @param[in] warning GCC warning identifier (ignored).
+ *
+ * @note Available only when compiling with Clang in MSVC compatibility mode; has no effect.
+ */
+#define DISABLE_GCC_WARNINGS_PUSH(warning)
+
+/**
+ * @brief Empty macro for cross-compiler compatibility on Clang in MSVC mode.
+ *
+ * @details On Clang in MSVC compatibility mode this macro has no effect since
+ *          GCC-specific warnings are not applicable.
+ *
+ * @note Available only when compiling with Clang in MSVC compatibility mode; has no effect.
+ */
+#define DISABLE_GCC_WARNINGS_POP()
+#else
 /**
  * @brief Temporarily disables specified MSVC compiler warnings.
  *
@@ -27,7 +85,7 @@
  *
  * @param[in] ... List of MSVC warning codes to disable (e.g., 4267, 4996).
  *
- * @note Available only when compiling with MSVC (_MSC_VER defined).
+ * @note Available only when compiling with MSVC (_MSC_VER defined, __clang__ not defined).
  * @see DISABLE_WARNINGS_POP() to restore the previous state.
  *
  * @par Example:
@@ -46,7 +104,7 @@
  *          code region with disabled warnings and restore the
  *          previous configuration.
  *
- * @note Available only when compiling with MSVC (_MSC_VER defined).
+ * @note Available only when compiling with MSVC (_MSC_VER defined, __clang__ not defined).
  * @see DISABLE_WARNINGS_PUSH() to begin a region with disabled warnings.
  */
 #define DISABLE_WARNINGS_POP() __pragma(warning(pop))
@@ -94,6 +152,7 @@
  * @note Available only when compiling with MSVC; has no effect.
  */
 #define DISABLE_GCC_WARNINGS_POP()
+#endif
 
 #elif defined(__clang__)
 /**
