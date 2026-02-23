@@ -11,7 +11,7 @@ namespace jsv {
     // Constructors
     // -------------------------------------------------------------------------
 
-    SourceSpan::SourceSpan() noexcept : file_path(empty_path()) {}
+    SourceSpan::SourceSpan() : file_path(empty_path()) {}
 
     // NOLINTBEGIN(*-easily-swappable-parameters)
     SourceSpan::SourceSpan(std::shared_ptr<const std::string> p_file_path, const SourceLocation &p_start,
@@ -62,7 +62,7 @@ namespace jsv {
 
     std::ostream &operator<<(std::ostream &os, const SourceSpan &span) { return os << span.to_string(); }
 
-    auto SourceSpan::empty_path() noexcept -> std::shared_ptr<const std::string> {
+    auto SourceSpan::empty_path() -> std::shared_ptr<const std::string> {
         static const auto empty = MAKE_SHARED(const std::string, "");
         return empty;
     }

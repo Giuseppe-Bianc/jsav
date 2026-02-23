@@ -30,17 +30,14 @@ namespace jsv {
         SourceLocation end;
 
         /// Default constructor — empty path, zero positions.
-        SourceSpan() noexcept;
+        SourceSpan();
 
         /// Creates a new source span covering a specific range.
         ///
         /// @param file_path  Shared pointer to source file path string
         /// @param start      Starting position (inclusive)
         /// @param end        Ending position (exclusive)
-        SourceSpan(
-            std::shared_ptr<const std::string> p_file_path,
-            const SourceLocation& p_start,
-            const SourceLocation& p_end) noexcept;
+        SourceSpan(std::shared_ptr<const std::string> p_file_path, const SourceLocation &p_start, const SourceLocation &p_end) noexcept;
 
         /// Merges another span into this one in-place.
         /// Only merges if spans are from the same file.
@@ -59,8 +56,9 @@ namespace jsv {
         [[nodiscard]] std::string to_string() const;
 
         friend std::ostream &operator<<(std::ostream &os, const SourceSpan &span);
+
     private:
-        [[nodiscard]] static auto empty_path() noexcept -> std::shared_ptr<const std::string>;
+        [[nodiscard]] static auto empty_path() -> std::shared_ptr<const std::string>;
     };
 
     /// Truncates a path to show only the last `depth` components.
@@ -79,18 +77,15 @@ namespace jsv {
 // std::hash
 // -------------------------------------------------------------------------
 namespace std {
-    template <>
-    struct hash<jsv::SourceSpan> {
+    template <> struct hash<jsv::SourceSpan> {
         [[nodiscard]] std::size_t operator()(const jsv::SourceSpan &s) const noexcept;
     };
 
     // -------------------------------------------------------------------------
     // std::formatter  (C++23 <format>)
     // -------------------------------------------------------------------------
-    template <>
-    struct formatter<jsv::SourceSpan> : formatter<string> {
-        template <typename FormatContext>
-        auto format(const jsv::SourceSpan &span, FormatContext &ctx) const {
+    template <> struct formatter<jsv::SourceSpan> : formatter<string> {
+        template <typename FormatContext> auto format(const jsv::SourceSpan &span, FormatContext &ctx) const {
             return formatter<string>::format(span.to_string(), ctx);
         }
     };
@@ -99,10 +94,8 @@ namespace std {
 // -------------------------------------------------------------------------
 // fmt::formatter  (fmtlib)
 // -------------------------------------------------------------------------
-template <>
-struct fmt::formatter<jsv::SourceSpan> : fmt::formatter<std::string> {
-    template <typename FormatContext>
-    auto format(const jsv::SourceSpan &span, FormatContext &ctx) const {
+template <> struct fmt::formatter<jsv::SourceSpan> : fmt::formatter<std::string> {
+    template <typename FormatContext> auto format(const jsv::SourceSpan &span, FormatContext &ctx) const {
         return fmt::formatter<std::string>::format(span.to_string(), ctx);
     }
 };
