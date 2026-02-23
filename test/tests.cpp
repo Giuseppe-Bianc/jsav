@@ -54,7 +54,7 @@ TEST_CASE("my_error_handler(const std::string&) tests", "[error_handler]") {
         REQUIRE_THAT(output, ContainsSubstring("Error occurred:"));
         REQUIRE_THAT(output, ContainsSubstring("Timestamp: "));
         REQUIRE_THAT(output, ContainsSubstring("Thread ID: "));
-        REQUIRE_THAT(output, ContainsSubstring("Message: Sample error message"));
+        REQUIRE_THAT(output, ContainsSubstring("Message:   Sample error message"));
     }
 
     SECTION("Error handler with different messages") {
@@ -65,8 +65,8 @@ TEST_CASE("my_error_handler(const std::string&) tests", "[error_handler]") {
         std::cerr.rdbuf(original);  // Restore cerr
 
         auto output = sss.str();
-        REQUIRE_THAT(output, ContainsSubstring("Message: Error 1"));
-        REQUIRE_THAT(output, ContainsSubstring("Message: Another error"));
+        REQUIRE_THAT(output, ContainsSubstring("Message:   Error 1"));
+        REQUIRE_THAT(output, ContainsSubstring("Message:   Another error"));
     }
 }
 

@@ -34,11 +34,10 @@ DISABLE_WARNINGS_POP()
 }  // namespace vnd
 
 */
-
+// NOLINTBEGIN(*-diagnostic-double-promotion, *-pro-bounds-constant-array-index, *-identifier-length)
 static inline constexpr std::array<std::string_view, 5> UNITS = {"B", "KB", "MB", "GB", "TB"};
 static inline constexpr std::size_t UNIT_LEN = UNITS.size() - 1;
 static inline constexpr long double UNIT_DIVIDER = 1024.0;
-
 struct FormattedSize {
     long double value;
     std::string_view unit;
@@ -68,6 +67,7 @@ template <> struct fmt::formatter<FormattedSize> : fmt::formatter<std::string> {
         return fmt::formatter<std::string>::format(fs.to_string(), ctx);
     }
 };
+// NOLINTEND(*-diagnostic-double-promotion, *-pro-bounds-constant-array-index, *-identifier-length)
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
 // NOLINTNEXTLINE(*-function-cognitive-complexity, *-exception-escape)
@@ -136,7 +136,7 @@ auto main(int argc, const char *const argv[]) -> int {
         const auto processing_time = timer.to_string();
         LINFO(processing_time);
 
-        const std::string_view code(str);
+        [[maybe_unused]]const std::string_view code(str);
         const auto size_bytes = str.size();
         const auto fsz = format_size(size_bytes);
         LINFO("{} total of bytes read: {}", porfilename, fsz);

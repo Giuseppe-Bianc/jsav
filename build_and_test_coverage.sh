@@ -82,7 +82,7 @@ if [[ -d "${BUILD_DIR}" ]]; then
   clear
   echo "Current working directory: $(pwd)"
 
-  gcovr -j 3  --root ../ --config ../gcovr.cfg --gcov-executable 'gcov' --exclude-unreachable-branches --exclude-noncode-lines || die "gcovr failed."
+  gcovr -j 3  --root ../ --config ../gcovr.cfg --gcov-executable 'gcov' --rerun-failed --output-on-failure --exclude-unreachable-branches --exclude-noncode-lines || die "gcovr failed."
 
   xdg-open "${COBERTURA_HTML}" || die "Failed to open coverage report."
   echo "complete."

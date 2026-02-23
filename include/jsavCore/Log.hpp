@@ -224,8 +224,8 @@ DISABLE_WARNINGS_POP()
  * @note The function writes to std::cerr for error output.
  */
 inline void my_error_handler(const std::string& msg) {
-    fmt::print(stderr,
-        "Error occurred:\n  Timestamp: {}\n  Thread ID: {}\n  Message:   {}\n  Note: Error originated within spdlog internals.\n",
+    std::cerr<<
+        FORMAT("Error occurred:\n  Timestamp: {}\n  Thread ID: {}\n  Message:   {}\n  Note: Error originated within spdlog internals.\n",
         get_current_timestamp(),
         std::this_thread::get_id(),
         msg);
