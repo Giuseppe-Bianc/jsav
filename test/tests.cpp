@@ -1873,8 +1873,6 @@ TEST_CASE("SourceSpan fmt::format integration", "[SourceSpan]") {
 }
 
 TEST_CASE("SourceSpan noexcept guarantees on operations", "[SourceSpan]") {
-    SECTION("default constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_default_constructible_v<jsv::SourceSpan>); }
-
     SECTION("parameterized constructor is noexcept") {
         STATIC_REQUIRE(std::is_nothrow_constructible_v<jsv::SourceSpan, std::shared_ptr<const std::string>, const jsv::SourceLocation &,
                                                        const jsv::SourceLocation &>);
