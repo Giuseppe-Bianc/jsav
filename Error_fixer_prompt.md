@@ -566,9 +566,11 @@ placeholder with a clear resolution path.
 ✅ **Compliant:**
 > Run the following command to inspect the current connection pool limit. Replace `<db_service_name>` with the value of
 > the `spring.datasource.hikari.pool-name` property in your `application.yml`.
+>
 > ```bash
 > psql -U postgres -c "SHOW max_connections;" -h localhost
 > ```
+>
 > A healthy system returns a value ≥ 100 for the standard configuration described in this context.
 
 ❌ **Non-compliant:**
@@ -608,6 +610,7 @@ sections would be revised upon receipt of the missing information.
 
 ✅ **Compliant:**
 > The following details are required before a confident root cause can be identified:
+>
 > 1. The exact version of `redis-py` in use — this determines whether the connection-retry bug introduced in v4.3.1 is a
      viable candidate cause.
 > 2. The full stack trace, not just the final exception line — intermediate frames are needed to determine whether the
@@ -648,6 +651,7 @@ describes the fix, and Section 7 notes the preventive benefit with a reference t
 content.
 
 ✅ **Compliant (Section 7 entry):**
+
 > 1. `[Immediate]` Add a schema validation step at the API boundary using `jsonschema.validate()` before any downstream
      processing. Success criterion: all malformed payloads return HTTP 422 with a structured error body rather than
      propagating to the database layer.
