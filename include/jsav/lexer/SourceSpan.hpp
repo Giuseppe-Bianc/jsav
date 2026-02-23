@@ -59,6 +59,8 @@ namespace jsv {
         [[nodiscard]] std::string to_string() const;
 
         friend std::ostream &operator<<(std::ostream &os, const SourceSpan &span);
+    private:
+        [[nodiscard]] static auto empty_path() noexcept -> std::shared_ptr<const std::string>;
     };
 
     /// Truncates a path to show only the last `depth` components.
