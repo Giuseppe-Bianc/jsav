@@ -2,7 +2,7 @@
  * Created by gbian on 23/02/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 #include "jsav/lexer/Token.hpp"
 
 namespace jsv {
@@ -12,3 +12,4 @@ namespace jsv {
     std::ostream &operator<<(std::ostream &os, const Token &token) { return os << token.to_string(); }
 
 }  // namespace jsv
+// NOLINTEND(*-include-cleaner, *-identifier-length)
