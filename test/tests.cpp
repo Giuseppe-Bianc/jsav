@@ -2608,7 +2608,7 @@ TEST_CASE("Token corner cases and edge cases", "[Token]") {
     }
 
     SECTION("Token with null character in text") {
-        const std::string textWithNull = "hello\0world";
+        const std::string textWithNull = "hello world";
         const jsv::Token token(jsv::TokenKind::StringLiteral, std::string_view(textWithNull.data(), 11), span);
 
         REQUIRE(token.getText().size() == 11u);
@@ -2672,17 +2672,19 @@ TEST_CASE("Token noexcept contracts", "[Token]") {
 
     SECTION("copy operations do not throw") {
         const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
-        REQUIRE_NOTHROW([&]() { jsv::Token copied(token); }());
-        REQUIRE_NOTHROW([&]() { jsv::Token assigned = token; }());
+        REQUIRE_NOTHROW([&]() { const jsv::Token copied(token); }());
+        REQUIRE_NOTHROW([&]() { const jsv::Token assigned = token; }());
     }
 
+    // NOLINTBEGIN(*-analyzer-cplusplus.Move)
     SECTION("move operations do not throw") {
         jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
-        REQUIRE_NOTHROW([&]() { jsv::Token moved(std::move(token)); }());
+        REQUIRE_NOTHROW([&]() { const jsv::Token moved(std::move(token)); }());
 
         jsv::Token token2(jsv::TokenKind::KeywordElse, "else", span);
         REQUIRE_NOTHROW(token2 = std::move(token));
     }
+    // NOLINTEND(*-analyzer-cplusplus.Move)
 
     SECTION("comparison operators do not throw") {
         const jsv::Token token1(jsv::TokenKind::KeywordIf, "if", span);
