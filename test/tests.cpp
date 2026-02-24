@@ -1,5 +1,5 @@
 // clang-format off
-// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls)
+// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
 #include "testsConstanst.hpp"
 #include <catch2/catch_test_macros.hpp>
@@ -2518,7 +2518,8 @@ TEST_CASE("Token stream output operator", "[Token]") {
         std::ostringstream oss;
         oss << token1 << " else " << token2;
 
-        REQUIRE(oss.str() == R"(IF("if") test.jsv:line 1:column 1 - line 1:column 5 else ELSE("else") test.jsv:line 1:column 1 - line 1:column 5)");
+        REQUIRE(oss.str() ==
+                R"(IF("if") test.jsv:line 1:column 1 - line 1:column 5 else ELSE("else") test.jsv:line 1:column 1 - line 1:column 5)");
     }
 
     SECTION("ostream operator preserves stream state") {
@@ -2761,5 +2762,5 @@ TEST_CASE("Token data-driven tests", "[Token]") {
 }
 
 // clang-format off
-// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value,*-diagnostic-self-assign-overloaded, *-unused-using-decls)
+// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
