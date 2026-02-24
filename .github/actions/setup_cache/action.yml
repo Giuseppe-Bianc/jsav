@@ -19,6 +19,24 @@ inputs:
 runs:
   using: "composite"
   steps:
+    - name: Ensure cache directories exist
+      uses: actions/github-script@v8
+      with:
+        script: |
+          const os   = require('os');
+          const fs   = require('fs');
+          const path = require('path');
+
+          const dirs = [
+            path.join(os.homedir(), '.cache', 'pip'),
+            path.join(os.homedir(), '.ccache'),
+          ];
+
+          for (const dir of dirs) {
+            fs.mkdirSync(dir, { recursive: true });
+            core.info(`Ensured directory exists: ${dir}`);
+          }
+
     - name: Cache
       uses: actions/cache@v5
       with:
