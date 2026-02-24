@@ -26,6 +26,8 @@ function(jsav_setup_dependencies)
 
     if (NOT TARGET fmtlib::fmtlib)
         cpmaddpackage("gh:fmtlib/fmt#12.1.0")
+        # Suppress C4834 ([[nodiscard]] discarded) for fmt library - known issue in fmt source
+        target_compile_options(fmt PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/wd4834>)
     endif ()
 
     if (NOT TARGET spdlog::spdlog)
