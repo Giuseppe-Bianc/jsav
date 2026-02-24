@@ -16,6 +16,10 @@ set -euo pipefail
 die() {
   local message="${1:-"An unexpected error occurred."}"
   local exit_code="${2:-1}"
+  if ! [[ "${exit_code}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: Invalid exit code '${exit_code}', using 1." >&2
+    exit_code=1
+  fi
   echo "ERROR: ${message}" >&2
   exit "${exit_code}"
 }
@@ -25,8 +29,12 @@ readonly RUN_DIR="${JSAV_ROOT}/build/src/jsav/"
 
 clear
 
-cmake -S . -B ./build -Wno-dev -GNinja 
--Djsav_ENABLE_SANITIZER_ADDRESS=OFF  -Djsav_WARNINGS_AS_ERRORS=ON -Djsav_ENABLE_CLANG_TIDY:BOOL=ON -Djsav_ENABLE_IPO:BOOL=OFF || die "cmake configuration failed."
+cmake -S . -B ./build -Wno-dev -GNinja \
+  -Djsav_ENABLE_SANITIZER_ADDRESS=OFF \
+  -Djsav_WARNINGS_AS_ERRORS=ON \
+  -Djsav_ENABLE_CLANG_TIDY:BOOL=ON \
+  -Djsav_ENABLE_IPO:BOOL=OFF \
+  -Djsav_PACKAGING_MAINTAINER_MODE=OFF || die "cmake configuration failed."
 
 cmake --build ./build -j 3 || die "cmake build failed."
 

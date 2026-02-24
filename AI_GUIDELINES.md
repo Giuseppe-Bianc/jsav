@@ -3,6 +3,7 @@
 This document provides guidance for AI agents working with this C++ project template. These guidelines are designed to be useful for any AI assistant, not specific to any particular system.
 
 **Important**: AI agents should also review the `HUMAN_GUIDELINES.md` file, which contains:
+
 - The project's purpose and philosophy
 - Information about the strict static analysis approach
 - Reference to C++23 Best Practices book by Jason Turner
@@ -83,13 +84,13 @@ The project has three primary test targets, each with specific purposes:
     - Located in `/test/tests.cpp`
 
 **Workflow for Adding Tests:**
+
 1. Start by adding tests to `relaxed_constexpr_tests` if they can be constexpr
 2. Debug and fix any issues
 3. Once passing, ensure they compile in `constexpr_tests`
 4. For non-constexpr functionality, add tests to `tests.cpp`
 
 The project also supports fuzz testing for code that handles external inputs, located in `/fuzz_test`.
-
 
 * ALWAYS prefer test-driven development
 * ALWAYS write tests for new code
@@ -157,9 +158,11 @@ Remember, the project's guardrails exist for a reason. Help the user install and
 3. Prefer compile-time safety when possible
 4. Make correct use of const-correctness
 5. **Always recommend running clang-format** on modified files:
+
    ```bash
    clang-format -i path/to/changed/files/*.cpp path/to/changed/files/*.hpp
    ```
+
     - clang-format is the source of truth for formatting
     - This reduces friction in code reviews and CI pipeline failures
     - Let clang-format handle all style decisions rather than manual formatting
@@ -223,6 +226,7 @@ The project uses Lizard for code complexity analysis with the following threshol
 - **Copy-Paste Detection**: Detects duplicated code segments
 
 When encountering functions that exceed these limits:
+
 1. Consider splitting them into smaller, more focused functions
 2. Extract complex logic into separate methods
 3. Reduce nesting levels and simplify control flow
@@ -230,6 +234,7 @@ When encountering functions that exceed these limits:
 5. **For duplicated code**: Extract common functionality into shared functions or templates
 
 To run the analysis manually:
+
 ```bash
 # Run Lizard with warning output only
 cmake --build build --target lizard
@@ -272,6 +277,7 @@ ninja
 ```
 
 For testing code changes, recommend focusing on the non-constexpr tests first:
+
 ```bash
 # For running runtime tests after changes (not constexpr tests)
 cd build
@@ -280,6 +286,7 @@ ctest -R "unittests|relaxed_constexpr" --output-on-failure
 ```
 
 For checking test coverage:
+
 ```bash
 # For generating coverage reports
 cd build

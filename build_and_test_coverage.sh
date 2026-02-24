@@ -17,6 +17,10 @@ set -euo pipefail
 die() {
   local message="${1:-"An unexpected error occurred."}"
   local exit_code="${2:-1}"
+  if ! [[ "${exit_code}" =~ ^[0-9]+$ ]]; then
+    echo "ERROR: Invalid exit code '${exit_code}', using 1." >&2
+    exit_code=1
+  fi
   echo "ERROR: ${message}" >&2
   exit "${exit_code}"
 }
@@ -66,7 +70,13 @@ fi
 cd "${JSAV_ROOT}" || die "Failed to return to project root ${JSAV_ROOT}."
 clear
 
-cmake -S . -B ./build -Wno-dev -GNinja -Djsav_WARNINGS_AS_ERRORS=ON -Djsav_ENABLE_CLANG_TIDY:BOOL=ON  -Djsav_ENABLE_COVERAGE:BOOL=ON -Djsav_ENABLE_CPPCHECK:BOOL=OFF -Djsav_ENABLE_IPO:BOOL=OFF || die "cmake configuration failed."
+cmake -S . -B ./build -Wno-dev -GNinja \
+  -Djsav_WARNINGS_AS_ERRORS=ON \
+  -Djsav_ENABLE_CLANG_TIDY:BOOL=ON \
+  -Djsav_ENABLE_COVERAGE:BOOL=ON \
+  -Djsav_ENABLE_CPPCHECK:BOOL=OFF \
+  -Djsav_ENABLE_IPO:BOOL=OFF \
+  -Djsav_PACKAGING_MAINTAINER_MODE=OFF || die "cmake configuration failed."
 
 cmake --build ./build --target tests -j 3 || die "cmake build of 'tests' target failed."
 cmake --build ./build --target constexpr_tests -j 3 || die "cmake build of 'constexpr_tests' target failed."

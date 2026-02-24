@@ -89,6 +89,7 @@ When making changes, refer to this resource to ensure your modifications align w
 This project uses clang-format as the source of truth for code formatting:
 
 1. **Always Run clang-format**: After making code changes, run the latest version of clang-format on all modified files
+
    ```bash
    clang-format -i path/to/changed/files/*.cpp path/to/changed/files/*.hpp
    ```

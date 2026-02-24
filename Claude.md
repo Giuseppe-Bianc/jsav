@@ -23,4 +23,4 @@ This file contains instructions specifically for Claude AI. For all general AI a
 
 6. Use proper CMake practices as outlined in project documentation.
 
-7. Follow the project's testing workflow by prioritizing relaxed_constexpr_tests first.
+7. Follow the project's testing workflow by prioritizing relaxed_constexpr_tests first
