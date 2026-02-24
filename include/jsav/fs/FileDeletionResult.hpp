@@ -7,7 +7,7 @@ DISABLE_WARNINGS_PUSH(4820)
 
 namespace vnd {
 
-    class FileDelitionResult : public OSOperationResult {
+    class FileDeletionResult : public OSOperationResult {
     public:
         using OSOperationResult::OSOperationResult;
         /**
@@ -15,7 +15,7 @@ namespace vnd {
          * @param filePath The path of the file to delete.
          * @return A FileDelitionResult object indicating the result of the operation.
          */
-        [[nodiscard]] static auto deleteFile(const fs::path &filePath) -> FileDelitionResult {
+        [[nodiscard]] static auto deleteFile(const fs::path &filePath) -> FileDeletionResult {
             try {
                 if(!fs::exists(filePath)) {
                     LERROR("File '{}' does not exist.", filePath);

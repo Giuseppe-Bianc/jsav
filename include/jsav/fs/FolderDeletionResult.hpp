@@ -1,7 +1,7 @@
 // NOLINTBEGIN(*-include-cleaner)
 #pragma once
 
-#include "FileDeletionResult.hpp"  //rename to FileDeletionResult.hpp
+#include "FileDeletionResult.hpp"
 #include "OSOperationResult.hpp"
 
 DISABLE_WARNINGS_PUSH(4820)
@@ -45,7 +45,7 @@ namespace vnd {
                             return {false, folderPath};
                         }
                     } else {
-                        if(auto fileResult = FileDelitionResult::deleteFile(entry.path()); !fileResult.success()) {
+                        if(auto fileResult = FileDeletionResult::deleteFile(entry.path()); !fileResult.success()) {
                             LERROR("Failed to delete file '{}'.", entry.path());
                             return {false, folderPath};
                         }

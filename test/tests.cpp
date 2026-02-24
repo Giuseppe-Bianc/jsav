@@ -325,37 +325,37 @@ TEST_CASE("createFile: Attempt to create a file with empty content", "[FileCreat
     fs::remove_all(testDir);
 }
 
-TEST_CASE("deleteFile: Successfully delete an existing file", "[FileDelitionResult]") {
+TEST_CASE("deleteFile: Successfully delete an existing file", "[FileDeletionResult]") {
     const fs::path testFile = fs::temp_directory_path() / "test_file_to_delete.txt";
 
     // Create the test file
     std::ofstream(testFile) << "Sample content for deletion test";
     REQUIRE(fs::exists(testFile));
 
-    const auto result = vnd::FileDelitionResult::deleteFile(testFile);
+    const auto result = vnd::FileDeletionResult::deleteFile(testFile);
 
     REQUIRE(result.success());
     REQUIRE(!fs::exists(testFile));
 }
 
-TEST_CASE("deleteFile: Attempt to delete a non-existent file", "[FileDelitionResult]") {
+TEST_CASE("deleteFile: Attempt to delete a non-existent file", "[FileDeletionResult]") {
     const fs::path nonExistentFile = fs::temp_directory_path() / "non_existent_file.txt";
 
     REQUIRE(!fs::exists(nonExistentFile));
 
-    const auto result = vnd::FileDelitionResult::deleteFile(nonExistentFile);
+    const auto result = vnd::FileDeletionResult::deleteFile(nonExistentFile);
 
     REQUIRE_FALSE(result.success());
 }
 
-TEST_CASE("deleteFile: Attempt to delete a directory instead of a file", "[FileDelitionResult]") {
+TEST_CASE("deleteFile: Attempt to delete a directory instead of a file", "[FileDeletionResult]") {
     const fs::path testDirectory = fs::temp_directory_path() / "test_directory";
     fs::create_directories(testDirectory);
 
     REQUIRE(fs::exists(testDirectory));
     REQUIRE(fs::is_directory(testDirectory));
 
-    const auto result = vnd::FileDelitionResult::deleteFile(testDirectory);
+    const auto result = vnd::FileDeletionResult::deleteFile(testDirectory);
 
     REQUIRE_FALSE(result.success());
     REQUIRE(fs::exists(testDirectory));  // Ensure the directory is not accidentally deleted
@@ -364,10 +364,10 @@ TEST_CASE("deleteFile: Attempt to delete a directory instead of a file", "[FileD
     fs::remove_all(testDirectory);
 }
 
-TEST_CASE("deleteFile: Handle exceptions gracefully", "[FileDelitionResult]") {
+TEST_CASE("deleteFile: Handle exceptions gracefully", "[FileDeletionResult]") {
     const fs::path invalidPath;
 
-    const auto result = vnd::FileDelitionResult::deleteFile(invalidPath);
+    const auto result = vnd::FileDeletionResult::deleteFile(invalidPath);
 
     REQUIRE_FALSE(result.success());
 }
