@@ -1,0 +1,37 @@
+{
+    "chat.promptFilesRecommendations": {
+        "speckit.constitution": true,
+        "speckit.specify": true,
+        "speckit.plan": true,
+        "speckit.tasks": true,
+        "speckit.implement": true
+    },
+    "github.copilot.chat.commitMessageGeneration.instructions": [
+        {
+            "file": ".github/copilot-commit-message-instructions.md"
+        }
+    ],
+    // https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+    "markdownlint.config": {
+        "default": true,
+        "MD003": {
+            "style": "atx"
+        },
+        "MD007": { "indent": 4 },
+        "MD013": false,
+        "MD024": {
+            "siblings_only": true
+        },
+        "MD025": false,
+        "MD029": false,
+        "MD033": false,
+        "MD041": false,
+        "MD046": false,
+        "MD049": {
+            "style": "asterisk"
+        },
+        "MD050": {
+            "style": "asterisk"
+        }
+    }
+}
