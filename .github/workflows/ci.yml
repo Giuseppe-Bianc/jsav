@@ -164,6 +164,10 @@ jobs:
 
           gcovr: true
           opencppcoverage: true
+      - name: Update Gcov with pipx
+        run: |
+          pipx upgrade gcovr
+          gcovr --version  # Verify gcovr is installed correctly
 
       - name: Configure CMake
         run: |
