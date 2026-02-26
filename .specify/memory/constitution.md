@@ -1,23 +1,24 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 0.0.0 → 1.0.0 (Initial constitution)
+Version change: 1.0.0 → 1.1.0 (MINOR: Added Principle VI for markdownlint compliance, 
+         updated Principle II for VS 2026, strengthened documentation standards)
+
+Modified Principles:
+- II. Visual Studio 2022+ Compatibility → Visual Studio 2026+ Compatibility
 
 Added Principles:
-- I. Platform Independence
-- II. Visual Studio 2022+ Compatibility
-- III. C++ Community Standards Compliance
-- IV. Test-Driven Development (Red-Green)
-- V. Dependency Management
+- VI. Documentation Standards & markdownlint Compliance
 
 Added Sections:
-- Development Workflow
-- Quality Gates
+- None (Documentation standards integrated into Principle III and new Principle VI)
 
 Templates Status:
 - plan-template.md: ✅ No updates required (Constitution Check section is generic)
 - spec-template.md: ✅ No updates required (technology-agnostic by design)
 - tasks-template.md: ✅ No updates required (TDD workflow aligns with Principle IV)
+- checklist-template.md: ✅ No updates required (generic template)
+- agent-file-template.md: ✅ No updates required (auto-generated from plans)
 
 Follow-up TODOs: None
 -->
@@ -32,9 +33,9 @@ The jsav compiler MUST be implemented as an OS-independent system. All code MUST
 
 **Rationale**: Ensures the compiler can be built and run on Windows, Linux, and macOS without modification, maximizing accessibility and maintainability.
 
-### II. Visual Studio 2022+ Compatibility
+### II. Visual Studio 2026+ Compatibility
 
-All code MUST be fully compatible with Visual Studio 2022 and later versions. C++23 features used MUST be verified as fully supported by MSVC. Any feature with incomplete MSVC support MUST be avoided or conditionally compiled with appropriate fallbacks.
+All code MUST be fully compatible with Visual Studio 2026 and later versions. C++23 features used MUST be verified as fully supported by MSVC. Any feature with incomplete MSVC support MUST be avoided or conditionally compiled with appropriate fallbacks.
 
 **Rationale**: Guarantees a consistent development experience for Windows developers and ensures the primary IDE target can build the entire codebase without issues.
 
@@ -80,6 +81,17 @@ All dependencies MUST be managed via CPM.cmake. No additional dependencies MAY b
 
 **Rationale**: Maintains a minimal, well-curated dependency surface, reducing build complexity, security risks, and maintenance burden.
 
+### VI. Documentation Standards & markdownlint Compliance
+
+All project documentation MUST adhere to the following standards:
+
+- **markdownlint Compliance**: All Markdown documents MUST conform to the configuration specified in `.vscode/settings.json` under `markdownlint.config`. No violations MAY be committed.
+- **Precision & Rigor**: Documentation MUST describe systematically every relevant element, paying attention to both major components and minor details, including their interconnections.
+- **Completeness**: Documentation MUST be coherent, complete, and clearly understandable, ensuring accurate and structured representation of information.
+- **Consistency**: Terminology, formatting, and structure MUST remain consistent across all documents.
+
+**Rationale**: High-quality documentation is essential for maintainability, onboarding, and long-term project sustainability. Automated linting ensures consistency; rigorous content ensures usefulness.
+
 ## Development Workflow
 
 All development MUST follow this workflow:
@@ -103,12 +115,14 @@ Before any code MAY be merged to `main`, the following gates MUST pass:
 - **Complexity**: lizard analysis shows all functions within thresholds
 - **Coverage**: New code maintains acceptable coverage levels
 - **Formatting**: All code formatted per `.clang-format` configuration
+- **Documentation**: All Markdown documents pass markdownlint validation per `.vscode/settings.json` configuration
 
 ## Governance
 
 This constitution supersedes all other development practices and guidelines for the jsav project. Compliance is mandatory and verified through automated tooling in CI/CD pipelines.
 
 **Amendment Procedure**:
+
 1. Propose amendment with rationale
 2. Update version according to semantic versioning
 3. Document changes in Sync Impact Report
@@ -116,10 +130,11 @@ This constitution supersedes all other development practices and guidelines for 
 5. Obtain approval before merging
 
 **Versioning Policy**:
+
 - **MAJOR**: Backward-incompatible changes (principle removal, redefinition)
 - **MINOR**: New principles, material expansions, new sections
 - **PATCH**: Clarifications, wording improvements, typo fixes
 
 **Compliance Review**: All pull requests MUST be reviewed for constitution compliance. CI/CD pipelines enforce automated compliance checks.
 
-**Version**: 1.0.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-02-25
+**Version**: 1.1.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-02-25
