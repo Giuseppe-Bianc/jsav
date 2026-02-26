@@ -360,14 +360,18 @@ namespace vnd {
          * @param[in] time The time value in nanoseconds.
          * @return ValueLabel containing the formatted time with appropriate unit.
          *
-         * @note Marked with LCOV_EXCL_STOP to exclude from coverage reports (trivial getter).
+         * @note Excluded from coverage reports via LCOV exclusion markers (trivial getter).
          * @see Times::getRelevantTimeframe()
          */
-        // LCOV_EXCL_START
+// clang-format off
+// LCOV_EXCL_START
+// clang-format on
         [[nodiscard]] static ValueLabel make_time_str(const long double time) noexcept {
             return make_named_times(time).getRelevantTimeframe();
         }
-        // LCOV_EXCL_STOP
+// clang-format off
+// LCOV_EXCL_STOP
+// clang-format on
 
         /**
          * @brief Gets a string representation of the Timer using the configured formatter.

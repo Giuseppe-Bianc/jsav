@@ -57,10 +57,11 @@ if [[ ! -d "${COVERAGE_DIR}" ]]; then
   exit 0
 fi
 
-echo "Cleaning up .html and .css files in ${COVERAGE_DIR}"
+echo "Cleaning up .html, .css and .js files in ${COVERAGE_DIR}"
 
 remove_by_glob "${COVERAGE_DIR}/*.html" ".html"
 remove_by_glob "${COVERAGE_DIR}/*.css"  ".css"
+remove_by_glob "${COVERAGE_DIR}/*.js"  ".js"
 
 # Remove the Cobertura XML report if present.
 if [[ -f "${COBERTURA_F}" ]]; then
