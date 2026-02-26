@@ -1,23 +1,22 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR: Added Principle VI for markdownlint compliance, 
-         updated Principle II for VS 2026, strengthened documentation standards)
+Version change: 1.1.1 → 1.2.0 (MINOR: Strengthened C++ Core Guidelines enforcement with explicit measurable criteria, clarified TDD test pyramid structure)
 
 Modified Principles:
-- II. Visual Studio 2022+ Compatibility → Visual Studio 2026+ Compatibility
+- III. C++ Core Guidelines Compliance: Enhanced with explicit measurable criteria (function length ≤100 lines, cyclomatic complexity ≤15, parameters ≤6, zero warnings from static analysis)
+- IV. Test-Driven Development (Red-Green): Clarified test pyramid with three tiers (compile-time constexpr_tests, runtime unit tests, integration tests)
 
 Added Principles:
-- VI. Documentation Standards & markdownlint Compliance
+- None
 
-Added Sections:
-- None (Documentation standards integrated into Principle III and new Principle VI)
+Removed Principles:
+- None
 
 Templates Status:
 - plan-template.md: ✅ No updates required (Constitution Check section is generic)
 - spec-template.md: ✅ No updates required (technology-agnostic by design)
 - tasks-template.md: ✅ No updates required (TDD workflow aligns with Principle IV)
-- checklist-template.md: ✅ No updates required (generic template)
 - agent-file-template.md: ✅ No updates required (auto-generated from plans)
 
 Follow-up TODOs: None
@@ -33,22 +32,23 @@ The jsav compiler MUST be implemented as an OS-independent system. All code MUST
 
 **Rationale**: Ensures the compiler can be built and run on Windows, Linux, and macOS without modification, maximizing accessibility and maintainability.
 
-### II. Visual Studio 2026+ Compatibility
+### II. Visual Studio 2026 Compatibility
 
 All code MUST be fully compatible with Visual Studio 2026 and later versions. C++23 features used MUST be verified as fully supported by MSVC. Any feature with incomplete MSVC support MUST be avoided or conditionally compiled with appropriate fallbacks.
 
 **Rationale**: Guarantees a consistent development experience for Windows developers and ensures the primary IDE target can build the entire codebase without issues.
 
-### III. C++ Community Standards Compliance
+### III. C++ Core Guidelines Compliance
 
-The codebase MUST rigorously adhere to established C++ community guidelines and style conventions. This includes:
+The codebase MUST rigorously adhere to established C++ community guidelines and style conventions, including ISO C++ standards and C++ Core Guidelines. Compliance MUST be enforced through measurable criteria:
 
-- **Modern C++ Practices**: Use `std::format`/`std::print` over iostreams, prefer `constexpr` where possible, use concepts for template constraints, apply `[[nodiscard]]` appropriately, use `enum class` over unscoped enums
-- **Memory Management**: No raw `new`/`delete`; prefer stack allocation → `std::array`/`std::vector` → smart pointers; prefer `std::unique_ptr` over `std::shared_ptr`; follow Rule of 0
-- **Type Safety**: Define strong types over primitives, avoid C-style casts, use `const` liberally
+- **Modern C++ Practices**: Use `std::format`/`std::print` over iostreams, prefer `constexpr` where possible (leveraging C++23's expanded constexpr capabilities), use concepts for template constraints, apply `[[nodiscard]]` appropriately, use `enum class` over unscoped enums
+- **Memory Management**: No raw `new`/`delete`; prefer stack allocation → `std::array`/`std::vector` → smart pointers; prefer `std::unique_ptr` over `std::shared_ptr`; follow Rule of 0 (avoid manual resource management)
+- **Type Safety**: Define strong types over primitives (e.g., `Velocity{int}` not `int`), avoid C-style casts, use `const` liberally
 - **Code Organization**: Prefer algorithms over raw loops, use ranged-for with `auto`, keep functions ≤100 lines, cyclomatic complexity ≤15, parameters ≤6 per function
+- **Enforcement Mechanisms**: Code reviews MUST verify compliance; static analysis tools (clang-tidy, cppcheck) MUST report zero warnings; sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer) MUST pass without violations; lizard complexity analysis MUST show all functions within thresholds
 
-**Rationale**: Ensures code consistency, readability, maintainability, and adherence to industry best practices for long-term sustainability.
+**Rationale**: Ensures code consistency, readability, maintainability, and adherence to industry best practices for long-term sustainability. Measurable criteria enable automated compliance validation.
 
 ### IV. Test-Driven Development (Red-Green)
 
@@ -58,15 +58,20 @@ All code MUST be developed using the Red-Green TDD methodology:
 2. **Green Phase**: Implement the minimum code necessary to make the test pass
 3. **Refactor Phase**: Only after tests pass, refactor while maintaining full test coverage
 
-The test pyramid MUST be followed:
+The test pyramid MUST be followed with three distinct test tiers:
 
-- **Compile-time tests**: `constexpr_tests.cpp` for compile-time verification using `STATIC_REQUIRE`
-- **Runtime unit tests**: `tests.cpp` for runtime functionality using Catch2
-- **Integration tests**: For component interactions and system-level behavior
+- **Compile-time tests** (`constexpr_tests.cpp`): For compile-time verification using `STATIC_REQUIRE`. If it compiles, tests pass.
+- **Runtime unit tests** (`tests.cpp`): For runtime functionality using Catch2 framework with `REQUIRE` assertions
+- **Integration tests**: For component interactions, system-level behavior, and I/O operations
 
-No code MUST be committed without corresponding tests. Tests MUST be written before implementation code.
+No code MUST be committed without corresponding tests. Tests MUST be written before implementation code. The workflow for adding tests MUST be:
 
-**Rationale**: Guarantees code reliability, enables safe refactoring, provides living documentation, and ensures incremental quality control throughout development.
+1. Add tests to `relaxed_constexpr_tests` first (runtime version)
+2. Debug and fix issues
+3. Verify they compile in `constexpr_tests` (compile-time version)
+4. For non-constexpr functionality, add to `tests.cpp`
+
+**Rationale**: Guarantees code reliability, enables safe refactoring, provides living documentation, and ensures incremental quality control throughout development. Three-tier structure maximizes compile-time verification while supporting runtime testing.
 
 ### V. Dependency Management
 
@@ -77,7 +82,7 @@ The project MUST use the following approved dependencies:
 - **CLI11::CLI11**: For command-line interface parsing
 - **Catch2::Catch2WithMain**: For testing framework (test-only dependency)
 
-All dependencies MUST be managed via CPM.cmake. No additional dependencies MAY be added without explicit justification and approval.
+All dependencies MUST be managed via CPM.cmake (CMake Package Manager). No additional dependencies MAY be added without explicit justification and approval.
 
 **Rationale**: Maintains a minimal, well-curated dependency surface, reducing build complexity, security risks, and maintenance burden.
 
@@ -137,4 +142,4 @@ This constitution supersedes all other development practices and guidelines for 
 
 **Compliance Review**: All pull requests MUST be reviewed for constitution compliance. CI/CD pipelines enforce automated compliance checks.
 
-**Version**: 1.1.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-02-25
+**Version**: 1.2.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-02-26
