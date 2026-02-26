@@ -6,7 +6,7 @@
 # Author: (original author)
 # Date:   2025-02-21
 # Note:   Requires gcovr, gcov, and xdg-open (Linux desktop environment).
-#         Requires clean_coverage.sh to be in the same directory as this script.
+#         Requires cleanHtlmAndCss.sh to be in the same directory as this script.
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
@@ -18,7 +18,7 @@ set -euo pipefail
 # Resolve the directory this script lives in, regardless of the working
 # directory from which it is invoked.
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-readonly CLEAN_SCRIPT="${SCRIPT_DIR}/clean_coverage.sh"
+readonly CLEAN_SCRIPT="${SCRIPT_DIR}/cleanHtlmAndCss.sh"
 
 readonly JSAV_ROOT="${PWD}"
 readonly COBERTURA_HTML="${JSAV_ROOT}/out/coverage/index.html"
@@ -47,11 +47,11 @@ die() {
 # Exits with a descriptive error if the script cannot be found or executed.
 run_clean() {
   [[ -f "${CLEAN_SCRIPT}" ]] \
-    || die "clean_coverage.sh not found at: ${CLEAN_SCRIPT}"
+    || die "cleanHtlmAndCss.sh not found at: ${CLEAN_SCRIPT}"
   [[ -x "${CLEAN_SCRIPT}" ]] \
-    || die "clean_coverage.sh is not executable: ${CLEAN_SCRIPT}"
+    || die "cleanHtlmAndCss.sh is not executable: ${CLEAN_SCRIPT}"
 
-  bash "${CLEAN_SCRIPT}" || die "clean_coverage.sh failed."
+  bash "${CLEAN_SCRIPT}" || die "cleanHtlmAndCss.sh failed."
 }
 
 # -----------------------------------------------------------------------------
@@ -69,9 +69,7 @@ cmake -S . -B ./build -Wno-dev -GNinja \
   -Djsav_ENABLE_IPO:BOOL=OFF \
   -Djsav_PACKAGING_MAINTAINER_MODE=OFF || die "cmake configuration failed."
 
-cmake --build ./build --target tests -j 3 || die "cmake build of 'tests' target failed."
-cmake --build ./build --target constexpr_tests -j 3 || die "cmake build of 'constexpr_tests' target failed."
-cmake --build ./build --target relaxed_constexpr_tests -j 3 || die "cmake build of 'relaxed_constexpr_tests' target failed."
+cmake --build ./build -j 3 || die "cmake build failed."
 
 if [[ ! -d "${BUILD_DIR}" ]]; then
   die "Build directory does not exist after cmake build: ${BUILD_DIR}"
@@ -86,7 +84,7 @@ read -rp "Press any key to run gcovr... " -n 1 -s
 clear
 echo "Current working directory: $(pwd)"
 
-  gcovr -j 3  --root ../ --config ../gcovr.cfg --gcov-executable 'gcov' --rerun-failed --output-on-failure --exclude-unreachable-branches --exclude-noncode-lines || die "gcovr failed."
+  gcovr -j 3  --root ../ --config ../gcovr.cfg --gcov-executable 'gcov' --exclude-unreachable-branches --exclude-noncode-lines || die "gcovr failed."
 
 xdg-open "${COBERTURA_HTML}" || die "Failed to open coverage report."
 echo "complete."
