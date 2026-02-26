@@ -166,7 +166,7 @@ jobs:
           opencppcoverage: true
       - name: Update Gcov with pipx
         run: |
-          pipx upgrade gcovr
+          pip install --upgrade gcovr --break-system-packages
           gcovr --version  # Verify gcovr is installed correctly
 
       - name: Configure CMake
