@@ -6,9 +6,27 @@
 # Author: (original author)
 # Date:   2025-02-21
 # Note:   Requires gcovr, gcov, and xdg-open (Linux desktop environment).
+#         Requires clean_coverage.sh to be in the same directory as this script.
 # -----------------------------------------------------------------------------
 
 set -euo pipefail
+
+# -----------------------------------------------------------------------------
+# Constants
+# -----------------------------------------------------------------------------
+
+# Resolve the directory this script lives in, regardless of the working
+# directory from which it is invoked.
+readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly CLEAN_SCRIPT="${SCRIPT_DIR}/clean_coverage.sh"
+
+readonly JSAV_ROOT="${PWD}"
+readonly COBERTURA_HTML="${JSAV_ROOT}/out/coverage/index.html"
+readonly BUILD_DIR="${JSAV_ROOT}/build"
+
+# -----------------------------------------------------------------------------
+# Functions
+# -----------------------------------------------------------------------------
 
 # Prints an error message to stderr and exits.
 # Arguments:
@@ -25,49 +43,22 @@ die() {
   exit "${exit_code}"
 }
 
-readonly JSAV_ROOT="${PWD}"
-readonly COBERTURA_F="${JSAV_ROOT}/out/cobertura.xml"
-readonly COBERTURA_HTML="${JSAV_ROOT}/out/coverage/index.html"
-readonly COVERAGE_DIR="${JSAV_ROOT}/out/coverage"
-readonly BUILD_DIR="${JSAV_ROOT}/build"
+# Delegates all coverage artefact cleanup to the dedicated clean script.
+# Exits with a descriptive error if the script cannot be found or executed.
+run_clean() {
+  [[ -f "${CLEAN_SCRIPT}" ]] \
+    || die "clean_coverage.sh not found at: ${CLEAN_SCRIPT}"
+  [[ -x "${CLEAN_SCRIPT}" ]] \
+    || die "clean_coverage.sh is not executable: ${CLEAN_SCRIPT}"
 
-if [[ -d "${COVERAGE_DIR}" ]]; then
-  cd "${COVERAGE_DIR}" || die "Failed to change directory to ${COVERAGE_DIR}."
-  echo "Cleaning up .html and .css files in ${COVERAGE_DIR}"
+  bash "${CLEAN_SCRIPT}" || die "clean_coverage.sh failed."
+}
 
-  # Remove all .html files if they exist
-  shopt -s nullglob
-  html_files=( "${COVERAGE_DIR}"/*.html )
-  shopt -u nullglob
-  if [[ ${#html_files[@]} -gt 0 ]]; then
-    rm -- "${html_files[@]}"
-  else
-    echo "No .html files found to delete."
-  fi
+# -----------------------------------------------------------------------------
+# Main logic
+# -----------------------------------------------------------------------------
 
-  # Remove all .css files if they exist
-  shopt -s nullglob
-  css_files=( "${COVERAGE_DIR}"/*.css )
-  shopt -u nullglob
-  if [[ ${#css_files[@]} -gt 0 ]]; then
-    rm -- "${css_files[@]}"
-  else
-    echo "No .css files found to delete."
-  fi
-
-  # Remove cobertura.xml file if it exists
-  if [[ -f "${COBERTURA_F}" ]]; then
-    rm -- "${COBERTURA_F}"
-  else
-    echo "No ${COBERTURA_F} file found to delete."
-  fi
-
-  echo "Cleanup complete."
-else
-  echo "Directory ${COVERAGE_DIR} does not exist."
-fi
-
-cd "${JSAV_ROOT}" || die "Failed to return to project root ${JSAV_ROOT}."
+run_clean
 clear
 
 cmake -S . -B ./build -Wno-dev -GNinja \
@@ -82,20 +73,20 @@ cmake --build ./build --target tests -j 3 || die "cmake build of 'tests' target 
 cmake --build ./build --target constexpr_tests -j 3 || die "cmake build of 'constexpr_tests' target failed."
 cmake --build ./build --target relaxed_constexpr_tests -j 3 || die "cmake build of 'relaxed_constexpr_tests' target failed."
 
-if [[ -d "${BUILD_DIR}" ]]; then
-  cd "${BUILD_DIR}" || die "Failed to change directory to ${BUILD_DIR}."
-  echo "Current working directory: $(pwd)"
+if [[ ! -d "${BUILD_DIR}" ]]; then
+  die "Build directory does not exist after cmake build: ${BUILD_DIR}"
+fi
 
-  ctest -C Debug || die "ctest run failed."
+cd "${BUILD_DIR}" || die "Failed to change directory to ${BUILD_DIR}."
+echo "Current working directory: $(pwd)"
 
-  read -rp "Press any key to run gcovr... " -n 1 -s
-  clear
-  echo "Current working directory: $(pwd)"
+ctest -C Debug || die "ctest run failed."
+
+read -rp "Press any key to run gcovr... " -n 1 -s
+clear
+echo "Current working directory: $(pwd)"
 
   gcovr -j 3  --root ../ --config ../gcovr.cfg --gcov-executable 'gcov' --rerun-failed --output-on-failure --exclude-unreachable-branches --exclude-noncode-lines || die "gcovr failed."
 
-  xdg-open "${COBERTURA_HTML}" || die "Failed to open coverage report."
-  echo "complete."
-else
-  echo "Directory ${BUILD_DIR} does not exist."
-fi
+xdg-open "${COBERTURA_HTML}" || die "Failed to open coverage report."
+echo "complete."
