@@ -405,8 +405,8 @@ Contain many test cases for greater statistical power (see table below for guide
 Easy to automate or repeat
 Here's the data formatted as a markdown table:
 
-| Difference to Detect | Sample Size Needed for 95% Confidence |
-| -------------------- | ------------------------------------- |
+| DIFFERENCE TO DETECT | SAMPLE SIZE NEEDED FOR 95% CONFIDENCE |
+|----------------------|---------------------------------------|
 | 30%                  | ~10                                   |
 | 10%                  | ~100                                  |
 | 3%                   | ~1,000                                |
