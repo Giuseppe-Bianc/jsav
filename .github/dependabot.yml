@@ -1,31 +1,52 @@
 # Set update schedule for GitHub Actions
 
 version: 2
+
 updates:
+
   - package-ecosystem: "github-actions"
-    directory: "/"  # This covers the root directory
-    open-pull-requests-limit: 5
+    directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 5 # Riesaminare trimestralmente in base al volume reale di PR
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      # Raggruppa tutti gli aggiornamenti delle action in una singola PR (Pattern 2)
+      github-actions-root:
+        patterns:
+          - "*"
     commit-message:
       prefix: "[github]"
       include: "scope"
 
   - package-ecosystem: "github-actions"
-    directory: "/.github/actions/setup_cache"  # Tracks the .github/actions/setup_cache directory
-    open-pull-requests-limit: 3
+    directory: "/.github/actions/setup_cache"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 3 # Riesaminare trimestralmente in base al volume reale di PR
+    labels:
+      - "dependencies"
+      - "github-actions"
+    groups:
+      # Raggruppa tutti gli aggiornamenti della action setup_cache in una singola PR (Pattern 2)
+      github-actions-setup-cache:
+        patterns:
+          - "*"
     commit-message:
-      prefix: "[github]"
+      prefix: "[github-actions]"
       include: "scope"
 
   - package-ecosystem: "docker"
-    directory: ".devcontainer"
-    open-pull-requests-limit: 3
+    directory: "/.devcontainer"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 3 # Riesaminare trimestralmente in base al volume reale di PR
+    labels:
+      - "dependencies"
+      - "docker"
     commit-message:
-      prefix: "[github]"
+      prefix: "[docker]"
       include: "scope"
 
