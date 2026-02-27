@@ -483,17 +483,17 @@ depth: 2 levels. Section 3 is continuous prose without internal lists. List item
 
 ### Block 4 — Style and Language Criteria
 
-| Criterion                  | Specification                                                       |
-|----------------------------|---------------------------------------------------------------------|
-| Register                   | Formal                                                              |
-| Grammatical person         | Impersonal (third singular or passive constructions)                |
-| Predominant tense          | Indicative present                                                  |
-| Sentence length            | Max 25 words per sentence                                           |
-| Information density        | High in sections 2, 3, 4; medium in sections 1, 5, 7                |
-| Terminology                | Technical with inline definition at first occurrence in parentheses |
-| Tone — section 1           | Descriptive and neutral                                             |
-| Tone — sections 2, 6       | Analytical                                                          |
-| Tone — sections 3, 4, 5, 7 | Prescriptive                                                        |
+| Criterion                  | Specification                                                         |
+|----------------------------|-----------------------------------------------------------------------|
+| Register                   | Formal                                                                |
+| Grammatical person         | Impersonal (third singular or passive constructions)                  |
+| Predominant tense          | Indicative present                                                    |
+| Sentence length            | Max 25 words per sentence                                             |
+| Information density        | High in sections 2, 3, 4; medium in sections 1, 5, 7                  |
+| Terminology                | Technical with inline definition at first occurrence in parentheses   |
+| Tone — section 1           | Descriptive and neutral                                               |
+| Tone — sections 2, 6       | Analytical                                                            |
+| Tone — sections 3, 4, 5, 7 | Prescriptive                                                          |
 
 ---
 
