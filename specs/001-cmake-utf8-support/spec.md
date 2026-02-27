@@ -63,13 +63,15 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 - How does the build system handle UTF-8 characters in file paths, especially on Windows with legacy path limitations?
 - What happens when environment variables contain UTF-8 characters that affect the build process?
 
+**Note**: Per FR-008, legacy encodings and mixed encoding scenarios are explicitly out of scope. The system requires all source files to be UTF-8 encoded. When non-UTF-8 files are encountered, the build should fail with compiler errors that help developers identify and convert problematic files.
+
 ## Requirements
 
 ### Functional Requirements
 
 - **FR-001**: CMake configuration MUST set compiler flags to treat source files as UTF-8 encoded: `/utf-8` for MSVC, `-finput-charset=UTF-8 -fexec-charset=UTF-8` for GCC and Clang.
 - **FR-002**: Compiler output (stdout/stderr) MUST be configured to use UTF-8 encoding on Windows to preserve international characters in build messages.
-- **FR-003**: Runtime console output from compiled executables MUST support UTF-8 character display on Windows (via `SetConsoleOutputCP(CP_UTF8)`), Linux, and macOS.
+- **FR-003**: CMake configuration SHALL provide header files, utilities, and documentation to enable UTF-8 console output for compiled executables. On Windows, this includes providing example code for `SetConsoleOutputCP(CP_UTF8)` initialization. Applications are responsible for invoking the initialization code in their main() or entry point functions.
 - **FR-004**: CMake configuration MUST handle UTF-8 characters in file paths and directory names correctly during build configuration and execution.
 - **FR-005**: Build system MUST preserve UTF-8 byte sequences in string literals without modification or reinterpretation.
 - **FR-006**: CMake presets and configuration files MUST be saved and read as UTF-8 to support international characters in configuration values.
@@ -89,8 +91,8 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 
 - **SC-001**: Developers can successfully build the project containing UTF-8 characters in source files on Windows, Linux, and macOS with zero encoding-related build errors.
 - **SC-002**: UTF-8 characters in compiler output and build logs display correctly (no mojibake, replacement characters, or garbled text) in 100% of test cases across supported platforms.
-- **SC-003**: Application runtime output containing UTF-8 strings displays correctly in standard terminals on all supported operating systems without requiring manual code page configuration by users.
-- **SC-004**: Build process handles source files with UTF-8 characters in file paths up to 260 characters on Windows and standard path lengths on Unix-like systems without errors.
+- **SC-003**: Application runtime output containing UTF-8 strings displays correctly in standard terminals on all supported operating systems without requiring manual terminal configuration by end users. (Note: Developers must integrate UTF-8 initialization code per FR-003 for Windows applications.)
+- **SC-004**: Build process handles source files with UTF-8 characters in file paths without errors. On Windows with long path support enabled (Windows 10 1607+ with `LongPathsEnabled` registry key or manifest), paths up to 32,767 characters are supported. On systems without long path support, the traditional MAX_PATH limit of 260 characters applies. Unix-like systems follow standard filesystem path length limits (typically 4096 characters).
 - **SC-005**: New developers can clone the repository and build successfully on their first attempt regardless of their system's default locale or language settings.
 - **SC-006**: CI/CD builds on all supported platforms complete successfully with UTF-8 content in source files, logs, and test output.
 
@@ -107,7 +109,8 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 
 - All source files in the project are expected to be saved in UTF-8 encoding (with or without BOM).
 - Developers are using modern terminals that support UTF-8 (Windows Terminal, modern versions of cmd.exe with appropriate code page, or Unix terminals).
-- The project targets C++23 and uses compilers that support UTF-8 source file handling (MSVC 2019+, GCC 10+, Clang 10+).
+- The project targets C++23 (C++ standard requirement).
+- UTF-8 source file handling requires compilers that support charset specification flags: MSVC with /utf-8 flag (Visual Studio 2022+), GCC with -finput-charset and -fexec-charset (GCC 13+), or Clang with equivalent flags (Clang 18+). While older compilers may support UTF-8, the listed versions are recommended minimums for robust support.
 - Legacy encoding support (automatic detection/conversion) is out of scope for this feature - the focus is on proper UTF-8 handling.
 - UTF-8 support in file paths assumes the underlying OS and filesystem support UTF-8 (NTFS on Windows, most modern filesystems on Linux/macOS).
 - UTF-8 identifiers (non-ASCII characters in variable/function names) are explicitly out of scope; only comments and string literals require UTF-8 support.
