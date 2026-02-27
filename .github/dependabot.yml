@@ -13,12 +13,11 @@ updates:
       - "dependencies"
       - "github-actions"
     groups:
-      # Raggruppa tutti gli aggiornamenti delle action in una singola PR (Pattern 2)
       github-actions-root:
         patterns:
           - "*"
     commit-message:
-      prefix: "[github]"
+      prefix: "[github-actions]"
       include: "scope"
 
   - package-ecosystem: "github-actions"
@@ -30,7 +29,6 @@ updates:
       - "dependencies"
       - "github-actions"
     groups:
-      # Raggruppa tutti gli aggiornamenti della action setup_cache in una singola PR (Pattern 2)
       github-actions-setup-cache:
         patterns:
           - "*"
