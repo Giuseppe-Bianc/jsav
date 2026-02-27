@@ -171,6 +171,7 @@ jobs:
       
       - name: Update CMake to latest version
         run: |
+          cmake --version  # Verify cmake version before
           pip install --upgrade cmake --break-system-packages
           cmake --version  # Verify cmake version
 
