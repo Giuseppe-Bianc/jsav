@@ -87,16 +87,16 @@ jobs:
         gcovr: false
         opencppcoverage: false
 
-    -  name: Update CMake to latest version
-        shell: bash
-        run: |
-          cmake --version  # version BEFORE update
-          pip install --upgrade cmake --break-system-packages
-          # Retrieve the exact bin dir from the pip package and prepend it to PATH
-          # This works on Linux, macOS and Windows (Git Bash) without any OS-specific logic
-          CMAKE_BIN=$(python -c "import cmake; print(cmake.CMAKE_BIN_DIR)")
-          echo "$CMAKE_BIN" >> "$GITHUB_PATH"
-          echo "CMake bin dir added to PATH: $CMAKE_BIN"
+    - name: Update CMake to latest version
+      shell: bash
+      run: |
+        cmake --version  # version BEFORE update
+        pip install --upgrade cmake --break-system-packages
+        # Retrieve the exact bin dir from the pip package and prepend it to PATH
+        # This works on Linux, macOS and Windows (Git Bash) without any OS-specific logic
+        CMAKE_BIN=$(python -c "import cmake; print(cmake.CMAKE_BIN_DIR)")
+        echo "$CMAKE_BIN" >> "$GITHUB_PATH"
+        echo "CMake bin dir added to PATH: $CMAKE_BIN"
       # make sure coverage is only enabled for Debug builds, since it sets -O0 to make sure coverage
       # has meaningful results
     - name: Configure CMake
