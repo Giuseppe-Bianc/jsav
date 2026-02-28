@@ -29,7 +29,7 @@ As a developer, I want to see UTF-8 characters correctly displayed in compiler o
 
 **Why this priority**: After successful compilation, developers need to be able to read and understand build output and application logs that may contain UTF-8 characters. This is essential for debugging and internationalization verification.
 
-**Independent Test**: Can be tested by building a project that outputs UTF-8 strings and verifying that the console/build output displays characters correctly without mojibake or replacement characters.
+**Independent Test**: See User Story 1 for testing methodology. This story extends testing to verify console/build output displays UTF-8 characters correctly without mojibake or replacement characters.
 
 **Acceptance Scenarios**:
 
@@ -45,7 +45,7 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 
 **Why this priority**: Cross-platform consistency is important for team collaboration and CI/CD, but it builds upon the core UTF-8 compilation and output features. Teams can work on a single platform without this, but multi-platform teams need this for consistency.
 
-**Independent Test**: Can be tested by building the same project on Windows, Linux, and macOS and verifying that UTF-8 handling produces equivalent results on all platforms.
+**Independent Test**: See User Story 1 for testing methodology. This story extends testing to verify equivalent UTF-8 behavior across Windows, Linux, and macOS platforms.
 
 **Acceptance Scenarios**:
 
@@ -57,11 +57,13 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 
 ### Edge Cases
 
-- What happens when source files are saved with different encodings (UTF-8 with BOM, UTF-8 without BOM, UTF-16, legacy code pages)?
-- How does the system handle mixed encoding scenarios where some files are UTF-8 and others use legacy encodings?
-- What happens when console/terminal doesn't support UTF-8 output (older Windows cmd.exe without proper code page)?
-- How does the build system handle UTF-8 characters in file paths, especially on Windows with legacy path limitations?
-- What happens when environment variables contain UTF-8 characters that affect the build process?
+**Resolved Decisions:**
+
+- **Different source file encodings (UTF-8 with BOM, UTF-8 without BOM, UTF-16, legacy code pages)**: System accepts UTF-8 with or without BOM (BOM stripped during preprocessing per FR-007). UTF-16 and legacy code pages are not supported; build will fail with compiler error. Developers must convert files to UTF-8 before inclusion.
+- **Mixed encoding scenarios**: Explicitly out of scope per FR-008. System requires all source files to be UTF-8 encoded. Mixed encoding projects will experience compiler errors on non-UTF-8 files; developers are responsible for identifying and converting problematic files using external tools.
+- **Console/terminal without UTF-8 support (older Windows cmd.exe without proper code page)**: On Windows, `init_console()` calls `SetConsoleOutputCP(CP_UTF8)` unconditionally. If the terminal cannot handle UTF-8 output, initialization fails and application terminates with error message: "UTF-8 console initialization failed. Terminal does not support UTF-8 output. Use Windows Terminal or enable UTF-8 support in terminal settings." On Linux/macOS, terminals without UTF-8 locale support are unsupported; developers must configure UTF-8 locale at OS level.
+- **UTF-8 characters in file paths on Windows with legacy path limitations**: On Windows 10 1607+ with long path support enabled (`LongPathsEnabled` registry key or application manifest), paths up to 32,767 characters are supported. On systems without long path support, traditional MAX_PATH limit (260 characters) applies. CMake configuration handles UTF-8 characters in paths within these limits; paths exceeding limits will fail with standard filesystem error.
+- **Environment variables containing UTF-8 characters affecting build process**: CMake reads environment variables as UTF-8 on all platforms. UTF-8 characters in environment variables (e.g., PATH, INCLUDE) are preserved but may cause issues with tools that don't support UTF-8. Developers should ensure build toolchain supports UTF-8 in environment variables.
 
 **Note**: Per FR-008, legacy encodings and mixed encoding scenarios are explicitly out of scope. The system requires all source files to be UTF-8 encoded. When non-UTF-8 files are encountered, the build will fail with compiler errors; developers are responsible for identifying and converting problematic files using external tools as needed.
 
@@ -71,7 +73,7 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 
 - **FR-001**: CMake configuration MUST set compiler flags to treat source files as UTF-8 encoded: `/utf-8` for MSVC, `-finput-charset=UTF-8 -fexec-charset=UTF-8` for GCC and Clang.
 - **FR-002**: Compiler output (stdout/stderr) MUST be configured to use UTF-8 encoding on Windows to preserve international characters in build messages.
-- **FR-003**: CMake configuration SHALL provide header files, utilities, and documentation to enable UTF-8 console output for compiled executables. On Windows, this includes providing example code for `SetConsoleOutputCP(CP_UTF8)` initialization. Applications MUST invoke the initialization code unconditionally in their main() or entry point functions (no pre-detection of terminal compatibility). If initialization fails, the application MUST fail fast with a clear diagnostic error message indicating UTF-8 console initialization failure and terminal compatibility requirements.
+- **FR-003**: CMake configuration SHALL provide header files, utilities, and documentation to enable UTF-8 console output for compiled executables. On Windows, this includes providing `include/jsav/utf8/console.hpp` with `jsav::utf8::init_console()` function that calls `SetConsoleOutputCP(CP_UTF8)`. Applications MUST invoke `jsav::utf8::init_console()` unconditionally in their main() or entry point functions (no pre-detection of terminal compatibility). If initialization fails, the application MUST fail fast with a clear diagnostic error message indicating UTF-8 console initialization failure and terminal compatibility requirements.
 - **FR-004**: CMake configuration MUST handle UTF-8 characters in file paths and directory names correctly during build configuration and execution.
 - **FR-005**: Build system MUST preserve UTF-8 byte sequences in string literals without modification or reinterpretation.
 - **FR-006**: CMake presets and configuration files MUST be saved and read as UTF-8 to support international characters in configuration values.
@@ -91,13 +93,13 @@ As a developer working across multiple operating systems, I want UTF-8 handling 
 ### Measurable Outcomes
 
 - **SC-001**: Developers can successfully build the project containing UTF-8 characters in source files on Windows, Linux, and macOS with zero encoding-related build errors.
-- **SC-002**: UTF-8 characters in compiler output and build logs display correctly (no mojibake, replacement characters, or garbled text) in 100% of test cases across supported platforms.
+- **SC-002**: UTF-8 characters in compiler output and build logs display correctly (no mojibake, replacement characters, or garbled text) when verified against the test suite defined in tests.cpp with `[utf8]` tag covering: Latin-1 Supplement (U+0080–U+00FF), CJK characters (U+4E00–U+9FFF), emoji (U+1F600–U+1F64F), and combining diacritics. Test suite must achieve 100% pass rate across all supported platforms.
 - **SC-003a**: Application runtime output containing UTF-8 strings (including Latin-1 Supplement, CJK characters, emoji, and combining diacritics) displays correctly in standard terminals on all supported operating systems when applications have integrated UTF-8 initialization code per FR-003. "Displays correctly" means no mojibake, replacement characters (�), or garbled text in test output.
 - **SC-003b**: On Windows, UTF-8 output displays correctly after developers integrate initialization code per FR-003; end users do not need to manually configure code pages (e.g., 'chcp 65001'). On Linux/macOS, UTF-8 locales are required (default on modern systems); no application-level initialization is required beyond standard iostream usage. Systems with non-UTF-8 locales are unsupported and developers must configure UTF-8 locales at the OS level.
 - **SC-003c**: If UTF-8 initialization fails at runtime, applications MUST fail fast with a clear diagnostic error message (exit code and explanation). The error message MUST indicate that UTF-8 console initialization failed and provide guidance on terminal compatibility requirements.
 - **SC-004**: Build process handles source files with UTF-8 characters in file paths without errors. On Windows with long path support enabled (Windows 10 1607+ with `LongPathsEnabled` registry key or manifest), paths up to 32,767 characters are supported. On systems without long path support, the traditional MAX_PATH limit of 260 characters applies. Unix-like systems follow standard filesystem path length limits (typically 4096 characters).
-- **SC-005**: New developers can clone the repository and build successfully on their first attempt regardless of their system's default locale or language settings. **Validation**: Verified by having 2+ developers without prior project knowledge complete a clean build (`rm -rf build/ && cmake -S . -B build && cmake --build build`) following only quickstart.md instructions, with zero encoding-related errors and successful UTF-8 output verification.
-- **SC-006**: CI/CD builds on all supported platforms complete successfully with UTF-8 content in source files, logs, and test output. UTF-8 initialization status and encoding validation results MUST appear in build logs for troubleshooting.
+- **SC-005**: New developers can clone the repository and build successfully regardless of their system's default locale or language settings. **Validation**: ≥90% of test participants (minimum 5 developers without prior project knowledge) complete a clean build (`rm -rf build/ && cmake -S . -B build && cmake --build build`) following only quickstart.md instructions within 30 minutes, with zero encoding-related errors and successful UTF-8 output verification.
+- **SC-006**: CI/CD builds on all supported platforms complete successfully with UTF-8 content in source files, logs, and test output. Build logs MUST include UTF-8 initialization status and encoding validation results per FR-009 for troubleshooting.
 
 ## Clarifications
 
