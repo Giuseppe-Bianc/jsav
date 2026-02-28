@@ -168,7 +168,7 @@ jobs:
         run: |
           pip install --upgrade gcovr --break-system-packages
           gcovr --version  # Verify gcovr is installed correctly
-      
+
       - name: Update CMake to latest version
         shell: bash
         run: |
@@ -192,7 +192,7 @@ jobs:
       - name: Unix - Test
         if: runner.os != 'Windows'
         working-directory: ./build
-        run: ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure
+        run: ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure --no-compress-output
 
       - name: Unix - Coverage
         if: runner.os != 'Windows' && matrix.build_type == 'Debug'
@@ -209,7 +209,7 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ./build
         run: |
-          OpenCppCoverage.exe --export_type cobertura:coverage.xml --cover_children -- ctest -C ${{matrix.build_type}} -j ${{ steps.cpu-cores.outputs.count }} --rerun-failed --output-on-failure
+          OpenCppCoverage.exe --sources "${{ github.workspace }}\include" --sources "${{ github.workspace }}\src" --modules "${{ github.workspace }}\build" --excluded_sources ".*\\_deps\\.*" --excluded_sources ".*\\vcpkg_installed\\.*" --excluded_sources ".*\\configured_files\\.*" --excluded_sources ".*\\.cmake\\.*" --export_type cobertura:coverage.xml --cover_children -- ctest -C ${{ matrix.build_type }} -j ${{ steps.cpu-cores.outputs.count }} --output-on-failure --no-compress-output
 
       - name: CPack
         if: matrix.package_generator != ''
