@@ -89,9 +89,6 @@ auto main(int argc, const char *const argv[]) -> int {
 #endif
     // NOLINTNEXTLINE
     INIT_LOG();
-
-    LINFO("UTF-8 test: àèìòù ñ ü ß → ✓ 日本語 🎉");
-    LINFO("Project: {}", jsav::cmake::project_name);
     try {
         CLI::App app{FORMAT("{} version {}", jsav::cmake::project_name, jsav::cmake::project_version)};  // NOLINT(*-include-cleaner)
         // std::optional<std::string> message;  // NOLINT(*-include-cleaner)
@@ -145,11 +142,13 @@ auto main(int argc, const char *const argv[]) -> int {
         const auto size_bytes = str.size();
         const auto fsz = format_size(size_bytes);
         LINFO("{} total of bytes read: {}", porfilename, fsz);
-        const jsv::SourceLocation start{0, 0, 0};
-        const jsv::SourceLocation end{0, 1, 1};
-        const auto sf_p = MAKE_SHARED(const std::string, porfilename);
-        const jsv::SourceSpan source_span{sf_p, start, end};
-        LINFO(source_span);
+        jsv::Lexer lexer{code, porfilename};
+        const vnd::Timer tokenizationTimer("Tokenization");
+        const auto tokens = lexer.tokenize();
+        LINFO("{}", tokenizationTimer);
+        LINFO("num tokens {}", tokens.size());
+
+        for(jsv::Token token : tokens) { LINFO("{}", token); }
         // LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;

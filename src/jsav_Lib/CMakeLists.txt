@@ -7,6 +7,8 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/lexer/SourceSpan.hpp
         lexer/Token.cpp
         ../../include/jsav/lexer/Token.hpp
+        lexer/Lexer.cpp
+        ../../include/jsav/lexer/Lexer.hpp
         #[[        lexer/Token.cpp
                 lexer/Tokenizer.cpp
                 lexer/TokenizerUtility.cpp
