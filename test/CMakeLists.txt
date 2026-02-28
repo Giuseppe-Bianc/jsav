@@ -41,6 +41,7 @@ target_link_libraries(
 
 jsav_configure_linker(tests)
 
+set_target_properties(tests PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 if (WIN32 AND BUILD_SHARED_LIBS)
     add_custom_command(
             TARGET tests
@@ -74,6 +75,7 @@ target_link_libraries(
         Catch2::Catch2WithMain)
 
 jsav_configure_linker(constexpr_tests)
+set_target_properties(constexpr_tests PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 
 catch_discover_tests(
         constexpr_tests
@@ -100,7 +102,7 @@ target_link_libraries(
 target_compile_definitions(relaxed_constexpr_tests PRIVATE -DCATCH_CONFIG_RUNTIME_STATIC_REQUIRE)
 
 jsav_configure_linker(relaxed_constexpr_tests)
-
+set_target_properties(relaxed_constexpr_tests PROPERTIES CXX_SCAN_FOR_MODULES OFF)
 
 catch_discover_tests(
         relaxed_constexpr_tests
@@ -114,3 +116,4 @@ catch_discover_tests(
         "relaxed_constexpr."
         OUTPUT_SUFFIX
         .xml)
+
