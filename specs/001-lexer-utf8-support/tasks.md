@@ -15,10 +15,10 @@
 
 ## Path Conventions
 
-- **Headers**: `include/jsav/lexer/` and `include/jsav/lexer/unicode/`
-- **Sources**: `src/jsav_Lib/lexer/` and `src/jsav_Lib/lexer/unicode/`
-- **Tests**: `test/constexpr_tests.cpp` (STATIC_REQUIRE) and `test/tests.cpp` (REQUIRE)
-- **Scripts**: `scripts/`
+- **Headers**: `include/jsav/lexer/` and `include/jsav/lexer/unicode/` (new unicode module)
+- **Sources**: `src/jsav_Lib/lexer/` (existing lexer), `src/jsav_Lib/lexer/unicode/` (new if needed)
+- **Tests**: `test/constexpr_tests.cpp` (STATIC_REQUIRE), `test/tests.cpp` (runtime REQUIRE)
+- **Scripts**: `scripts/` (offline generation tools)
 
 ---
 
