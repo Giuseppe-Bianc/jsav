@@ -12,6 +12,11 @@ namespace jsv {
     std::vector<Token> Lexer::tokenize() {
         std::vector<Token> tokens;
         tokens.reserve(m_source.size() / 4);  // rough estimate
+        // Skip UTF-8 BOM (0xEF 0xBB 0xBF) at start of input if present (FR-019)
+        if(m_source.size() >= 3 && C_UC(m_source[0]) == 0xEFU && C_UC(m_source[1]) == 0xBBU && C_UC(m_source[2]) == 0xBFU) {
+            m_pos += 3;
+            m_column += 3;
+        }
         while(true) {
             auto tok = next_token();
             const bool done = (tok.getKind() == TokenKind::Eof);
@@ -46,10 +51,12 @@ namespace jsv {
         // ── ASCII identifier / keyword ───────────────────────────────────
         if((std::isalpha(first) != 0) || first == '_') { return scan_identifier_or_keyword(start, false); }
 
-        // ── Non-ASCII: try Unicode XID_Start ────────────────────────────
+        // ── Non-ASCII: try Unicode identifier start ────────────────────────────
         if(first > 0x7F) {
-            const auto cp = peek_codepoint();
-            if(is_xid_start(cp)) { return scan_identifier_or_keyword(start, true); }
+            const auto res = unicode::decode_utf8(m_source, m_pos);
+            if(res.status == unicode::Utf8Status::Ok && unicode::is_id_start(res.codepoint)) {
+                return scan_identifier_or_keyword(start, true);
+            }
         }
 
         // ── Operators / punctuation ──────────────────────────────────────
@@ -67,40 +74,22 @@ namespace jsv {
         ++m_column;
         return c;
     }
-    std::size_t Lexer::utf8_byte_len(const unsigned char first_byte) noexcept {
-        if((first_byte & 0x80U) == 0x00U) { return 1; }  // 0xxxxxxx
-        if((first_byte & 0xE0U) == 0xC0U) { return 2; }  // 110xxxxx
-        if((first_byte & 0xF0U) == 0xE0U) { return 3; }  // 1110xxxx
-        if((first_byte & 0xF8U) == 0xF0U) { return 4; }  // 11110xxx
-        return 1;                                        // invalid continuation — treat as 1
+    char32_t Lexer::peek_codepoint() const noexcept {
+        if(is_at_end()) { return U'\0'; }
+        return unicode::decode_utf8(m_source, m_pos).codepoint;
     }
-    std::uint32_t Lexer::peek_codepoint() const noexcept {
-        if(is_at_end()) { return 0; }
+    char32_t Lexer::advance_codepoint() noexcept {
+        const auto res = unicode::decode_utf8(m_source, m_pos);
 
-        const auto first = C_UC(m_source[m_pos]);
-        const auto len = utf8_byte_len(first);
-
-        if(len == 1) { return first; }
-        if(m_pos + len > m_source.size()) { return first; }  // truncated sequence
-
-        // Strip leading marker bits: len=2 → mask 0x1F, len=3 → 0x0F, len=4 → 0x07
-        std::uint32_t cp = first & (0xFFU >> (len + 1U));
-        for(std::size_t i = 1; i < len; ++i) { cp = (cp << 6U) | (C_UC(m_source[m_pos + i]) & 0x3FU); }
-        return cp;
-    }
-    std::uint32_t Lexer::advance_codepoint() noexcept {
-        const auto cp = peek_codepoint();
-        const auto len = utf8_byte_len(C_UC(m_source[m_pos]));
-
-        if(cp == '\n') {
-            m_pos += len;
+        if(res.codepoint == U'\n') {
+            m_pos += res.byte_length;
             ++m_line;
             m_column = 1;
         } else {
-            m_pos += len;
-            m_column += len;  // byte-based column counter
+            m_pos += res.byte_length;
+            m_column += res.byte_length;  // byte-based column counter
         }
-        return cp;
+        return res.codepoint;
     }
     SourceLocation Lexer::current_location() const noexcept { return SourceLocation{m_line, m_column, m_pos}; }
 
@@ -117,6 +106,34 @@ namespace jsv {
     // Whitespace & comments
     // =========================================================================
 
+    bool Lexer::skip_unicode_whitespace() noexcept {
+        const auto res = unicode::decode_utf8(m_source, m_pos);
+        if(res.status != unicode::Utf8Status::Ok || !unicode::is_unicode_whitespace(res.codepoint)) { return false; }
+        if(res.codepoint == U'\u2028' || res.codepoint == U'\u2029') {
+            // Line Separator / Paragraph Separator count as newlines
+            m_pos += res.byte_length;
+            ++m_line;
+            m_column = 1;
+        } else {
+            m_pos += res.byte_length;
+            m_column += res.byte_length;
+        }
+        return true;
+    }
+
+    void Lexer::skip_block_comment() {
+        advance_byte();  // /
+        advance_byte();  // *
+        while(!is_at_end()) {
+            if(peek_byte() == '*' && peek_byte(1) == '/') {
+                advance_byte();  // *
+                advance_byte();  // /
+                break;
+            }
+            advance_codepoint();
+        }
+    }
+
     void Lexer::skip_whitespace_and_comments() {
         while(!is_at_end()) {
             const char c = peek_byte();
@@ -131,6 +148,12 @@ namespace jsv {
                 continue;
             }
 
+            // Non-ASCII: check for Unicode whitespace (Zs, Zl, Zp categories) per FR-023
+            if(C_UC(c) > 0x7FU) {
+                if(skip_unicode_whitespace()) { continue; }
+                break;  // non-whitespace non-ASCII — let next_token() handle it
+            }
+
             // Line comment: // …
             if(c == '/' && peek_byte(1) == '/') {
                 advance_byte();
@@ -141,16 +164,7 @@ namespace jsv {
 
             // Block comment: /* … */  (non-nested)
             if(c == '/' && peek_byte(1) == '*') {
-                advance_byte();  // /
-                advance_byte();  // *
-                while(!is_at_end()) {
-                    if(peek_byte() == '*' && peek_byte(1) == '/') {
-                        advance_byte();  // *
-                        advance_byte();  // /
-                        break;
-                    }
-                    advance_codepoint();
-                }
+                skip_block_comment();
                 continue;
             }
 
@@ -178,7 +192,7 @@ namespace jsv {
             } else {
                 // Non-ASCII: decode and check XID_Continue
                 const auto cp = peek_codepoint();
-                if(is_xid_continue(cp)) {
+                if(unicode::is_id_continue(cp)) {
                     seen_unicode = true;
                     advance_codepoint();
                 } else {
@@ -330,6 +344,7 @@ namespace jsv {
     Token Lexer::scan_string_literal(const SourceLocation &start) {
         const auto text_start = m_pos;
         advance_byte();  // opening '"'
+        bool has_malformed = false;
 
         while(!is_at_end()) {
             const char c = peek_byte();
@@ -346,28 +361,50 @@ namespace jsv {
                 // Unterminated single-line string — stop and let the parser reject.
                 break;
             }
-            advance_codepoint();
+            // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
+            if(C_UC(c) > 0x7F) {
+                const auto res = unicode::decode_utf8(m_source, m_pos);
+                if(res.status != unicode::Utf8Status::Ok) { has_malformed = true; }
+                m_pos += res.byte_length;
+                m_column += res.byte_length;
+            } else {
+                advance_byte();
+            }
         }
 
-        return make_token(TokenKind::StringLiteral, m_source.substr(text_start, m_pos - text_start), start);
+        const auto text = m_source.substr(text_start, m_pos - text_start);
+        if(has_malformed) { return error_token(text, start); }
+        return make_token(TokenKind::StringLiteral, text, start);
     }
 
     Token Lexer::scan_char_literal(const SourceLocation &start) {
         const auto text_start = m_pos;
         advance_byte();  // opening '\''
+        bool has_malformed = false;
 
         if(!is_at_end()) {
             if(peek_byte() == '\\') {
                 advance_byte();  // '\'
                 skip_escape();
             } else {
-                advance_codepoint();  // one Unicode scalar value
+                // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
+                const char c = peek_byte();
+                if(C_UC(c) > 0x7F) {
+                    const auto res = unicode::decode_utf8(m_source, m_pos);
+                    if(res.status != unicode::Utf8Status::Ok) { has_malformed = true; }
+                    m_pos += res.byte_length;
+                    m_column += res.byte_length;
+                } else {
+                    advance_byte();
+                }
             }
         }
 
         if(!is_at_end() && peek_byte() == '\'') { advance_byte(); }  // closing '\''
 
-        return make_token(TokenKind::CharLiteral, m_source.substr(text_start, m_pos - text_start), start);
+        const auto text = m_source.substr(text_start, m_pos - text_start);
+        if(has_malformed) { return error_token(text, start); }
+        return make_token(TokenKind::CharLiteral, text, start);
     }
 
     // =========================================================================
@@ -461,8 +498,8 @@ namespace jsv {
         default:
             // Gracefully consume unknown UTF-8 sequences (first byte already advanced).
             if(C_UC(c0) > 0x7F) {
-                const auto remaining = utf8_byte_len(C_UC(c0));
-                for(std::size_t i = 1; i < remaining && !is_at_end(); ++i) { advance_byte(); }
+                const auto seq = unicode::decode_utf8(m_source, text_start);
+                for(std::size_t i = 1; i < seq.byte_length && !is_at_end(); ++i) { advance_byte(); }
             }
             return error_token(m_source.substr(text_start, m_pos - text_start), start);
         }
@@ -475,95 +512,6 @@ namespace jsv {
     // For full conformance, generate lookup tables from:
     //   https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
     // =========================================================================
-
-    bool Lexer::is_xid_start(const std::uint32_t cp) noexcept {
-        if(cp < 0x80) { return (std::isalpha(static_cast<int>(cp)) != 0) || cp == '_'; }
-
-        // Latin-1 Supplement & Latin Extended
-        if(cp >= 0x00C0 && cp <= 0x00D6) { return true; }
-        if(cp >= 0x00D8 && cp <= 0x00F6) { return true; }
-        if(cp >= 0x00F8 && cp <= 0x01F5) { return true; }
-        if(cp >= 0x01FA && cp <= 0x0217) { return true; }
-        if(cp >= 0x0250 && cp <= 0x02A8) { return true; }
-
-        // Greek
-        if(cp >= 0x0370 && cp <= 0x0373) { return true; }
-        if(cp >= 0x0376 && cp <= 0x0377) { return true; }
-        if(cp >= 0x037B && cp <= 0x037D) { return true; }
-        if(cp == 0x037F) { return true; }
-        if(cp == 0x0386) { return true; }
-        if(cp >= 0x0388 && cp <= 0x038A) { return true; }
-        if(cp == 0x038C) { return true; }
-        if(cp >= 0x038E && cp <= 0x03A1) { return true; }
-        if(cp >= 0x03A3 && cp <= 0x03F5) { return true; }
-
-        // Cyrillic
-        if(cp >= 0x0400 && cp <= 0x0481) { return true; }
-        if(cp >= 0x048A && cp <= 0x052F) { return true; }
-
-        // Armenian
-        if(cp >= 0x0531 && cp <= 0x0556) { return true; }
-        if(cp >= 0x0561 && cp <= 0x0587) { return true; }
-
-        // Hebrew
-        if(cp >= 0x05D0 && cp <= 0x05EA) { return true; }
-
-        // Arabic
-        if(cp >= 0x0620 && cp <= 0x064A) { return true; }
-        if(cp >= 0x0671 && cp <= 0x06B7) { return true; }
-
-        // Devanagari
-        if(cp >= 0x0905 && cp <= 0x0939) { return true; }
-        if(cp == 0x093D) { return true; }
-
-        // Thai
-        if(cp >= 0x0E01 && cp <= 0x0E2E) { return true; }
-
-        // Hiragana / Katakana
-        if(cp >= 0x3041 && cp <= 0x3094) { return true; }
-        if(cp >= 0x30A1 && cp <= 0x30FA) { return true; }
-
-        // CJK Unified Ideographs
-        if(cp >= 0x4E00 && cp <= 0x9FFF) { return true; }
-        if(cp >= 0x3400 && cp <= 0x4DBF) { return true; }    // Extension A
-        if(cp >= 0x20000 && cp <= 0x2A6DF) { return true; }  // Extension B
-
-        // Korean Hangul
-        if(cp >= 0xAC00 && cp <= 0xD7A3) { return true; }
-        if(cp >= 0x1100 && cp <= 0x1159) { return true; }
-
-        // Mathematical Alphanumeric Symbols
-        if(cp >= 0x1D400 && cp <= 0x1D7CB) { return true; }
-
-        return false;
-    }
-
-    bool Lexer::is_xid_continue(const std::uint32_t cp) noexcept {
-        if(cp < 0x80) { return (std::isalnum(static_cast<int>(cp)) != 0) || cp == '_'; }
-
-        // Combining Diacritical Marks — essential for XID_Continue
-        if(cp >= 0x0300 && cp <= 0x036F) { return true; }
-
-        // Devanagari matras / vowel signs
-        if(cp >= 0x093E && cp <= 0x094C) { return true; }
-        if(cp >= 0x0951 && cp <= 0x0954) { return true; }
-
-        // Arabic digit forms
-        if(cp >= 0x0660 && cp <= 0x0669) { return true; }  // Arabic-Indic
-        if(cp >= 0x06F0 && cp <= 0x06F9) { return true; }  // Extended Arabic-Indic
-
-        // Devanagari digits
-        if(cp >= 0x0966 && cp <= 0x096F) { return true; }
-
-        // Thai digits
-        if(cp >= 0x0E50 && cp <= 0x0E59) { return true; }
-
-        // Enclosed Alphanumerics
-        if(cp >= 0x24B6 && cp <= 0x24E9) { return true; }
-
-        // Anything that is XID_Start also continues
-        return is_xid_start(cp);
-    }
 
     // =========================================================================
     // Keyword / type classification

@@ -7,6 +7,8 @@
 
 #include "../headers.hpp"
 #include "Token.hpp"
+#include "unicode/UnicodeData.hpp"
+#include "unicode/Utf8.hpp"
 
 namespace jsv {
 
@@ -68,14 +70,12 @@ namespace jsv {
         char advance_byte() noexcept;
 
         // ── UTF-8 helpers ─────────────────────────────────────────────────
-        /// Return the byte length of the UTF-8 sequence starting with `first_byte`.
-        [[nodiscard]] static std::size_t utf8_byte_len(unsigned char first_byte) noexcept;
 
         /// Decode the codepoint at `m_pos` without consuming.
-        [[nodiscard]] std::uint32_t peek_codepoint() const noexcept;
+        [[nodiscard]] char32_t peek_codepoint() const noexcept;
 
         /// Decode and consume one UTF-8 codepoint, updating line/column correctly.
-        std::uint32_t advance_codepoint() noexcept;
+        char32_t advance_codepoint() noexcept;
 
         // ── Location / token construction ─────────────────────────────────
         [[nodiscard]] SourceLocation current_location() const noexcept;
@@ -85,6 +85,13 @@ namespace jsv {
 
         // ── Whitespace / comments ─────────────────────────────────────────
         void skip_whitespace_and_comments();
+
+        /// Handle non-ASCII Unicode whitespace at current position.
+        /// Returns true if whitespace was consumed, false if it was not whitespace.
+        [[nodiscard]] bool skip_unicode_whitespace() noexcept;
+
+        /// Consume a block comment starting after the opening `/*`.
+        void skip_block_comment();
 
         // ── Scanners ──────────────────────────────────────────────────────
         Token scan_identifier_or_keyword(const SourceLocation &start, bool seen_unicode);
@@ -96,13 +103,6 @@ namespace jsv {
 
         /// Advance past a single escape sequence (after the leading backslash).
         void skip_escape();
-
-        // ── Unicode XID classification ────────────────────────────────────
-        /// True if `cp` may start an identifier (Unicode XID_Start ∪ {'_'}).
-        [[nodiscard]] static bool is_xid_start(std::uint32_t cp) noexcept;
-
-        /// True if `cp` may continue an identifier (Unicode XID_Continue).
-        [[nodiscard]] static bool is_xid_continue(std::uint32_t cp) noexcept;
 
         // ── Keyword / type classification ─────────────────────────────────
         /// Map a lexed word to its `TokenKind` (keyword, type, or identifier).
