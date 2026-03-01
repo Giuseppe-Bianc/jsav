@@ -16,6 +16,8 @@
 - Q: How should the lexer handle malformed UTF-8 inside string/char literals — error token, separate diagnostic, or split tokens? → A: The entire literal becomes an error token (the literal is considered invalid).
 - Q: Should Unicode identifier classification use XID_Start/XID_Continue (UAX #31) or Unicode General Category properties? → A: Use Unicode General Categories: `\p{Letter}` (General Category L) for identifier start, `[\p{Letter}\p{Mark}\p{Number}]` (General Categories L, M, N) for identifier continue. Mark (\p{M}) is NOT allowed in start position. This replaces all XID_Start/XID_Continue references. Regex patterns: `IdentifierAscii` = `[a-zA-Z_][a-zA-Z0-9_]*`, `IdentifierUnicode` = `\p{Letter}[\p{Letter}\p{Mark}\p{Number}]*`.
 - Q: How should the lexer handle an identifier starting with underscore `_` that contains non-ASCII Unicode characters (e.g., `_变量`)? → A: The lexer produces a single `IdentifierUnicode` token. Tokenization starts using ASCII rules (underscore is a valid ASCII start); when a non-ASCII `\p{Letter}`, `\p{Mark}`, or `\p{Number}` character is encountered in continue position, the token is promoted to `IdentifierUnicode`. The effective start rule for `IdentifierUnicode` is `[\p{Letter}_]`, and continue rule is `[\p{Letter}\p{Mark}\p{Number}a-zA-Z0-9_]`.
+- Q: How should the Unicode General Category lookup tables be generated and maintained? → A: Offline pre-commit script (Python). The script downloads UnicodeData.txt, generates a C++ source file containing constexpr std::array lookup tables, and the generated file is committed to the repository. Unicode version updates are manual and deliberate (re-run script, review diff, commit).
+- Q: How should the lexer handle non-ASCII Unicode whitespace characters (e.g., U+00A0 NO-BREAK SPACE, U+2003 EM SPACE, U+2028 LINE SEPARATOR)? → A: Recognize as whitespace. All characters with Unicode General Category Zs (Space Separator), Zl (Line Separator), and Zp (Paragraph Separator) are treated as whitespace and consumed silently, same as ASCII spaces.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -117,6 +119,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 - What happens when a valid character is followed by an unexpected continuation byte? The continuation byte should be treated as a separate malformed sequence.
 - What happens when combining characters appear without a base character at the start of an identifier? The combining characters alone should not form a valid identifier start.
 - What happens when a valid Unicode character that is not an identifier, operator, whitespace, or literal delimiter appears in source code (e.g., `©`, `®`, emoji outside strings)? The lexer emits an error token with a diagnostic identifying the unexpected code point.
+- What happens when non-ASCII Unicode whitespace (e.g., U+00A0 NO-BREAK SPACE, U+2003 EM SPACE, U+2028 LINE SEPARATOR, U+2029 PARAGRAPH SEPARATOR) appears in source code outside a literal? The lexer treats it as whitespace and consumes it silently, same as ASCII whitespace.
 
 ## Requirements *(mandatory)*
 
@@ -161,7 +164,11 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 - **FR-019**: The lexer MUST skip a UTF-8 BOM (byte sequence 0xEF 0xBB 0xBF) at the start of input without emitting a token.
 - **FR-020**: The lexer MUST correctly handle the null code point (U+0000) within `string_view`-based input without treating it as a string terminator.
 - **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content. When a malformed UTF-8 sequence is encountered inside a literal, the entire literal token MUST be emitted as an error token (the literal is considered invalid). The lexer MUST NOT apply Unicode identifier classification to code points within literals.
-- **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace, not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
+- **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace — including Unicode whitespace per FR-024 — not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
+
+#### Unicode Whitespace
+
+- **FR-023**: The lexer MUST recognize non-ASCII Unicode whitespace characters — specifically all characters with Unicode General Category Zs (Space Separator), Zl (Line Separator U+2028), and Zp (Paragraph Separator U+2029) — as whitespace. These characters MUST be consumed silently (no token emitted), consistent with the handling of ASCII whitespace (U+0020, U+0009, U+000A, U+000D). The Unicode General Category classification lookup tables (generated per the offline Python script) MUST include Zs/Zl/Zp categories.
 
 #### Out of Scope
 
@@ -179,7 +186,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 ## Assumptions
 
 - The Unicode version targeted for General Category classification tables will be Unicode 15.1 or later (the latest stable release at implementation time). The specific version will be documented in the generated table source.
-- Unicode General Category classification data will be generated from the official Unicode Character Database (UnicodeData.txt General_Category field) rather than maintained by hand, to ensure completeness and accuracy.
+- Unicode General Category classification data will be generated from the official Unicode Character Database (UnicodeData.txt General_Category field) using an offline Python script. The script downloads UnicodeData.txt, produces a C++ source file with `constexpr std::array` lookup tables, and the generated file is committed to the repository. Unicode version updates require re-running the script, reviewing the diff, and committing — ensuring deliberate, auditable updates with no build-time dependency on Python.
 - Column tracking in source locations will remain byte-based (not code-point-based or grapheme-cluster-based), consistent with the current approach. This is an industry-standard convention for compiler source locations.
 - Error recovery for malformed sequences follows the "maximal subpart" strategy recommended by the Unicode Standard (Chapter 3, Section 3.9), where each maximal subpart of an ill-formed sequence generates one error.
 - The U+FFFD REPLACEMENT CHARACTER will be used internally to represent malformed sequences in error token content, following Unicode best practices.
