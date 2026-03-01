@@ -157,14 +157,14 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 
 #### Constexpr Compatibility
 
-- **FR-023**: The UTF-8 decoding functions, UTF-8 validation functions, and Unicode General Category identifier classification functions (including lookup tables) MUST be `constexpr`-compatible (usable in constant expressions at compile time), consistent with the project's C++23 constexpr style and existing `relaxed_constexpr_tests` suite.
+- **FR-024**: The UTF-8 decoding functions, UTF-8 validation functions, and Unicode General Category identifier classification functions (including lookup tables) MUST be `constexpr`-compatible (usable in constant expressions at compile time), consistent with the project's C++23 constexpr style and existing `relaxed_constexpr_tests` suite.
 
 #### Special Cases
 
 - **FR-019**: The lexer MUST skip a UTF-8 BOM (byte sequence 0xEF 0xBB 0xBF) at the start of input without emitting a token.
 - **FR-020**: The lexer MUST correctly handle the null code point (U+0000) within `string_view`-based input without treating it as a string terminator.
 - **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content. When a malformed UTF-8 sequence is encountered inside a literal, the entire literal token MUST be emitted as an error token (the literal is considered invalid). The lexer MUST NOT apply Unicode identifier classification to code points within literals.
-- **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace — including Unicode whitespace per FR-024 — not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
+- **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace — including Unicode whitespace per FR-023 — not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
 
 #### Unicode Whitespace
 
@@ -185,7 +185,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 
 ## Assumptions
 
-- The Unicode version targeted for General Category classification tables will be Unicode 15.1 or later (the latest stable release at implementation time). The specific version will be documented in the generated table source.
+- The Unicode version targeted for General Category classification tables will be Unicode 16.0.0 (the latest stable release at implementation time). The specific version will be documented in the generated table source.
 - Unicode General Category classification data will be generated from the official Unicode Character Database (UnicodeData.txt General_Category field) using an offline Python script. The script downloads UnicodeData.txt, produces a C++ source file with `constexpr std::array` lookup tables, and the generated file is committed to the repository. Unicode version updates require re-running the script, reviewing the diff, and committing — ensuring deliberate, auditable updates with no build-time dependency on Python.
 - Column tracking in source locations will remain byte-based (not code-point-based or grapheme-cluster-based), consistent with the current approach. This is an industry-standard convention for compiler source locations.
 - Error recovery for malformed sequences follows the "maximal subpart" strategy recommended by the Unicode Standard (Chapter 3, Section 3.9), where each maximal subpart of an ill-formed sequence generates one error.
