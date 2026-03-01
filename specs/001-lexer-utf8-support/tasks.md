@@ -33,6 +33,7 @@
 - [ ] T003 Create directory `scripts/` for offline generation tools
 - [ ] T004 Create Python generation script in scripts/generate_unicode_tables.py per research.md R-06 (downloads UnicodeData.txt for Unicode 16.0.0, parses General Categories, merges adjacent ranges for id_start/id_continue/whitespace, outputs formatted constexpr C++ header with static_assert size guards)
 - [ ] T005 Run `scripts/generate_unicode_tables.py` and commit generated file to `include/jsav/lexer/unicode/UnicodeData.hpp`
+- [ ] T005A [SC-005] Run conformance validation in `scripts/generate_unicode_tables.py` — after generating tables, the script MUST re-parse the generated C++ ranges and verify 100% round-trip coverage against UnicodeData.txt for categories L, M, N, Zs, Zl, Zp (every code point in UnicodeData.txt with a matching General Category must be contained in exactly one generated range, and no generated range contains code points outside the category). Script exits non-zero on any mismatch. This validates SC-005 at generation time.
 - [ ] T006 Create `CodepointRange` struct and `Utf8Status` enum and `Utf8DecodeResult` struct in `include/jsav/lexer/unicode/Utf8.hpp` per contracts/unicode-api.md (types only, no function bodies yet)
 - [ ] T007 Update `src/jsav_Lib/CMakeLists.txt` to include new `unicode/` source files in the jsav_Lib target
 - [ ] T008 Verify project compiles with new empty headers and updated CMakeLists — run `ninja` in build directory
@@ -84,7 +85,7 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T020–T030). For constexpr tests (T020–T025): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T026–T030): build and run `tests` target.
+1. **First commit**: Write ALL test tasks (T020–T030, T030A). For constexpr tests (T020–T025, T030A): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T026–T030): build and run `tests` target.
 2. **Second commit**: Implement ALL implementation tasks (T031–T035). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
@@ -102,7 +103,8 @@
 - [ ] T027 [P] [US1] Add runtime test `Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode` in `test/tests.cpp` — verify lexer tokenizes `Ω` (U+03A9) as IdentifierUnicode
 - [ ] T028 [P] [US1] Add runtime test `Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode` in `test/tests.cpp` — verify lexer tokenizes `変量` as single IdentifierUnicode token
 - [ ] T029 [P] [US1] Add runtime test `Lexer_FourByteIdentifier_ReturnsIdentifierUnicode` in `test/tests.cpp` — verify lexer tokenizes mathematical 𝑥 (U+1D465) as IdentifierUnicode
-- [ ] T030 [P] [US1] [FR-020] Add runtime test `Lexer_NullByteInStringView_NotTreatedAsTerminator` in `test/tests.cpp` — verify lexer correctly processes source input containing embedded null bytes (U+0000) within string_view without stopping at null; verify null byte produces appropriate token (error or whitespace per spec)
+- [ ] T030 [P] [US1] [FR-020] Add runtime test `Lexer_NullByteInStringView_NotTreatedAsTerminator` in `test/tests.cpp` — verify lexer correctly processes source input containing embedded null bytes (U+0000) within string_view without stopping at null; verify U+0000 outside a literal emits an error token with diagnostic "unexpected Unicode character U+0000" per FR-020/FR-022 (U+0000 is Cc, not identifier/operator/whitespace/literal); verify tokens after the null byte are parsed correctly
+- [ ] T030A [P] [US1] [SC-006] Add constexpr test `Utf8Decoder_AllSeventeenPlanes_DecodeCorrectly` in `test/constexpr_tests.cpp` — verify decode_utf8 returns Ok for at least one valid code point from each of the 17 Unicode planes: U+0041 (Plane 0 BMP), U+10348 (Plane 1 SMP), U+20000 (Plane 2 SIP), U+30000 (Plane 3 TIP), U+40000 (Plane 4), U+50000 (Plane 5), U+60000 (Plane 6), U+70000 (Plane 7), U+80000 (Plane 8), U+90000 (Plane 9), U+A0000 (Plane 10), U+B0000 (Plane 11), U+C0000 (Plane 12), U+D0000 (Plane 13), U+E0000 (Plane 14 SSP), U+F0000 (Plane 15 SPUA-A), U+100000 (Plane 16 SPUA-B). Each must return correct code point, correct byte length (1–4), and status Ok.
 
 ### Implementation for User Story 1
 
@@ -166,7 +168,7 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T054–T070). For constexpr tests (T054–T062): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T063–T070): build and run `tests` target.
+1. **First commit**: Write ALL test tasks (T054–T070, T070A). For constexpr tests (T054–T062): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T063–T070, T070A): build and run `tests` target.
 2. **Second commit**: Implement ALL implementation tasks (T071–T074). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
@@ -191,6 +193,7 @@
 - [ ] T068 [P] [US3] [FR-016] Add runtime test `Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier` in `test/tests.cpp` — verify emoji ZWJ sequences (e.g., 👨‍👩‍👧‍👦 U+1F468 U+200D U+1F469 U+200D U+1F467) are NOT classified as identifier start/continue; each code point should produce separate error tokens per FR-016
 - [ ] T069 [P] [US3] Add runtime test `Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier` in `test/tests.cpp` — verify combining mark alone does not start an identifier per FR-012
 - [ ] T070 [P] [US3] Add runtime test `Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier` in `test/tests.cpp` — verify Unicode Number category character alone at start does not form identifier per FR-012
+- [ ] T070A [P] [US3] [SC-001] Add runtime test `Lexer_ThirtyPlusScripts_AllTokenizeCorrectly` in `test/tests.cpp` — verify lexer produces correct IdentifierUnicode tokens for identifiers from ≥30 distinct Unicode scripts: Latin (abc), Greek (αβγ), Cyrillic (абв), Armenian (աբգ), Georgian (აბგ), Hebrew (אבג), Arabic (ابت), Devanagari (गणन), Bengali (গণন), Gurmukhi (ਗਣਨ), Gujarati (ગણન), Oriya (ଗଣନ), Tamil (கணன), Telugu (గణన), Kannada (ಗಣನ), Malayalam (ഗണന), Sinhala (ගණන), Thai (กขค), Lao (ກຂຄ), Tibetan (ཀཁག), Myanmar (ကခဂ), Hangul (가나다), Hiragana (あいう), Katakana (アイウ), CJK (变量名), Ethiopic (ሀለሐ), Cherokee (ᏣᎳᎩ), Khmer (កខគ), Mongolian (ᠠᠡᠢ), Tai Le (ᥐᥑᥒ), Mathematical (𝑥𝑦𝑧). Each script produces a single IdentifierUnicode token per SC-001.
 
 ### Implementation for User Story 3
 
@@ -245,18 +248,19 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T085–T088). For constexpr tests (T085–T086): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T087–T088): build and run `tests` target.
+1. **First commit**: Write ALL test tasks (T085–T088A). For constexpr tests (T085–T086): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T087–T088A): build and run `tests` target. Benchmark-tagged tests (T087, T088, T088A) verify functional correctness in normal runs; timing is measured only via `./tests [benchmark]`.
 2. **Second commit**: Implement ALL implementation tasks (T089–T092). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
 ### Tests for User Story 5
 
-> **✋ STOP: Write tests T085–T088 FIRST. For constexpr tests, build `relaxed_constexpr_tests` to verify FAIL. Verify all FAIL before proceeding to implementation.**
+> **✋ STOP: Write tests T085–T088A FIRST. For constexpr tests, build `relaxed_constexpr_tests` to verify FAIL. Verify all FAIL before proceeding to implementation.**
 
 - [ ] T085 [P] [US5] Add constexpr test `UnicodeClassifier_AsciiLetterFastPath_NoTableAccess` in `test/constexpr_tests.cpp` — verify is_id_start and is_id_continue return correct results for full ASCII range without relying on table (ensure ASCII fast-path exists)
 - [ ] T086 [P] [US5] Add constexpr test `UnicodeClassifier_WhitespaceFastPath_SpaceIsZs` in `test/constexpr_tests.cpp` — verify is_unicode_whitespace returns true for U+0020 (Space, Zs) via fast-path
-- [ ] T087 [P] [US5] Add runtime test `Lexer_LargeAsciiFile_TokenizesWithinBaseline` in `test/tests.cpp` — generate large ASCII input (~10K tokens), tokenize, and verify completion (functional correctness; timing is manual/CI)
-- [ ] T088 [P] [US5] Add runtime test `Lexer_MixedUnicodeFile_TokenizesCompletely` in `test/tests.cpp` — generate input mixing ASCII + CJK + Cyrillic + emoji (in strings), tokenize, verify all tokens produced correctly
+- [ ] T087 [P] [US5] Add runtime test `Lexer_LargeAsciiFile_TokenizesWithinBaseline` in `test/tests.cpp` — generate large ASCII input (~10K tokens), tokenize, and verify functional correctness. Add a `BENCHMARK("Tokenize 10K ASCII tokens")` section (tag `[benchmark]`) using `#include <catch2/benchmark/catch_benchmark.hpp>` that measures tokenization time of the generated input per SC-004. Benchmark runs only when tag `[benchmark]` is specified (e.g., `ctest -R benchmark` or `./tests [benchmark]`); normal test runs are unaffected.
+- [ ] T088 [P] [US5] Add runtime test `Lexer_MixedUnicodeFile_TokenizesCompletely` in `test/tests.cpp` — generate input mixing ASCII + CJK + Cyrillic + emoji (in strings), tokenize, verify all tokens produced correctly. Add a `BENCHMARK("Tokenize mixed Unicode")` section (tag `[benchmark]`) that measures tokenization time of the mixed-content input per SC-007.
+- [ ] T088A [P] [US5] [SC-007] Add runtime test `Lexer_OneMBMixedFile_CompletesWithin100ms` in `test/tests.cpp` (tag `[benchmark]`) — generate a 1 MB mixed-content source file (ASCII + multilingual + emoji in strings), tokenize, and assert completion within 100ms using `BENCHMARK` + manual `REQUIRE(elapsed < 100ms)` guard per SC-007. This test is tagged `[benchmark]` so it does not run in normal CI; invoke explicitly via `./tests [benchmark]` for performance validation.
 
 ### Implementation for User Story 5
 
@@ -276,6 +280,7 @@
 **TDD Workflow**: This phase is refactoring and verification only.
 - **T093–T096**: These are refactoring tasks — ensure ALL previous tests pass BEFORE starting, then run tests AFTER each task.
 - **T097–T099**: Verification tasks — commit together after all cleanup is complete.
+- **T100–T105**: Quality gate tasks per Constitution III Enforcement Mechanisms and Quality Gates — run AFTER T098 passes to validate static analysis, sanitizers, complexity, and coverage.
 
 **⚠️ CRITICAL**: Run full test suite (T098) AFTER cleanup tasks (T093–T096) to verify no regressions from refactoring.
 
@@ -286,6 +291,12 @@
 - [ ] T097 Run `clang-format -i include/jsav/lexer/*.hpp include/jsav/lexer/unicode/*.hpp src/jsav_Lib/lexer/*.cpp` on all modified files
 - [ ] T098 Run full test suite — `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — all tests green
 - [ ] T099 Run quickstart.md validation — follow build and verify steps from `specs/001-lexer-utf8-support/quickstart.md`
+- [ ] T100 Run clang-tidy on all modified source files — `run-clang-tidy -p cmake-build-debug-visual-studio include/jsav/lexer/unicode/*.hpp src/jsav_Lib/lexer/*.cpp` — zero warnings required per Constitution III Enforcement Mechanisms
+- [ ] T101 Run cppcheck on all modified source files — `cppcheck --enable=all --suppress=missingIncludeSystem include/jsav/lexer/ src/jsav_Lib/lexer/` — zero warnings required per Constitution III Enforcement Mechanisms
+- [ ] T102 Run AddressSanitizer build and test — rebuild with `-DCMAKE_CXX_FLAGS="-fsanitize=address"`, run full test suite, verify zero ASan violations per Constitution Quality Gates
+- [ ] T103 Run UndefinedBehaviorSanitizer build and test — rebuild with `-DCMAKE_CXX_FLAGS="-fsanitize=undefined"`, run full test suite, verify zero UBSan violations per Constitution Quality Gates
+- [ ] T104 Run lizard complexity analysis — `lizard include/jsav/lexer/ src/jsav_Lib/lexer/ -C 15 -L 100 -a 6` — verify all new/modified functions are within thresholds (CCN ≤15, length ≤100 lines, parameters ≤6) per Constitution III Enforcement Mechanisms
+- [ ] T105 Run gcovr code coverage report — `gcovr --config gcovr.cfg` — verify new code maintains acceptable coverage levels per Constitution Quality Gates
 
 ---
 
@@ -298,7 +309,7 @@ Phase 1: Setup ─────────────────────�
 Phase 2: Foundational ───────────────► depends on Phase 1 (types + tables exist)
 Phase 3: US1 (UTF-8 Decoding) ──────► depends on Phase 2 (decode functions)
 Phase 4: US2 (Malformed Handling) ──► depends on Phase 3 (valid decode in place)
-Phase 5: US3 (Unicode Identifiers) ─► depends on Phase 2 (classify functions)
+Phase 5: US3 (Unicode Identifiers) ─► depends on Phase 2 (classify functions) + Phase 3 (decode integrated in Lexer)
 Phase 6: US4 (ASCII Compat) ────────► depends on Phase 3 (decode integrated)
 Phase 7: US5 (Performance) ─────────► depends on Phases 3–6 (all features complete)
 Phase 8: Polish ─────────────────────► depends on all user stories complete
@@ -308,7 +319,7 @@ Phase 8: Polish ─────────────────────�
 
 - **US1 (P1)**: Depends on Foundational only — no other story dependencies
 - **US2 (P1)**: Depends on US1 (validated decode must be integrated before error paths make sense)
-- **US3 (P2)**: Depends on Foundational only — can run in parallel with US1/US2 (different files for tests; Lexer.cpp changes are in different functions)
+- **US3 (P2)**: Depends on Foundational (classify functions) + US1 (decode integrated in Lexer) — US3 tests can be written in parallel with US1, but US3 implementation (T071–T074) requires US1 implementation complete since T073 emits error tokens for decoded codepoints
 - **US4 (P2)**: Depends on US1 (BOM and whitespace handling requires decoded codepoints)
 - **US5 (P3)**: Depends on US1–US4 (measures performance of final implementation)
 

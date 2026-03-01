@@ -105,14 +105,14 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 **Acceptance Scenarios**:
 
 1. **Given** a large ASCII-only source file, **When** the lexer processes it after the UTF-8 changes, **Then** tokenization time remains within 10% of the pre-change baseline.
-2. **Given** a large source file with mixed ASCII and multi-byte characters, **When** the lexer processes it, **Then** tokenization completes without disproportionate slowdown relative to file size.
-3. **Given** the Unicode General Category lookup tables used for identifier classification, **When** a character is looked up, **Then** the lookup completes in sub-linear time (e.g., binary search or equivalent).
+2. **Given** a large source file with mixed ASCII and multi-byte characters, **When** the lexer processes it, **Then** tokenization throughput is at least 50% of the ASCII-only throughput for an equivalent file size (i.e., mixed-Unicode tokenization completes within 2× the time of pure-ASCII tokenization).
+3. **Given** the Unicode General Category lookup tables used for identifier classification, **When** a character is looked up, **Then** the lookup completes in O(log n) time via binary search on sorted range tables.
 
 ---
 
 ### Edge Cases
 
-- What happens when input contains the null byte (U+0000) encoded in UTF-8? The lexer must treat it as a valid code point but not as string terminator when processing `string_view`-based input.
+- What happens when input contains the null byte (U+0000) encoded in UTF-8? The lexer must treat it as a valid code point but not as string terminator when processing `string_view`-based input. Outside of literals, U+0000 (General Category Cc — Control) emits an error token per FR-022, since it is not an identifier, operator, whitespace, or literal delimiter.
 - What happens when a UTF-8 BOM (0xEF 0xBB 0xBF) appears at the start of the file? The lexer should skip it transparently without emitting a token.
 - What happens when a multi-byte sequence is split exactly at a buffer boundary? The lexer must correctly handle sequences that span from one read position to another without splitting them.
 - What happens when the input consists entirely of continuation bytes (e.g., `0x80 0x80 0x80`)? Each byte should produce a separate error token.
@@ -162,7 +162,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 #### Special Cases
 
 - **FR-019**: The lexer MUST skip a UTF-8 BOM (byte sequence 0xEF 0xBB 0xBF) at the start of input without emitting a token.
-- **FR-020**: The lexer MUST correctly handle the null code point (U+0000) within `string_view`-based input without treating it as a string terminator.
+- **FR-020**: The lexer MUST correctly handle the null code point (U+0000) within `string_view`-based input without treating it as a string terminator. When U+0000 appears outside of a literal, it MUST be treated as an unrecognized character and emit an error token with a diagnostic message (e.g., "unexpected Unicode character U+0000") per FR-022, since U+0000 belongs to Unicode General Category Cc (Control) and is not an identifier character, operator, whitespace, or literal delimiter.
 - **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content. When a malformed UTF-8 sequence is encountered inside a literal, the entire literal token MUST be emitted as an error token (the literal is considered invalid). The lexer MUST NOT apply Unicode identifier classification to code points within literals.
 - **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace — including Unicode whitespace per FR-023 — not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
 
@@ -203,4 +203,4 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 - **SC-004**: Tokenization time for ASCII-only files remains within 10% of the pre-change baseline.
 - **SC-005**: Unicode General Category identifier classification covers all characters designated `\p{Letter}`, `\p{Mark}`, and `\p{Number}` in the targeted Unicode version, with 100% conformance verified against the official Unicode Character Database (UnicodeData.txt).
 - **SC-006**: Characters from all 17 Unicode planes (Basic Multilingual Plane through Supplementary Private Use Area-B) are handled without decoding errors when validly encoded.
-- **SC-007**: The lexer processes a 1 MB mixed-content source file (ASCII + multilingual + emoji) and completes tokenization in ≤100ms (approximately 10 MB/s throughput) on a reference development machine.
+- **SC-007**: The lexer processes a 1 MB mixed-content source file (ASCII + multilingual + emoji) and completes tokenization in ≤100ms (approximately 10 MB/s throughput) on the reference development machine (Intel Core i5-8250U or equivalent quad-core ≥1.6 GHz, 8 GB DDR4 RAM, SATA SSD, compiled with `-O2` optimization).
