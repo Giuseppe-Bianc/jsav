@@ -178,6 +178,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 ### Key Entities
 
 - **Code Point**: A Unicode scalar value (U+0000 to U+D7FF and U+E000 to U+10FFFF). The fundamental unit that the decoder produces from UTF-8 byte sequences.
+- **Code Point (Internal Representation)**: The lexer uses `char32_t` (not `std::uint32_t`) for internal code point representation in APIs such as `Lexer::peek_codepoint()` and `Lexer::advance_codepoint()`. This provides stronger type safety and clearer intent for Unicode code point handling.
 - **UTF-8 Sequence**: A sequence of 1 to 4 bytes encoding a single code point. Characterized by a leading byte indicating sequence length and 0 to 3 continuation bytes.
 - **Identifier Start (`\p{Letter}` or `_`)**: A character belonging to Unicode General Category L (Letter — subcategories Lu, Ll, Lt, Lm, Lo) or the ASCII underscore `_` (U+005F) that may begin an identifier. Derived from the Unicode Character Database UnicodeData.txt General_Category field. The underscore is accepted as a start character for both `IdentifierAscii` and `IdentifierUnicode` tokens.
 - **Identifier Continue (`\p{Letter}\p{Mark}\p{Number}` + `_` + `0-9`)**: A character belonging to Unicode General Categories L (Letter), M (Mark — subcategories Mn, Mc, Me), or N (Number — subcategories Nd, Nl, No), plus ASCII underscore `_` and ASCII digits `0-9`, that may appear in the body of an identifier. The token kind (`IdentifierAscii` vs. `IdentifierUnicode`) is determined by whether the identifier contains at least one non-ASCII character.
@@ -202,4 +203,4 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 - **SC-004**: Tokenization time for ASCII-only files remains within 10% of the pre-change baseline.
 - **SC-005**: Unicode General Category identifier classification covers all characters designated `\p{Letter}`, `\p{Mark}`, and `\p{Number}` in the targeted Unicode version, with 100% conformance verified against the official Unicode Character Database (UnicodeData.txt).
 - **SC-006**: Characters from all 17 Unicode planes (Basic Multilingual Plane through Supplementary Private Use Area-B) are handled without decoding errors when validly encoded.
-- **SC-007**: The lexer processes a 1 MB mixed-content source file (ASCII + multilingual + emoji) and completes tokenization within a reasonable time proportional to file size.
+- **SC-007**: The lexer processes a 1 MB mixed-content source file (ASCII + multilingual + emoji) and completes tokenization in ≤100ms (approximately 10 MB/s throughput) on a reference development machine.
