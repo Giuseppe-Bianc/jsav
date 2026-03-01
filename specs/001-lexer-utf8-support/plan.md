@@ -110,6 +110,8 @@ scripts/
 test/
 ├── tests.cpp              # Updated: runtime lexer UTF-8 tests
 └── constexpr_tests.cpp    # Updated: constexpr UTF-8 decode + GC classification tests
+                           # Two build targets: relaxed_constexpr_tests (runtime, debug first)
+                           # and constexpr_tests (compile-time STATIC_REQUIRE)
 ```
 
 **Structure Decision**: New Unicode-specific code goes in a `unicode/` subdirectory under the

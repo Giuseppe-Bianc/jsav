@@ -17,7 +17,7 @@
 
 - **Headers**: `include/jsav/lexer/` and `include/jsav/lexer/unicode/` (new unicode module)
 - **Sources**: `src/jsav_Lib/lexer/` (existing lexer), `src/jsav_Lib/lexer/unicode/` (new if needed)
-- **Tests**: `test/constexpr_tests.cpp` (STATIC_REQUIRE), `test/tests.cpp` (runtime REQUIRE)
+- **Tests**: `test/constexpr_tests.cpp` — compiled as two targets per Constitution Principle IV workflow: (1) `relaxed_constexpr_tests` (runtime REQUIRE via `CATCH_CONFIG_RUNTIME_STATIC_REQUIRE` — build and run FIRST for debugging), then (2) `constexpr_tests` (compile-time STATIC_REQUIRE — build AFTER Green to lock compile-time correctness). `test/tests.cpp` (runtime REQUIRE for non-constexpr tests)
 - **Scripts**: `scripts/` (offline generation tools)
 
 ---
@@ -45,9 +45,21 @@
 
 **Purpose**: Implement core constexpr functions that ALL user stories depend on
 
-**TDD Workflow**: This phase contains no tests — it establishes foundational functions only. Commit all tasks together.
+**TDD Workflow**:
+
+1. **First commit**: Write test task T019 in `test/constexpr_tests.cpp`. Build and run `relaxed_constexpr_tests` target to verify tests FAIL (Red phase — runtime debugging).
+2. **Second commit**: Implement ALL tasks (T009–T017, T018). Build and run `relaxed_constexpr_tests` to verify tests PASS (Green — runtime), then build `constexpr_tests` to lock compile-time correctness.
+3. Do NOT mix test and implementation code in the same commit.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+### Tests for Phase 2
+
+> **✋ STOP: Write test T019 FIRST. Build `relaxed_constexpr_tests` target and verify it FAILS before proceeding to implementation.**
+
+- [ ] T019 [P] [CG01] Add constexpr verification tests in `test/constexpr_tests.cpp` — verify all jsv::unicode functions (`decode_utf8`, `is_letter`, `is_id_start`, `is_id_continue`, `is_unicode_whitespace`) using `STATIC_REQUIRE` macros for representative inputs (e.g., ASCII 'A', CJK U+5909, whitespace U+0020). **Build `relaxed_constexpr_tests` first for runtime debugging.**
+
+### Implementation for Phase 2
 
 - [ ] T009 [P] Implement constexpr `decode_utf8()` dispatcher function in `include/jsav/lexer/unicode/Utf8.hpp` — ASCII fast-path (`if (first < 0x80) [[likely]]`), then delegate to sub-functions per sequence length per research.md R-01
 - [ ] T010 [P] Implement constexpr `decode_2byte()` sub-function in `include/jsav/lexer/unicode/Utf8.hpp` — validates continuation byte, rejects overlong (0xC0–0xC1)
@@ -58,10 +70,9 @@
 - [ ] T015 [P] Implement constexpr `is_id_start()` function in `include/jsav/lexer/unicode/UnicodeData.hpp` — delegates to `is_letter(cp) || cp == U'_'`
 - [ ] T016 [P] Implement constexpr `is_id_continue()` function in `include/jsav/lexer/unicode/UnicodeData.hpp` — ASCII fast-path then binary search on `id_continue_ranges` per research.md R-04
 - [ ] T017 [P] Implement constexpr `is_unicode_whitespace()` function in `include/jsav/lexer/unicode/UnicodeData.hpp` — ASCII fast-path (U+0020 is Zs) then binary search on `whitespace_ranges`
-- [ ] T018 Verify all foundational functions compile — run `ninja` in build directory
-- [ ] T019 [P] [CG01] Add constexpr verification tests in `test/constexpr_tests.cpp` — verify all jsv::unicode functions (`decode_utf8`, `is_letter`, `is_id_start`, `is_id_continue`, `is_unicode_whitespace`) compile with `STATIC_REQUIRE` macros and produce correct results for representative inputs (e.g., ASCII 'A', CJK U+5909, whitespace U+0020)
+- [ ] T018 Verify all foundational functions compile — build and run `relaxed_constexpr_tests` (runtime Green), then build `constexpr_tests` (compile-time verification)
 
-**Checkpoint**: Foundation ready — all constexpr decode and classify functions implemented and verified in constexpr_tests.cpp. User story work can begin.
+**Checkpoint**: Foundation ready — all constexpr decode and classify functions implemented, verified via `relaxed_constexpr_tests` (runtime) and `constexpr_tests` (compile-time). User story work can begin.
 
 ---
 
@@ -73,13 +84,13 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T020–T030). Verify they FAIL (Red phase).
-2. **Second commit**: Implement ALL implementation tasks (T031–T035). Verify tests PASS (Green phase).
+1. **First commit**: Write ALL test tasks (T020–T030). For constexpr tests (T020–T025): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T026–T030): build and run `tests` target.
+2. **Second commit**: Implement ALL implementation tasks (T031–T035). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
 ### Tests for User Story 1
 
-> **✋ STOP: Write tests T020–T030 FIRST. Verify they FAIL before proceeding to implementation.**
+> **✋ STOP: Write tests T020–T030 FIRST. For constexpr tests, build `relaxed_constexpr_tests` to verify FAIL. Verify all FAIL before proceeding to implementation.**
 
 - [ ] T020 [P] [US1] Add constexpr test `Utf8Decoder_AsciiChar_ReturnsOkWithByteLength1` in `test/constexpr_tests.cpp` — verify decode_utf8 returns {cp, 1, Ok} for ASCII byte (e.g., 'A' = 0x41)
 - [ ] T021 [P] [US1] Add constexpr test `Utf8Decoder_TwoByteSequence_ReturnsCorrectCodepoint` in `test/constexpr_tests.cpp` — verify decode_utf8 for é (U+00E9 = 0xC3 0xA9) returns {0x00E9, 2, Ok}
@@ -98,7 +109,7 @@
 - [ ] T031 [US1] Update `Lexer::peek_codepoint()` in `src/jsav_Lib/lexer/Lexer.cpp` to use `jsv::unicode::decode_utf8()` — replace current unvalidated decode with validated version, return codepoint from result
 - [ ] T032 [US1] Update `Lexer::advance_codepoint()` in `src/jsav_Lib/lexer/Lexer.cpp` to use `jsv::unicode::decode_utf8()` — advance m_pos by result.byte_length, handle newline, update m_column by byte count
 - [ ] T033 [US1] Update `Lexer::utf8_byte_len()` in `src/jsav_Lib/lexer/Lexer.cpp` to delegate to `jsv::unicode::decode_utf8()` or remove in favor of direct decode result usage
-- [ ] T034 [US1] Update `include/jsav/lexer/Lexer.hpp` — add `#include "unicode/Utf8.hpp"` and `#include "unicode/UnicodeData.hpp"`, remove `is_xid_start`/`is_xid_continue` declarations (will be replaced in US3)
+- [ ] T034 [US1] Update `include/jsav/lexer/Lexer.hpp` — add `#include "unicode/Utf8.hpp"` and `#include "unicode/UnicodeData.hpp"` (keep existing `is_xid_start`/`is_xid_continue` declarations — they will be replaced in Phase 5 T071/T072, then removed in Phase 8 T093)
 - [ ] T035 [US1] Run `clang-format -i include/jsav/lexer/unicode/Utf8.hpp include/jsav/lexer/Lexer.hpp src/jsav_Lib/lexer/Lexer.cpp` and verify all tests pass with `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure`
 
 **Checkpoint**: UTF-8 decoding is validated. All 1/2/3/4-byte valid sequences produce correct code points. Tests green.
@@ -113,13 +124,13 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T036–T049). Verify they FAIL (Red phase).
-2. **Second commit**: Implement ALL implementation tasks (T050–T053). Verify tests PASS (Green phase).
+1. **First commit**: Write ALL test tasks (T036–T049). For constexpr tests (T036–T044): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T045–T049): build and run `tests` target.
+2. **Second commit**: Implement ALL implementation tasks (T050–T053). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
 ### Tests for User Story 2
 
-> **✋ STOP: Write tests T036–T049 FIRST. Verify they FAIL before proceeding to implementation.**
+> **✋ STOP: Write tests T036–T049 FIRST. For constexpr tests, build `relaxed_constexpr_tests` to verify FAIL. Verify all FAIL before proceeding to implementation.**
 
 - [ ] T036 [P] [US2] Add constexpr test `Utf8Decoder_OverlongTwoByte_ReturnsOverlongError` in `test/constexpr_tests.cpp` — verify decode_utf8 for 0xC0 0xAF returns {U+FFFD, 1, Overlong}
 - [ ] T037 [P] [US2] Add constexpr test `Utf8Decoder_OverlongThreeByte_ReturnsOverlongError` in `test/constexpr_tests.cpp` — verify decode_utf8 for 0xE0 0x80 0xAF returns {U+FFFD, 1, Overlong}
@@ -155,13 +166,13 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T054–T070). Verify they FAIL (Red phase).
-2. **Second commit**: Implement ALL implementation tasks (T071–T074). Verify tests PASS (Green phase).
+1. **First commit**: Write ALL test tasks (T054–T070). For constexpr tests (T054–T062): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T063–T070): build and run `tests` target.
+2. **Second commit**: Implement ALL implementation tasks (T071–T074). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
 ### Tests for User Story 3
 
-> **✋ STOP: Write tests T054–T070 FIRST. Verify they FAIL before proceeding to implementation.**
+> **✋ STOP: Write tests T054–T070 FIRST. For constexpr tests, build `relaxed_constexpr_tests` to verify FAIL. Verify all FAIL before proceeding to implementation.**
 
 - [ ] T054 [P] [US3] Add constexpr test `UnicodeClassifier_AsciiLetter_IsLetter` in `test/constexpr_tests.cpp` — verify is_letter returns true for 'A', 'z'
 - [ ] T055 [P] [US3] Add constexpr test `UnicodeClassifier_CJKIdeograph_IsLetter` in `test/constexpr_tests.cpp` — verify is_letter returns true for U+5909 (変)
@@ -234,13 +245,13 @@
 
 **TDD Workflow**:
 
-1. **First commit**: Write ALL test tasks (T085–T088). Verify they FAIL (Red phase).
-2. **Second commit**: Implement ALL implementation tasks (T089–T092). Verify tests PASS (Green phase).
+1. **First commit**: Write ALL test tasks (T085–T088). For constexpr tests (T085–T086): build and run `relaxed_constexpr_tests` to verify FAIL (Red — runtime debugging). For runtime tests (T087–T088): build and run `tests` target.
+2. **Second commit**: Implement ALL implementation tasks (T089–T092). Build `relaxed_constexpr_tests` to verify constexpr tests PASS (Green — runtime), then build `constexpr_tests` (compile-time lock). Run `tests` for runtime tests.
 3. Do NOT mix test and implementation code in the same commit.
 
 ### Tests for User Story 5
 
-> **✋ STOP: Write tests T085–T088 FIRST. Verify they FAIL before proceeding to implementation.**
+> **✋ STOP: Write tests T085–T088 FIRST. For constexpr tests, build `relaxed_constexpr_tests` to verify FAIL. Verify all FAIL before proceeding to implementation.**
 
 - [ ] T085 [P] [US5] Add constexpr test `UnicodeClassifier_AsciiLetterFastPath_NoTableAccess` in `test/constexpr_tests.cpp` — verify is_id_start and is_id_continue return correct results for full ASCII range without relying on table (ensure ASCII fast-path exists)
 - [ ] T086 [P] [US5] Add constexpr test `UnicodeClassifier_WhitespaceFastPath_SpaceIsZs` in `test/constexpr_tests.cpp` — verify is_unicode_whitespace returns true for U+0020 (Space, Zs) via fast-path
@@ -268,7 +279,7 @@
 
 **⚠️ CRITICAL**: Run full test suite (T098) AFTER cleanup tasks (T093–T096) to verify no regressions from refactoring.
 
-- [ ] T093 Remove old `Lexer::is_xid_start()` and `Lexer::is_xid_continue()` method declarations from `include/jsav/lexer/Lexer.hpp` and their definitions from `src/jsav_Lib/lexer/Lexer.cpp` (replaced by jsv::unicode functions)
+- [ ] T093 Remove old `Lexer::is_xid_start()` and `Lexer::is_xid_continue()` method declarations from `include/jsav/lexer/Lexer.hpp` and their definitions from `src/jsav_Lib/lexer/Lexer.cpp` (bodies replaced by jsv::unicode calls in T071/T072; this task removes the now-redundant wrappers entirely)
 - [ ] T094 Remove old `Lexer::utf8_byte_len()` static method from `include/jsav/lexer/Lexer.hpp` and `src/jsav_Lib/lexer/Lexer.cpp` if fully replaced by decode_utf8
 - [ ] T095 [P] Update `Lexer::peek_codepoint()` return type from `std::uint32_t` to `char32_t` in `include/jsav/lexer/Lexer.hpp` and `src/jsav_Lib/lexer/Lexer.cpp` for type consistency with jsv::unicode API
 - [ ] T096 [P] Update `Lexer::advance_codepoint()` return type from `std::uint32_t` to `char32_t` in `include/jsav/lexer/Lexer.hpp` and `src/jsav_Lib/lexer/Lexer.cpp`
