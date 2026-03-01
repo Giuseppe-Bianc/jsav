@@ -10,10 +10,12 @@
 ### Session 2026-03-01
 
 - Q: Is Unicode normalization (NFC/NFD) in scope for the lexer? → A: Explicitly out of scope. Identifiers are compared by exact code point sequence; visually identical identifiers with different code point sequences are treated as distinct.
-- Q: How should the lexer handle UTF-8 inside string/char literals? → A: The lexer validates UTF-8 correctness inside string/char literals (detects malformed sequences) but does NOT classify code points for XID properties within literals.
+- Q: How should the lexer handle UTF-8 inside string/char literals? → A: The lexer validates UTF-8 correctness inside string/char literals (detects malformed sequences) but does NOT classify code points for Unicode identifier properties within literals.
 - Q: How should the lexer handle valid Unicode characters that are not identifiers, operators, whitespace, or literals? → A: The lexer emits an error token with a specific diagnostic message (e.g., "unexpected Unicode character U+1F600") and advances past the code point.
-- Q: Must UTF-8 decoding functions and XID lookup tables be constexpr-compatible? → A: Yes. Both the UTF-8 decoding/validation functions and the XID classification functions (including lookup tables) must be constexpr-compatible, consistent with the project's C++23 constexpr style.
+- Q: Must UTF-8 decoding functions and identifier classification lookup tables be constexpr-compatible? → A: Yes. Both the UTF-8 decoding/validation functions and the Unicode General Category classification functions (including lookup tables) must be constexpr-compatible, consistent with the project's C++23 constexpr style.
 - Q: How should the lexer handle malformed UTF-8 inside string/char literals — error token, separate diagnostic, or split tokens? → A: The entire literal becomes an error token (the literal is considered invalid).
+- Q: Should Unicode identifier classification use XID_Start/XID_Continue (UAX #31) or Unicode General Category properties? → A: Use Unicode General Categories: `\p{Letter}` (General Category L) for identifier start, `[\p{Letter}\p{Mark}\p{Number}]` (General Categories L, M, N) for identifier continue. Mark (\p{M}) is NOT allowed in start position. This replaces all XID_Start/XID_Continue references. Regex patterns: `IdentifierAscii` = `[a-zA-Z_][a-zA-Z0-9_]*`, `IdentifierUnicode` = `\p{Letter}[\p{Letter}\p{Mark}\p{Number}]*`.
+- Q: How should the lexer handle an identifier starting with underscore `_` that contains non-ASCII Unicode characters (e.g., `_变量`)? → A: The lexer produces a single `IdentifierUnicode` token. Tokenization starts using ASCII rules (underscore is a valid ASCII start); when a non-ASCII `\p{Letter}`, `\p{Mark}`, or `\p{Number}` character is encountered in continue position, the token is promoted to `IdentifierUnicode`. The effective start rule for `IdentifierUnicode` is `[\p{Letter}_]`, and continue rule is `[\p{Letter}\p{Mark}\p{Number}a-zA-Z0-9_]`.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -56,7 +58,7 @@ As a developer whose source file may contain corrupted or improperly encoded dat
 
 ### User Story 3 - Unicode Identifier Recognition (Priority: P2)
 
-As a developer writing identifiers using non-Latin scripts (e.g., Chinese, Arabic, Cyrillic, Devanagari, or mathematical symbols), I need the lexer to classify characters according to Unicode XID_Start and XID_Continue properties so that my identifiers are correctly recognized across all Unicode scripts.
+As a developer writing identifiers using non-Latin scripts (e.g., Chinese, Arabic, Cyrillic, Devanagari, or mathematical symbols), I need the lexer to classify characters according to Unicode General Category properties (`\p{Letter}` for start, `\p{Letter}\p{Mark}\p{Number}` for continue) so that my identifiers are correctly recognized across all Unicode scripts.
 
 **Why this priority**: Identifier recognition is the primary consumer of Unicode classification in the lexer. Correct classification enables internationalized source code. It depends on Story 1 (decoding) being complete.
 
@@ -67,9 +69,10 @@ As a developer writing identifiers using non-Latin scripts (e.g., Chinese, Arabi
 1. **Given** an identifier composed of CJK characters (e.g., `变量名`), **When** the lexer tokenizes it, **Then** it produces a single Unicode identifier token spanning all characters.
 2. **Given** an identifier starting with a Cyrillic letter followed by combining diacritical marks (e.g., `и̃мя`), **When** the lexer tokenizes it, **Then** it produces a single identifier token including the combining marks.
 3. **Given** an identifier using Devanagari characters (e.g., `गणना`), **When** the lexer tokenizes it, **Then** it produces a single Unicode identifier token.
-4. **Given** an identifier starting with a digit or a character that has only XID_Continue property (not XID_Start), **When** the lexer tokenizes it, **Then** it does not recognize it as the start of an identifier.
+4. **Given** an identifier starting with a digit, a combining mark (`\p{Mark}`), or a number character (`\p{Number}`) — i.e., a character that is not `\p{Letter}` — **When** the lexer tokenizes it, **Then** it does not recognize it as the start of an identifier.
 5. **Given** an identifier containing characters from the Supplementary Multilingual Plane (e.g., mathematical italic `𝑥` U+1D465), **When** the lexer tokenizes it, **Then** it produces a correct identifier token.
-6. **Given** an emoji character (e.g., `😀` U+1F600) appearing where an identifier is expected, **When** the lexer tokenizes it, **Then** it does not classify the emoji as a valid identifier start, since emoji lack the XID_Start property.
+6. **Given** an emoji character (e.g., `😀` U+1F600) appearing where an identifier is expected, **When** the lexer tokenizes it, **Then** it does not classify the emoji as a valid identifier start, since emoji do not belong to Unicode General Category L (`\p{Letter}`).
+7. **Given** an identifier starting with underscore followed by non-ASCII Unicode letters (e.g., `_变量`), **When** the lexer tokenizes it, **Then** it produces a single `IdentifierUnicode` token containing the full identifier `_变量`.
 
 ---
 
@@ -101,7 +104,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 
 1. **Given** a large ASCII-only source file, **When** the lexer processes it after the UTF-8 changes, **Then** tokenization time remains within 10% of the pre-change baseline.
 2. **Given** a large source file with mixed ASCII and multi-byte characters, **When** the lexer processes it, **Then** tokenization completes without disproportionate slowdown relative to file size.
-3. **Given** the Unicode property lookup tables used for XID classification, **When** a character is looked up, **Then** the lookup completes in sub-linear time (e.g., binary search or equivalent).
+3. **Given** the Unicode General Category lookup tables used for identifier classification, **When** a character is looked up, **Then** the lookup completes in sub-linear time (e.g., binary search or equivalent).
 
 ---
 
@@ -138,49 +141,49 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 
 #### Unicode Character Classification
 
-- **FR-012**: The lexer MUST classify characters as identifier start characters based on the Unicode XID_Start property as defined in UAX #31.
-- **FR-013**: The lexer MUST classify characters as identifier continuation characters based on the Unicode XID_Continue property as defined in UAX #31.
-- **FR-014**: The XID classification MUST cover all Unicode scripts and planes, including but not limited to: Latin, Greek, Cyrillic, Armenian, Hebrew, Arabic, Devanagari, Bengali, Tamil, Telugu, Kannada, Malayalam, Thai, Lao, Tibetan, Myanmar, Georgian, Hangul, Hiragana, Katakana, CJK Unified Ideographs (including Extensions A through G), Ethiopic, Cherokee, and Mathematical Alphanumeric Symbols.
-- **FR-015**: The lexer MUST correctly handle combining diacritical marks (Unicode general category Mn, Mc) as identifier continuation characters when they follow a valid identifier start character.
-- **FR-016**: The lexer MUST NOT classify emoji characters (Unicode Emoji property) as valid identifier start or continuation characters, unless they also carry the XID_Start or XID_Continue property.
+- **FR-012**: The lexer MUST classify characters as identifier start characters based on the Unicode General Category `\p{Letter}` (category L — all subcategories Lu, Ll, Lt, Lm, Lo) **or** the ASCII underscore `_` (U+005F). Characters with General Category M (Mark) or N (Number) MUST NOT be accepted as identifier start. The effective start pattern for `IdentifierUnicode` is `[\p{Letter}_]`. For `IdentifierAscii`, the start pattern is `[a-zA-Z_]`.
+- **FR-013**: The lexer MUST classify characters as identifier continuation characters based on Unicode General Categories `\p{Letter}` (L), `\p{Mark}` (M — subcategories Mn, Mc, Me), and `\p{Number}` (N — subcategories Nd, Nl, No), **plus** the ASCII underscore `_` (U+005F) and ASCII digits `0-9`. The effective continuation pattern for `IdentifierUnicode` is `[\p{Letter}\p{Mark}\p{Number}a-zA-Z0-9_]`. For `IdentifierAscii`, the continuation pattern is `[a-zA-Z0-9_]`.
+- **FR-014**: The Unicode General Category classification MUST cover all Unicode scripts and planes, including but not limited to: Latin, Greek, Cyrillic, Armenian, Hebrew, Arabic, Devanagari, Bengali, Tamil, Telugu, Kannada, Malayalam, Thai, Lao, Tibetan, Myanmar, Georgian, Hangul, Hiragana, Katakana, CJK Unified Ideographs (including Extensions A through G), Ethiopic, Cherokee, and Mathematical Alphanumeric Symbols.
+- **FR-015**: The lexer MUST correctly handle combining diacritical marks (Unicode General Category M — subcategories Mn, Mc, Me) as identifier continuation characters when they follow a valid identifier start character (`\p{Letter}`). Combining marks MUST NOT be accepted as identifier start characters.
+- **FR-016**: The lexer MUST NOT classify emoji characters (Unicode Emoji property) as valid identifier start or continuation characters, unless they also belong to Unicode General Category L (Letter), M (Mark), or N (Number).
 
 #### ASCII Compatibility
 
 - **FR-017**: The lexer MUST produce identical tokens for all pure-ASCII input as it did before the UTF-8 changes (backward compatibility).
-- **FR-018**: The lexer MUST continue to distinguish between `IdentifierAscii` and `IdentifierUnicode` token kinds based on whether the identifier contains any non-ASCII characters.
+- **FR-018**: The lexer MUST continue to distinguish between `IdentifierAscii` and `IdentifierUnicode` token kinds based on whether the identifier contains any non-ASCII characters. An identifier that starts with ASCII characters (including `_`) but later contains non-ASCII characters matching `\p{Letter}`, `\p{Mark}`, or `\p{Number}` MUST be classified as `IdentifierUnicode`. The full regex patterns are: `IdentifierAscii` = `[a-zA-Z_][a-zA-Z0-9_]*` ; `IdentifierUnicode` = `[\p{Letter}_][\p{Letter}\p{Mark}\p{Number}a-zA-Z0-9_]*` (must contain at least one non-ASCII character).
 
 #### Constexpr Compatibility
 
-- **FR-023**: The UTF-8 decoding functions, UTF-8 validation functions, and XID property classification functions (including lookup tables) MUST be `constexpr`-compatible (usable in constant expressions at compile time), consistent with the project's C++23 constexpr style and existing `relaxed_constexpr_tests` suite.
+- **FR-023**: The UTF-8 decoding functions, UTF-8 validation functions, and Unicode General Category identifier classification functions (including lookup tables) MUST be `constexpr`-compatible (usable in constant expressions at compile time), consistent with the project's C++23 constexpr style and existing `relaxed_constexpr_tests` suite.
 
 #### Special Cases
 
 - **FR-019**: The lexer MUST skip a UTF-8 BOM (byte sequence 0xEF 0xBB 0xBF) at the start of input without emitting a token.
 - **FR-020**: The lexer MUST correctly handle the null code point (U+0000) within `string_view`-based input without treating it as a string terminator.
-- **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content. When a malformed UTF-8 sequence is encountered inside a literal, the entire literal token MUST be emitted as an error token (the literal is considered invalid). The lexer MUST NOT apply XID property classification to code points within literals.
+- **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content. When a malformed UTF-8 sequence is encountered inside a literal, the entire literal token MUST be emitted as an error token (the literal is considered invalid). The lexer MUST NOT apply Unicode identifier classification to code points within literals.
 - **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace, not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
 
 #### Out of Scope
 
 - **OOS-001**: Unicode normalization (NFC, NFD, NFKC, NFKD) is NOT performed by the lexer. Identifiers are compared by their exact sequence of Unicode code points. Two identifiers that are visually identical but composed of different code point sequences (e.g., U+00E9 vs. U+0065+U+0301) are treated as distinct identifiers.
-- **OOS-002**: XID property classification is NOT applied to code points within string or character literals. Literal content is validated only for UTF-8 encoding correctness.
+- **OOS-002**: Unicode identifier classification (General Category-based) is NOT applied to code points within string or character literals. Literal content is validated only for UTF-8 encoding correctness.
 
 ### Key Entities
 
 - **Code Point**: A Unicode scalar value (U+0000 to U+D7FF and U+E000 to U+10FFFF). The fundamental unit that the decoder produces from UTF-8 byte sequences.
 - **UTF-8 Sequence**: A sequence of 1 to 4 bytes encoding a single code point. Characterized by a leading byte indicating sequence length and 0 to 3 continuation bytes.
-- **XID_Start Property**: A Unicode character property indicating a character may begin an identifier. Derived from Unicode Character Database DerivedCoreProperties.txt.
-- **XID_Continue Property**: A Unicode character property indicating a character may appear in the body of an identifier. Superset of XID_Start plus digits, combining marks, and connector punctuation.
+- **Identifier Start (`\p{Letter}` or `_`)**: A character belonging to Unicode General Category L (Letter — subcategories Lu, Ll, Lt, Lm, Lo) or the ASCII underscore `_` (U+005F) that may begin an identifier. Derived from the Unicode Character Database UnicodeData.txt General_Category field. The underscore is accepted as a start character for both `IdentifierAscii` and `IdentifierUnicode` tokens.
+- **Identifier Continue (`\p{Letter}\p{Mark}\p{Number}` + `_` + `0-9`)**: A character belonging to Unicode General Categories L (Letter), M (Mark — subcategories Mn, Mc, Me), or N (Number — subcategories Nd, Nl, No), plus ASCII underscore `_` and ASCII digits `0-9`, that may appear in the body of an identifier. The token kind (`IdentifierAscii` vs. `IdentifierUnicode`) is determined by whether the identifier contains at least one non-ASCII character.
 - **Malformed Sequence**: Any byte sequence that does not conform to valid UTF-8 encoding rules—includes overlong encodings, surrogate halves, out-of-range values, truncated sequences, and orphaned continuation bytes.
 
 ## Assumptions
 
-- The Unicode version targeted for XID_Start/XID_Continue tables will be Unicode 15.1 or later (the latest stable release at implementation time). The specific version will be documented in the generated table source.
-- XID classification data will be generated from the official Unicode Character Database (DerivedCoreProperties.txt) rather than maintained by hand, to ensure completeness and accuracy.
+- The Unicode version targeted for General Category classification tables will be Unicode 15.1 or later (the latest stable release at implementation time). The specific version will be documented in the generated table source.
+- Unicode General Category classification data will be generated from the official Unicode Character Database (UnicodeData.txt General_Category field) rather than maintained by hand, to ensure completeness and accuracy.
 - Column tracking in source locations will remain byte-based (not code-point-based or grapheme-cluster-based), consistent with the current approach. This is an industry-standard convention for compiler source locations.
 - Error recovery for malformed sequences follows the "maximal subpart" strategy recommended by the Unicode Standard (Chapter 3, Section 3.9), where each maximal subpart of an ill-formed sequence generates one error.
 - The U+FFFD REPLACEMENT CHARACTER will be used internally to represent malformed sequences in error token content, following Unicode best practices.
-- All UTF-8 decoding, validation, and XID classification functions will be implemented as `constexpr` functions with `constexpr`-compatible data structures (e.g., `constexpr std::array` for lookup tables), enabling compile-time evaluation and compatibility with the project's `relaxed_constexpr_tests` suite.
+- All UTF-8 decoding, validation, and Unicode General Category classification functions will be implemented as `constexpr` functions with `constexpr`-compatible data structures (e.g., `constexpr std::array` for lookup tables), enabling compile-time evaluation and compatibility with the project's `relaxed_constexpr_tests` suite.
 
 ## Success Criteria *(mandatory)*
 
@@ -190,6 +193,6 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 - **SC-002**: 100% of known malformed UTF-8 patterns (overlong, surrogate, out-of-range, truncated, orphaned) produce an error token and do not cause processing to halt or corrupt subsequent tokens.
 - **SC-003**: All existing tests for ASCII-only source files pass without modification after the UTF-8 changes.
 - **SC-004**: Tokenization time for ASCII-only files remains within 10% of the pre-change baseline.
-- **SC-005**: XID property classification covers all characters designated XID_Start or XID_Continue in the targeted Unicode version, with 100% conformance verified against the official Unicode Character Database.
+- **SC-005**: Unicode General Category identifier classification covers all characters designated `\p{Letter}`, `\p{Mark}`, and `\p{Number}` in the targeted Unicode version, with 100% conformance verified against the official Unicode Character Database (UnicodeData.txt).
 - **SC-006**: Characters from all 17 Unicode planes (Basic Multilingual Plane through Supplementary Private Use Area-B) are handled without decoding errors when validly encoded.
 - **SC-007**: The lexer processes a 1 MB mixed-content source file (ASCII + multilingual + emoji) and completes tokenization within a reasonable time proportional to file size.
