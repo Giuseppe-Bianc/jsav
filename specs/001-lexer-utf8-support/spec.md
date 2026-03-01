@@ -13,6 +13,7 @@
 - Q: How should the lexer handle UTF-8 inside string/char literals? → A: The lexer validates UTF-8 correctness inside string/char literals (detects malformed sequences) but does NOT classify code points for XID properties within literals.
 - Q: How should the lexer handle valid Unicode characters that are not identifiers, operators, whitespace, or literals? → A: The lexer emits an error token with a specific diagnostic message (e.g., "unexpected Unicode character U+1F600") and advances past the code point.
 - Q: Must UTF-8 decoding functions and XID lookup tables be constexpr-compatible? → A: Yes. Both the UTF-8 decoding/validation functions and the XID classification functions (including lookup tables) must be constexpr-compatible, consistent with the project's C++23 constexpr style.
+- Q: How should the lexer handle malformed UTF-8 inside string/char literals — error token, separate diagnostic, or split tokens? → A: The entire literal becomes an error token (the literal is considered invalid).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -156,7 +157,7 @@ As a user processing large source files, I need the lexer's UTF-8 handling to ma
 
 - **FR-019**: The lexer MUST skip a UTF-8 BOM (byte sequence 0xEF 0xBB 0xBF) at the start of input without emitting a token.
 - **FR-020**: The lexer MUST correctly handle the null code point (U+0000) within `string_view`-based input without treating it as a string terminator.
-- **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content, emitting an error token or diagnostic when a malformed UTF-8 sequence is encountered inside a literal. The lexer MUST NOT apply XID property classification to code points within literals.
+- **FR-021**: The lexer MUST validate UTF-8 correctness within string literal and character literal content. When a malformed UTF-8 sequence is encountered inside a literal, the entire literal token MUST be emitted as an error token (the literal is considered invalid). The lexer MUST NOT apply XID property classification to code points within literals.
 - **FR-022**: When the lexer encounters a validly-encoded Unicode character outside of a literal that does not match any recognized lexical category (not an identifier start, not an operator, not whitespace, not a literal delimiter), the lexer MUST emit an error token with a diagnostic message identifying the unexpected code point (e.g., "unexpected Unicode character U+1F600") and advance past the code point.
 
 #### Out of Scope
