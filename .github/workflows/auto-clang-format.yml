@@ -5,10 +5,12 @@ on:
   release:
     types: [ published ]
   push:
-    tags:
     branches:
       - main
       - develop
+
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -31,6 +33,7 @@ jobs:
           inplace: True
 
       - name: Commit changes
+        if: ${{ github.event_name != 'release' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
         uses: EndBug/add-and-commit@v9
         with:
           author_name: Clang Robot
@@ -44,7 +47,7 @@ jobs:
               - Alignment enhancements
               - Consistency in formatting across files
               - Removal of trailing whitespace
-          push: True
+          push: true
           default_author: github_actor
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -168,6 +168,8 @@ namespace jsv::unicode {
     // ─────────────────────────────────────────────────────────────────────────
 
     [[nodiscard]] constexpr Utf8DecodeResult decode_utf8(std::string_view input, std::size_t offset) noexcept {
+        // Defensive bounds check: prevent out-of-bounds access
+        if(offset >= input.size()) { return {U'\uFFFD', 1, Utf8Status::OutOfRange}; }
         const auto first = static_cast<std::uint8_t>(input[offset]);
 
         // ASCII fast-path (> 95% of real-world input)
@@ -194,6 +196,8 @@ namespace jsv::unicode {
     }
 
     [[nodiscard]] constexpr bool is_valid_utf8_at(std::string_view input, std::size_t offset) noexcept {
+        // Defensive bounds check: prevent out-of-bounds access
+        if(offset >= input.size()) { return false; }
         return decode_utf8(input, offset).status == Utf8Status::Ok;
     }
 
