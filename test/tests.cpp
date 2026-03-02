@@ -3148,8 +3148,8 @@ TEST_CASE("Lexer_UnicodeWhitespace_NEL_SeparatesTokens", "[lexer][utf8][US1][T00
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_All26CodePoints_SeparateTokens", "[lexer][utf8][US1][T009]") {
-    // All 26 \p{White_Space} code points must separate tokens (FR-001)
+TEST_CASE("Lexer_UnicodeWhitespace_All25CodePoints_SeparateTokens", "[lexer][utf8][US1][T009]") {
+    // All 25 \p{White_Space} code points must separate tokens (FR-001)
     const auto cp = GENERATE(
         // ASCII whitespace (already handled, regression check)
         std::make_pair("HT", "\x09"), std::make_pair("LF", "\x0A"), std::make_pair("VT", "\x0B"), std::make_pair("FF", "\x0C"),
@@ -3528,7 +3528,7 @@ TEST_CASE("Lexer_Robustness_SurrogateBytes_NoCrash", "[lexer][utf8][US3][T040]")
 
 TEST_CASE("Lexer_Robustness_NullByte_NoCrash", "[lexer][utf8][US3][T041]") {
     // Null byte (0x00) in source must not crash (FR-004)
-    const std::string src = std::string("var\x00x", 6);  // "var" + null + "x" (explicit length)
+    const std::string src = std::string("var\x00x", 5);  // "var" + null + "x" (explicit length)
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() >= 2);
