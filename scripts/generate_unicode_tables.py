@@ -455,7 +455,7 @@ namespace jsv::unicode {{
 
 def run_clang_format(file_path: Path) -> None:
     """
-    Run clang-format on the generated file.
+    Run clang-format on the generated file using the project's .clang-format config.
 
     Args:
         file_path: Path to the file to format.
@@ -464,9 +464,14 @@ def run_clang_format(file_path: Path) -> None:
         SystemExit: If clang-format fails.
     """
     print("Running clang-format...")
+#Find the project root (directory containing .clang-format)
+    script_dir = Path(__file__).parent
+    project_root = script_dir.parent
+    clang_format_config = project_root / ".clang-format"
+
     try:
         subprocess.run(
-            ["clang-format", "-i", str(file_path)],
+            ["clang-format", "-i", f"--style=file:{clang_format_config}", str(file_path)],
             capture_output=True,
             text=True,
             check=True,
