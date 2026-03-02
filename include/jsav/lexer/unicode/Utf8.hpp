@@ -105,10 +105,10 @@ namespace jsv::unicode {
                 if(offset + 1 < input.size()) {
                     const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
                     if((b1 & 0xC0U) == 0x80U) {
-                        // b0 = E0: b1 must also be A0–BF for a valid prefix
-                        if(b0 == 0xE0U && b1 < 0xA0U) { return {U'\uFFFD', 1, Utf8Status::Overlong}; }
+                        // b0 = E0: b1 must also be A0–BF for a valid prefix (overlong otherwise)
+                        if(b0 == 0xE0U && b1 < 0xA0U) { return {U'\uFFFD', 2, Utf8Status::Overlong}; }
                         // b0 = ED: b1 must be 80–9F (surrogates are A0–BF)
-                        if(b0 == 0xEDU && b1 >= 0xA0U) { return {U'\uFFFD', 1, Utf8Status::Surrogate}; }
+                        if(b0 == 0xEDU && b1 >= 0xA0U) { return {U'\uFFFD', 2, Utf8Status::Surrogate}; }
                         return {U'\uFFFD', 2, Utf8Status::TruncatedSequence};
                     }
                 }
@@ -117,10 +117,16 @@ namespace jsv::unicode {
             const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
             const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
             if((b1 & 0xC0U) != 0x80U) { return {U'\uFFFD', 1, Utf8Status::TruncatedSequence}; }
-            // Overlong 3-byte: E0 with b1 < A0
-            if(b0 == 0xE0U && b1 < 0xA0U) { return {U'\uFFFD', 1, Utf8Status::Overlong}; }
-            // Surrogate: ED with b1 in A0–BF
-            if(b0 == 0xEDU && b1 >= 0xA0U) { return {U'\uFFFD', 1, Utf8Status::Surrogate}; }
+            // Overlong 3-byte: E0 with b1 < A0 — consume maximal subpart (all 3 bytes if valid)
+            if(b0 == 0xE0U && b1 < 0xA0U) {
+                if((b2 & 0xC0U) == 0x80U) { return {U'\uFFFD', 3, Utf8Status::Overlong}; }
+                return {U'\uFFFD', 2, Utf8Status::Overlong};
+            }
+            // Surrogate: ED with b1 in A0–BF — consume maximal subpart (all 3 bytes if valid)
+            if(b0 == 0xEDU && b1 >= 0xA0U) {
+                if((b2 & 0xC0U) == 0x80U) { return {U'\uFFFD', 3, Utf8Status::Surrogate}; }
+                return {U'\uFFFD', 2, Utf8Status::Surrogate};
+            }
             if((b2 & 0xC0U) != 0x80U) { return {U'\uFFFD', 2, Utf8Status::TruncatedSequence}; }
             const char32_t cp = ((b0 & 0x0FU) << 12U) | ((b1 & 0x3FU) << 6U) | (b2 & 0x3FU);
             return {cp, 3, Utf8Status::Ok};
@@ -131,8 +137,22 @@ namespace jsv::unicode {
             if(offset + 1 < input.size()) {
                 const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
                 if((b1 & 0xC0U) == 0x80U) {
-                    if(b0 == 0xF0U && b1 < 0x90U) { return {U'\uFFFD', 1, Utf8Status::Overlong}; }
-                    if(b0 == 0xF4U && b1 >= 0x90U) { return {U'\uFFFD', 1, Utf8Status::OutOfRange}; }
+                    // Overlong 4-byte: F0 with b1 < 90 — consume maximal subpart
+                    if(b0 == 0xF0U && b1 < 0x90U) {
+                        if(offset + 2 < input.size()) {
+                            const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
+                            if((b2 & 0xC0U) == 0x80U) { return {U'\uFFFD', 3, Utf8Status::Overlong}; }
+                        }
+                        return {U'\uFFFD', 2, Utf8Status::Overlong};
+                    }
+                    // Out-of-range: F4 with b1 >= 90 — consume maximal subpart
+                    if(b0 == 0xF4U && b1 >= 0x90U) {
+                        if(offset + 2 < input.size()) {
+                            const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
+                            if((b2 & 0xC0U) == 0x80U) { return {U'\uFFFD', 3, Utf8Status::OutOfRange}; }
+                        }
+                        return {U'\uFFFD', 2, Utf8Status::OutOfRange};
+                    }
                     if(offset + 2 < input.size()) {
                         const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
                         if((b2 & 0xC0U) == 0x80U) { return {U'\uFFFD', 3, Utf8Status::TruncatedSequence}; }
@@ -151,10 +171,18 @@ namespace jsv::unicode {
             const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
             const auto b3 = static_cast<std::uint8_t>(input[offset + 3]);
             if((b1 & 0xC0U) != 0x80U) { return {U'\uFFFD', 1, Utf8Status::TruncatedSequence}; }
-            // Overlong 4-byte: F0 with b1 < 90
-            if(b0 == 0xF0U && b1 < 0x90U) { return {U'\uFFFD', 1, Utf8Status::Overlong}; }
-            // Out-of-range: F4 90+ (U+110000+)
-            if(b0 == 0xF4U && b1 >= 0x90U) { return {U'\uFFFD', 1, Utf8Status::OutOfRange}; }
+            // Overlong 4-byte: F0 with b1 < 90 — consume all 4 bytes (maximal subpart)
+            if(b0 == 0xF0U && b1 < 0x90U) {
+                if((b2 & 0xC0U) != 0x80U) { return {U'\uFFFD', 2, Utf8Status::Overlong}; }
+                if((b3 & 0xC0U) != 0x80U) { return {U'\uFFFD', 3, Utf8Status::Overlong}; }
+                return {U'\uFFFD', 4, Utf8Status::Overlong};
+            }
+            // Out-of-range: F4 90+ (U+110000+) — consume all 4 bytes (maximal subpart)
+            if(b0 == 0xF4U && b1 >= 0x90U) {
+                if((b2 & 0xC0U) != 0x80U) { return {U'\uFFFD', 2, Utf8Status::OutOfRange}; }
+                if((b3 & 0xC0U) != 0x80U) { return {U'\uFFFD', 3, Utf8Status::OutOfRange}; }
+                return {U'\uFFFD', 4, Utf8Status::OutOfRange};
+            }
             if((b2 & 0xC0U) != 0x80U) { return {U'\uFFFD', 2, Utf8Status::TruncatedSequence}; }
             if((b3 & 0xC0U) != 0x80U) { return {U'\uFFFD', 3, Utf8Status::TruncatedSequence}; }
             const char32_t cp = ((b0 & 0x07U) << 18U) | ((b1 & 0x3FU) << 12U) | ((b2 & 0x3FU) << 6U) | (b3 & 0x3FU);
@@ -181,7 +209,14 @@ namespace jsv::unicode {
         // 2-byte sequence: lead byte 0xC0–0xDF
         if(first < 0xE0U) {
             // 0xC0–0xC1 are always overlong (would encode U+0000–U+007F)
-            if(first < 0xC2U) { return {U'\uFFFD', 1, Utf8Status::Overlong}; }
+            // Consume maximal subpart: both bytes if valid continuation exists
+            if(first < 0xC2U) {
+                if(offset + 1 < input.size() &&
+                   (static_cast<std::uint8_t>(input[offset + 1]) & 0xC0U) == 0x80U) {
+                    return {U'\uFFFD', 2, Utf8Status::Overlong};
+                }
+                return {U'\uFFFD', 1, Utf8Status::Overlong};
+            }
             return detail::decode_2byte(input, offset);
         }
 

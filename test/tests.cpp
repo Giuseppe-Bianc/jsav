@@ -3455,9 +3455,20 @@ TEST_CASE("Lexer_Robustness_OverlongSpace_NotWhitespace", "[lexer][utf8][US3][T0
     const std::string src = "var\xC0\xA0x";  // "var" + overlong SPACE + "x"
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
-    // Overlong encoding is rejected, so 'x' should be tokenized (not separated by whitespace)
-    // The overlong bytes become error tokens or are skipped
-    REQUIRE(tokens.size() >= 2);
+
+    // Verify "var" is tokenized as keyword
+    REQUIRE(tokens.size() >= 4);  // KeywordVar + Error/Invalid + IdentifierAscii + Eof
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[0].getText() == "var");
+
+    // Verify overlong bytes are NOT treated as whitespace (produce error token)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Error);
+
+    // Verify "x" is tokenized as identifier (not separated by whitespace)
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[2].getText() == "x");
+
+    // Verify EOF
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
@@ -3495,8 +3506,13 @@ TEST_CASE("Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed", "[lexer][utf8][
     const std::string src = "a\xC3\xA9";  // "a" + é (identifier with multi-byte char)
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
-    // Should tokenize without crash - é is identifier continue so "aé" is one identifier
-    REQUIRE(tokens.size() >= 2);
+
+    // Verify "aé" is tokenized as a single Unicode identifier (not separated)
+    REQUIRE(tokens.size() >= 2);  // IdentifierUnicode + Eof (at minimum)
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == "aé");
+
+    // Verify EOF
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
@@ -3686,7 +3702,17 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
     // NOLINTBEGIN(*-mt-unsafe)
     const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
     // NOLINTEND(*-mt-unsafe)
-    const int timeout_ms = (timeout_env != nullptr) ? std::stoi(timeout_env) : 100;
+    int timeout_ms = 100;  // default
+    if(timeout_env != nullptr) {
+        try {
+            const int parsed = std::stoi(timeout_env);
+            if(parsed > 0) { timeout_ms = parsed; }
+        } catch(const std::invalid_argument &) {
+            // malformed input — keep default
+        } catch(const std::out_of_range &) {
+            // value out of range — keep default
+        }
+    }
     REQUIRE(elapsed < timeout_ms);
 #endif
 
@@ -3729,7 +3755,17 @@ TEST_CASE("Lexer_Benchmark_AsciiThroughput_NoRegression", "[lexer][benchmark][US
     // NOLINTBEGIN(*-mt-unsafe)
     const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
     // NOLINTEND(*-mt-unsafe)
-    const int timeout_ms = (timeout_env != nullptr) ? std::stoi(timeout_env) : 100;
+    int timeout_ms = 100;  // default
+    if(timeout_env != nullptr) {
+        try {
+            const int parsed = std::stoi(timeout_env);
+            if(parsed > 0) { timeout_ms = parsed; }
+        } catch(const std::invalid_argument &) {
+            // malformed input — keep default
+        } catch(const std::out_of_range &) {
+            // value out of range — keep default
+        }
+    }
     REQUIRE(elapsed < timeout_ms);
 #endif
 
