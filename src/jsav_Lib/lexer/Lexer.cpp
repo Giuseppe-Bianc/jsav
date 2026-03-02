@@ -21,7 +21,6 @@ namespace jsv {
         while(true) {
             auto tok = next_token();
             const bool done = (tok.getKind() == TokenKind::Eof);
-            // tokens.push_back(std::move(tok));
             tokens.emplace_back(tok);
             if(done) { break; }
         }
