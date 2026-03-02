@@ -211,8 +211,7 @@ namespace jsv::unicode {
             // 0xC0–0xC1 are always overlong (would encode U+0000–U+007F)
             // Consume maximal subpart: both bytes if valid continuation exists
             if(first < 0xC2U) {
-                if(offset + 1 < input.size() &&
-                   (static_cast<std::uint8_t>(input[offset + 1]) & 0xC0U) == 0x80U) {
+                if(offset + 1 < input.size() && (static_cast<std::uint8_t>(input[offset + 1]) & 0xC0U) == 0x80U) {
                     return {U'\uFFFD', 2, Utf8Status::Overlong};
                 }
                 return {U'\uFFFD', 1, Utf8Status::Overlong};
