@@ -3493,6 +3493,7 @@ TEST_CASE("Lexer_Robustness_ByteFF_NoCrash", "[lexer][utf8][US3][T037]") {
 TEST_CASE("Lexer_Robustness_InvalidContinuation_NoCrash", "[lexer][utf8][US3][T038]") {
     // Invalid continuation byte in multi-byte sequence must not crash (FR-004)
     // 0xC2 followed by 0x00 (null, not a valid continuation)
+    // NOLINTNEXTLINE(bugprone-string-literal-with-embedded-nul)
     const std::string src = "var\xC2\x00x";  // "var" + 0xC2 + null + "x"
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
@@ -3707,9 +3708,9 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
         try {
             const int parsed = std::stoi(timeout_env);
             if(parsed > 0) { timeout_ms = parsed; }
-        } catch(const std::invalid_argument &) {
+        } catch(const std::invalid_argument &) {  // NOLINT(bugprone-empty-catch)
             // malformed input — keep default
-        } catch(const std::out_of_range &) {
+        } catch(const std::out_of_range &) {  // NOLINT(bugprone-empty-catch)
             // value out of range — keep default
         }
     }
@@ -3760,9 +3761,9 @@ TEST_CASE("Lexer_Benchmark_AsciiThroughput_NoRegression", "[lexer][benchmark][US
         try {
             const int parsed = std::stoi(timeout_env);
             if(parsed > 0) { timeout_ms = parsed; }
-        } catch(const std::invalid_argument &) {
+        } catch(const std::invalid_argument &) {  // NOLINT(bugprone-empty-catch)
             // malformed input — keep default
-        } catch(const std::out_of_range &) {
+        } catch(const std::out_of_range &) {  // NOLINT(bugprone-empty-catch)
             // value out of range — keep default
         }
     }
