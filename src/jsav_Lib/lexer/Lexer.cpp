@@ -2,6 +2,7 @@
  * Created by gbian on 28/02/2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-include-cleaner,*-identifier-length,*-avoid-magic-numbers,*-magic-numbers)
 
 #include "jsav/lexer/Lexer.hpp"
 #include "jsav/lexer/unicode/UnicodeData.hpp"
@@ -220,6 +221,7 @@ namespace jsv {
     // Numeric literal scanner
     // =========================================================================
 
+    // NOLINTBEGIN(readability-function-cognitive-complexity)
     Token Lexer::scan_numeric_literal(const SourceLocation &start) {
         const auto text_start = m_pos;
 
@@ -275,11 +277,13 @@ namespace jsv {
 
         return make_token(TokenKind::Numeric, m_source.substr(text_start, m_pos - text_start), start);
     }
+    // NOLINTEND(readability-function-cognitive-complexity)
 
     // =========================================================================
     // Hash-prefixed numeric scanner  (#b, #o, #x)
     // =========================================================================
 
+    // NOLINTBEGIN(readability-function-cognitive-complexity)
     Token Lexer::scan_hash_numeric(const SourceLocation &start) {
         const auto text_start = m_pos;
         advance_byte();  // consume '#'
@@ -331,6 +335,7 @@ namespace jsv {
         advance_byte();  // consume the unknown byte so we always make forward progress
         return error_token(m_source.substr(text_start, m_pos - text_start), start);
     }
+    // NOLINTEND(readability-function-cognitive-complexity)
 
     // =========================================================================
     // String / char literal scanners
@@ -413,6 +418,7 @@ namespace jsv {
     // Operator / punctuation scanner
     // =========================================================================
 
+    // NOLINTBEGIN(readability-function-cognitive-complexity)
     Token Lexer::scan_operator_or_punctuation(const SourceLocation &start) {
         const auto text_start = m_pos;
         const char c0 = advance_byte();
@@ -506,6 +512,7 @@ namespace jsv {
             return error_token(m_source.substr(text_start, m_pos - text_start), start);
         }
     }
+    // NOLINTEND(readability-function-cognitive-complexity)
 
     // =========================================================================
     // Unicode XID classification
@@ -555,3 +562,4 @@ namespace jsv {
     }
 
 }  // namespace jsv
+// NOLINTEND(*-include-cleaner,*-identifier-length,*-avoid-magic-numbers,*-magic-numbers)
