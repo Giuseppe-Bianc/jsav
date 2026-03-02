@@ -376,7 +376,6 @@ namespace jsv::unicode {{
     // =========================================================================
 
     static inline constexpr std::array<CodepointRange, {len(whitespace_ranges)}> whitespace_ranges{{{{
-
 {whitespace_cpp}
     }}}};
 
@@ -469,7 +468,7 @@ def run_clang_format(file_path: Path) -> None:
     """
     print("Running clang-format...")
     try:
-        result = subprocess.run(
+        subprocess.run(
             ["clang-format", "-i", str(file_path)],
             capture_output=True,
             text=True,

@@ -618,7 +618,6 @@ namespace jsv::unicode {
     // =========================================================================
 
     static inline constexpr std::array<CodepointRange, 8> whitespace_ranges{{
-
         {U'\U00000020', U'\U00000020'},
         {U'\U000000A0', U'\U000000A0'},
         {U'\U00001680', U'\U00001680'},
