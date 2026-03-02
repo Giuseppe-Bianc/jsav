@@ -4,8 +4,8 @@
 // clang-format on
 
 #include <jsav/jsav.hpp>
-#include <jsav/lexer/unicode/Utf8.hpp>
 #include <jsav/lexer/unicode/UnicodeData.hpp>
+#include <jsav/lexer/unicode/Utf8.hpp>
 
 /*
 TEST_CASE("Factorials are computed with constexpr", "[factorial]")
@@ -196,9 +196,7 @@ TEST_CASE("jsv::unicode foundational constexpr functions", "[Unicode][T019]") {
         STATIC_REQUIRE(!is_letter(U'_'));
     }
 
-    SECTION("is_letter: CJK U+5909 is a letter") {
-        STATIC_REQUIRE(is_letter(char32_t{0x5909U}));
-    }
+    SECTION("is_letter: CJK U+5909 is a letter") { STATIC_REQUIRE(is_letter(char32_t{0x5909U})); }
 
     // ── is_id_start ────────────────────────────────────────────────────────
     SECTION("is_id_start: ASCII letters and underscore are id_start") {
@@ -274,7 +272,8 @@ TEST_CASE("Utf8Decoder_NullByte_ReturnsOkCodepointZero", "[Unicode][T024]") {
 TEST_CASE("Utf8Decoder_InterleavedAsciiAndMultibyte_AllDecodeCorrectly", "[Unicode][T025]") {
     using namespace jsv::unicode;
     // "A" + é(0xC3 0xA9) + "B"
-    constexpr std::string_view mixed = "A\xC3\xA9""B";
+    constexpr std::string_view mixed = "A\xC3\xA9"
+                                       "B";
     constexpr auto r0 = decode_utf8(mixed, 0);  // 'A'
     STATIC_REQUIRE(r0.codepoint == U'A');
     STATIC_REQUIRE(r0.byte_length == 1);
@@ -473,19 +472,19 @@ TEST_CASE("UnicodeClassifier_Underscore_IsIdStart", "[Unicode][T058]") {
 
 TEST_CASE("UnicodeClassifier_CombiningMark_IsIdContinueNotStart", "[Unicode][T059]") {
     using namespace jsv::unicode;
-    STATIC_REQUIRE(is_id_continue(char32_t{0x0303U}));   // combining tilde
+    STATIC_REQUIRE(is_id_continue(char32_t{0x0303U}));  // combining tilde
     STATIC_REQUIRE(!is_id_start(char32_t{0x0303U}));
 }
 
 TEST_CASE("UnicodeClassifier_ArabicDigit_IsIdContinueNotStart", "[Unicode][T060]") {
     using namespace jsv::unicode;
-    STATIC_REQUIRE(is_id_continue(char32_t{0x0660U}));   // Arabic-Indic digit zero (Nd)
+    STATIC_REQUIRE(is_id_continue(char32_t{0x0660U}));  // Arabic-Indic digit zero (Nd)
     STATIC_REQUIRE(!is_id_start(char32_t{0x0660U}));
 }
 
 TEST_CASE("UnicodeClassifier_Emoji_NotIdStartNotContinue", "[Unicode][T061]") {
     using namespace jsv::unicode;
-    STATIC_REQUIRE(!is_id_start(char32_t{0x1F600U}));    // 😀
+    STATIC_REQUIRE(!is_id_start(char32_t{0x1F600U}));  // 😀
     STATIC_REQUIRE(!is_id_continue(char32_t{0x1F600U}));
 }
 
@@ -520,10 +519,10 @@ TEST_CASE("UnicodeClassifier_AsciiLetterFastPath_NoTableAccess", "[Unicode][T085
 
 TEST_CASE("UnicodeClassifier_WhitespaceFastPath_SpaceIsZs", "[Unicode][T086]") {
     using namespace jsv::unicode;
-    STATIC_REQUIRE(is_unicode_whitespace(U' '));          // U+0020 SPACE (Zs) — fast-path
-    STATIC_REQUIRE(!is_unicode_whitespace(U'\t'));        // HT not Zs/Zl/Zp
-    STATIC_REQUIRE(!is_unicode_whitespace(U'\n'));        // LF not Zs/Zl/Zp
-    STATIC_REQUIRE(!is_unicode_whitespace(U'\r'));        // CR not Zs/Zl/Zp
+    STATIC_REQUIRE(is_unicode_whitespace(U' '));               // U+0020 SPACE (Zs) — fast-path
+    STATIC_REQUIRE(!is_unicode_whitespace(U'\t'));             // HT not Zs/Zl/Zp
+    STATIC_REQUIRE(!is_unicode_whitespace(U'\n'));             // LF not Zs/Zl/Zp
+    STATIC_REQUIRE(!is_unicode_whitespace(U'\r'));             // CR not Zs/Zl/Zp
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x00A0U}));  // NO-BREAK SPACE (Zs)
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x2003U}));  // EM SPACE (Zs)
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x2028U}));  // LINE SEPARATOR (Zl)

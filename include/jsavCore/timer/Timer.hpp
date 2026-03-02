@@ -363,15 +363,15 @@ namespace vnd {
          * @note Excluded from coverage reports via LCOV exclusion markers (trivial getter).
          * @see Times::getRelevantTimeframe()
          */
-// clang-format off
+        // clang-format off
 // LCOV_EXCL_START
-// clang-format on
+        // clang-format on
         [[nodiscard]] static ValueLabel make_time_str(const long double time) noexcept {
             return make_named_times(time).getRelevantTimeframe();
         }
-// clang-format off
+        // clang-format off
 // LCOV_EXCL_STOP
-// clang-format on
+        // clang-format on
 
         /**
          * @brief Gets a string representation of the Timer using the configured formatter.
