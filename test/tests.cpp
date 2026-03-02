@@ -9,7 +9,6 @@
 #include <catch2/matchers/catch_matchers_container_properties.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
-#include <chrono>
 #include <future>
 #include <set>
 
@@ -3009,36 +3008,36 @@ TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identif
     };
     // One representative identifier per script (encoded in UTF-8)
     const std::vector<ScriptCase> cases = {
-        {"Latin (ASCII)", "hello"s},
-        {"Greek", "\xce\xb1\xce\xb2\xce\xb3"s},                 // αβγ
-        {"Cyrillic", "\xd0\xb0\xd0\xb1\xd0\xb2"s},              // абв
-        {"Armenian", "\xd5\xb1\xd5\xb2\xd5\xb3"s},              // աբգ
-        {"Georgian", "\xe1\x83\x90\xe1\x83\x91\xe1\x83\x92"s},  // აბგ U+10D0-U+10D2
-        {"Hebrew", "\xd7\x90\xd7\x91\xd7\x92"s},                // אבג
-        {"Arabic", "\xd8\xa7\xd8\xa8\xd8\xaa"s},                // ابت
-        {"Devanagari", "\xe0\xa4\x97\xe0\xa4\xa3"s},            // गण
-        {"Bengali", "\xe0\xa6\x97\xe0\xa6\xa3"s},               // গণ U+0997 U+09A3
-        {"Gurmukhi", "\xe0\xa8\x97\xe0\xa8\xa3"s},              // ਗਣ U+0A17 U+0A23
-        {"Gujarati", "\xe0\xaa\x97\xe0\xaa\xa3"s},              // ગણ U+0A97 U+0AA3
-        {"Tamil", "\xe0\xae\x95\xe0\xae\xa3"s},                 // கண U+0B95 U+0BA3
-        {"Telugu", "\xe0\xb0\x97\xe0\xb0\xa3"s},                // గణ U+0C17 U+0C23
-        {"Kannada", "\xe0\xb2\x97\xe0\xb2\xa3"s},               // ಗಣ U+0C97 U+0CA3
-        {"Malayalam", "\xe0\xb4\x97\xe0\xb4\xa3"s},             // ഗണ U+0D17 U+0D23
-        {"Sinhala", "\xe0\xb6\x9c\xe0\xb6\xab"s},               // ගණ U+0D9C U+0DAB
-        {"Thai", "\xe0\xb8\x81\xe0\xb8\x82"s},                  // กข U+0E01 U+0E02
-        {"Lao", "\xe0\xba\x81\xe0\xba\x82"s},                   // ກຂ U+0E81 U+0E82
-        {"Tibetan", "\xe0\xbd\x80\xe0\xbd\x81"s},               // ཀཁ U+0F00 U+0F01 (actually Tibetan letters start at U+0F40)
-        {"Myanmar", "\xe1\x80\x80\xe1\x80\x81"s},               // ကခ U+1000 U+1001
-        {"Hangul", "\xea\xb0\x80\xeb\x82\x98"s},                // 가나 U+AC00 U+B098
-        {"Hiragana", "\xe3\x81\x82\xe3\x81\x84"s},              // あい U+3042 U+3044
-        {"Katakana", "\xe3\x82\xa2\xe3\x82\xa4"s},              // アイ U+30A2 U+30A4
-        {"CJK", "\xe5\x8f\x98\xe9\x87\x8f"s},                   // 变量 U+53D8 U+91CF
-        {"Ethiopic", "\xe1\x88\x80\xe1\x88\x81"s},              // ሀሁ U+1200 U+1201
-        {"Cherokee", "\xe1\x8e\xa0\xe1\x8e\xa1"s},              // ᏠᏡ U+13A0 U+13A1
-        {"Khmer", "\xe1\x9e\x80\xe1\x9e\x81"s},                 // កខ U+1780 U+1781
-        {"Mongolian", "\xe1\xa0\xa0\xe1\xa0\xa1"s},             // ᠠᠡ U+1820 U+1821
-        {"Tai Le", "\xe1\xa5\x90\xe1\xa5\x91"s},                // ᥐᥑ U+1950 U+1951
-        {"Math Italic", "\xf0\x9d\x91\xa5\xf0\x9d\x91\xa6"s},   // 𝑥𝑦 U+1D465 U+1D466
+        {.name = "Latin (ASCII)", .src = "hello"s},
+        {.name = "Greek", .src = "\xce\xb1\xce\xb2\xce\xb3"s},                 // αβγ
+        {.name = "Cyrillic", .src = "\xd0\xb0\xd0\xb1\xd0\xb2"s},              // абв
+        {.name = "Armenian", .src = "\xd5\xb1\xd5\xb2\xd5\xb3"s},              // աբգ
+        {.name = "Georgian", .src = "\xe1\x83\x90\xe1\x83\x91\xe1\x83\x92"s},  // აბგ U+10D0-U+10D2
+        {.name = "Hebrew", .src = "\xd7\x90\xd7\x91\xd7\x92"s},                // אבג
+        {.name = "Arabic", .src = "\xd8\xa7\xd8\xa8\xd8\xaa"s},                // ابت
+        {.name = "Devanagari", .src = "\xe0\xa4\x97\xe0\xa4\xa3"s},            // गण
+        {.name = "Bengali", .src = "\xe0\xa6\x97\xe0\xa6\xa3"s},               // গণ U+0997 U+09A3
+        {.name = "Gurmukhi", .src = "\xe0\xa8\x97\xe0\xa8\xa3"s},              // ਗਣ U+0A17 U+0A23
+        {.name = "Gujarati", .src = "\xe0\xaa\x97\xe0\xaa\xa3"s},              // ગણ U+0A97 U+0AA3
+        {.name = "Tamil", .src = "\xe0\xae\x95\xe0\xae\xa3"s},                 // கண U+0B95 U+0BA3
+        {.name = "Telugu", .src = "\xe0\xb0\x97\xe0\xb0\xa3"s},                // గణ U+0C17 U+0C23
+        {.name = "Kannada", .src = "\xe0\xb2\x97\xe0\xb2\xa3"s},               // ಗಣ U+0C97 U+0CA3
+        {.name = "Malayalam", .src = "\xe0\xb4\x97\xe0\xb4\xa3"s},             // ഗണ U+0D17 U+0D23
+        {.name = "Sinhala", .src = "\xe0\xb6\x9c\xe0\xb6\xab"s},               // ගණ U+0D9C U+0DAB
+        {.name = "Thai", .src = "\xe0\xb8\x81\xe0\xb8\x82"s},                  // กข U+0E01 U+0E02
+        {.name = "Lao", .src = "\xe0\xba\x81\xe0\xba\x82"s},                   // ກຂ U+0E81 U+0E82
+        {.name = "Tibetan", .src = "\xe0\xbd\x80\xe0\xbd\x81"s},              // ཀཁ U+0F00 U+0F01 (actually Tibetan letters start at U+0F40)
+        {.name = "Myanmar", .src = "\xe1\x80\x80\xe1\x80\x81"s},              // ကခ U+1000 U+1001
+        {.name = "Hangul", .src = "\xea\xb0\x80\xeb\x82\x98"s},               // 가나 U+AC00 U+B098
+        {.name = "Hiragana", .src = "\xe3\x81\x82\xe3\x81\x84"s},             // あい U+3042 U+3044
+        {.name = "Katakana", .src = "\xe3\x82\xa2\xe3\x82\xa4"s},             // アイ U+30A2 U+30A4
+        {.name = "CJK", .src = "\xe5\x8f\x98\xe9\x87\x8f"s},                  // 变量 U+53D8 U+91CF
+        {.name = "Ethiopic", .src = "\xe1\x88\x80\xe1\x88\x81"s},             // ሀሁ U+1200 U+1201
+        {.name = "Cherokee", .src = "\xe1\x8e\xa0\xe1\x8e\xa1"s},             // ᏠᏡ U+13A0 U+13A1
+        {.name = "Khmer", .src = "\xe1\x9e\x80\xe1\x9e\x81"s},                // កខ U+1780 U+1781
+        {.name = "Mongolian", .src = "\xe1\xa0\xa0\xe1\xa0\xa1"s},            // ᠠᠡ U+1820 U+1821
+        {.name = "Tai Le", .src = "\xe1\xa5\x90\xe1\xa5\x91"s},               // ᥐᥑ U+1950 U+1951
+        {.name = "Math Italic", .src = "\xf0\x9d\x91\xa5\xf0\x9d\x91\xa6"s},  // 𝑥𝑦 U+1D465 U+1D466
     };
 
     for(const auto &c : cases) {
@@ -3130,17 +3129,21 @@ TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat
         const char *src;
         jsv::TokenKind kind;
     };
-    const OpCase cases[] = {
-        {"+", jsv::TokenKind::Plus},        {"-", jsv::TokenKind::Minus},         {"*", jsv::TokenKind::Star},
-        {"/", jsv::TokenKind::Slash},       {"=", jsv::TokenKind::Equal},         {"==", jsv::TokenKind::EqualEqual},
-        {"!=", jsv::TokenKind::NotEqual},   {"<", jsv::TokenKind::Less},          {">", jsv::TokenKind::Greater},
-        {"<=", jsv::TokenKind::LessEqual},  {">=", jsv::TokenKind::GreaterEqual}, {"+=", jsv::TokenKind::PlusEqual},
-        {"-=", jsv::TokenKind::MinusEqual}, {"++", jsv::TokenKind::PlusPlus},     {"--", jsv::TokenKind::MinusMinus},
-        {"&&", jsv::TokenKind::AndAnd},     {"||", jsv::TokenKind::OrOr},         {"(", jsv::TokenKind::OpenParen},
-        {")", jsv::TokenKind::CloseParen},  {"{", jsv::TokenKind::OpenBrace},     {"}", jsv::TokenKind::CloseBrace},
-        {"[", jsv::TokenKind::OpenBracket}, {"]", jsv::TokenKind::CloseBracket},  {";", jsv::TokenKind::Semicolon},
-        {",", jsv::TokenKind::Comma},       {".", jsv::TokenKind::Dot},
-    };
+    const std::array<OpCase, 26> cases = {{
+        {.src = "+", .kind = jsv::TokenKind::Plus},          {.src = "-", .kind = jsv::TokenKind::Minus},
+        {.src = "*", .kind = jsv::TokenKind::Star},          {.src = "/", .kind = jsv::TokenKind::Slash},
+        {.src = "=", .kind = jsv::TokenKind::Equal},         {.src = "==", .kind = jsv::TokenKind::EqualEqual},
+        {.src = "!=", .kind = jsv::TokenKind::NotEqual},     {.src = "<", .kind = jsv::TokenKind::Less},
+        {.src = ">", .kind = jsv::TokenKind::Greater},       {.src = "<=", .kind = jsv::TokenKind::LessEqual},
+        {.src = ">=", .kind = jsv::TokenKind::GreaterEqual}, {.src = "+=", .kind = jsv::TokenKind::PlusEqual},
+        {.src = "-=", .kind = jsv::TokenKind::MinusEqual},   {.src = "++", .kind = jsv::TokenKind::PlusPlus},
+        {.src = "--", .kind = jsv::TokenKind::MinusMinus},   {.src = "&&", .kind = jsv::TokenKind::AndAnd},
+        {.src = "||", .kind = jsv::TokenKind::OrOr},         {.src = "(", .kind = jsv::TokenKind::OpenParen},
+        {.src = ")", .kind = jsv::TokenKind::CloseParen},    {.src = "{", .kind = jsv::TokenKind::OpenBrace},
+        {.src = "}", .kind = jsv::TokenKind::CloseBrace},    {.src = "[", .kind = jsv::TokenKind::OpenBracket},
+        {.src = "]", .kind = jsv::TokenKind::CloseBracket},  {.src = ";", .kind = jsv::TokenKind::Semicolon},
+        {.src = ",", .kind = jsv::TokenKind::Comma},         {.src = ".", .kind = jsv::TokenKind::Dot},
+    }};
     for(const auto &c : cases) {
         INFO("Operator: " << c.src);
         jsv::Lexer lex{c.src, "test.jsav"};
@@ -3158,23 +3161,23 @@ TEST_CASE("Lexer_AsciiKeywords_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat]
         const char *text;
         jsv::TokenKind kind;
     };
-    const KwCase keywords[] = {
-        {"fun", jsv::TokenKind::KeywordFun},
-        {"if", jsv::TokenKind::KeywordIf},
-        {"else", jsv::TokenKind::KeywordElse},
-        {"return", jsv::TokenKind::KeywordReturn},
-        {"while", jsv::TokenKind::KeywordWhile},
-        {"for", jsv::TokenKind::KeywordFor},
-        {"main", jsv::TokenKind::KeywordMain},
-        {"var", jsv::TokenKind::KeywordVar},
-        {"const", jsv::TokenKind::KeywordConst},
-        {"break", jsv::TokenKind::KeywordBreak},
-        {"continue", jsv::TokenKind::KeywordContinue},
-        {"bool", jsv::TokenKind::KeywordBool},
-        {"i32", jsv::TokenKind::TypeI32},
-        {"f64", jsv::TokenKind::TypeF64},
-        {"string", jsv::TokenKind::TypeString},
-    };
+    const std::array<KwCase, 15> keywords = {{
+        {.text = "fun", .kind = jsv::TokenKind::KeywordFun},
+        {.text = "if", .kind = jsv::TokenKind::KeywordIf},
+        {.text = "else", .kind = jsv::TokenKind::KeywordElse},
+        {.text = "return", .kind = jsv::TokenKind::KeywordReturn},
+        {.text = "while", .kind = jsv::TokenKind::KeywordWhile},
+        {.text = "for", .kind = jsv::TokenKind::KeywordFor},
+        {.text = "main", .kind = jsv::TokenKind::KeywordMain},
+        {.text = "var", .kind = jsv::TokenKind::KeywordVar},
+        {.text = "const", .kind = jsv::TokenKind::KeywordConst},
+        {.text = "break", .kind = jsv::TokenKind::KeywordBreak},
+        {.text = "continue", .kind = jsv::TokenKind::KeywordContinue},
+        {.text = "bool", .kind = jsv::TokenKind::KeywordBool},
+        {.text = "i32", .kind = jsv::TokenKind::TypeI32},
+        {.text = "f64", .kind = jsv::TokenKind::TypeF64},
+        {.text = "string", .kind = jsv::TokenKind::TypeString},
+    }};
     for(const auto &k : keywords) {
         INFO("Keyword: " << k.text);
         jsv::Lexer lex{k.text, "test.jsav"};
@@ -3204,7 +3207,7 @@ TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer][utf8][ascii-co
 TEST_CASE("Lexer_LargeAsciiFile_TokenizesWithinBaseline", "[lexer][utf8][performance][phase7]") {
     // Generate ~10K ASCII identifier tokens: "x0 x1 x2 ... x9999"
     std::string src;
-    src.reserve(10000 * 8);
+    src.reserve(std::size_t{10000} * 8);
     for(int i = 0; i < 10000; ++i) {
         src += 'x';
         src += std::to_string(i);
@@ -3267,7 +3270,7 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
                               "\xd0\xb0\xd0\xb1\xd0\xb2 "s  // абв
                               "\"hello world 42\" "s;       // string literal
 
-    const std::size_t target = 1024 * 1024;  // 1MB
+    const std::size_t target = std::size_t{1024} * 1024;  // 1MB
     std::string src;
     src.reserve(target + block.size());
     while(src.size() < target) { src += block; }
@@ -3288,8 +3291,10 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
         [[maybe_unused]] const auto tokens = lex.tokenize();
     }
     const auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - t0).count();
+    // NOLINTBEGIN(*-mt-unsafe)
     const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
-    const int timeout_ms = timeout_env ? std::stoi(timeout_env) : 100;
+    // NOLINTEND(*-mt-unsafe)
+    const int timeout_ms = (timeout_env != nullptr) ? std::stoi(timeout_env) : 100;
     REQUIRE(elapsed < timeout_ms);
 #endif
 
