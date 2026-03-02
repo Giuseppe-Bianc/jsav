@@ -10,8 +10,9 @@ Extend the lexer's `skip_whitespace_and_comments` function to recognize all 26 U
 are added to the ASCII fast-path; NEL (U+0085) is special-cased as a line terminator in the
 non-ASCII path; all Zs/Zl/Zp whitespace is already handled by the existing
 `is_unicode_whitespace()` + `skip_unicode_whitespace()` infrastructure. A companion
-`is_unicode_line_terminator()` constexpr helper is added. No new files, no new dependencies, no
-changes to `UnicodeData.hpp`.
+`is_unicode_line_terminator()` constexpr helper is added via the Python generator script
+(`scripts/generate_unicode_tables.py`) that produces `UnicodeData.hpp`. No new files, no new
+dependencies.
 
 ## Technical Context
 
@@ -65,14 +66,18 @@ specs/002-utf8-unicode-whitespace/
 ### Source Code (files touched)
 
 ```text
-src/jsav_Lib/lexer/Lexer.cpp          # Modify skip_whitespace_and_comments, skip_unicode_whitespace
-include/jsav/lexer/Lexer.hpp          # No changes needed (methods already declared)
-include/jsav/lexer/unicode/Utf8.hpp   # No changes (reused as-is)
-include/jsav/lexer/unicode/UnicodeData.hpp  # No changes (whitespace_ranges preserved)
-test/constexpr_tests.cpp              # Add ~13 static_assert tests for decode + line terminator
-test/tests.cpp                        # Add ~28 runtime tests (token separation, line/col, robustness, compat, benchmark)
-test/CMakeLists.txt                   # No changes needed
+scripts/generate_unicode_tables.py          # Add is_unicode_line_terminator() to generated output
+include/jsav/lexer/unicode/UnicodeData.hpp  # REGENERATED (not hand-edited) — gains is_unicode_line_terminator()
+src/jsav_Lib/lexer/Lexer.cpp                # Modify skip_whitespace_and_comments, skip_unicode_whitespace
+include/jsav/lexer/Lexer.hpp                # No changes needed (methods already declared)
+include/jsav/lexer/unicode/Utf8.hpp         # No changes (reused as-is)
+test/constexpr_tests.cpp                    # Add ~13 static_assert tests for decode + line terminator
+test/tests.cpp                              # Add ~28 runtime tests (token separation, line/col, robustness, compat, benchmark)
+test/CMakeLists.txt                         # No changes needed
 ```
+
+**IMPORTANT**: `UnicodeData.hpp` is auto-generated. The "DO NOT EDIT" header forbids hand-edits.
+All changes to this file must go through `scripts/generate_unicode_tables.py` → regenerate.
 
 **Structure Decision**: Existing single-project layout. All changes within the three files
 already in the build system. No CMake modifications required.

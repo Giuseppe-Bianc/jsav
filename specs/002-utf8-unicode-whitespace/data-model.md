@@ -53,7 +53,8 @@ increment via LF.
 
 ### New Function: `is_unicode_line_terminator(char32_t cp)`
 
-**Location**: `include/jsav/lexer/unicode/UnicodeData.hpp`
+**Location**: `include/jsav/lexer/unicode/UnicodeData.hpp` (auto-generated)
+**Added via**: `scripts/generate_unicode_tables.py` → `generate_header()` template
 **Namespace**: `jsv::unicode`
 **Signature**: `[[nodiscard]] constexpr bool is_unicode_line_terminator(char32_t cp) noexcept`
 
@@ -124,7 +125,7 @@ skip_whitespace_and_comments()
         ├── unicode::decode_utf8() [from Utf8.hpp]
         ├── NEL check (U+0085) [NEW inline]
         ├── unicode::is_unicode_whitespace() [from UnicodeData.hpp, unchanged]
-        └── unicode::is_unicode_line_terminator() [NEW in UnicodeData.hpp]
+        └── unicode::is_unicode_line_terminator() [NEW in UnicodeData.hpp via generator script]
 ```
 
 Note: `is_unicode_line_terminator()` is used by `skip_unicode_whitespace()` to replace the

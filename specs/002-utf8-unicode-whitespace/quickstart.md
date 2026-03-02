@@ -52,8 +52,9 @@ ctest -R "unittests|relaxed_constexpr|constexpr" --output-on-failure
 
 | File | Change | Net Lines |
 |------|--------|-----------|
+| `scripts/generate_unicode_tables.py` | Add `is_unicode_line_terminator()` to `generate_header()` template | ~15 |
+| `include/jsav/lexer/unicode/UnicodeData.hpp` | **REGENERATED** (not hand-edited) — gains `is_unicode_line_terminator()` | ~10 |
 | `src/jsav_Lib/lexer/Lexer.cpp` | Add VT/FF to ASCII switch; add NEL handling in `skip_unicode_whitespace()`; use `is_unicode_line_terminator()` | ~15 |
-| `include/jsav/lexer/unicode/UnicodeData.hpp` | Add `is_unicode_line_terminator()` function | ~10 |
 | `test/constexpr_tests.cpp` | Add `is_unicode_line_terminator` truth table tests | ~20 |
 | `test/tests.cpp` | Add 28 runtime tests + 1 benchmark | ~350 |
 

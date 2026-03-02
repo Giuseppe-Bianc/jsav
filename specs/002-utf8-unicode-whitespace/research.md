@@ -80,6 +80,10 @@ fall through as "not whitespace" and exit the loop.
 
 **Decision**: Add a `constexpr` free function `is_unicode_line_terminator(char32_t cp)` in the
 `jsv::unicode` namespace in `UnicodeData.hpp`, returning `true` for U+0085, U+2028, U+2029 only.
+Because `UnicodeData.hpp` is auto-generated ("DO NOT EDIT — regenerate with: python
+scripts/generate_unicode_tables.py"), the function is added by modifying the generator script
+`scripts/generate_unicode_tables.py` to emit it in the `generate_header()` template, then
+regenerating the header.
 
 **Rationale**: The spec requests this helper. Placing it in `UnicodeData.hpp` alongside
 `is_unicode_whitespace()` is the natural location for Unicode classification functions. It
@@ -88,13 +92,14 @@ of keeping Unicode utilities in the `unicode` namespace. LF (U+000A) is excluded
 is already handled by the ASCII path in `skip_whitespace_and_comments` and does not need
 runtime classification.
 
-Wait — the spec says "returns true for U+0085 (NEL), U+2028 (LINE SEPARATOR), and U+2029
-(PARAGRAPH SEPARATOR) only" and "is placed in anonymous namespace within Lexer.cpp". However,
-the constitution says to keep Unicode classification functions in `UnicodeData.hpp`. Also,
-`constexpr_tests.cpp` needs to test it, which requires it to be in a header.
+The generator script already emits `is_unicode_whitespace()`, `is_letter()`, `is_id_start()`,
+and `is_id_continue()` in its `generate_header()` function template. Adding
+`is_unicode_line_terminator()` follows the same pattern — it is a hand-written function
+(not table-driven) that belongs in the classification functions section of the generated output.
 
-**Revised decision**: Place `is_unicode_line_terminator` in `UnicodeData.hpp` as a public
-`constexpr` function in `jsv::unicode` namespace. This:
+**Revised decision**: Modify `scripts/generate_unicode_tables.py` `generate_header()` to emit
+`is_unicode_line_terminator` in `UnicodeData.hpp` as a public `constexpr` function in
+`jsv::unicode` namespace. Then regenerate the header. This:
 
 - Enables `STATIC_REQUIRE` testing from `constexpr_tests.cpp`
 - Follows existing pattern (`is_unicode_whitespace`, `is_id_start`, `is_id_continue`)
@@ -104,8 +109,11 @@ the constitution says to keep Unicode classification functions in `UnicodeData.h
 
 1. **Anonymous namespace in Lexer.cpp** — rejected: cannot be tested from constexpr_tests.cpp
    without exposing it; breaks test-first workflow
-2. **In UnicodeData.hpp** — chosen: testable, consistent with project patterns
-3. **In Utf8.hpp** — rejected: Utf8.hpp is for encoding/decoding, not classification
+2. **Hand-edit UnicodeData.hpp** — rejected: file has "DO NOT EDIT" header; hand-edits would be
+   overwritten on next regeneration
+3. **Modify generator script** — chosen: follows the project's established workflow, testable,
+   consistent with existing classification functions
+4. **In Utf8.hpp** — rejected: Utf8.hpp is for encoding/decoding, not classification
 
 ## R-05: Line terminator set — CR excluded
 
