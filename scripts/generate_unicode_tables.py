@@ -17,6 +17,7 @@ Output:
     include/jsav/lexer/unicode/UnicodeData.hpp
 """
 
+import shutil
 import subprocess
 import sys
 import time
@@ -464,14 +465,20 @@ def run_clang_format(file_path: Path) -> None:
         SystemExit: If clang-format fails.
     """
     print("Running clang-format...")
-#Find the project root (directory containing .clang-format)
+    # Find the project root (directory containing .clang-format)
     script_dir = Path(__file__).parent
     project_root = script_dir.parent
     clang_format_config = project_root / ".clang-format"
 
+    # Resolve clang-format executable path explicitly
+    clang_format_bin = shutil.which("clang-format")
+    if clang_format_bin is None:
+        print("  clang-format not found in PATH. Skipping formatting.")
+        return
+
     try:
         subprocess.run(
-            ["clang-format", "-i", f"--style=file:{clang_format_config}", str(file_path)],
+            [clang_format_bin, "-i", f"--style=file:{clang_format_config}", str(file_path)],
             capture_output=True,
             text=True,
             check=True,
@@ -480,8 +487,6 @@ def run_clang_format(file_path: Path) -> None:
     except subprocess.CalledProcessError as e:
         print(f"  clang-format failed: {e.stderr}")
         sys.exit(1)
-    except FileNotFoundError:
-        print("  clang-format not found in PATH. Skipping formatting.")
 
 #-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
 #Main
