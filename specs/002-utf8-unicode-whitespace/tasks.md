@@ -21,6 +21,7 @@
 verifies the build works and creates the shared helper function needed by multiple stories.
 
 - [ ] T001 Verify clean build of all existing targets from branch 002-utf8-unicode-whitespace
+- [ ] T001b Run and record baseline ASCII throughput benchmark (Catch2 BENCHMARK, 1MB corpus, 100 iterations) before any code changes — save result for SC-005 comparison
 - [ ] T002 Add `is_unicode_line_terminator()` function to `generate_header()` template in scripts/generate_unicode_tables.py per contracts/unicode-line-terminator.md
 - [ ] T003 Regenerate include/jsav/lexer/unicode/UnicodeData.hpp by running `python scripts/generate_unicode_tables.py` and verify the new function appears in output
 
@@ -54,14 +55,15 @@ verifies the build works and creates the shared helper function needed by multip
 - [ ] T008 [US1] Add runtime test for NEL (U+0085) separating tokens in test/tests.cpp — `Lexer_UnicodeWhitespace_NEL_SeparatesTokens`
 - [ ] T009 [US1] Add runtime test for all 26 whitespace code points using Catch2 GENERATE in test/tests.cpp — `Lexer_UnicodeWhitespace_All26CodePoints_SeparateTokens`
 - [ ] T010 [US1] Add runtime test for consecutive mixed Unicode whitespace in test/tests.cpp — `Lexer_UnicodeWhitespace_ConsecutiveMixed_ConsumedAsOneRun`
-- [ ] T011 [US1] Build tests target and verify T006–T010 FAIL (Red phase)
+- [ ] T010b [US1] Add runtime test for NEL (U+0085) incrementing line counter and resetting column counter in test/tests.cpp — `Lexer_LineColumn_NEL_IncrementsLineResetsColumn`
+- [ ] T011 [US1] Build tests target and verify T006–T010b FAIL (Red phase)
 
 ### Implementation for User Story 1
 
 - [ ] T012 [US1] Add VT and FF cases to ASCII fast-path in skip_whitespace_and_comments() in src/jsav_Lib/lexer/Lexer.cpp per contracts/lexer-whitespace.md
 - [ ] T013 [US1] Add NEL (U+0085) special case in skip_unicode_whitespace() in src/jsav_Lib/lexer/Lexer.cpp — check before is_unicode_whitespace(), treat as whitespace + line terminator
 - [ ] T014 [US1] Refactor skip_unicode_whitespace() to use is_unicode_line_terminator() instead of inline U+2028/U+2029 checks in src/jsav_Lib/lexer/Lexer.cpp
-- [ ] T015 [US1] Build and run tests to verify T006–T010 PASS (Green phase)
+- [ ] T015 [US1] Build and run tests to verify T006–T010b PASS (Green phase)
 - [ ] T016 [US1] Run clang-format on src/jsav_Lib/lexer/Lexer.cpp
 
 **Checkpoint**: All 26 `\p{White_Space}` code points separate tokens correctly. US1 MVP is complete.
@@ -76,17 +78,18 @@ verifies the build works and creates the shared helper function needed by multip
 
 ### Tests for User Story 4
 
-- [ ] T017 [US4] Add explicit backward-compat runtime test for ASCII-only whitespace in test/tests.cpp — `Lexer_BackwardCompat_AsciiWhitespace_IdenticalBehavior`
-- [ ] T018 [US4] Add explicit backward-compat runtime test for line comments in test/tests.cpp — `Lexer_BackwardCompat_LineComment_IdenticalBehavior`
-- [ ] T019 [US4] Add explicit backward-compat runtime test for block comments in test/tests.cpp — `Lexer_BackwardCompat_BlockComment_IdenticalBehavior`
-- [ ] T020 [US4] Add explicit backward-compat runtime test for BOM handling in test/tests.cpp — `Lexer_BackwardCompat_BOM_IdenticalBehavior`
+- [ ] T017 [US4] Add runtime test verifying Unicode whitespace (U+00A0) inside a string literal is NOT consumed as whitespace in test/tests.cpp — `Lexer_UnicodeWhitespace_InsideStringLiteral_NotConsumed`
+- [ ] T018 [US4] Add runtime test verifying Unicode whitespace (U+00A0) inside a line comment and a block comment is NOT consumed as inter-token whitespace in test/tests.cpp — `Lexer_UnicodeWhitespace_InsideComment_NotConsumed`
+- [ ] T019 [US4] Add explicit backward-compat runtime test for ASCII-only whitespace in test/tests.cpp — `Lexer_BackwardCompat_AsciiWhitespace_IdenticalBehavior`
+- [ ] T020 [US4] Add explicit backward-compat runtime test for line comments in test/tests.cpp — `Lexer_BackwardCompat_LineComment_IdenticalBehavior`
+- [ ] T021 [US4] Add explicit backward-compat runtime test for block comments in test/tests.cpp — `Lexer_BackwardCompat_BlockComment_IdenticalBehavior`
+- [ ] T022 [US4] Add explicit backward-compat runtime test for BOM handling in test/tests.cpp — `Lexer_BackwardCompat_BOM_IdenticalBehavior`
 
 ### Verification for User Story 4
 
-- [ ] T021 [US4] Build and run ALL test targets (tests, relaxed_constexpr_tests, constexpr_tests) — verify zero regressions
+- [ ] T023 [US4] Build and run ALL test targets (tests, relaxed_constexpr_tests, constexpr_tests) — verify zero regressions
 
 **Checkpoint**: All existing tests pass. No behavioral regressions for ASCII-only input.
-
 ---
 
 ## Phase 5: User Story 2 — Correct Line and Column Tracking (Priority: P2)
@@ -99,18 +102,17 @@ verifies the build works and creates the shared helper function needed by multip
 
 > **TDD: Write tests FIRST, verify they FAIL, then implement.**
 
-- [ ] T022 [P] [US2] Add runtime test for NEL as line terminator in test/tests.cpp — `Lexer_LineColumn_NEL_IncrementsLineResetsColumn`
-- [ ] T023 [P] [US2] Add runtime test for LINE SEPARATOR (U+2028) line/column in test/tests.cpp — `Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn`
-- [ ] T024 [P] [US2] Add runtime test for PARAGRAPH SEPARATOR (U+2029) line/column in test/tests.cpp — `Lexer_LineColumn_ParagraphSeparator_IncrementsLineResetsColumn`
-- [ ] T025 [P] [US2] Add runtime test for NBSP (U+00A0) column advancement by 2 bytes in test/tests.cpp — `Lexer_LineColumn_NBSP_ColumnAdvancesByByteCount`
-- [ ] T026 [P] [US2] Add runtime test for IDEOGRAPHIC SPACE (U+3000) column advancement by 3 bytes in test/tests.cpp — `Lexer_LineColumn_IdeographicSpace_ColumnAdvancesByByteCount`
-- [ ] T027 [P] [US2] Add runtime test for CR not incrementing line in test/tests.cpp — `Lexer_LineColumn_CR_DoesNotIncrementLine`
-- [ ] T028 [P] [US2] Add runtime test for CR+LF producing one line increment in test/tests.cpp — `Lexer_LineColumn_CRLF_SingleLineIncrement`
-- [ ] T029 [P] [US2] Add runtime test for accumulated multi-terminator sequence (NEL + U+2028 + LF) in test/tests.cpp — `Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly`
+- [ ] T024 [P] [US2] Add runtime test for LINE SEPARATOR (U+2028) line/column in test/tests.cpp — `Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn`
+- [ ] T025 [P] [US2] Add runtime test for PARAGRAPH SEPARATOR (U+2029) line/column in test/tests.cpp — `Lexer_LineColumn_ParagraphSeparator_IncrementsLineResetsColumn`
+- [ ] T026 [P] [US2] Add runtime test for NBSP (U+00A0) column advancement by 2 bytes in test/tests.cpp — `Lexer_LineColumn_NBSP_ColumnAdvancesByByteCount`
+- [ ] T027 [P] [US2] Add runtime test for IDEOGRAPHIC SPACE (U+3000) column advancement by 3 bytes in test/tests.cpp — `Lexer_LineColumn_IdeographicSpace_ColumnAdvancesByByteCount`
+- [ ] T028 [P] [US2] Add runtime test for CR not incrementing line in test/tests.cpp — `Lexer_LineColumn_CR_DoesNotIncrementLine`
+- [ ] T029 [P] [US2] Add runtime test for CR+LF producing one line increment in test/tests.cpp — `Lexer_LineColumn_CRLF_SingleLineIncrement`
+- [ ] T030 [P] [US2] Add runtime test for accumulated multi-terminator sequence (NEL + U+2028 + LF) in test/tests.cpp — `Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly`
 
 ### Verification for User Story 2
 
-- [ ] T030 [US2] Build and run tests to verify T022–T029 PASS (line/column tracking is already implemented by US1 changes)
+- [ ] T031 [US2] Build and run tests to verify T023–T029 PASS (line/column tracking is already implemented by US1 changes; NEL verified in T010b/Phase 3)
 
 **Checkpoint**: Line/column tracking verified for all line terminators and multi-byte whitespace.
 
@@ -124,20 +126,20 @@ verifies the build works and creates the shared helper function needed by multip
 
 ### Tests for User Story 3
 
-- [ ] T031 [P] [US3] Add runtime test for lone continuation byte (0x80) in test/tests.cpp — `Lexer_Robustness_LoneContinuationByte_NoCrash`
-- [ ] T032 [P] [US3] Add runtime test for truncated 2-byte sequence at EOF in test/tests.cpp — `Lexer_Robustness_Truncated2ByteAtEOF_NoCrash`
-- [ ] T033 [P] [US3] Add runtime test for truncated 3-byte sequence at EOF in test/tests.cpp — `Lexer_Robustness_Truncated3ByteAtEOF_NoCrash`
-- [ ] T034 [P] [US3] Add runtime test for overlong encoding of SPACE not treated as whitespace in test/tests.cpp — `Lexer_Robustness_OverlongSpace_NotWhitespace`
-- [ ] T035 [P] [US3] Add runtime test for 0xFE byte in test/tests.cpp — `Lexer_Robustness_ByteFE_NoCrash`
-- [ ] T036 [P] [US3] Add runtime test for 0xFF byte in test/tests.cpp — `Lexer_Robustness_ByteFF_NoCrash`
-- [ ] T037 [P] [US3] Add runtime test for invalid continuation byte in test/tests.cpp — `Lexer_Robustness_InvalidContinuation_NoCrash`
-- [ ] T038 [P] [US3] Add runtime test for valid non-whitespace multi-byte char (U+00E9) not consumed in test/tests.cpp — `Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed`
-- [ ] T039 [P] [US3] Add runtime test for surrogate pair bytes in test/tests.cpp — `Lexer_Robustness_SurrogateBytes_NoCrash`
-- [ ] T040 [P] [US3] Add runtime test for null byte (0x00) in test/tests.cpp — `Lexer_Robustness_NullByte_NoCrash`
+- [ ] T032 [P] [US3] Add runtime test for lone continuation byte (0x80) in test/tests.cpp — `Lexer_Robustness_LoneContinuationByte_NoCrash`
+- [ ] T033 [P] [US3] Add runtime test for truncated 2-byte sequence at EOF in test/tests.cpp — `Lexer_Robustness_Truncated2ByteAtEOF_NoCrash`
+- [ ] T034 [P] [US3] Add runtime test for truncated 3-byte sequence at EOF in test/tests.cpp — `Lexer_Robustness_Truncated3ByteAtEOF_NoCrash`
+- [ ] T035 [P] [US3] Add runtime test for overlong encoding of SPACE not treated as whitespace in test/tests.cpp — `Lexer_Robustness_OverlongSpace_NotWhitespace`
+- [ ] T036 [P] [US3] Add runtime test for 0xFE byte in test/tests.cpp — `Lexer_Robustness_ByteFE_NoCrash`
+- [ ] T037 [P] [US3] Add runtime test for 0xFF byte in test/tests.cpp — `Lexer_Robustness_ByteFF_NoCrash`
+- [ ] T038 [P] [US3] Add runtime test for invalid continuation byte in test/tests.cpp — `Lexer_Robustness_InvalidContinuation_NoCrash`
+- [ ] T039 [P] [US3] Add runtime test for valid non-whitespace multi-byte char (U+00E9) not consumed in test/tests.cpp — `Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed`
+- [ ] T040 [P] [US3] Add runtime test for surrogate pair bytes in test/tests.cpp — `Lexer_Robustness_SurrogateBytes_NoCrash`
+- [ ] T041 [P] [US3] Add runtime test for null byte (0x00) in test/tests.cpp — `Lexer_Robustness_NullByte_NoCrash`
 
 ### Verification for User Story 3
 
-- [ ] T041 [US3] Build and run tests to verify T031–T040 PASS (robustness is already handled by existing decode_utf8 + skip_unicode_whitespace guard)
+- [ ] T042 [US3] Build and run tests to verify T031–T040 PASS (robustness is already handled by existing decode_utf8 + skip_unicode_whitespace guard)
 
 **Checkpoint**: All 10 classes of malformed input handled without crashes. FR-004, FR-005, FR-010 verified.
 
@@ -147,11 +149,14 @@ verifies the build works and creates the shared helper function needed by multip
 
 **Purpose**: Performance validation, CI readiness, code quality gates
 
-- [ ] T042 Add ASCII throughput benchmark test in test/tests.cpp — `Lexer_Benchmark_AsciiThroughput_NoRegression` using Catch2 BENCHMARK with 1MB corpus, 100 iterations
-- [ ] T043 Build and run full test suite (tests, relaxed_constexpr_tests, constexpr_tests) — all pass
-- [ ] T044 Run clang-format on all modified files (scripts/generate_unicode_tables.py via black/ruff, src/jsav_Lib/lexer/Lexer.cpp, test/constexpr_tests.cpp, test/tests.cpp)
-- [ ] T045 Run quickstart.md verification checklist — all 10 items pass
-- [ ] T046 Verify lizard complexity: skip_whitespace_and_comments ≤100 LOC / CCN ≤15
+- [ ] T043 Add ASCII throughput benchmark test in test/tests.cpp — `Lexer_Benchmark_AsciiThroughput_NoRegression` using Catch2 BENCHMARK with 1MB corpus, 100 iterations
+- [ ] T043b Compare T042 benchmark results against T001b baseline — verify ASCII-only tokenization throughput has not degraded by more than 5% (SC-005). Log both values and compute percentage delta explicitly.
+- [ ] T044 Build and run full test suite (tests, relaxed_constexpr_tests, constexpr_tests) — all pass
+- [ ] T045 Run clang-format on all modified files (scripts/generate_unicode_tables.py via black/ruff, src/jsav_Lib/lexer/Lexer.cpp, test/constexpr_tests.cpp, test/tests.cpp)
+- [ ] T046 Run quickstart.md verification checklist — all 10 items pass
+- [ ] T047 Verify lizard complexity: skip_whitespace_and_comments ≤100 LOC / CCN ≤15
+- [ ] T048 Run clang-tidy and cppcheck on all modified source files (src/jsav_Lib/lexer/Lexer.cpp, include/jsav/lexer/unicode/UnicodeData.hpp) — zero warnings required per constitution §III enforcement mechanisms
+- [ ] T049 Build and run full test suite with AddressSanitizer and UndefinedBehaviorSanitizer enabled — zero violations required per constitution §III enforcement mechanisms
 
 ---
 
@@ -185,7 +190,7 @@ verifies the build works and creates the shared helper function needed by multip
 - **Phase 2**: T004 is a single file edit (constexpr_tests.cpp)
 - **Phase 3 tests**: T006–T010 all modify tests.cpp sequentially (same file)
 - **Phase 3 impl**: T012 + T013 + T014 all modify Lexer.cpp sequentially (same file)
-- **Phase 5 tests**: T022–T029 all marked [P] — logically parallel (same file, different test sections)
+- **Phase 5 tests**: T023–T029 all marked [P] — logically parallel (same file, different test sections)
 - **Phase 6 tests**: T031–T040 all marked [P] — logically parallel (same file, different test sections)
 - **US2 and US3**: Entire phases can run in parallel once US1 is complete (tests in different sections of tests.cpp)
 
@@ -195,7 +200,7 @@ verifies the build works and creates the shared helper function needed by multip
 
 ```text
 # US2 and US3 test phases can proceed in parallel:
-Thread A: T022–T029 (line/column tracking tests)
+Thread A: T023–T029 (line/column tracking tests)
 Thread B: T031–T040 (robustness tests)
 
 # Both write different sections of test/tests.cpp
@@ -226,7 +231,7 @@ Thread B: T031–T040 (robustness tests)
 ### Single Developer Strategy
 
 Execute phases 1–7 sequentially. Each phase builds on the previous.
-Total estimated tasks: 46 tasks across 7 phases.
+Total estimated tasks: 49 tasks across 7 phases.
 
 ---
 

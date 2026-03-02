@@ -24,7 +24,7 @@ dependencies.
 **Project Type**: Compiler (lexer component of the jsav language)
 **Performance Goals**: ASCII-only tokenization throughput must not regress >5% (SC-005)
 **Constraints**: Zero sanitizer findings (ASan + UBSan), all functions ≤100 LOC / CCN ≤15 / ≤6 params
-**Scale/Scope**: ~95 net lines in Lexer.cpp, ~120 lines constexpr tests, ~350 lines runtime tests — 3 files total
+**Scale/Scope**: ~95 net lines in Lexer.cpp, ~120 lines constexpr tests, ~350 lines runtime tests — 5 files touched (3 hand-edited source files, 1 generator script, 1 regenerated header)
 
 ## Constitution Check
 
