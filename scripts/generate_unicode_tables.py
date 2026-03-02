@@ -17,8 +17,9 @@ Output:
     include/jsav/lexer/unicode/UnicodeData.hpp
 """
 
+import subprocess
 import sys
-import re
+import time
 import urllib.request
 from pathlib import Path
 from datetime import date
@@ -47,6 +48,76 @@ WHITESPACE_CATEGORIES = frozenset({"Zs", "Zl", "Zp"})
 
 # "Letter" for is_letter() — all L categories
 LETTER_CATEGORIES = frozenset({"Lu", "Ll", "Lt", "Lm", "Lo"})
+
+
+# ---------------------------------------------------------------------------
+# Timing Utilities
+# ---------------------------------------------------------------------------
+
+
+def format_duration(duration_ns: float) -> str:
+    """
+    Format a duration in nanoseconds to a human-readable string.
+
+    Mimics the C++ ValueLabel::toString() format from
+    include/jsavCore/timer/Times.hpp which produces composite time strings like:
+    - "1s,234ms,567us,890ns" for seconds
+    - "1ms,234us,567ns" for milliseconds
+    - "1234us,567ns" for microseconds
+    - "500ns" for nanoseconds
+
+    Args:
+        duration_ns: Duration in nanoseconds.
+
+    Returns:
+        Formatted string with composite time units matching C++ Timer output.
+
+    Examples:
+        >>> format_duration(500)
+        '500ns'
+        >>> format_duration(15567)
+        '15us,567ns'
+        >>> format_duration(2567890)
+        '2ms,567us,890ns'
+        >>> format_duration(1234567890)
+        '1s,234ms,567us,890ns'
+    """
+    if duration_ns < 1000:
+        # Pure nanoseconds
+        return f"{int(duration_ns)}ns"
+    elif duration_ns < 1_000_000:
+        # Microseconds + nanoseconds
+        micros = int(duration_ns // 1000)
+        nanos = int(duration_ns % 1000)
+        return f"{micros}us,{nanos}ns" if nanos > 0 else f"{micros}us"
+    elif duration_ns < 1_000_000_000:
+        # Milliseconds + microseconds + nanoseconds
+        millis = int(duration_ns // 1_000_000)
+        remainder = duration_ns % 1_000_000
+        micros = int(remainder // 1000)
+        nanos = int(remainder % 1000)
+        parts = [f"{millis}ms"]
+        if micros > 0:
+            parts.append(f"{micros}us")
+        if nanos > 0:
+            parts.append(f"{nanos}ns")
+        return ",".join(parts)
+    else:
+        # Seconds + milliseconds + microseconds + nanoseconds
+        secs = int(duration_ns // 1_000_000_000)
+        remainder = duration_ns % 1_000_000_000
+        millis = int(remainder // 1_000_000)
+        remainder = remainder % 1_000_000
+        micros = int(remainder // 1000)
+        nanos = int(remainder % 1000)
+        parts = [f"{secs}s"]
+        if millis > 0:
+            parts.append(f"{millis}ms")
+        if micros > 0:
+            parts.append(f"{micros}us")
+        if nanos > 0:
+            parts.append(f"{nanos}ns")
+        return ",".join(parts)
 
 # ---------------------------------------------------------------------------
 # Parse UnicodeData.txt
@@ -233,12 +304,10 @@ def generate_header(
  */
 
 #pragma once
+// NOLINTBEGIN(*-magic-numbers, *-avoid-magic-numbers)
 
 #include <algorithm>
 #include <array>
-#include <cstdint>
-
-// NOLINTBEGIN(*-magic-numbers, *-avoid-magic-numbers)
 
 namespace jsv::unicode {{
 
@@ -253,7 +322,7 @@ namespace jsv::unicode {{
     // Used by is_letter()
     // =========================================================================
 
-    inline constexpr std::array<CodepointRange, {len(letter_ranges)}> letter_ranges{{{{
+    static inline constexpr std::array<CodepointRange, {len(letter_ranges)}> letter_ranges{{{{
 {letter_cpp}
     }}}};
 
@@ -264,11 +333,21 @@ namespace jsv::unicode {{
     // Used by is_id_start()
     // =========================================================================
 
-    inline constexpr std::array<CodepointRange, {len(id_start_ranges)}> id_start_ranges{{{{
+    static inline constexpr std::array<CodepointRange, {len(id_start_ranges)}> id_start_ranges{{{{
 {id_start_cpp}
     }}}};
 
     static_assert(id_start_ranges.size() == {len(id_start_ranges)}, "id_start_ranges size mismatch");
+    static_assert(
+        []() consteval {{
+            for (std::size_t i = 1; i < id_start_ranges.size(); ++i) {{
+                if (id_start_ranges[i - 1].last >= id_start_ranges[i].first) {{
+                    return false;
+                }}
+            }}
+            return true;
+        }}(),
+        "id_start_ranges must be sorted and non-overlapping (required for binary search)");
 
     // =========================================================================
     // id_continue ranges — General Category L + M + N + Pc
@@ -280,17 +359,38 @@ namespace jsv::unicode {{
     }}}};
 
     static_assert(id_continue_ranges.size() == {len(id_continue_ranges)}, "id_continue_ranges size mismatch");
+    static_assert(
+        []() consteval {{
+            for(std::size_t i = 1; i < id_continue_ranges.size(); ++i) {{
+                if(id_continue_ranges[i - 1].last >= id_continue_ranges[i].first) {{
+                    return false;
+                }}
+            }}
+            return true;
+        }}(),
+        "id_continue_ranges must be sorted and non-overlapping (required for binary search)");
 
     // =========================================================================
     // whitespace ranges — General Category Zs + Zl + Zp
     // Used by is_unicode_whitespace()
     // =========================================================================
 
-    inline constexpr std::array<CodepointRange, {len(whitespace_ranges)}> whitespace_ranges{{{{
+    static inline constexpr std::array<CodepointRange, {len(whitespace_ranges)}> whitespace_ranges{{{{
+
 {whitespace_cpp}
     }}}};
 
     static_assert(whitespace_ranges.size() == {len(whitespace_ranges)}, "whitespace_ranges size mismatch");
+        static_assert(
+        []() consteval {{
+            for(std::size_t i = 1; i < whitespace_ranges.size(); ++i) {{
+                if(whitespace_ranges[i - 1].last >= whitespace_ranges[i].first) {{
+                            return false;
+                }}
+            }}
+            return true;
+        }}(),
+        "whitespace_ranges must be sorted and non-overlapping (required for binary search)");
 
     // =========================================================================
     // Classification functions
@@ -354,10 +454,42 @@ namespace jsv::unicode {{
 
 
 # ---------------------------------------------------------------------------
+# clang-format Utility
+# ---------------------------------------------------------------------------
+
+def run_clang_format(file_path: Path) -> None:
+    """
+    Run clang-format on the generated file.
+
+    Args:
+        file_path: Path to the file to format.
+
+    Raises:
+        SystemExit: If clang-format fails.
+    """
+    print("Running clang-format...")
+    try:
+        result = subprocess.run(
+            ["clang-format", "-i", str(file_path)],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        print("  clang-format completed successfully.")
+    except subprocess.CalledProcessError as e:
+        print(f"  clang-format failed: {e.stderr}")
+        sys.exit(1)
+    except FileNotFoundError:
+        print("  clang-format not found in PATH. Skipping formatting.")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main() -> None:
+    start_time = time.perf_counter_ns()
+
     data = download_unicode_data()
     print("Parsing UnicodeData.txt...")
     codepoints = parse_codepoints(data)
@@ -383,6 +515,17 @@ def main() -> None:
     OUTPUT_PATH.write_text(header_content, encoding="utf-8")
     print(f"Written: {OUTPUT_PATH}")
     print(f"  {len(header_content):,} bytes, {header_content.count(chr(10))} lines.")
+
+    # Run clang-format on the generated file
+
+    end_time = time.perf_counter_ns()
+    total_time = end_time - start_time
+    print(f"Total generation time: {format_duration(total_time)}")
+    start_time_clang = time.perf_counter_ns()
+    run_clang_format(OUTPUT_PATH)
+    end_time_clang = time.perf_counter_ns()
+    total_time_clang = end_time_clang - start_time_clang
+    print(f"Total clang-format time: {format_duration(total_time_clang)}")
 
 
 if __name__ == "__main__":
