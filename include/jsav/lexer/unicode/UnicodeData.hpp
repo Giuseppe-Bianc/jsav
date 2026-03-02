@@ -12,7 +12,6 @@
 #include <array>
 
 namespace jsv::unicode {
-
     /// Inclusive range of Unicode code points.
     struct CodepointRange {
         char32_t first;  ///< Inclusive start
@@ -684,6 +683,13 @@ namespace jsv::unicode {
         return detail::in_ranges(cp, whitespace_ranges.data(), whitespace_ranges.data() + whitespace_ranges.size());
     }
 
+    /// True if cp is a Unicode line terminator: NEL (U+0085), LINE SEPARATOR (U+2028),
+    /// or PARAGRAPH SEPARATOR (U+2029). Used by skip_unicode_whitespace() to determine
+    /// when to increment the line counter and reset the column counter.
+    /// Note: LF (U+000A) is handled by the ASCII fast-path and is NOT included here.
+    [[nodiscard]] constexpr bool is_unicode_line_terminator(char32_t cp) noexcept {
+        return cp == U'\U00000085' || cp == U'\U00002028' || cp == U'\U00002029';
+    }
 }  // namespace jsv::unicode
 
 // NOLINTEND(*-magic-numbers, *-avoid-magic-numbers)

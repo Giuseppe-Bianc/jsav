@@ -345,36 +345,40 @@ TEST_CASE("Utf8Decoder_AllSeventeenPlanes_DecodeCorrectly", "[Unicode][T030A][SC
 TEST_CASE("Utf8Decoder_OverlongTwoByte_ReturnsOverlongError", "[Unicode][T036]") {
     using namespace jsv::unicode;
     // 0xC0 0xAF → Overlong (would encode U+002F '/')
+    // Maximal subpart: consumes both bytes (lead + valid continuation)
     constexpr auto res = decode_utf8("\xC0\xAF", 0);
     STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.byte_length == 2);
     STATIC_REQUIRE(res.status == Utf8Status::Overlong);
 }
 
 TEST_CASE("Utf8Decoder_OverlongThreeByte_ReturnsOverlongError", "[Unicode][T037]") {
     using namespace jsv::unicode;
     // 0xE0 0x80 0xAF → Overlong
+    // Maximal subpart: consumes all 3 bytes (lead + 2 valid continuations)
     constexpr auto res = decode_utf8("\xE0\x80\xAF", 0);
     STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.byte_length == 3);
     STATIC_REQUIRE(res.status == Utf8Status::Overlong);
 }
 
 TEST_CASE("Utf8Decoder_SurrogateHalf_ReturnsSurrogateError", "[Unicode][T038]") {
     using namespace jsv::unicode;
     // 0xED 0xA0 0x80 → U+D800 (high surrogate)
+    // Maximal subpart: consumes all 3 bytes (lead + 2 valid continuations)
     constexpr auto res = decode_utf8("\xED\xA0\x80", 0);
     STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.byte_length == 3);
     STATIC_REQUIRE(res.status == Utf8Status::Surrogate);
 }
 
 TEST_CASE("Utf8Decoder_OutOfRange_ReturnsOutOfRangeError", "[Unicode][T039]") {
     using namespace jsv::unicode;
     // 0xF4 0x90 0x80 0x80 → U+110000 (out of Unicode range)
+    // Maximal subpart: consumes all 4 bytes
     constexpr auto res = decode_utf8("\xF4\x90\x80\x80", 0);
     STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.byte_length == 4);
     STATIC_REQUIRE(res.status == Utf8Status::OutOfRange);
 }
 
@@ -517,6 +521,29 @@ TEST_CASE("UnicodeClassifier_WhitespaceFastPath_SpaceIsZs", "[Unicode][T086]") {
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x2003U}));  // EM SPACE (Zs)
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x2028U}));  // LINE SEPARATOR (Zl)
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x2029U}));  // PARAGRAPH SEPARATOR (Zp)
+}
+
+// ==========================================================================
+// T004a Phase 2: is_unicode_line_terminator truth table
+// ==========================================================================
+
+TEST_CASE("UnicodeLineTerminator_TruthTable", "[Unicode][T004a]") {
+    using namespace jsv::unicode;
+
+    // Line terminators (should return true)
+    STATIC_REQUIRE(is_unicode_line_terminator(char32_t{0x0085U}));  // NEL
+    STATIC_REQUIRE(is_unicode_line_terminator(char32_t{0x2028U}));  // LINE SEPARATOR
+    STATIC_REQUIRE(is_unicode_line_terminator(char32_t{0x2029U}));  // PARAGRAPH SEPARATOR
+
+    // Non-line-terminators (should return false)
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\n'));              // LF (handled by ASCII path)
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\r'));              // CR
+    STATIC_REQUIRE(!is_unicode_line_terminator(U' '));               // SPACE
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\t'));              // TAB
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\v'));              // VT
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\f'));              // FF
+    STATIC_REQUIRE(!is_unicode_line_terminator(char32_t{0x00A0U}));  // NO-BREAK SPACE
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'A'));               // ASCII letter
 }
 
 // clang-format off

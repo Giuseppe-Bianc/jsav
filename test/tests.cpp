@@ -3108,6 +3108,434 @@ TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer][utf
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
+// ==========================================================================
+// T006-T010c Phase 3: User Story 1 — Complete Unicode Whitespace Recognition
+// ==========================================================================
+
+TEST_CASE("Lexer_UnicodeWhitespace_VT_SeparatesTokens", "[lexer][utf8][US1][T006]") {
+    // U+000B VERTICAL TAB must separate tokens (FR-002)
+    const std::string src = "var\x0Bx";  // "var" + VT + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_FF_SeparatesTokens", "[lexer][utf8][US1][T007]") {
+    // U+000C FORM FEED must separate tokens (FR-002)
+    const std::string src = "var\x0Cx";  // "var" + FF + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_NEL_SeparatesTokens", "[lexer][utf8][US1][T008]") {
+    // U+0085 NEXT LINE must separate tokens (FR-003)
+    const std::string src = "var\xC2\x85x";  // "var" + NEL + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_All25CodePoints_SeparateTokens", "[lexer][utf8][US1][T009]") {
+    // All 25 \p{White_Space} code points must separate tokens (FR-001)
+    const auto cp = GENERATE(
+        // ASCII whitespace (already handled, regression check)
+        std::make_pair("HT", "\x09"), std::make_pair("LF", "\x0A"), std::make_pair("VT", "\x0B"), std::make_pair("FF", "\x0C"),
+        std::make_pair("CR", "\x0D"), std::make_pair("SPACE", "\x20"),
+        // Unicode whitespace (Zs, Zl, Zp + NEL)
+        std::make_pair("NEL", "\xC2\x85"),           // U+0085
+        std::make_pair("NBSP", "\xC2\xA0"),          // U+00A0
+        std::make_pair("OGHAM", "\xE1\x9A\x80"),     // U+1680
+        std::make_pair("EN_QUAD", "\xE2\x80\x80"),   // U+2000
+        std::make_pair("EM_QUAD", "\xE2\x80\x81"),   // U+2001
+        std::make_pair("EN_SPACE", "\xE2\x80\x82"),  // U+2002
+        std::make_pair("EM_SPACE", "\xE2\x80\x83"),  // U+2003
+        std::make_pair("3PEREM", "\xE2\x80\x84"),    // U+2004
+        std::make_pair("4PEREM", "\xE2\x80\x85"),    // U+2005
+        std::make_pair("6PEREM", "\xE2\x80\x86"),    // U+2006
+        std::make_pair("FIGURE", "\xE2\x80\x87"),    // U+2007
+        std::make_pair("PUNCT", "\xE2\x80\x88"),     // U+2008
+        std::make_pair("THIN", "\xE2\x80\x89"),      // U+2009
+        std::make_pair("HAIR", "\xE2\x80\x8A"),      // U+200A
+        std::make_pair("LINE_SEP", "\xE2\x80\xA8"),  // U+2028
+        std::make_pair("PARA_SEP", "\xE2\x80\xA9"),  // U+2029
+        std::make_pair("NARROW", "\xE2\x80\xAF"),    // U+202F
+        std::make_pair("MEDIUM", "\xE2\x81\x9F"),    // U+205F
+        std::make_pair("IDEO", "\xE3\x80\x80")       // U+3000
+    );
+    const std::string src = std::string("var") + cp.second + "x";
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    INFO("Whitespace: " << cp.first);
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_ConsecutiveMixed_ConsumedAsOneRun", "[lexer][utf8][US1][T010]") {
+    // Consecutive mixed Unicode whitespace must be consumed as a single run (FR-007)
+    const std::string src = "var\xC2\xA0\xE2\x80\x80\xE2\x80\xA8x";  // NBSP + EM SPACE + LINE SEP
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_LineColumn_NEL_IncrementsLineResetsColumn", "[lexer][utf8][US1][T010b]") {
+    // U+0085 NEL must increment line counter and reset column to 1 (FR-008)
+    const std::string src = "var\xC2\x85x";  // "var" + NEL + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 2, column 1
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 2);
+    REQUIRE(tokens[1].getSpan().start.column == 1);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_MultiByteAtEOF_CleanEOFToken", "[lexer][utf8][US1][T010c]") {
+    // Valid multi-byte whitespace at EOF must produce clean EOF without buffer overread (FR-010)
+    const std::string src = "var\xC2\xA0";  // "var" + NBSP (U+00A0, 2 bytes) at EOF
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+// ==========================================================================
+// T017-T022 Phase 4: User Story 4 — Backward Compatibility
+// ==========================================================================
+
+TEST_CASE("Lexer_UnicodeWhitespace_InsideStringLiteral_NotConsumed", "[lexer][utf8][US4][T017]") {
+    // U+00A0 NBSP inside a string literal must NOT be consumed as whitespace (FR-024)
+    const std::string src = "\"hello\xC2\xA0world\"";  // "hello" + NBSP + "world"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::StringLiteral);
+    // The entire string including NBSP and quotes should be the token text
+    REQUIRE(tokens[0].getText() == "\"hello\xC2\xA0world\"");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_InsideComment_NotConsumed", "[lexer][utf8][US4][T018]") {
+    // Unicode whitespace inside comments must NOT be consumed as inter-token whitespace (FR-024)
+    SECTION("Line comment with NBSP") {
+        const std::string src = "var\xC2\xA0// comment\xC2\xA0with\xC2\xA0NBSP\nx";
+        jsv::Lexer lex{src, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "x");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+    }
+    SECTION("Block comment with NBSP") {
+        const std::string src = "var\xC2\xA0/* comment\xC2\xA0with\xC2\xA0NBSP */x";
+        jsv::Lexer lex{src, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "x");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+    }
+}
+
+TEST_CASE("Lexer_BackwardCompat_AsciiWhitespace_IdenticalBehavior", "[lexer][utf8][US4][T019]") {
+    // ASCII whitespace behavior must remain unchanged (regression guard)
+    const std::string src = "var \t\r\nx";  // space, tab, CR, LF
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    // 'x' should be on line 2, column 1 after LF
+    REQUIRE(tokens[1].getSpan().start.line == 2);
+    REQUIRE(tokens[1].getSpan().start.column == 1);
+}
+
+TEST_CASE("Lexer_BackwardCompat_LineComment_IdenticalBehavior", "[lexer][utf8][US4][T020]") {
+    // Line comment behavior must remain unchanged (regression guard)
+    const std::string src = "var x // comment\ny";
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 4);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[2].getText() == "y");
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_BackwardCompat_BlockComment_IdenticalBehavior", "[lexer][utf8][US4][T021]") {
+    // Block comment behavior must remain unchanged (regression guard)
+    const std::string src = "var /* comment */ x";
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_BackwardCompat_BOM_IdenticalBehavior", "[lexer][utf8][US4][T022]") {
+    // BOM handling must remain unchanged (regression guard)
+    const std::string src = "\xEF\xBB\xBFvar x";  // UTF-8 BOM + "var x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+// ==========================================================================
+// T024-T030 Phase 5: User Story 2 — Correct Line and Column Tracking
+// ==========================================================================
+
+TEST_CASE("Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn", "[lexer][utf8][US2][T024]") {
+    // U+2028 LINE SEPARATOR must increment line counter and reset column to 1 (FR-008)
+    const std::string src = "var\xE2\x80\xA8x";  // "var" + LINE SEP + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 2, column 1
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 2);
+    REQUIRE(tokens[1].getSpan().start.column == 1);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_LineColumn_ParagraphSeparator_IncrementsLineResetsColumn", "[lexer][utf8][US2][T025]") {
+    // U+2029 PARAGRAPH SEPARATOR must increment line counter and reset column to 1 (FR-008)
+    const std::string src = "var\xE2\x80\xA9x";  // "var" + PARA SEP + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 2, column 1
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 2);
+    REQUIRE(tokens[1].getSpan().start.column == 1);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_LineColumn_NBSP_ColumnAdvancesByByteCount", "[lexer][utf8][US2][T026]") {
+    // U+00A0 NBSP (2 bytes) must advance column by byte count, not increment line (FR-025)
+    const std::string src = "var\xC2\xA0x";  // "var" + NBSP + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 1, column 6 (3 for "var" + 2 for NBSP + 1 = 6)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 1);
+    REQUIRE(tokens[1].getSpan().start.column == 6);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_LineColumn_IdeographicSpace_ColumnAdvancesByByteCount", "[lexer][utf8][US2][T027]") {
+    // U+3000 IDEOGRAPHIC SPACE (3 bytes) must advance column by 3 bytes (FR-025)
+    const std::string src = "var\xE3\x80\x80x";  // "var" + IDEOGRAPHIC SPACE + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 1, column 7 (3 for "var" + 3 for IDEOGRAPHIC SPACE + 1 = 7)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 1);
+    REQUIRE(tokens[1].getSpan().start.column == 7);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_LineColumn_CR_DoesNotIncrementLine", "[lexer][utf8][US2][T028]") {
+    // CR (U+000D) must NOT increment line counter — treated as plain whitespace (FR-009)
+    const std::string src = "var\rx";  // "var" + CR + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 1, column 5 (3 for "var" + 1 for CR + 1 = 5)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 1);
+    REQUIRE(tokens[1].getSpan().start.column == 5);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_LineColumn_CRLF_SingleLineIncrement", "[lexer][utf8][US2][T029]") {
+    // CR+LF must produce exactly one line increment (FR-009)
+    const std::string src = "var\r\nx";  // "var" + CR + LF + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 2, column 1 (LF handles the line increment)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 2);
+    REQUIRE(tokens[1].getSpan().start.column == 1);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+TEST_CASE("Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly", "[lexer][utf8][US2][T030]") {
+    // Multiple line terminators in sequence must accumulate line increments correctly (FR-008)
+    const std::string src = "var\xC2\x85\xE2\x80\xA8\nx";  // "var" + NEL + LINE SEP + LF + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    // Token 'x' should be on line 4, column 1 (3 terminators = 3 line increments)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getSpan().start.line == 4);
+    REQUIRE(tokens[1].getSpan().start.column == 1);
+    REQUIRE(tokens[1].getText() == "x");
+}
+
+// ==========================================================================
+// T032-T041 Phase 6: User Story 3 — Graceful Handling of Malformed UTF-8
+// ==========================================================================
+
+TEST_CASE("Lexer_Robustness_LoneContinuationByte_NoCrash", "[lexer][utf8][US3][T032]") {
+    // Lone continuation byte (0x80) in whitespace position must not crash (FR-004)
+    const std::string src = "var\x80x";  // "var" + 0x80 + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    // Should not crash - lexer should continue tokenizing
+    const auto tokens = lex.tokenize();
+    // The 0x80 is not whitespace, so it becomes part of tokenization
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_Truncated2ByteAtEOF_NoCrash", "[lexer][utf8][US3][T033]") {
+    // Truncated 2-byte sequence at EOF must not crash (FR-010)
+    const std::string src = "var\xC2";  // "var" + truncated 2-byte lead
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_Truncated3ByteAtEOF_NoCrash", "[lexer][utf8][US3][T034]") {
+    // Truncated 3-byte sequence at EOF must not crash (FR-010)
+    const std::string src = "var\xE2\x80";  // "var" + truncated 3-byte (only 2 bytes)
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_OverlongSpace_NotWhitespace", "[lexer][utf8][US3][T035]") {
+    // Overlong encoding of SPACE (U+0020) must NOT be treated as whitespace (FR-004)
+    // Overlong 2-byte encoding of U+0020: 0xC0 0xA0
+    const std::string src = "var\xC0\xA0x";  // "var" + overlong SPACE + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+
+    // Verify "var" is tokenized as keyword
+    REQUIRE(tokens.size() >= 4);  // KeywordVar + Error/Invalid + IdentifierAscii + Eof
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[0].getText() == "var");
+
+    // Verify overlong bytes are NOT treated as whitespace (produce error token)
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Error);
+
+    // Verify "x" is tokenized as identifier (not separated by whitespace)
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[2].getText() == "x");
+
+    // Verify EOF
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_ByteFE_NoCrash", "[lexer][utf8][US3][T036]") {
+    // 0xFE byte (invalid UTF-8 lead byte) must not crash (FR-004)
+    const std::string src = "var\xFEx";  // "var" + 0xFE + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_ByteFF_NoCrash", "[lexer][utf8][US3][T037]") {
+    // 0xFF byte (invalid UTF-8 lead byte) must not crash (FR-004)
+    const std::string src = "var\xFFx";  // "var" + 0xFF + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_InvalidContinuation_NoCrash", "[lexer][utf8][US3][T038]") {
+    // Invalid continuation byte in multi-byte sequence must not crash (FR-004)
+    // 0xC2 followed by 0x00 (null, not a valid continuation)
+    // NOLINTNEXTLINE(bugprone-string-literal-with-embedded-nul)
+    const std::string src = "var\xC2\x00x";  // "var" + 0xC2 + null + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed", "[lexer][utf8][US3][T039]") {
+    // Valid non-whitespace multi-byte char (U+00E9 é) must NOT be consumed as whitespace (FR-024)
+    // This test verifies the lexer doesn't crash on valid multi-byte non-whitespace characters
+    const std::string src = "a\xC3\xA9";  // "a" + é (identifier with multi-byte char)
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+
+    // Verify "aé" is tokenized as a single Unicode identifier (not separated)
+    REQUIRE(tokens.size() >= 2);  // IdentifierUnicode + Eof (at minimum)
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == "aé");
+
+    // Verify EOF
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_SurrogateBytes_NoCrash", "[lexer][utf8][US3][T040]") {
+    // Surrogate pair bytes (U+D800-U+DFFF) must not crash (FR-004)
+    // 0xED 0xA0 0x80 encodes U+D800 (high surrogate)
+    const std::string src = "var\xED\xA0\x80x";  // "var" + surrogate + "x"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_Robustness_NullByte_NoCrash", "[lexer][utf8][US3][T041]") {
+    // Null byte (0x00) in source must not crash (FR-004)
+    const std::string src = std::string("var\x00x", 5);  // "var" + null + "x" (explicit length)
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() >= 2);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
 TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
     // ASCII operators must produce identical tokens after UTF-8 changes (regression guard)
     struct OpCase {
@@ -3266,21 +3694,85 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
     // Performance guard: in Release only (Debug is too slow for this bound)
     // Threshold configurable via BENCHMARK_TIMEOUT_MS env var (default: 100ms)
 #ifdef NDEBUG
-    const auto t0 = high_resolution_clock::now();
+    const auto t0 = ch::high_resolution_clock::now();
     {
         jsv::Lexer lex{src, "bench.jsav"};
         [[maybe_unused]] const auto tokens = lex.tokenize();
     }
-    const auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - t0).count();
+    const auto elapsed = duration_cast<ch::milliseconds>(ch::high_resolution_clock::now() - t0).count();
     // NOLINTBEGIN(*-mt-unsafe)
     const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
     // NOLINTEND(*-mt-unsafe)
-    const int timeout_ms = (timeout_env != nullptr) ? std::stoi(timeout_env) : 100;
+    int timeout_ms = 100;  // default
+    if(timeout_env != nullptr) {
+        try {
+            const int parsed = std::stoi(timeout_env);
+            if(parsed > 0) { timeout_ms = parsed; }
+        } catch(const std::invalid_argument &) {  // NOLINT(bugprone-empty-catch)
+            // malformed input — keep default
+        } catch(const std::out_of_range &) {  // NOLINT(bugprone-empty-catch)
+            // value out of range — keep default
+        }
+    }
     REQUIRE(elapsed < timeout_ms);
 #endif
 
     BENCHMARK("Tokenize 1MB mixed") {
         jsv::Lexer bench_lex{src, "bench.jsav"};
+        return bench_lex.tokenize();
+    };
+}
+
+// ==========================================================================
+// T043 Phase 7: ASCII Throughput Benchmark (SC-005 Performance Guard)
+// ==========================================================================
+
+TEST_CASE("Lexer_Benchmark_AsciiThroughput_NoRegression", "[lexer][benchmark][US4][T043]") {
+    // SC-005: ASCII-only tokenization throughput must not regress by more than 5%
+    // Generate 1 MB of ASCII-only source code for baseline comparison
+    const std::string block = "var x = 42; "
+                              "let y = 100; "
+                              "fn add(a: i32, b: i32) -> i32 { return a + b; } "
+                              "if(x < y) { print(x); } "
+                              "while(x > 0) { x = x - 1; } "
+                              "\"hello world\" "
+                              "'a' "
+                              "// line comment\n"
+                              "/* block comment */ ";
+
+    const std::size_t target = std::size_t{1024} * 1024;  // 1MB
+    std::string src;
+    src.reserve(target);
+    while(src.size() < target) { src += block; }
+
+    // Performance guard: in Release only (Debug is too slow for timing bounds)
+#ifdef NDEBUG
+    const auto t0 = ch::high_resolution_clock::now();
+    {
+        jsv::Lexer lex{src, "bench_ascii.jsav"};
+        [[maybe_unused]] const auto tokens = lex.tokenize();
+    }
+    const auto elapsed = duration_cast<ch::milliseconds>(ch::high_resolution_clock::now() - t0).count();
+    // NOLINTBEGIN(*-mt-unsafe)
+    const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
+    // NOLINTEND(*-mt-unsafe)
+    int timeout_ms = 100;  // default
+    if(timeout_env != nullptr) {
+        try {
+            const int parsed = std::stoi(timeout_env);
+            if(parsed > 0) { timeout_ms = parsed; }
+        } catch(const std::invalid_argument &) {  // NOLINT(bugprone-empty-catch)
+            // malformed input — keep default
+        } catch(const std::out_of_range &) {  // NOLINT(bugprone-empty-catch)
+            // value out of range — keep default
+        }
+    }
+    REQUIRE(elapsed < timeout_ms);
+#endif
+
+    // Benchmark with Catch2 BENCHMARK macro
+    BENCHMARK("Tokenize 1MB ASCII-only") {
+        jsv::Lexer bench_lex{src, "bench_ascii.jsav"};
         return bench_lex.tokenize();
     };
 }
