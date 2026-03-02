@@ -2,6 +2,7 @@
 // NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
 #include "testsConstanst.hpp"
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
@@ -2761,6 +2762,546 @@ TEST_CASE("Token data-driven tests", "[Token]") {
         REQUIRE(token.getText() == text);
         REQUIRE(token.getKind() == kind);
     }
+}
+
+// ==========================================================================
+// Phase 3 – UTF-8 decoder integration (Lexer runtime)
+// ==========================================================================
+
+TEST_CASE("Lexer_AsciiOnlySource_TokenizeCorrectly", "[lexer][utf8][phase3]") {
+    jsv::Lexer lex{"hello world 42", "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // hello, world, 42, Eof
+    REQUIRE(tokens.size() == 4);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[0].getText() == "hello");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "world");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+    REQUIRE(tokens[2].getText() == "42");
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
+    // Ω = U+03A9, UTF-8: 0xCE 0xA9 (2 bytes)
+    using namespace std::string_literals;
+    const std::string src = "\xCE\xA9"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
+    // 変 = U+5909, UTF-8: 0xE5 0xA4 0x89 (3 bytes)
+    using namespace std::string_literals;
+    const std::string src = "\xE5\xA4\x89"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_FourByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
+    // 𝑥 = U+1D465 (Mathematical Italic Small x), UTF-8: 0xF0 0x9D 0x91 0xA5 (4 bytes)
+    using namespace std::string_literals;
+    const std::string src = "\xF0\x9D\x91\xA5"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer][utf8][phase3]") {
+    // A string_view containing a null byte must NOT be treated as the end of input.
+    // Source: "ab" + U+0000 + "cd" → IdentifierAscii("ab"), Error, IdentifierAscii("cd"), Eof
+    using namespace std::string_literals;
+    const std::string src = "ab\x00"
+                            "cd"s;  // 5 bytes: a b \0 c d
+    REQUIRE(src.size() == 5);
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 4);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[0].getText() == "ab");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[2].getText() == "cd");
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
+}
+
+// ==========================================================================
+// Phase 4 – Malformed UTF-8 handling (Lexer runtime)
+// ==========================================================================
+
+TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
+    // 0x80 is an orphaned continuation byte — must produce Error token
+    using namespace std::string_literals;
+    const std::string src = "\x80"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[0].getText().size() == 1);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
+    // 0xC0 0xAF is an overlong encoding of '/' — must produce Error token(s)
+    using namespace std::string_literals;
+    const std::string src = "\xC0\xAF"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // At minimum: first token must be Error
+    REQUIRE_FALSE(tokens.empty());
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed][phase4]") {
+    // Malformed byte followed by valid tokens — recovery must work
+    using namespace std::string_literals;
+    const std::string src = "\x80 var x"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // Error(\x80), KeywordVar, IdentifierAscii("x"), Eof
+    REQUIRE(tokens.size() == 4);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[2].getText() == "x");
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
+    // String literal containing overlong sequence → entire literal is Error per FR-021
+    using namespace std::string_literals;
+    // Source: "  + 0xC0 + 0xAF + "
+    const std::string src = "\"\xC0\xAF\""s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
+    // Char literal containing orphaned continuation → entire literal is Error per FR-021
+    using namespace std::string_literals;
+    // Source: '  + 0x80 + '
+    const std::string src = "\'\x80\'"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+// ==========================================================================
+// Phase 5 – Unicode identifier recognition (Lexer runtime)
+// ==========================================================================
+
+TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
+    // 变量名 = U+53D8 U+91CF U+540D (3 CJK characters)
+    using namespace std::string_literals;
+    const std::string src = "\xe5\x8f\x98\xe9\x87\x8f\xe5\x90\x8d"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_CyrillicWithCombiningMark_ReturnsSingleIdentifier", "[lexer][utf8][identifiers][phase5]") {
+    // и̃мя = U+0438 U+0303 U+043C U+044F (Cyrillic + combining tilde + letters)
+    using namespace std::string_literals;
+    const std::string src = "\xd0\xb8\xcc\x83\xd0\xbc\xd0\xaf"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_DevanagariIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
+    // गणना = U+0917 U+0923 U+0928 U+093E
+    using namespace std::string_literals;
+    const std::string src = "\xe0\xa4\x97\xe0\xa4\xa3\xe0\xa4\xa8\xe0\xa4\xbe"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnderscoreUnicode_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
+    // _变量 = _ + U+5909 + U+91CF (underscore + CJK) per FR-018
+    using namespace std::string_literals;
+    const std::string src = "_\xe5\xa4\x89\xe9\x87\x8f"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[0].getText() == src);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer][utf8][identifiers][phase5]") {
+    // 😀 = U+1F600 (F0 9F 98 80) — not a letter → Error per FR-022
+    using namespace std::string_literals;
+    const std::string src = "\xf0\x9f\x98\x80"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
+    // 👨‍👩 = U+1F468 U+200D U+1F469 — ZWJ sequences must NOT form identifier per FR-016
+    using namespace std::string_literals;
+    const std::string src = "\xf0\x9f\x91\xa8\xe2\x80\x8d\xf0\x9f\x91\xa9"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // None of the tokens should be IdentifierUnicode; all non-Eof tokens must be Error
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+    for(std::size_t i = 0; i + 1 < tokens.size(); ++i) { REQUIRE(tokens[i].getKind() == jsv::TokenKind::Error); }
+}
+
+TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
+    // U+0303 (combining tilde) alone — combining marks cannot start identifiers per FR-012
+    using namespace std::string_literals;
+    const std::string src = "\xcc\x83"s;  // U+0303 in UTF-8: CC 83
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
+    // U+0660 (Arabic-Indic digit zero) alone — Nd category cannot start identifiers per FR-012
+    using namespace std::string_literals;
+    const std::string src = "\xd9\xa0"s;  // U+0660 in UTF-8: D9 A0
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identifiers][phase5][sc001]") {
+    // SC-001: identifiers from ≥30 distinct Unicode scripts must tokenize as IdentifierUnicode
+    using namespace std::string_literals;
+    struct ScriptCase {
+        const char *name;
+        std::string src;
+    };
+    // One representative identifier per script (encoded in UTF-8)
+    const std::vector<ScriptCase> cases = {
+        {.name = "Latin (ASCII)", .src = "hello"s},
+        {.name = "Greek", .src = "\xce\xb1\xce\xb2\xce\xb3"s},                 // αβγ
+        {.name = "Cyrillic", .src = "\xd0\xb0\xd0\xb1\xd0\xb2"s},              // абв
+        {.name = "Armenian", .src = "\xd5\xb1\xd5\xb2\xd5\xb3"s},              // աբգ
+        {.name = "Georgian", .src = "\xe1\x83\x90\xe1\x83\x91\xe1\x83\x92"s},  // აბგ U+10D0-U+10D2
+        {.name = "Hebrew", .src = "\xd7\x90\xd7\x91\xd7\x92"s},                // אבג
+        {.name = "Arabic", .src = "\xd8\xa7\xd8\xa8\xd8\xaa"s},                // ابت
+        {.name = "Devanagari", .src = "\xe0\xa4\x97\xe0\xa4\xa3"s},            // गण
+        {.name = "Bengali", .src = "\xe0\xa6\x97\xe0\xa6\xa3"s},               // গণ U+0997 U+09A3
+        {.name = "Gurmukhi", .src = "\xe0\xa8\x97\xe0\xa8\xa3"s},              // ਗਣ U+0A17 U+0A23
+        {.name = "Gujarati", .src = "\xe0\xaa\x97\xe0\xaa\xa3"s},              // ગણ U+0A97 U+0AA3
+        {.name = "Tamil", .src = "\xe0\xae\x95\xe0\xae\xa3"s},                 // கண U+0B95 U+0BA3
+        {.name = "Telugu", .src = "\xe0\xb0\x97\xe0\xb0\xa3"s},                // గణ U+0C17 U+0C23
+        {.name = "Kannada", .src = "\xe0\xb2\x97\xe0\xb2\xa3"s},               // ಗಣ U+0C97 U+0CA3
+        {.name = "Malayalam", .src = "\xe0\xb4\x97\xe0\xb4\xa3"s},             // ഗണ U+0D17 U+0D23
+        {.name = "Sinhala", .src = "\xe0\xb6\x9c\xe0\xb6\xab"s},               // ගණ U+0D9C U+0DAB
+        {.name = "Thai", .src = "\xe0\xb8\x81\xe0\xb8\x82"s},                  // กข U+0E01 U+0E02
+        {.name = "Lao", .src = "\xe0\xba\x81\xe0\xba\x82"s},                   // ກຂ U+0E81 U+0E82
+        {.name = "Tibetan", .src = "\xe0\xbd\x80\xe0\xbd\x81"s},              // ཀཁ U+0F00 U+0F01 (actually Tibetan letters start at U+0F40)
+        {.name = "Myanmar", .src = "\xe1\x80\x80\xe1\x80\x81"s},              // ကခ U+1000 U+1001
+        {.name = "Hangul", .src = "\xea\xb0\x80\xeb\x82\x98"s},               // 가나 U+AC00 U+B098
+        {.name = "Hiragana", .src = "\xe3\x81\x82\xe3\x81\x84"s},             // あい U+3042 U+3044
+        {.name = "Katakana", .src = "\xe3\x82\xa2\xe3\x82\xa4"s},             // アイ U+30A2 U+30A4
+        {.name = "CJK", .src = "\xe5\x8f\x98\xe9\x87\x8f"s},                  // 变量 U+53D8 U+91CF
+        {.name = "Ethiopic", .src = "\xe1\x88\x80\xe1\x88\x81"s},             // ሀሁ U+1200 U+1201
+        {.name = "Cherokee", .src = "\xe1\x8e\xa0\xe1\x8e\xa1"s},             // ᏠᏡ U+13A0 U+13A1
+        {.name = "Khmer", .src = "\xe1\x9e\x80\xe1\x9e\x81"s},                // កខ U+1780 U+1781
+        {.name = "Mongolian", .src = "\xe1\xa0\xa0\xe1\xa0\xa1"s},            // ᠠᠡ U+1820 U+1821
+        {.name = "Tai Le", .src = "\xe1\xa5\x90\xe1\xa5\x91"s},               // ᥐᥑ U+1950 U+1951
+        {.name = "Math Italic", .src = "\xf0\x9d\x91\xa5\xf0\x9d\x91\xa6"s},  // 𝑥𝑦 U+1D465 U+1D466
+    };
+
+    for(const auto &c : cases) {
+        INFO("Script: " << c.name);
+        jsv::Lexer lex{c.src, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        if(c.src == "hello"s) {
+            REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+        } else {
+            REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
+        }
+        REQUIRE(tokens[0].getText() == c.src);
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    }
+}
+
+// ==========================================================================
+// Phase 6 – ASCII compatibility preservation (BOM, Unicode whitespace, regression)
+// ==========================================================================
+
+TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer][utf8][ascii-compat][phase6]") {
+    // BOM = 0xEF 0xBB 0xBF — must be silently skipped (FR-019)
+    using namespace std::string_literals;
+    const std::string src = "\xEF\xBB\xBF"
+                            "var x"s;
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // Expected: KeywordVar("var"), IdentifierAscii("x"), Eof
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
+    REQUIRE(tokens[0].getText() == "var");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "x");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_NoBreakSpace_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
+    // U+00A0 NO-BREAK SPACE (0xC2 0xA0, category Zs) must be consumed as whitespace (FR-023)
+    using namespace std::string_literals;
+    const std::string src = "a\xC2\xA0"
+                            "b"s;  // "a" + NBSP + "b"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // Expected: IdentifierAscii("a"), IdentifierAscii("b"), Eof
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[0].getText() == "a");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "b");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_EmSpace_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
+    // U+2003 EM SPACE (0xE2 0x80 0x83, category Zs) must be consumed as whitespace (FR-023)
+    using namespace std::string_literals;
+    const std::string src = "a\xE2\x80\x83"
+                            "b"s;  // "a" + EM SPACE + "b"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // Expected: IdentifierAscii("a"), IdentifierAscii("b"), Eof
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[0].getText() == "a");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "b");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
+    // U+2028 LINE SEPARATOR (0xE2 0x80 0xA8, category Zl) must be consumed as whitespace (FR-023)
+    using namespace std::string_literals;
+    const std::string src = "a\xE2\x80\xA8"
+                            "b"s;  // "a" + LINE SEPARATOR + "b"
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // Expected: IdentifierAscii("a"), IdentifierAscii("b"), Eof
+    REQUIRE(tokens.size() == 3);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[0].getText() == "a");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getText() == "b");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
+}
+
+TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
+    // ASCII operators must produce identical tokens after UTF-8 changes (regression guard)
+    struct OpCase {
+        const char *src;
+        jsv::TokenKind kind;
+    };
+    const std::array<OpCase, 26> cases = {{
+        {.src = "+", .kind = jsv::TokenKind::Plus},          {.src = "-", .kind = jsv::TokenKind::Minus},
+        {.src = "*", .kind = jsv::TokenKind::Star},          {.src = "/", .kind = jsv::TokenKind::Slash},
+        {.src = "=", .kind = jsv::TokenKind::Equal},         {.src = "==", .kind = jsv::TokenKind::EqualEqual},
+        {.src = "!=", .kind = jsv::TokenKind::NotEqual},     {.src = "<", .kind = jsv::TokenKind::Less},
+        {.src = ">", .kind = jsv::TokenKind::Greater},       {.src = "<=", .kind = jsv::TokenKind::LessEqual},
+        {.src = ">=", .kind = jsv::TokenKind::GreaterEqual}, {.src = "+=", .kind = jsv::TokenKind::PlusEqual},
+        {.src = "-=", .kind = jsv::TokenKind::MinusEqual},   {.src = "++", .kind = jsv::TokenKind::PlusPlus},
+        {.src = "--", .kind = jsv::TokenKind::MinusMinus},   {.src = "&&", .kind = jsv::TokenKind::AndAnd},
+        {.src = "||", .kind = jsv::TokenKind::OrOr},         {.src = "(", .kind = jsv::TokenKind::OpenParen},
+        {.src = ")", .kind = jsv::TokenKind::CloseParen},    {.src = "{", .kind = jsv::TokenKind::OpenBrace},
+        {.src = "}", .kind = jsv::TokenKind::CloseBrace},    {.src = "[", .kind = jsv::TokenKind::OpenBracket},
+        {.src = "]", .kind = jsv::TokenKind::CloseBracket},  {.src = ";", .kind = jsv::TokenKind::Semicolon},
+        {.src = ",", .kind = jsv::TokenKind::Comma},         {.src = ".", .kind = jsv::TokenKind::Dot},
+    }};
+    for(const auto &c : cases) {
+        INFO("Operator: " << c.src);
+        jsv::Lexer lex{c.src, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == c.kind);
+        REQUIRE(tokens[0].getText() == c.src);
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    }
+}
+
+TEST_CASE("Lexer_AsciiKeywords_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
+    // All ASCII keywords must produce identical TokenKind values (regression guard)
+    struct KwCase {
+        const char *text;
+        jsv::TokenKind kind;
+    };
+    const std::array<KwCase, 15> keywords = {{
+        {.text = "fun", .kind = jsv::TokenKind::KeywordFun},
+        {.text = "if", .kind = jsv::TokenKind::KeywordIf},
+        {.text = "else", .kind = jsv::TokenKind::KeywordElse},
+        {.text = "return", .kind = jsv::TokenKind::KeywordReturn},
+        {.text = "while", .kind = jsv::TokenKind::KeywordWhile},
+        {.text = "for", .kind = jsv::TokenKind::KeywordFor},
+        {.text = "main", .kind = jsv::TokenKind::KeywordMain},
+        {.text = "var", .kind = jsv::TokenKind::KeywordVar},
+        {.text = "const", .kind = jsv::TokenKind::KeywordConst},
+        {.text = "break", .kind = jsv::TokenKind::KeywordBreak},
+        {.text = "continue", .kind = jsv::TokenKind::KeywordContinue},
+        {.text = "bool", .kind = jsv::TokenKind::KeywordBool},
+        {.text = "i32", .kind = jsv::TokenKind::TypeI32},
+        {.text = "f64", .kind = jsv::TokenKind::TypeF64},
+        {.text = "string", .kind = jsv::TokenKind::TypeString},
+    }};
+    for(const auto &k : keywords) {
+        INFO("Keyword: " << k.text);
+        jsv::Lexer lex{k.text, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == k.kind);
+        REQUIRE(tokens[0].getText() == k.text);
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    }
+}
+
+TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
+    // ASCII string literals must produce identical content after UTF-8 changes (regression guard)
+    const std::string_view src = R"("hello, world!")";
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::StringLiteral);
+    REQUIRE(tokens[0].getText() == R"("hello, world!")");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+}
+
+// ==========================================================================
+// Phase 7 – Performance (benchmarks + functional correctness)
+// ==========================================================================
+
+TEST_CASE("Lexer_LargeAsciiFile_TokenizesWithinBaseline", "[lexer][utf8][performance][phase7]") {
+    // Generate ~10K ASCII identifier tokens: "x0 x1 x2 ... x9999"
+    std::string src;
+    src.reserve(std::size_t{10000} * 8);
+    for(int i = 0; i < 10000; ++i) {
+        src += 'x';
+        src += std::to_string(i);
+        src += ' ';
+    }
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    // 10000 IdentifierAscii tokens + 1 Eof
+    REQUIRE(tokens.size() == 10001);
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[0].getText() == "x0");
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+
+    BENCHMARK("Tokenize 10K ASCII tokens") {
+        jsv::Lexer bench_lex{src, "bench.jsav"};
+        return bench_lex.tokenize();
+    };
+}
+
+TEST_CASE("Lexer_MixedUnicodeFile_TokenizesCompletely", "[lexer][utf8][performance][phase7]") {
+    // Mix ASCII identifiers, CJK identifiers, Cyrillic identifiers,
+    // and string literals containing valid UTF-8 multi-byte characters.
+    using namespace std::string_literals;
+    std::string src;
+    src.reserve(5000);
+    for(int i = 0; i < 100; ++i) {
+        src += 'a';
+        src += std::to_string(i);
+        src += ' ';                            // ASCII identifiers
+        src += "\xe5\x8f\x98\xe9\x87\x8f "s;   // 変量 (CJK)
+        src += "\xd0\xb0\xd0\xb1\xd0\xb2 "s;   // абв (Cyrillic)
+        src += "\"hello\xf0\x9f\x98\x80\" "s;  // string with emoji inside
+    }
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE_FALSE(tokens.empty());
+    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+    // 100 × (ASCII-ident + CJK-ident + Cyrillic-ident + StringLiteral) + Eof = 401 tokens
+    REQUIRE(tokens.size() == 401);
+    // Spot-check: first is ASCII identifier, second is CJK Unicode identifier
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierUnicode);
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::StringLiteral);
+
+    BENCHMARK("Tokenize mixed Unicode") {
+        jsv::Lexer bench_lex{src, "bench.jsav"};
+        return bench_lex.tokenize();
+    };
+}
+
+TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performance][phase7][benchmark]") {
+    // SC-007: 1MB mixed-content file must tokenize within 100ms (benchmark-only guard)
+    using namespace std::string_literals;
+    using namespace std::chrono;
+
+    // Build ~1MB source: repeated blocks of ASCII + CJK + string literal (~52 bytes each)
+    const std::string block = "abc def gh "
+                              "\xe5\x8f\x98\xe9\x87\x8f "s  // 変量
+                              "\xd0\xb0\xd0\xb1\xd0\xb2 "s  // абв
+                              "\"hello world 42\" "s;       // string literal
+
+    const std::size_t target = std::size_t{1024} * 1024;  // 1MB
+    std::string src;
+    src.reserve(target + block.size());
+    while(src.size() < target) { src += block; }
+
+    // Functional check: tokenizes without crash and produces Eof at end
+    {
+        jsv::Lexer lex{src, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+    }
+
+    // Performance guard: in Release only (Debug is too slow for this bound)
+    // Threshold configurable via BENCHMARK_TIMEOUT_MS env var (default: 100ms)
+#ifdef NDEBUG
+    const auto t0 = high_resolution_clock::now();
+    {
+        jsv::Lexer lex{src, "bench.jsav"};
+        [[maybe_unused]] const auto tokens = lex.tokenize();
+    }
+    const auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - t0).count();
+    // NOLINTBEGIN(*-mt-unsafe)
+    const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
+    // NOLINTEND(*-mt-unsafe)
+    const int timeout_ms = (timeout_env != nullptr) ? std::stoi(timeout_env) : 100;
+    REQUIRE(elapsed < timeout_ms);
+#endif
+
+    BENCHMARK("Tokenize 1MB mixed") {
+        jsv::Lexer bench_lex{src, "bench.jsav"};
+        return bench_lex.tokenize();
+    };
 }
 
 // clang-format off
