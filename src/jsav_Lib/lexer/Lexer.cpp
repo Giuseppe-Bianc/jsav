@@ -117,9 +117,20 @@ namespace jsv {
 
     bool Lexer::skip_unicode_whitespace() noexcept {
         const auto res = unicode::decode_utf8(m_source, m_pos);
-        if(res.status != unicode::Utf8Status::Ok || !unicode::is_unicode_whitespace(res.codepoint)) { return false; }
-        if(res.codepoint == U'\u2028' || res.codepoint == U'\u2029') {
-            // Line Separator / Paragraph Separator count as newlines
+        if(res.status != unicode::Utf8Status::Ok) { return false; }
+
+        // NEL (U+0085) is whitespace + line terminator (not in Zs/Zl/Zp categories)
+        if(res.codepoint == U'\u0085') {
+            m_pos += res.byte_length;
+            ++m_line;
+            m_column = 1;
+            return true;
+        }
+
+        if(!unicode::is_unicode_whitespace(res.codepoint)) { return false; }
+
+        // Line Separator / Paragraph Separator count as newlines
+        if(unicode::is_unicode_line_terminator(res.codepoint)) {
             m_pos += res.byte_length;
             ++m_line;
             m_column = 1;
@@ -147,8 +158,8 @@ namespace jsv {
         while(!is_at_end()) {
             const char c = peek_byte();
 
-            // Plain whitespace
-            if(c == ' ' || c == '\t' || c == '\r') {
+            // Plain whitespace (ASCII: space, tab, CR, VT, FF)
+            if(c == ' ' || c == '\t' || c == '\r' || c == '\v' || c == '\f') {
                 advance_byte();
                 continue;
             }

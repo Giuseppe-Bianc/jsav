@@ -519,6 +519,29 @@ TEST_CASE("UnicodeClassifier_WhitespaceFastPath_SpaceIsZs", "[Unicode][T086]") {
     STATIC_REQUIRE(is_unicode_whitespace(char32_t{0x2029U}));  // PARAGRAPH SEPARATOR (Zp)
 }
 
+// ==========================================================================
+// T004a Phase 2: is_unicode_line_terminator truth table
+// ==========================================================================
+
+TEST_CASE("UnicodeLineTerminator_TruthTable", "[Unicode][T004a]") {
+    using namespace jsv::unicode;
+
+    // Line terminators (should return true)
+    STATIC_REQUIRE(is_unicode_line_terminator(char32_t{0x0085U}));  // NEL
+    STATIC_REQUIRE(is_unicode_line_terminator(char32_t{0x2028U}));  // LINE SEPARATOR
+    STATIC_REQUIRE(is_unicode_line_terminator(char32_t{0x2029U}));  // PARAGRAPH SEPARATOR
+
+    // Non-line-terminators (should return false)
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\n'));              // LF (handled by ASCII path)
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\r'));              // CR
+    STATIC_REQUIRE(!is_unicode_line_terminator(U' '));               // SPACE
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\t'));              // TAB
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\v'));              // VT
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'\f'));              // FF
+    STATIC_REQUIRE(!is_unicode_line_terminator(char32_t{0x00A0U}));  // NO-BREAK SPACE
+    STATIC_REQUIRE(!is_unicode_line_terminator(U'A'));               // ASCII letter
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization)
 // clang-format on
