@@ -12,7 +12,6 @@
 #include <array>
 
 namespace jsv::unicode {
-
     /// Inclusive range of Unicode code points.
     struct CodepointRange {
         char32_t first;  ///< Inclusive start
@@ -679,7 +678,7 @@ namespace jsv::unicode {
     /// Note: U+0020 SPACE is General Category Zs and returns true.
     /// Other ASCII whitespace (tab U+0009, LF U+000A, CR U+000D) are NOT Zs/Zl/Zp.
     [[nodiscard]] constexpr bool is_unicode_whitespace(char32_t cp) noexcept {
-        if(cp == U' ') { return true; }   // U+0020 SPACE is Zs — fast-path
+        if(cp == U' ') { return true; }  // U+0020 SPACE is Zs — fast-path
         if(cp < 0x80U) { return false; }  // Other ASCII not in Zs/Zl/Zp
         return detail::in_ranges(cp, whitespace_ranges.data(), whitespace_ranges.data() + whitespace_ranges.size());
     }
@@ -691,7 +690,6 @@ namespace jsv::unicode {
     [[nodiscard]] constexpr bool is_unicode_line_terminator(char32_t cp) noexcept {
         return cp == U'\U00000085' || cp == U'\U00002028' || cp == U'\U00002029';
     }
-
 }  // namespace jsv::unicode
 
 // NOLINTEND(*-magic-numbers, *-avoid-magic-numbers)
