@@ -7,16 +7,6 @@
 #include <jsav/lexer/unicode/UnicodeData.hpp>
 #include <jsav/lexer/unicode/Utf8.hpp>
 
-/*
-TEST_CASE("Factorials are computed with constexpr", "[factorial]")
-{
-  STATIC_REQUIRE(factorial_constexpr(0) == 1);
-  STATIC_REQUIRE(factorial_constexpr(1) == 1);
-  STATIC_REQUIRE(factorial_constexpr(2) == 2);
-  STATIC_REQUIRE(factorial_constexpr(3) == 6);
-  STATIC_REQUIRE(factorial_constexpr(10) == 3628800);
-}*/
-
 TEST_CASE("the constexpr size of types", "[TypeSizes]") {
     STATIC_REQUIRE(TypeSizes::sizeOfBool == sizeof(bool));
     STATIC_REQUIRE(TypeSizes::sizeOfByte == sizeof(std::byte));
@@ -166,26 +156,26 @@ TEST_CASE("jsv::unicode foundational constexpr functions", "[Unicode][T019]") {
 
     // ── decode_utf8: ASCII 'A' ──────────────────────────────────────────────
     SECTION("ASCII 'A' decodes to {0x41, 1, Ok}") {
-        constexpr auto r = decode_utf8("A", 0);
-        STATIC_REQUIRE(r.codepoint == U'A');
-        STATIC_REQUIRE(r.byte_length == 1);
-        STATIC_REQUIRE(r.status == Utf8Status::Ok);
+        constexpr auto res = decode_utf8("A", 0);
+        STATIC_REQUIRE(res.codepoint == U'A');
+        STATIC_REQUIRE(res.byte_length == 1);
+        STATIC_REQUIRE(res.status == Utf8Status::Ok);
     }
 
     // ── decode_utf8: CJK U+5909 (変) = 0xE5 0xA4 0x89 ─────────────────────
     SECTION("CJK U+5909 decodes to {0x5909, 3, Ok}") {
-        constexpr auto r = decode_utf8("\xE5\xA4\x89", 0);
-        STATIC_REQUIRE(r.codepoint == char32_t{0x5909U});
-        STATIC_REQUIRE(r.byte_length == 3);
-        STATIC_REQUIRE(r.status == Utf8Status::Ok);
+        constexpr auto res = decode_utf8("\xE5\xA4\x89", 0);
+        STATIC_REQUIRE(res.codepoint == char32_t{0x5909U});
+        STATIC_REQUIRE(res.byte_length == 3);
+        STATIC_REQUIRE(res.status == Utf8Status::Ok);
     }
 
     // ── decode_utf8: U+0020 SPACE ──────────────────────────────────────────
     SECTION("U+0020 SPACE decodes to {0x0020, 1, Ok}") {
-        constexpr auto r = decode_utf8(" ", 0);
-        STATIC_REQUIRE(r.codepoint == U' ');
-        STATIC_REQUIRE(r.byte_length == 1);
-        STATIC_REQUIRE(r.status == Utf8Status::Ok);
+        constexpr auto res = decode_utf8(" ", 0);
+        STATIC_REQUIRE(res.codepoint == U' ');
+        STATIC_REQUIRE(res.byte_length == 1);
+        STATIC_REQUIRE(res.status == Utf8Status::Ok);
     }
 
     // ── is_letter ──────────────────────────────────────────────────────────
@@ -228,45 +218,45 @@ TEST_CASE("jsv::unicode foundational constexpr functions", "[Unicode][T019]") {
 
 TEST_CASE("Utf8Decoder_AsciiChar_ReturnsOkWithByteLength1", "[Unicode][T020]") {
     using namespace jsv::unicode;
-    constexpr auto r = decode_utf8("A", 0);
-    STATIC_REQUIRE(r.codepoint == U'A');
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::Ok);
+    constexpr auto res = decode_utf8("A", 0);
+    STATIC_REQUIRE(res.codepoint == U'A');
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::Ok);
 }
 
 TEST_CASE("Utf8Decoder_TwoByteSequence_ReturnsCorrectCodepoint", "[Unicode][T021]") {
     using namespace jsv::unicode;
     // é = U+00E9 = 0xC3 0xA9
-    constexpr auto r = decode_utf8("\xC3\xA9", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0x00E9U});
-    STATIC_REQUIRE(r.byte_length == 2);
-    STATIC_REQUIRE(r.status == Utf8Status::Ok);
+    constexpr auto res = decode_utf8("\xC3\xA9", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0x00E9U});
+    STATIC_REQUIRE(res.byte_length == 2);
+    STATIC_REQUIRE(res.status == Utf8Status::Ok);
 }
 
 TEST_CASE("Utf8Decoder_ThreeByteSequence_ReturnsCorrectCodepoint", "[Unicode][T022]") {
     using namespace jsv::unicode;
     // 変 = U+5909 = 0xE5 0xA4 0x89
-    constexpr auto r = decode_utf8("\xE5\xA4\x89", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0x5909U});
-    STATIC_REQUIRE(r.byte_length == 3);
-    STATIC_REQUIRE(r.status == Utf8Status::Ok);
+    constexpr auto res = decode_utf8("\xE5\xA4\x89", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0x5909U});
+    STATIC_REQUIRE(res.byte_length == 3);
+    STATIC_REQUIRE(res.status == Utf8Status::Ok);
 }
 
 TEST_CASE("Utf8Decoder_FourByteSequence_ReturnsCorrectCodepoint", "[Unicode][T023]") {
     using namespace jsv::unicode;
     // 𐍈 = U+10348 = 0xF0 0x90 0x8D 0x88
-    constexpr auto r = decode_utf8("\xF0\x90\x8D\x88", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0x10348U});
-    STATIC_REQUIRE(r.byte_length == 4);
-    STATIC_REQUIRE(r.status == Utf8Status::Ok);
+    constexpr auto res = decode_utf8("\xF0\x90\x8D\x88", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0x10348U});
+    STATIC_REQUIRE(res.byte_length == 4);
+    STATIC_REQUIRE(res.status == Utf8Status::Ok);
 }
 
 TEST_CASE("Utf8Decoder_NullByte_ReturnsOkCodepointZero", "[Unicode][T024]") {
     using namespace jsv::unicode;
-    constexpr auto r = decode_utf8(std::string_view("\x00", 1), 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0U});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::Ok);
+    constexpr auto res = decode_utf8(std::string_view("\x00", 1), 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0U});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::Ok);
 }
 
 TEST_CASE("Utf8Decoder_InterleavedAsciiAndMultibyte_AllDecodeCorrectly", "[Unicode][T025]") {
@@ -274,20 +264,20 @@ TEST_CASE("Utf8Decoder_InterleavedAsciiAndMultibyte_AllDecodeCorrectly", "[Unico
     // "A" + é(0xC3 0xA9) + "B"
     constexpr std::string_view mixed = "A\xC3\xA9"
                                        "B";
-    constexpr auto r0 = decode_utf8(mixed, 0);  // 'A'
-    STATIC_REQUIRE(r0.codepoint == U'A');
-    STATIC_REQUIRE(r0.byte_length == 1);
-    STATIC_REQUIRE(r0.status == Utf8Status::Ok);
+    constexpr auto res0 = decode_utf8(mixed, 0);  // 'A'
+    STATIC_REQUIRE(res0.codepoint == U'A');
+    STATIC_REQUIRE(res0.byte_length == 1);
+    STATIC_REQUIRE(res0.status == Utf8Status::Ok);
 
-    constexpr auto r1 = decode_utf8(mixed, 1);  // é
-    STATIC_REQUIRE(r1.codepoint == char32_t{0x00E9U});
-    STATIC_REQUIRE(r1.byte_length == 2);
-    STATIC_REQUIRE(r1.status == Utf8Status::Ok);
+    constexpr auto res1 = decode_utf8(mixed, 1);  // é
+    STATIC_REQUIRE(res1.codepoint == char32_t{0x00E9U});
+    STATIC_REQUIRE(res1.byte_length == 2);
+    STATIC_REQUIRE(res1.status == Utf8Status::Ok);
 
-    constexpr auto r2 = decode_utf8(mixed, 3);  // 'B'
-    STATIC_REQUIRE(r2.codepoint == U'B');
-    STATIC_REQUIRE(r2.byte_length == 1);
-    STATIC_REQUIRE(r2.status == Utf8Status::Ok);
+    constexpr auto res2 = decode_utf8(mixed, 3);  // 'B'
+    STATIC_REQUIRE(res2.codepoint == U'B');
+    STATIC_REQUIRE(res2.byte_length == 1);
+    STATIC_REQUIRE(res2.status == Utf8Status::Ok);
 }
 
 TEST_CASE("Utf8Decoder_AllSeventeenPlanes_DecodeCorrectly", "[Unicode][T030A][SC-006]") {
@@ -355,88 +345,88 @@ TEST_CASE("Utf8Decoder_AllSeventeenPlanes_DecodeCorrectly", "[Unicode][T030A][SC
 TEST_CASE("Utf8Decoder_OverlongTwoByte_ReturnsOverlongError", "[Unicode][T036]") {
     using namespace jsv::unicode;
     // 0xC0 0xAF → Overlong (would encode U+002F '/')
-    constexpr auto r = decode_utf8("\xC0\xAF", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::Overlong);
+    constexpr auto res = decode_utf8("\xC0\xAF", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::Overlong);
 }
 
 TEST_CASE("Utf8Decoder_OverlongThreeByte_ReturnsOverlongError", "[Unicode][T037]") {
     using namespace jsv::unicode;
     // 0xE0 0x80 0xAF → Overlong
-    constexpr auto r = decode_utf8("\xE0\x80\xAF", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::Overlong);
+    constexpr auto res = decode_utf8("\xE0\x80\xAF", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::Overlong);
 }
 
 TEST_CASE("Utf8Decoder_SurrogateHalf_ReturnsSurrogateError", "[Unicode][T038]") {
     using namespace jsv::unicode;
     // 0xED 0xA0 0x80 → U+D800 (high surrogate)
-    constexpr auto r = decode_utf8("\xED\xA0\x80", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::Surrogate);
+    constexpr auto res = decode_utf8("\xED\xA0\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::Surrogate);
 }
 
 TEST_CASE("Utf8Decoder_OutOfRange_ReturnsOutOfRangeError", "[Unicode][T039]") {
     using namespace jsv::unicode;
     // 0xF4 0x90 0x80 0x80 → U+110000 (out of Unicode range)
-    constexpr auto r = decode_utf8("\xF4\x90\x80\x80", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::OutOfRange);
+    constexpr auto res = decode_utf8("\xF4\x90\x80\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::OutOfRange);
 }
 
 TEST_CASE("Utf8Decoder_OrphanedContinuation_ReturnsOrphanedError", "[Unicode][T040]") {
     using namespace jsv::unicode;
     // 0x80 → orphaned continuation byte
-    constexpr auto r = decode_utf8("\x80", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::OrphanedContinuation);
+    constexpr auto res = decode_utf8("\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::OrphanedContinuation);
 }
 
 TEST_CASE("Utf8Decoder_TruncatedTwoByte_ReturnsTruncatedError", "[Unicode][T041]") {
     using namespace jsv::unicode;
     // 0xC3 alone (only 1 byte, should be 2) → TruncatedSequence
-    constexpr auto r = decode_utf8("\xC3", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::TruncatedSequence);
+    constexpr auto res = decode_utf8("\xC3", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::TruncatedSequence);
 }
 
 TEST_CASE("Utf8Decoder_TruncatedThreeByte_ReturnsCorrectMaximalSubpart", "[Unicode][T042]") {
     using namespace jsv::unicode;
     // 0xE5 0xA4 at end of input (only 2 bytes, should be 3) → TruncatedSequence, length=2
-    constexpr auto r = decode_utf8("\xE5\xA4", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 2);
-    STATIC_REQUIRE(r.status == Utf8Status::TruncatedSequence);
+    constexpr auto res = decode_utf8("\xE5\xA4", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 2);
+    STATIC_REQUIRE(res.status == Utf8Status::TruncatedSequence);
 }
 
 TEST_CASE("Utf8Decoder_InvalidLeadByte_ReturnsInvalidLeadError", "[Unicode][T043]") {
     using namespace jsv::unicode;
     // 0xFF → InvalidLeadByte
-    constexpr auto r = decode_utf8("\xFF", 0);
-    STATIC_REQUIRE(r.codepoint == char32_t{0xFFFDU});
-    STATIC_REQUIRE(r.byte_length == 1);
-    STATIC_REQUIRE(r.status == Utf8Status::InvalidLeadByte);
+    constexpr auto res = decode_utf8("\xFF", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::InvalidLeadByte);
 }
 
 TEST_CASE("Utf8Decoder_AllContinuationBytes_EachProducesOrphanedError", "[Unicode][T044]") {
     using namespace jsv::unicode;
     // 0x80 0x80 0x80 → 3 separate OrphanedContinuation results
     constexpr std::string_view input = "\x80\x80\x80";
-    constexpr auto r0 = decode_utf8(input, 0);
-    constexpr auto r1 = decode_utf8(input, 1);
-    constexpr auto r2 = decode_utf8(input, 2);
-    STATIC_REQUIRE(r0.status == Utf8Status::OrphanedContinuation);
-    STATIC_REQUIRE(r0.byte_length == 1);
-    STATIC_REQUIRE(r1.status == Utf8Status::OrphanedContinuation);
-    STATIC_REQUIRE(r1.byte_length == 1);
-    STATIC_REQUIRE(r2.status == Utf8Status::OrphanedContinuation);
-    STATIC_REQUIRE(r2.byte_length == 1);
+    constexpr auto res0 = decode_utf8(input, 0);
+    constexpr auto res1 = decode_utf8(input, 1);
+    constexpr auto res2 = decode_utf8(input, 2);
+    STATIC_REQUIRE(res0.status == Utf8Status::OrphanedContinuation);
+    STATIC_REQUIRE(res0.byte_length == 1);
+    STATIC_REQUIRE(res1.status == Utf8Status::OrphanedContinuation);
+    STATIC_REQUIRE(res1.byte_length == 1);
+    STATIC_REQUIRE(res2.status == Utf8Status::OrphanedContinuation);
+    STATIC_REQUIRE(res2.byte_length == 1);
 }
 
 // ==========================================================================
