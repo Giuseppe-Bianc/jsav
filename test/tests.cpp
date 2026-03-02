@@ -2784,8 +2784,8 @@ TEST_CASE("Lexer_AsciiOnlySource_TokenizeCorrectly", "[lexer][utf8][phase3]") {
 
 TEST_CASE("Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
     // Ω = U+03A9, UTF-8: 0xCE 0xA9 (2 bytes)
-    using namespace std::string_literals;
-    const std::string src = "\xCE\xA9"s;
+
+    const std::string src = "\xCE\xA9";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2796,8 +2796,8 @@ TEST_CASE("Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][pha
 
 TEST_CASE("Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
     // 変 = U+5909, UTF-8: 0xE5 0xA4 0x89 (3 bytes)
-    using namespace std::string_literals;
-    const std::string src = "\xE5\xA4\x89"s;
+
+    const std::string src = "\xE5\xA4\x89";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2808,8 +2808,8 @@ TEST_CASE("Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][p
 
 TEST_CASE("Lexer_FourByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
     // 𝑥 = U+1D465 (Mathematical Italic Small x), UTF-8: 0xF0 0x9D 0x91 0xA5 (4 bytes)
-    using namespace std::string_literals;
-    const std::string src = "\xF0\x9D\x91\xA5"s;
+
+    const std::string src = "\xF0\x9D\x91\xA5";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2842,8 +2842,7 @@ TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer][utf8][ph
 
 TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
     // 0x80 is an orphaned continuation byte — must produce Error token
-    using namespace std::string_literals;
-    const std::string src = "\x80"s;
+    const std::string src = "\x80";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2854,8 +2853,7 @@ TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][
 
 TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
     // 0xC0 0xAF is an overlong encoding of '/' — must produce Error token(s)
-    using namespace std::string_literals;
-    const std::string src = "\xC0\xAF"s;
+    const std::string src = "\xC0\xAF";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // At minimum: first token must be Error
@@ -2866,8 +2864,7 @@ TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][p
 
 TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed][phase4]") {
     // Malformed byte followed by valid tokens — recovery must work
-    using namespace std::string_literals;
-    const std::string src = "\x80 var x"s;
+    const std::string src = "\x80 var x";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // Error(\x80), KeywordVar, IdentifierAscii("x"), Eof
@@ -2881,9 +2878,8 @@ TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed
 
 TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
     // String literal containing overlong sequence → entire literal is Error per FR-021
-    using namespace std::string_literals;
     // Source: "  + 0xC0 + 0xAF + "
-    const std::string src = "\"\xC0\xAF\""s;
+    const std::string src = "\"\xC0\xAF\"";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2893,9 +2889,8 @@ TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexe
 
 TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
     // Char literal containing orphaned continuation → entire literal is Error per FR-021
-    using namespace std::string_literals;
     // Source: '  + 0x80 + '
-    const std::string src = "\'\x80\'"s;
+    const std::string src = "\'\x80\'";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2909,8 +2904,7 @@ TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer]
 
 TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
     // 变量名 = U+53D8 U+91CF U+540D (3 CJK characters)
-    using namespace std::string_literals;
-    const std::string src = "\xe5\x8f\x98\xe9\x87\x8f\xe5\x90\x8d"s;
+    const std::string src = "\xe5\x8f\x98\xe9\x87\x8f\xe5\x90\x8d";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2921,8 +2915,7 @@ TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identif
 
 TEST_CASE("Lexer_CyrillicWithCombiningMark_ReturnsSingleIdentifier", "[lexer][utf8][identifiers][phase5]") {
     // и̃мя = U+0438 U+0303 U+043C U+044F (Cyrillic + combining tilde + letters)
-    using namespace std::string_literals;
-    const std::string src = "\xd0\xb8\xcc\x83\xd0\xbc\xd0\xaf"s;
+    const std::string src = "\xd0\xb8\xcc\x83\xd0\xbc\xd0\xaf";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2933,8 +2926,7 @@ TEST_CASE("Lexer_CyrillicWithCombiningMark_ReturnsSingleIdentifier", "[lexer][ut
 
 TEST_CASE("Lexer_DevanagariIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
     // गणना = U+0917 U+0923 U+0928 U+093E
-    using namespace std::string_literals;
-    const std::string src = "\xe0\xa4\x97\xe0\xa4\xa3\xe0\xa4\xa8\xe0\xa4\xbe"s;
+    const std::string src = "\xe0\xa4\x97\xe0\xa4\xa3\xe0\xa4\xa8\xe0\xa4\xbe";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2945,8 +2937,7 @@ TEST_CASE("Lexer_DevanagariIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][
 
 TEST_CASE("Lexer_UnderscoreUnicode_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
     // _变量 = _ + U+5909 + U+91CF (underscore + CJK) per FR-018
-    using namespace std::string_literals;
-    const std::string src = "_\xe5\xa4\x89\xe9\x87\x8f"s;
+    const std::string src = "_\xe5\xa4\x89\xe9\x87\x8f";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2957,8 +2948,7 @@ TEST_CASE("Lexer_UnderscoreUnicode_ReturnsIdentifierUnicode", "[lexer][utf8][ide
 
 TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer][utf8][identifiers][phase5]") {
     // 😀 = U+1F600 (F0 9F 98 80) — not a letter → Error per FR-022
-    using namespace std::string_literals;
-    const std::string src = "\xf0\x9f\x98\x80"s;
+    const std::string src = "\xf0\x9f\x98\x80";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2968,8 +2958,7 @@ TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer][utf8][identifi
 
 TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
     // 👨‍👩 = U+1F468 U+200D U+1F469 — ZWJ sequences must NOT form identifier per FR-016
-    using namespace std::string_literals;
-    const std::string src = "\xf0\x9f\x91\xa8\xe2\x80\x8d\xf0\x9f\x91\xa9"s;
+    const std::string src = "\xf0\x9f\x91\xa8\xe2\x80\x8d\xf0\x9f\x91\xa9";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // None of the tokens should be IdentifierUnicode; all non-Eof tokens must be Error
@@ -2979,8 +2968,7 @@ TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][ide
 
 TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
     // U+0303 (combining tilde) alone — combining marks cannot start identifiers per FR-012
-    using namespace std::string_literals;
-    const std::string src = "\xcc\x83"s;  // U+0303 in UTF-8: CC 83
+    const std::string src = "\xcc\x83";  // U+0303 in UTF-8: CC 83
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -2990,8 +2978,7 @@ TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8
 
 TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
     // U+0660 (Arabic-Indic digit zero) alone — Nd category cannot start identifiers per FR-012
-    using namespace std::string_literals;
-    const std::string src = "\xd9\xa0"s;  // U+0660 in UTF-8: D9 A0
+    const std::string src = "\xd9\xa0";  // U+0660 in UTF-8: D9 A0
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 2);
@@ -3001,43 +2988,42 @@ TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][ut
 
 TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identifiers][phase5][sc001]") {
     // SC-001: identifiers from ≥30 distinct Unicode scripts must tokenize as IdentifierUnicode
-    using namespace std::string_literals;
     struct ScriptCase {
         const char *name;
         std::string src;
     };
     // One representative identifier per script (encoded in UTF-8)
     const std::vector<ScriptCase> cases = {
-        {.name = "Latin (ASCII)", .src = "hello"s},
-        {.name = "Greek", .src = "\xce\xb1\xce\xb2\xce\xb3"s},                 // αβγ
-        {.name = "Cyrillic", .src = "\xd0\xb0\xd0\xb1\xd0\xb2"s},              // абв
-        {.name = "Armenian", .src = "\xd5\xb1\xd5\xb2\xd5\xb3"s},              // աբգ
-        {.name = "Georgian", .src = "\xe1\x83\x90\xe1\x83\x91\xe1\x83\x92"s},  // აბგ U+10D0-U+10D2
-        {.name = "Hebrew", .src = "\xd7\x90\xd7\x91\xd7\x92"s},                // אבג
-        {.name = "Arabic", .src = "\xd8\xa7\xd8\xa8\xd8\xaa"s},                // ابت
-        {.name = "Devanagari", .src = "\xe0\xa4\x97\xe0\xa4\xa3"s},            // गण
-        {.name = "Bengali", .src = "\xe0\xa6\x97\xe0\xa6\xa3"s},               // গণ U+0997 U+09A3
-        {.name = "Gurmukhi", .src = "\xe0\xa8\x97\xe0\xa8\xa3"s},              // ਗਣ U+0A17 U+0A23
-        {.name = "Gujarati", .src = "\xe0\xaa\x97\xe0\xaa\xa3"s},              // ગણ U+0A97 U+0AA3
-        {.name = "Tamil", .src = "\xe0\xae\x95\xe0\xae\xa3"s},                 // கண U+0B95 U+0BA3
-        {.name = "Telugu", .src = "\xe0\xb0\x97\xe0\xb0\xa3"s},                // గణ U+0C17 U+0C23
-        {.name = "Kannada", .src = "\xe0\xb2\x97\xe0\xb2\xa3"s},               // ಗಣ U+0C97 U+0CA3
-        {.name = "Malayalam", .src = "\xe0\xb4\x97\xe0\xb4\xa3"s},             // ഗണ U+0D17 U+0D23
-        {.name = "Sinhala", .src = "\xe0\xb6\x9c\xe0\xb6\xab"s},               // ගණ U+0D9C U+0DAB
-        {.name = "Thai", .src = "\xe0\xb8\x81\xe0\xb8\x82"s},                  // กข U+0E01 U+0E02
-        {.name = "Lao", .src = "\xe0\xba\x81\xe0\xba\x82"s},                   // ກຂ U+0E81 U+0E82
-        {.name = "Tibetan", .src = "\xe0\xbd\x80\xe0\xbd\x81"s},              // ཀཁ U+0F00 U+0F01 (actually Tibetan letters start at U+0F40)
-        {.name = "Myanmar", .src = "\xe1\x80\x80\xe1\x80\x81"s},              // ကခ U+1000 U+1001
-        {.name = "Hangul", .src = "\xea\xb0\x80\xeb\x82\x98"s},               // 가나 U+AC00 U+B098
-        {.name = "Hiragana", .src = "\xe3\x81\x82\xe3\x81\x84"s},             // あい U+3042 U+3044
-        {.name = "Katakana", .src = "\xe3\x82\xa2\xe3\x82\xa4"s},             // アイ U+30A2 U+30A4
-        {.name = "CJK", .src = "\xe5\x8f\x98\xe9\x87\x8f"s},                  // 变量 U+53D8 U+91CF
-        {.name = "Ethiopic", .src = "\xe1\x88\x80\xe1\x88\x81"s},             // ሀሁ U+1200 U+1201
-        {.name = "Cherokee", .src = "\xe1\x8e\xa0\xe1\x8e\xa1"s},             // ᏠᏡ U+13A0 U+13A1
-        {.name = "Khmer", .src = "\xe1\x9e\x80\xe1\x9e\x81"s},                // កខ U+1780 U+1781
-        {.name = "Mongolian", .src = "\xe1\xa0\xa0\xe1\xa0\xa1"s},            // ᠠᠡ U+1820 U+1821
-        {.name = "Tai Le", .src = "\xe1\xa5\x90\xe1\xa5\x91"s},               // ᥐᥑ U+1950 U+1951
-        {.name = "Math Italic", .src = "\xf0\x9d\x91\xa5\xf0\x9d\x91\xa6"s},  // 𝑥𝑦 U+1D465 U+1D466
+        {.name = "Latin (ASCII)", .src = "hello"},
+        {.name = "Greek", .src = "\xce\xb1\xce\xb2\xce\xb3"},                 // αβγ
+        {.name = "Cyrillic", .src = "\xd0\xb0\xd0\xb1\xd0\xb2"},              // абв
+        {.name = "Armenian", .src = "\xd5\xb1\xd5\xb2\xd5\xb3"},              // աբգ
+        {.name = "Georgian", .src = "\xe1\x83\x90\xe1\x83\x91\xe1\x83\x92"},  // აბგ U+10D0-U+10D2
+        {.name = "Hebrew", .src = "\xd7\x90\xd7\x91\xd7\x92"},                // אבג
+        {.name = "Arabic", .src = "\xd8\xa7\xd8\xa8\xd8\xaa"},                // ابت
+        {.name = "Devanagari", .src = "\xe0\xa4\x97\xe0\xa4\xa3"},            // गण
+        {.name = "Bengali", .src = "\xe0\xa6\x97\xe0\xa6\xa3"},               // গণ U+0997 U+09A3
+        {.name = "Gurmukhi", .src = "\xe0\xa8\x97\xe0\xa8\xa3"},              // ਗਣ U+0A17 U+0A23
+        {.name = "Gujarati", .src = "\xe0\xaa\x97\xe0\xaa\xa3"},              // ગણ U+0A97 U+0AA3
+        {.name = "Tamil", .src = "\xe0\xae\x95\xe0\xae\xa3"},                 // கண U+0B95 U+0BA3
+        {.name = "Telugu", .src = "\xe0\xb0\x97\xe0\xb0\xa3"},                // గణ U+0C17 U+0C23
+        {.name = "Kannada", .src = "\xe0\xb2\x97\xe0\xb2\xa3"},               // ಗಣ U+0C97 U+0CA3
+        {.name = "Malayalam", .src = "\xe0\xb4\x97\xe0\xb4\xa3"},             // ഗണ U+0D17 U+0D23
+        {.name = "Sinhala", .src = "\xe0\xb6\x9c\xe0\xb6\xab"},               // ගණ U+0D9C U+0DAB
+        {.name = "Thai", .src = "\xe0\xb8\x81\xe0\xb8\x82"},                  // กข U+0E01 U+0E02
+        {.name = "Lao", .src = "\xe0\xba\x81\xe0\xba\x82"},                   // ກຂ U+0E81 U+0E82
+        {.name = "Tibetan", .src = "\xe0\xbd\x80\xe0\xbd\x81"},               // ཀཁ U+0F00 U+0F01 (actually Tibetan letters start at U+0F40)
+        {.name = "Myanmar", .src = "\xe1\x80\x80\xe1\x80\x81"},               // ကခ U+1000 U+1001
+        {.name = "Hangul", .src = "\xea\xb0\x80\xeb\x82\x98"},                // 가나 U+AC00 U+B098
+        {.name = "Hiragana", .src = "\xe3\x81\x82\xe3\x81\x84"},              // あい U+3042 U+3044
+        {.name = "Katakana", .src = "\xe3\x82\xa2\xe3\x82\xa4"},              // アイ U+30A2 U+30A4
+        {.name = "CJK", .src = "\xe5\x8f\x98\xe9\x87\x8f"},                   // 变量 U+53D8 U+91CF
+        {.name = "Ethiopic", .src = "\xe1\x88\x80\xe1\x88\x81"},              // ሀሁ U+1200 U+1201
+        {.name = "Cherokee", .src = "\xe1\x8e\xa0\xe1\x8e\xa1"},              // ᏠᏡ U+13A0 U+13A1
+        {.name = "Khmer", .src = "\xe1\x9e\x80\xe1\x9e\x81"},                 // កខ U+1780 U+1781
+        {.name = "Mongolian", .src = "\xe1\xa0\xa0\xe1\xa0\xa1"},             // ᠠᠡ U+1820 U+1821
+        {.name = "Tai Le", .src = "\xe1\xa5\x90\xe1\xa5\x91"},                // ᥐᥑ U+1950 U+1951
+        {.name = "Math Italic", .src = "\xf0\x9d\x91\xa5\xf0\x9d\x91\xa6"},   // 𝑥𝑦 U+1D465 U+1D466
     };
 
     for(const auto &c : cases) {
@@ -3045,7 +3031,7 @@ TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identif
         jsv::Lexer lex{c.src, "test.jsav"};
         const auto tokens = lex.tokenize();
         REQUIRE(tokens.size() == 2);
-        if(c.src == "hello"s) {
+        if(c.src == "hello") {
             REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
         } else {
             REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierUnicode);
@@ -3061,9 +3047,8 @@ TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identif
 
 TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer][utf8][ascii-compat][phase6]") {
     // BOM = 0xEF 0xBB 0xBF — must be silently skipped (FR-019)
-    using namespace std::string_literals;
     const std::string src = "\xEF\xBB\xBF"
-                            "var x"s;
+                            "var x";
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // Expected: KeywordVar("var"), IdentifierAscii("x"), Eof
@@ -3077,9 +3062,9 @@ TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer][utf8][ascii-compat][
 
 TEST_CASE("Lexer_UnicodeWhitespace_NoBreakSpace_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
     // U+00A0 NO-BREAK SPACE (0xC2 0xA0, category Zs) must be consumed as whitespace (FR-023)
-    using namespace std::string_literals;
+
     const std::string src = "a\xC2\xA0"
-                            "b"s;  // "a" + NBSP + "b"
+                            "b";  // "a" + NBSP + "b"
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // Expected: IdentifierAscii("a"), IdentifierAscii("b"), Eof
@@ -3093,9 +3078,9 @@ TEST_CASE("Lexer_UnicodeWhitespace_NoBreakSpace_ConsumedSilently", "[lexer][utf8
 
 TEST_CASE("Lexer_UnicodeWhitespace_EmSpace_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
     // U+2003 EM SPACE (0xE2 0x80 0x83, category Zs) must be consumed as whitespace (FR-023)
-    using namespace std::string_literals;
+
     const std::string src = "a\xE2\x80\x83"
-                            "b"s;  // "a" + EM SPACE + "b"
+                            "b";  // "a" + EM SPACE + "b"
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // Expected: IdentifierAscii("a"), IdentifierAscii("b"), Eof
@@ -3109,9 +3094,9 @@ TEST_CASE("Lexer_UnicodeWhitespace_EmSpace_ConsumedSilently", "[lexer][utf8][asc
 
 TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
     // U+2028 LINE SEPARATOR (0xE2 0x80 0xA8, category Zl) must be consumed as whitespace (FR-023)
-    using namespace std::string_literals;
+
     const std::string src = "a\xE2\x80\xA8"
-                            "b"s;  // "a" + LINE SEPARATOR + "b"
+                            "b";  // "a" + LINE SEPARATOR + "b"
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
     // Expected: IdentifierAscii("a"), IdentifierAscii("b"), Eof
@@ -3230,16 +3215,15 @@ TEST_CASE("Lexer_LargeAsciiFile_TokenizesWithinBaseline", "[lexer][utf8][perform
 TEST_CASE("Lexer_MixedUnicodeFile_TokenizesCompletely", "[lexer][utf8][performance][phase7]") {
     // Mix ASCII identifiers, CJK identifiers, Cyrillic identifiers,
     // and string literals containing valid UTF-8 multi-byte characters.
-    using namespace std::string_literals;
     std::string src;
     src.reserve(5000);
     for(int i = 0; i < 100; ++i) {
         src += 'a';
         src += std::to_string(i);
-        src += ' ';                            // ASCII identifiers
-        src += "\xe5\x8f\x98\xe9\x87\x8f "s;   // 変量 (CJK)
-        src += "\xd0\xb0\xd0\xb1\xd0\xb2 "s;   // абв (Cyrillic)
-        src += "\"hello\xf0\x9f\x98\x80\" "s;  // string with emoji inside
+        src += ' ';                           // ASCII identifiers
+        src += "\xe5\x8f\x98\xe9\x87\x8f ";   // 変量 (CJK)
+        src += "\xd0\xb0\xd0\xb1\xd0\xb2 ";   // абв (Cyrillic)
+        src += "\"hello\xf0\x9f\x98\x80\" ";  // string with emoji inside
     }
     jsv::Lexer lex{src, "test.jsav"};
     const auto tokens = lex.tokenize();
@@ -3261,14 +3245,11 @@ TEST_CASE("Lexer_MixedUnicodeFile_TokenizesCompletely", "[lexer][utf8][performan
 
 TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performance][phase7][benchmark]") {
     // SC-007: 1MB mixed-content file must tokenize within 100ms (benchmark-only guard)
-    using namespace std::string_literals;
-    using namespace std::chrono;
-
     // Build ~1MB source: repeated blocks of ASCII + CJK + string literal (~52 bytes each)
     const std::string block = "abc def gh "
-                              "\xe5\x8f\x98\xe9\x87\x8f "s  // 変量
-                              "\xd0\xb0\xd0\xb1\xd0\xb2 "s  // абв
-                              "\"hello world 42\" "s;       // string literal
+                              "\xe5\x8f\x98\xe9\x87\x8f "  // 変量
+                              "\xd0\xb0\xd0\xb1\xd0\xb2 "  // абв
+                              "\"hello world 42\" ";       // string literal
 
     const std::size_t target = std::size_t{1024} * 1024;  // 1MB
     std::string src;
