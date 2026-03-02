@@ -4,7 +4,8 @@
  */
 
 #include "jsav/lexer/Lexer.hpp"
-
+#include "jsav/lexer/unicode/UnicodeData.hpp"
+#include "jsav/lexer/unicode/Utf8.hpp"
 namespace jsv {
     Lexer::Lexer(std::string_view source, std::string file_path)
       : m_source{source}, m_file_path{MAKE_SHARED(const std::string, vnd_move(file_path))} {}

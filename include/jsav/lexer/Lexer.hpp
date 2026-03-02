@@ -7,8 +7,6 @@
 
 #include "../headers.hpp"
 #include "Token.hpp"
-#include "unicode/UnicodeData.hpp"
-#include "unicode/Utf8.hpp"
 
 namespace jsv {
 
