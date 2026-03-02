@@ -92,6 +92,14 @@ namespace jsv {
         }
         return res.codepoint;
     }
+
+    void Lexer::advance_with_utf8_check(bool &has_malformed) noexcept {
+        const auto res = unicode::decode_utf8(m_source, m_pos);
+        if(res.status != unicode::Utf8Status::Ok) { has_malformed = true; }
+        m_pos += res.byte_length;
+        m_column += res.byte_length;
+    }
+
     SourceLocation Lexer::current_location() const noexcept { return SourceLocation{m_line, m_column, m_pos}; }
 
     SourceSpan Lexer::make_span(const SourceLocation &start) const { return SourceSpan{m_file_path, start, current_location()}; }
@@ -364,10 +372,7 @@ namespace jsv {
             }
             // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
             if(C_UC(c) > 0x7F) {
-                const auto res = unicode::decode_utf8(m_source, m_pos);
-                if(res.status != unicode::Utf8Status::Ok) { has_malformed = true; }
-                m_pos += res.byte_length;
-                m_column += res.byte_length;
+                advance_with_utf8_check(has_malformed);
             } else {
                 advance_byte();
             }
@@ -391,10 +396,7 @@ namespace jsv {
                 // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
                 const char c = peek_byte();
                 if(C_UC(c) > 0x7F) {
-                    const auto res = unicode::decode_utf8(m_source, m_pos);
-                    if(res.status != unicode::Utf8Status::Ok) { has_malformed = true; }
-                    m_pos += res.byte_length;
-                    m_column += res.byte_length;
+                    advance_with_utf8_check(has_malformed);
                 } else {
                     advance_byte();
                 }

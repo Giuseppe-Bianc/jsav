@@ -75,6 +75,10 @@ namespace jsv {
         /// Decode and consume one UTF-8 codepoint, updating line/column correctly.
         char32_t advance_codepoint() noexcept;
 
+        /// Advance m_pos and m_column by one UTF-8 sequence, marking has_malformed if invalid.
+        /// Used in string/char literal scanning to handle non-ASCII bytes.
+        void advance_with_utf8_check(bool &has_malformed) noexcept;
+
         // ── Location / token construction ─────────────────────────────────
         [[nodiscard]] SourceLocation current_location() const noexcept;
         [[nodiscard]] SourceSpan make_span(const SourceLocation &start) const;

@@ -3280,6 +3280,7 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
     }
 
     // Performance guard: in Release only (Debug is too slow for this bound)
+    // Threshold configurable via BENCHMARK_TIMEOUT_MS env var (default: 100ms)
 #ifdef NDEBUG
     const auto t0 = high_resolution_clock::now();
     {
@@ -3287,7 +3288,9 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
         [[maybe_unused]] const auto tokens = lex.tokenize();
     }
     const auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - t0).count();
-    REQUIRE(elapsed < 100);
+    const auto* const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
+    const int timeout_ms = timeout_env ? std::stoi(timeout_env) : 100;
+    REQUIRE(elapsed < timeout_ms);
 #endif
 
     BENCHMARK("Tokenize 1MB mixed") {
