@@ -3677,12 +3677,12 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
     // Performance guard: in Release only (Debug is too slow for this bound)
     // Threshold configurable via BENCHMARK_TIMEOUT_MS env var (default: 100ms)
 #ifdef NDEBUG
-    const auto t0 = high_resolution_clock::now();
+    const auto t0 = ch::high_resolution_clock::now();
     {
         jsv::Lexer lex{src, "bench.jsav"};
         [[maybe_unused]] const auto tokens = lex.tokenize();
     }
-    const auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - t0).count();
+    const auto elapsed = duration_cast<ch::milliseconds>(ch::high_resolution_clock::now() - t0).count();
     // NOLINTBEGIN(*-mt-unsafe)
     const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
     // NOLINTEND(*-mt-unsafe)
@@ -3720,12 +3720,12 @@ TEST_CASE("Lexer_Benchmark_AsciiThroughput_NoRegression", "[lexer][benchmark][US
 
     // Performance guard: in Release only (Debug is too slow for timing bounds)
 #ifdef NDEBUG
-    const auto t0 = high_resolution_clock::now();
+    const auto t0 = ch::high_resolution_clock::now();
     {
         jsv::Lexer lex{src, "bench_ascii.jsav"};
         [[maybe_unused]] const auto tokens = lex.tokenize();
     }
-    const auto elapsed = duration_cast<milliseconds>(high_resolution_clock::now() - t0).count();
+    const auto elapsed = duration_cast<ch::milliseconds>(ch::high_resolution_clock::now() - t0).count();
     // NOLINTBEGIN(*-mt-unsafe)
     const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
     // NOLINTEND(*-mt-unsafe)

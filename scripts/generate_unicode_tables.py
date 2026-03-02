@@ -1,4 +1,4 @@
-#!/ usr / bin / env python3
+#!/usr/bin/env python3
 """
 generate_unicode_tables.py — Offline generator for jsav lexer Unicode lookup tables.
 
