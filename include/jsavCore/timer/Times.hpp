@@ -231,7 +231,8 @@ namespace vnd {
             const auto durationmicros = microlld(inputTimeMicro);
 
             const auto durationUs = duration_cast<microseconds>(durationmicros);
-            const auto durationNs = round<nanoseconds>(durationmicros - durationUs);
+            auto remainder = durationmicros - durationUs;
+            const auto durationNs = round<nanoseconds>(remainder);
 
             return FORMAT("{}us,{}ns", C_LD(durationUs.count()), C_LD(durationNs.count()));
         }
@@ -254,8 +255,10 @@ namespace vnd {
             const auto durationmils = millilld(inputTimeMilli);
 
             const auto durationMs = duration_cast<milliseconds>(durationmils);
-            const auto durationUs = round<microseconds>(durationmils - durationMs);
-            const auto durationNs = round<nanoseconds>(durationmils - durationMs - durationUs);
+            auto remainder = durationmils - durationMs;
+            const auto durationUs = round<microseconds>(remainder);
+            remainder -= durationUs;
+            const auto durationNs = round<nanoseconds>(remainder);
 
             return FORMAT("{}ms,{}us,{}ns", C_LD(durationMs.count()), C_LD(durationUs.count()), C_LD(durationNs.count()));
         }
@@ -279,9 +282,12 @@ namespace vnd {
             const auto durationSecs = seclld(inputTimeSeconds);
 
             const auto durationSec = duration_cast<seconds>(durationSecs);
-            const auto durationMs = round<milliseconds>(durationSecs - durationSec);
-            const auto durationUs = round<microseconds>(durationSecs - durationSec - durationMs);
-            const auto durationNs = round<nanoseconds>(durationSecs - durationSec - durationMs - durationUs);
+            auto remainder = durationSecs - durationSec;
+            const auto durationMs = round<milliseconds>(remainder);
+            remainder -= durationMs;
+            const auto durationUs = round<microseconds>(remainder);
+            remainder -= durationUs;
+            const auto durationNs = round<nanoseconds>(remainder);
 
             return FORMAT("{}s,{}ms,{}us,{}ns", C_LD(durationSec.count()), C_LD(durationMs.count()), C_LD(durationUs.count()),
                           C_LD(durationNs.count()));
