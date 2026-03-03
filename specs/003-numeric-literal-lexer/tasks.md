@@ -39,23 +39,30 @@
 
 **⚠️ CRITICAL**: No work on user stories can begin before completion of this phase
 
-- [ ] T003 Update the doccomment of `scan_numeric_literal()` in `include/jsav/lexer/Lexer.hpp` to reflect the new trailing-dot behavior (remove reference to old `Numeric + Dot` split) as per research R1
+- [ ] T003 Update the doccomment of `scan_numeric_literal()` in `include/jsav/lexer/Lexer.hpp` to reflect the new trailing-dot behavior:
+  - **Remove** reference to old `Numeric + Dot` split (lines 38-40 of `Lexer.hpp`)
+  - **Replace with**: "Trailing dot is included in the numeric token (e.g., `3.` → `Numeric("3.")`)"
+  - **Reference**: research.md R1 — "Trailing-dot behavior change: impact on codebase"
 - [ ] T004 [P] Declare the private helper method `void try_scan_exponent()` in `include/jsav/lexer/Lexer.hpp` with doccomment for G2 (as per data-model.md Method Signatures)
 - [ ] T005 [P] Declare the private helper method `void try_scan_type_suffix()` in `include/jsav/lexer/Lexer.hpp` with doccomment for G3 (as per data-model.md Method Signatures)
 - [ ] T006 [P] Declare the private helper method `[[nodiscard]] bool match_width_suffix()` in `include/jsav/lexer/Lexer.hpp` with doccomment (as per data-model.md Method Signatures)
 - [ ] T007 Modify `next_token()` in `src/jsav_Lib/lexer/Lexer.cpp` to add the leading-dot branch: if `peek_byte() == '.'` and `std::isdigit(peek_byte(1))` then invoke `scan_numeric_literal(start)` before `scan_operator_or_punctuation()` as per research R2
 - [ ] T008 Format the modified files with `clang-format -i include/jsav/lexer/Lexer.hpp src/jsav_Lib/lexer/Lexer.cpp`
 - [ ] T009 Build and verify that existing tests continue to pass (regression baseline)
-- [ ] T010 [P] [FR-027] Verify absence of regex usage in `src/jsav_Lib/lexer/Lexer.cpp`:
-  - Verify that `#include <regex>` is NOT present
+- [ ] T010 [P] [FR-027] Verify absence of regex usage in entire lexer module (both `src/` and `include/`):
+  - Verify that `#include <regex>` is NOT present in any lexer file
   - Verify that `std::regex`, `std::regex_match`, `std::regex_search`, `std::regex_replace` are NOT used
-  - Method (cross-platform): Use `grep` to search for regex usage:
+  - Method (cross-platform): Use `grep` to search for regex usage across lexer module:
     ```bash
-    grep -n "include <regex>" src/jsav_Lib/lexer/Lexer.cpp
-    grep -n "std::regex" src/jsav_Lib/lexer/Lexer.cpp
+    grep -rn "include <regex>" src/jsav_Lib/lexer/ include/jsav/lexer/
+    grep -rn "std::regex" src/jsav_Lib/lexer/ include/jsav/lexer/
     ```
   - Both commands MUST return no results (empty output)
-  - **Alternative (PowerShell)**: `Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/Lexer.cpp"` (Windows only)
+  - **Alternative (PowerShell)**:
+    ```powershell
+    Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/", "include/jsav/lexer/"
+    ```
+  - **Scope**: Verify all files in `src/jsav_Lib/lexer/` and `include/jsav/lexer/` directories
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -77,6 +84,7 @@
 - [ ] T014 [P] [US1] Write TEST_CASE for numbers with only fractional part (`.5`, `.14`, `.0`) verifying `Numeric(".5")` token in `test/tests.cpp`
 - [ ] T015 [P] [US1] Write TEST_CASE for edge cases: isolated dot (`.`) → not Numeric, dot followed by non-digit (`.abc`) → not Numeric in `test/tests.cpp`
 - [ ] T016 [P] [US1] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - **Required constexpr methods**: `scan_numeric_literal()`, `try_scan_exponent()`, `try_scan_type_suffix()`, `match_width_suffix()`
   - Define `consteval` functions that invoke the lexer on basic inputs (`42`, `3.14`, `3.`, `.5`)
   - Use `STATIC_REQUIRE` to verify at compile-time that the produced token has type `TokenKind::Numeric` and exact text
   - **TDD Workflow**: Write BEFORE implementation, verify that it does NOT compile (RED because lexer is not yet constexpr), implement by making methods constexpr, verify that it compiles (GREEN)
@@ -114,6 +122,7 @@
 - [ ] T022 [P] [US2] Write TEST_CASE for valid exponents (`1e10`, `3.14E+2`, `2.5e-3`, `.5E10`) verifying single Numeric token in `test/tests.cpp`
 - [ ] T023 [P] [US2] Write TEST_CASE for invalid exponents: `1e` → `Numeric("1")` + token `e`; `1e+` → `Numeric("1")` + `e` + `+`; `1E-` → `Numeric("1")` + `E` + `-` in `test/tests.cpp`
 - [ ] T024 [P] [US2] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - **Required constexpr methods**: `scan_numeric_literal()`, `try_scan_exponent()`
   - Define `consteval` functions that verify valid scientific notation (`1e10`, `3.14E+2`, `2.5e-3`) at compile-time
   - Use `STATIC_REQUIRE` to verify that incomplete exponents (`1e`, `1e+`, `1E-`) produce separate tokens
   - **TDD Workflow**: Write BEFORE implementation, verify RED, implement `try_scan_exponent()` as `constexpr`, verify GREEN
@@ -153,6 +162,7 @@
 - [ ] T031 [P] [US3] Write TEST_CASE for valid compound suffixes (`255u8`, `1000i32`, `50i16`, `50I16`, `100U32`) verifying text in Numeric token in `test/tests.cpp`
 - [ ] T032 [P] [US3] Write TEST_CASE for suffix edge cases: `1i` → `Numeric("1")` + `i`; `1u64` → `Numeric("1u64")`; `5f32` → `Numeric("5f")` + `32`; `1u` → `Numeric("1")` + `u`; `1U` → `Numeric("1")` + `U`; `1I` → `Numeric("1")` + `I` in `test/tests.cpp`
 - [ ] T033 [P] [US3] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - **Required constexpr methods**: `scan_numeric_literal()`, `try_scan_type_suffix()`, `match_width_suffix()`
   - Define `consteval` functions that verify valid suffixes (`1.0F`, `255u8`, `1000i32`) at compile-time
   - Use `STATIC_REQUIRE` for edge cases (`1i`, `42u`, `1u64`, `5f32`) that produce separate tokens or Numeric with complete text
   - **TDD Workflow**: Write BEFORE implementation, verify RED, implement `try_scan_type_suffix()` and `match_width_suffix()` as `constexpr`, verify GREEN
@@ -190,6 +200,7 @@
 
 - [ ] T039 [P] [US4] Write TEST_CASE for G1+G2+G3 combinations: `1.5e10f` → `Numeric("1.5e10f")`, `2.0E-3d` → `Numeric("2.0E-3d")`, `1e2u16` → `Numeric("1e2u16")`, `.5e1i32` → `Numeric(".5e1i32")` in `test/tests.cpp`
 - [ ] T040 [P] [US4] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - **Required constexpr methods**: `scan_numeric_literal()`, `try_scan_exponent()`, `try_scan_type_suffix()`, `match_width_suffix()`
   - Define `consteval` functions that verify complete combinations (`1.5e10f`, `2.0E-3d`, `1e2u16`, `.5e1i32`) at compile-time
   - Use `STATIC_REQUIRE` to verify that G1→G2→G3 produce single token with exact text
   - **TDD Workflow**: Write BEFORE final verification, verify that the complete pattern is `constexpr`-compatible
@@ -232,7 +243,18 @@
 - [ ] T044 [P] [US5] Write TEST_CASE for token boundaries: `-42` → `-` + `Numeric("42")`; `42 u8` → `Numeric("42")` + `u8`; `3.14+2` → `Numeric("3.14")` + `+` + `Numeric("2")`; `1e2+3` → `Numeric("1e2")` + `+` + `Numeric("3")` in `test/tests.cpp`
 - [ ] T045 [P] [US5] Write TEST_CASE for termination on non-ASCII and end of file in `test/tests.cpp`
 - [ ] T046 [P] [US5] Write TEST_CASE for newline termination (FR-028): `"42\n10"` → `Numeric("42")` + newline token + `Numeric("10")`; `"3.14\r\n2.5"` → `Numeric("3.14")` + newline token + `Numeric("2.5")`; `"1e2\r3"` → `Numeric("1e2")` + newline token + `Numeric("3")` in `test/tests.cpp`
+- [ ] T046b [P] [US5] [FR-028] Write dedicated TEST_CASE for comprehensive newline termination edge cases in `test/tests.cpp`:
+  - **Incomplete G1 + newline**: `"3.\n10"` → `Numeric("3.")` + newline + `Numeric("10")` (trailing dot before newline)
+  - **Incomplete G2 + newline**: `"1e\n10"` → `Numeric("1")` + `e` + newline + `Numeric("10")` (incomplete exponent before newline)
+  - **Incomplete G2+sign + newline**: `"1e+\n5"` → `Numeric("1")` + `e` + `+` + newline + `Numeric("5")` (exponent sign before newline)
+  - **Incomplete G3 + newline**: `"42u\n10"` → `Numeric("42")` + `u` + newline + `Numeric("10")` (invalid suffix before newline)
+  - **Complete G1+G2 + newline**: `"1e10\n5"` → `Numeric("1e10")` + newline + `Numeric("5")` (complete exponent before newline)
+  - **Complete G1+G2+G3 + newline**: `"1.5e10f\n5"` → `Numeric("1.5e10f")` + newline + `Numeric("5")` (complete pattern before newline)
+  - **Multiple consecutive newlines**: `"42\n\n10"` → `Numeric("42")` + newline + newline + `Numeric("10")`
+  - **Newline at EOF**: `"42\n"` → `Numeric("42")` + newline + EOF
+  - **CR-only newline**: `"42\r10"` → `Numeric("42")` + carriage return + `Numeric("10")` (Mac-style line ending)
 - [ ] T047 [P] [US5] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - **Required constexpr methods**: `scan_numeric_literal()`, `try_scan_exponent()`, `try_scan_type_suffix()`, `match_width_suffix()`
   - Define `consteval` functions that verify token boundaries (`-42` → `-` + `42`, `42 u8` → `42` + `u8`) at compile-time
   - Use `STATIC_REQUIRE` for maximal munch and newline termination
   - **TDD Workflow**: Write BEFORE final verification, verify that the boundary logic is `constexpr`-compatible
