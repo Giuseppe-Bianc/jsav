@@ -26,7 +26,9 @@
 
 **Purpose**: Branch preparation and existing build verification
 
-- [ ] T001 Verify that the branch `003-numeric-literal-lexer` is active and that the build compiles without errors with `cmake -S . -B ./build -Djsav_ENABLE_IPO:BOOL=OFF -Djsav_ENABLE_CPPCHECK:BOOL=OFF -DFMT_PEDANTIC:BOOL=ON -Djsav_ENABLE_SANITIZER_ADDRESS:BOOL=OFF`
+- [ ] T001 Verify that the branch `003-numeric-literal-lexer` is active and that the build compiles without errors with `cmake -S . -B ./build -Djsav_ENABLE_IPO:BOOL=OFF -Djsav_ENABLE_CPPCHECK:BOOL=OFF -DFMT_PEDANTIC:BOOL=ON`
+  - **Note**: AddressSanitizer is temporarily disabled (`-Djsav_ENABLE_SANITIZER_ADDRESS:BOOL=OFF` in command above) due to known MSVC compatibility issues. Re-enable when resolved.
+  - **Constitution Principle III**: This is a temporary deviation. Track resolution in project issue tracker.
 - [ ] T002 Run the existing test suite (`ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure`) and verify that all tests pass (regression baseline)
 
 ---
@@ -47,8 +49,13 @@
 - [ ] T010 [P] [FR-027] Verify absence of regex usage in `src/jsav_Lib/lexer/Lexer.cpp`:
   - Verify that `#include <regex>` is NOT present
   - Verify that `std::regex`, `std::regex_match`, `std::regex_search`, `std::regex_replace` are NOT used
-  - Method: run `Select-String -Pattern "include <regex>" -Path "src/jsav_Lib/lexer/Lexer.cpp"` and `Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/Lexer.cpp"` in PowerShell
-  - Both commands MUST NOT return results (no matches found)
+  - Method (cross-platform): Use `grep` to search for regex usage:
+    ```bash
+    grep -n "include <regex>" src/jsav_Lib/lexer/Lexer.cpp
+    grep -n "std::regex" src/jsav_Lib/lexer/Lexer.cpp
+    ```
+  - Both commands MUST return no results (empty output)
+  - **Alternative (PowerShell)**: `Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/Lexer.cpp"` (Windows only)
 
 **Checkpoint**: Foundation ready — user story implementation can begin
 
@@ -73,6 +80,14 @@
   - Define `consteval` functions that invoke the lexer on basic inputs (`42`, `3.14`, `3.`, `.5`)
   - Use `STATIC_REQUIRE` to verify at compile-time that the produced token has type `TokenKind::Numeric` and exact text
   - **TDD Workflow**: Write BEFORE implementation, verify that it does NOT compile (RED because lexer is not yet constexpr), implement by making methods constexpr, verify that it compiles (GREEN)
+
+### RED Phase Verification for User Story 1
+
+- [ ] T016b [US1] [TDD RED PHASE] Verify that constexpr tests T016 do NOT compile (RED phase):
+  - Run `ninja constexpr_tests` and verify compilation FAILS
+  - Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests" --output-on-failure` and verify runtime tests FAIL
+  - Document failure output (expected: lexer methods not yet constexpr-compatible)
+  - **DO NOT proceed to T017 until RED phase confirmed**
 
 ### Implementation for User Story 1
 
@@ -103,6 +118,15 @@
   - Use `STATIC_REQUIRE` to verify that incomplete exponents (`1e`, `1e+`, `1E-`) produce separate tokens
   - **TDD Workflow**: Write BEFORE implementation, verify RED, implement `try_scan_exponent()` as `constexpr`, verify GREEN
 
+### RED Phase Verification for User Story 2
+
+- [ ] T024b [US2] [TDD RED PHASE] Verify that tests T022-T024 fail before implementation:
+  - Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests" --output-on-failure`
+  - Verify US2-specific tests FAIL (expected: `try_scan_exponent()` not yet implemented)
+  - For constexpr tests: verify `ninja constexpr_tests` compilation status (may fail if methods not constexpr)
+  - Document which tests fail and why (expected failure modes)
+  - **DO NOT proceed to T025 until RED phase confirmed**
+
 ### Implementation for User Story 2
 
 - [ ] T025 [US2] Implement `try_scan_exponent()` in `src/jsav_Lib/lexer/Lexer.cpp` with save/restore pattern for `m_pos` and `m_column`: attempt consumption of `e`/`E`, optional `+`/`-`, mandatory digits; complete rollback if digits absent as per R4
@@ -132,6 +156,15 @@
   - Define `consteval` functions that verify valid suffixes (`1.0F`, `255u8`, `1000i32`) at compile-time
   - Use `STATIC_REQUIRE` for edge cases (`1i`, `42u`, `1u64`, `5f32`) that produce separate tokens or Numeric with complete text
   - **TDD Workflow**: Write BEFORE implementation, verify RED, implement `try_scan_type_suffix()` and `match_width_suffix()` as `constexpr`, verify GREEN
+
+### RED Phase Verification for User Story 3
+
+- [ ] T033b [US3] [TDD RED PHASE] Verify that tests T030-T033 fail before implementation:
+  - Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests" --output-on-failure`
+  - Verify US3-specific tests FAIL (expected: `try_scan_type_suffix()` and `match_width_suffix()` not yet implemented)
+  - For constexpr tests: verify compilation status with `ninja constexpr_tests`
+  - Document failure output, confirming tests expose missing functionality
+  - **DO NOT proceed to T034 until RED phase confirmed**
 
 ### Implementation for User Story 3
 
@@ -169,6 +202,14 @@
   - `42e10d` → `Numeric("42e10d")` (G1 + G2 + valid G3)
   - Verify that G2 and G3 are optional but G1 is required
 
+### RED Phase Verification for User Story 4
+
+- [ ] T041b [US4] [TDD RED PHASE] Verify that tests T039-T041 fail before implementation:
+  - Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests" --output-on-failure`
+  - Verify US4 combined pattern tests FAIL (expected: G1→G2→G3 integration incomplete)
+  - Document which specific combinations fail (`1.5e10f`, `2.0E-3d`, etc.)
+  - **DO NOT proceed to T042 until RED phase confirmed**
+
 ### Implementation for User Story 4
 
 - [ ] T042 [US4] Verify in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` that the flow G1 → `try_scan_exponent()` → `try_scan_type_suffix()` is correctly concatenated and produces a single token for combinations like `1.5e10f` and `1e2u16`
@@ -195,6 +236,14 @@
   - Define `consteval` functions that verify token boundaries (`-42` → `-` + `42`, `42 u8` → `42` + `u8`) at compile-time
   - Use `STATIC_REQUIRE` for maximal munch and newline termination
   - **TDD Workflow**: Write BEFORE final verification, verify that the boundary logic is `constexpr`-compatible
+
+### RED Phase Verification for User Story 5
+
+- [ ] T047b [US5] [TDD RED PHASE] Verify that tests T044-T047 fail before implementation:
+  - Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests" --output-on-failure`
+  - Verify US5 boundary tests FAIL (expected: maximal munch and newline termination not yet verified)
+  - Document failure output for token boundary cases (`-42`, `42 u8`, newline termination)
+  - **DO NOT proceed to T048 until RED phase confirmed**
 
 ### Implementation for User Story 5
 
@@ -361,5 +410,6 @@ With two developers after US1 completion:
 - **TDD Workflow**: RED tests → implementation → GREEN tests → refactor
 - Commit after each task or logical group
 - The files involved are 5: `Lexer.hpp`, `Lexer.cpp`, `tests.cpp`, `constexpr_tests.cpp`, `performance-report.md` (generated)
-- **Total tasks**: 57 (T001–T057), including T010 for FR-027 regex verification
+- **Total tasks**: 62 (T001–T057, including 5 new RED phase verification tasks: T016b, T024b, T033b, T041b, T047b)
 - **Constitution Principle IV**: Constexpr tests MUST follow the same test-first workflow as runtime tests — write FIRST, verify RED (does not compile), implement constexpr, verify GREEN
+- **RED Phase Verification**: Tasks T016b, T024b, T033b, T041b, T047b explicitly verify test failure BEFORE implementation to ensure TDD discipline
