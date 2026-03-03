@@ -57,17 +57,24 @@ The lexer must recognize type suffixes (G3) immediately following G1 or G2. Allo
 
 **Acceptance Scenarios**:
 
-1. **Given** the input `42u`, **When** the lexer parses, **Then** produces token `1` + token `u` (`u` alone is not a valid suffix)
-2. **Given** the input `1.0F`, **When** the lexer parses, **Then** produces Numeric token with text `1.0F` (`F` is a valid single suffix)
-3. **Given** the input `10d`, **When** the lexer parses, **Then** produces Numeric token with text `10d` (`d` is a valid single suffix)
-4. **Given** the input `255u8`, **When** the lexer parses, **Then** produces Numeric token with text `255u8` (valid compound suffix)
-5. **Given** the input `1000i32`, **When** the lexer parses, **Then** produces Numeric token with text `1000i32` (valid compound suffix)
-6. **Given** the input `50i16`, **When** the lexer parses, **Then** produces Numeric token with text `50i16` (valid compound suffix)
-7. **Given** the input `1i`, **When** the lexer parses, **Then** produces token `1` + token `i` (`i` alone is not a valid suffix)
-8. **Given** the input `1u64`, **When** the lexer parses, **Then** produces Numeric token with text `1u64` (maximal munch: `u` + digits consumes everything)
-9. **Given** the input `5f32`, **When** the lexer parses, **Then** produces token `5f` + token `32` (`f` never forms suffixes) (compounds)
-10. **Given** the input `42U`, **When** the lexer parses, **Then** produces token `42` + token `U` (`U` alone is not a valid suffix)
-11. **Given** the input `100I`, **When** the lexer parses, **Then** produces token `100` + token `I` (`I` alone is not a valid suffix)
+1. **Given** the input `42u`, **When** the lexer parses, **Then** produces `Numeric("42")` + token `u` (`u` alone is not a valid suffix)
+2. **Given** the input `42U`, **When** the lexer parses, **Then** produces `Numeric("42")` + token `U` (`U` alone is not a valid suffix)
+3. **Given** the input `1.0F`, **When** the lexer parses, **Then** produces Numeric token with text `1.0F` (`F` is a valid single suffix)
+4. **Given** the input `1.0f`, **When** the lexer parses, **Then** produces Numeric token with text `1.0f` (`f` is a valid single suffix)
+5. **Given** the input `10d`, **When** the lexer parses, **Then** produces Numeric token with text `10d` (`d` is a valid single suffix)
+6. **Given** the input `10D`, **When** the lexer parses, **Then** produces Numeric token with text `10D` (`D` is a valid single suffix)
+7. **Given** the input `255u8`, **When** the lexer parses, **Then** produces Numeric token with text `255u8` (valid compound suffix)
+8. **Given** the input `1000i32`, **When** the lexer parses, **Then** produces Numeric token with text `1000i32` (valid compound suffix)
+9. **Given** the input `50i16`, **When** the lexer parses, **Then** produces Numeric token with text `50i16` (valid compound suffix)
+10. **Given** the input `50I16`, **When** the lexer parses, **Then** produces Numeric token with text `50I16` (valid compound suffix)
+11. **Given** the input `1i`, **When** the lexer parses, **Then** produces token `1` + token `i` (`i` alone is not a valid suffix)
+12. **Given** the input `1I`, **When** the lexer parses, **Then** produces token `1` + token `I` (`I` alone is not a valid suffix)
+13. **Given** the input `1u64`, **When** the lexer parses, **Then** produces Numeric token with text `1u64` (maximal munch: `u` + digits consumes everything)
+14. **Given** the input `1U64`, **When** the lexer parses, **Then** produces Numeric token with text `1U64` (maximal munch: `U` + digits consumes everything)
+15. **Given** the input `1i64`, **When** the lexer parses, **Then** produces Numeric token with text `1i64` (maximal munch: `i` + digits consumes everything)
+16. **Given** the input `1I64`, **When** the lexer parses, **Then** produces Numeric token with text `1I64` (maximal munch: `I` + digits consumes everything)
+17. **Given** the input `5f32`, **When** the lexer parses, **Then** produces token `5f` + token `32` (`f` never forms compound suffixes with digits)
+18. **Given** the input `5F32`, **When** the lexer parses, **Then** produces token `5F` + token `32` (`F` never forms compound suffixes with digits)
 
 ---
 
@@ -113,14 +120,20 @@ The lexer must apply the maximal munch rule: it must produce the longest possibl
 - `1e+` produces token `1` + token `e` + token `+` (exponent without digits after the sign)
 - `1E-` produces token `1` + token `E` + token `-`
 - `1u` produces token `1` + token `u` (`u` alone is not a valid suffix)
+- `1U` produces token `1` + token `U` (`U` alone is not a valid suffix)
 - `1u64` produces Numeric token `1u64` (maximal munch: `u` followed by digits consumes all)
+- `1U64` produces Numeric token `1U64` (maximal munch: `U` followed by digits consumes all)
 - `1i` produces token `1` + token `i` (`i` alone is not a valid suffix)
-- `1i64` produces Numeric token `1i64` (maximal munch: `i` followed by (The digits consume everything.)
+- `1I` produces token `1` + token `I` (`I` alone is not a valid suffix)
+- `1i64` produces Numeric token `1i64` (maximal munch: `i` followed by digits consumes all)
+- `1I64` produces Numeric token `1I64` (maximal munch: `I` followed by digits consumes all)
 - `42 u8` produces token `42` + token `u8` (the space prevents the suffix from attaching to the number).
 - `-42` produces tokens `-` + token `42` (`-` is not part of the numeric literal)
 - `5f32` produces tokens `5f` + token `32` (`f` never forms compound suffixes with digits)
 - `1d` produces Numeric token `1d` (`d` is a valid single suffix)
+- `1D` produces Numeric token `1D` (`D` is a valid single suffix)
 - `1f` produces Numeric token `1f` (`f` is a valid single suffix)
+- `1F` produces Numeric token `1F` (`F` is a valid single suffix)
 - Non-ASCII characters immediately terminate the numeric token.
 - The numeric literal cannot span multiple lines.
 - The priority for recognizing compound suffix widths is: `32`, then `16`, then `8`.
@@ -148,15 +161,25 @@ The lexer must apply the maximal munch rule: it must produce the longest possibl
 
 #### Group G3 — Type Suffix (optional)
 
-- **FR-011**: The system MUST recognize **valid** single-character suffixes: `f`/`F` (float 32-bit), `d`/`D` (double 64-bit). The characters `u`/`U` alone are **NOT** valid suffixes and MUST NOT be consumed as part of the numeric token.
-- **FR-011b**: The system MUST apply the maximal munch rule for `u`/`U` and `i`/`I` followed by digits: if the letter is followed by one or more digits, the lexer MUST consume the entire sequence (letter + digits) as part of the numeric token, even if the digits do not constitute a valid width (e.g., `1u64` → `Numeric("1u64")`, `1i64` → `Numeric("1i64")`)
+> **NOTE: "Valid Suffix" vs "Maximal Munch Consumption"**
+> - **Valid suffix**: A suffix that confers semantic type information to the numeric token (e.g., `f` → float32, `u8` → unsigned 8-bit). Valid suffixes are **included** in the numeric token.
+> - **Maximal munch consumption**: A lexical rule where the lexer consumes characters to produce the longest possible token, even if the consumed sequence is not a valid suffix. This prevents ambiguous tokenization (e.g., `1u64` → single token `1u64`, not `1` + `u64` or `1u` + `64`).
+> - **Key distinction**: `u`/`U` alone are **NOT valid suffixes** (they don't confer type info), but `u`/`U` followed by digits **ARE consumed** by maximal munch (producing a single token, even though the suffix is semantically invalid).
+
+- **FR-011**: The system MUST recognize **valid** single-character suffixes: `f`/`F` (float 32-bit), `d`/`D` (double 64-bit). The characters `u`/`U` **alone (without following digits)** are **NOT** valid suffixes and MUST NOT be consumed as part of the numeric token (e.g., `42u` → `Numeric("42")` + `u`, `42U` → `Numeric("42")` + `U`).
+- **FR-011b**: The system MUST apply the maximal munch rule for `u`/`U` and `i`/`I` followed by digits: if the letter is followed by one or more digits, the lexer MUST consume the entire sequence (letter + digits) as part of the numeric token, even if the digits do not constitute a valid width (e.g., `1u64` → `Numeric("1u64")`, `1U64` → `Numeric("1U64")`, `1i64` → `Numeric("1i64")`, `1I64` → `Numeric("1I64")`).
+- **Rationale**: This prevents ambiguous tokenization. The token `1u64` is a single numeric token (maximal munch), even though `u64` is not a valid suffix. Semantic validation of the suffix occurs after tokenization.
 - **FR-012**: The system MUST recognize the compound suffixes: `i8`/`i16`/`i32`, `I8`/`I16`/`I32` (signed integer), `u8`/`u16`/`u32`, `U8`/`U16`/`U32` (unsigned integer)
+- **Note**: These are **valid suffixes** that confer semantic type information.
 - **FR-013**: The system MUST apply the longest match (maximal munch) rule for suffixes: compound suffixes take priority over single-character suffixes when the next character forms a valid width.
 - **FR-014**: Valid widths for compound suffixes are only `8`, `16` and `32`; Sequences such as `i64`, `u64`, `i128`, `u128` are NOT valid suffixes (but are consumed for maximal munch if preceded by `u`/`U` or `i`/`I`).
+- **Example**: `1u64` → `Numeric("1u64")` (maximal munch consumes all), but `u64` is not a valid suffix semantically.
 - **FR-015**: The character `i`/`I` alone (without any following digits) is NOT a valid suffix and MUST NOT be consumed in the numeric token.
+- **Example**: `1i` → token `1` + token `i` (no digits follow `i`, so maximal munch does not apply).
 - **FR-015b**: The character `u`/`U` alone (without any following digits) is NOT a valid suffix and MUST NOT be consumed in the numeric token.
+- **Example**: `42u` → `Numeric("42")` + token `u` (no digits follow `u`, so maximal munch does not apply).
 - **FR-016**: The character `f`/`F` NEVER forms a composite suffix with digits (e.g., `f32` must be read as the suffix `f` followed by a separate token `32`).
-- **FR-017**: Width recognition MUST first attempt `32`, then `16`, then `16`. `8`, to avoid partial matches (e.g. `16` read as `1` + `6`)
+- **FR-017**: Width recognition MUST first attempt `32`, then `16`, then `8`, to avoid partial matches (e.g. `16` read as `1` + `6`)
 
 #### Group Order and Contiguity
 
@@ -178,8 +201,7 @@ The lexer must apply the maximal munch rule: it must produce the longest possibl
 #### Performance and Architecture Constraints
 
 - **FR-026**: Recognition MUST occur in a single pass through the stream (single-pass, complexity O(n) with respect to the literal length), without nonlinear backtracking.
-- **Definition**: "Nonlinear backtracking" means scanning the same character position more than twice when recognizing a single numeric literal.
-- Saving and restoring the position (`m_pos`, `m_column`) for failed exponent or suffix attempts counts as a single backtrack for each attempt.
+- **Definition**: "Nonlinear backtracking" means scanning the same character position more than twice when recognizing a single numeric literal. A position is "scanned" each time `peek_byte()` is called at that position. Save/restore operations for failed exponent or suffix attempts do not count as additional scans if each position is visited at most twice.
 - **FR-027**: The system MUST NOT use runtime regex libraries for recognition.
 - **FR-028**: The numeric literal MUST end at the first newline character (`\n`, `\r`, or `\r\n`); the newline character MUST NOT be consumed by the `TokenKind::Numeric` token and MUST remain in the stream for the next token, even if the pattern G1→G2→G3 would otherwise be continuable on the next line.
 
