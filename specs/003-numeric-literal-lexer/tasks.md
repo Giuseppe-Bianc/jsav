@@ -47,8 +47,8 @@
 - [ ] T010 [P] [FR-027] Verificare assenza di utilizzo regex in `src/jsav_Lib/lexer/Lexer.cpp`:
   - Verificare che `#include <regex>` NON sia presente
   - Verificare che `std::regex`, `std::regex_match`, `std::regex_search`, `std::regex_replace` NON siano utilizzati
-  - Metodo: eseguire `grep -r "include <regex>" src/jsav_Lib/lexer/Lexer.cpp` e `grep -r "std::regex" src/jsav_Lib/lexer/Lexer.cpp`
-  - Entrambi i comandi devono restituire exit code 1 (nessun match trovato)
+  - Metodo: eseguire `Select-String -Pattern "include <regex>" -Path "src/jsav_Lib/lexer/Lexer.cpp"` e `Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/Lexer.cpp"` in PowerShell
+  - Entrambi i comandi NON devono restituire risultati (nessun match trovato)
 
 **Checkpoint**: Foundation pronta — l'implementazione delle user story può iniziare
 
@@ -69,7 +69,7 @@
 - [ ] T013 [P] [US1] Scrivere TEST_CASE per decimali con punto finale (`3.`, `42.`) verificando che il punto sia incluso nel token `Numeric("3.")` in `test/tests.cpp`
 - [ ] T014 [P] [US1] Scrivere TEST_CASE per numeri con sola parte frazionaria (`.5`, `.14`, `.0`) verificando token `Numeric(".5")` in `test/tests.cpp`
 - [ ] T015 [P] [US1] Scrivere TEST_CASE per edge cases: punto isolato (`.`) → non Numeric, punto seguito da non-cifra (`.abc`) → non Numeric in `test/tests.cpp`
-- [ ] T016 [P] [US1] Scrivere test constexpr in `test/constexpr_tests.cpp` CONTEMPORANEAMENTE ai test runtime (Constitution IV: TDD test-first):
+- [ ] T016 [P] [US1] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
   - Definire funzioni `consteval` che invocano il lexer su input di base (`42`, `3.14`, `3.`, `.5`)
   - Usare `STATIC_REQUIRE` per verificare a compile-time che il token prodotto abbia tipo `TokenKind::Numeric` e testo esatto
   - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare che NON compili (RED perché lexer non è ancora constexpr), implementare rendendo i metodi constexpr, verificare che compili (GREEN)
@@ -98,7 +98,7 @@
 
 - [ ] T022 [P] [US2] Scrivere TEST_CASE per esponenti validi (`1e10`, `3.14E+2`, `2.5e-3`, `.5E10`) verificando singolo token Numeric in `test/tests.cpp`
 - [ ] T023 [P] [US2] Scrivere TEST_CASE per esponenti non validi: `1e` → `Numeric("1")` + token `e`; `1e+` → `Numeric("1")` + `e` + `+`; `1E-` → `Numeric("1")` + `E` + `-` in `test/tests.cpp`
-- [ ] T024 [P] [US2] Scrivere test constexpr in `test/constexpr_tests.cpp` CONTEMPORANEAMENTE ai test runtime (Constitution IV: TDD test-first):
+- [ ] T024 [P] [US2] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
   - Definire funzioni `consteval` che verificano notazione scientifica valida (`1e10`, `3.14E+2`, `2.5e-3`) a compile-time
   - Usare `STATIC_REQUIRE` per verificare che esponenti incompleti (`1e`, `1e+`, `1E-`) producano token separati
   - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare RED, implementare `try_scan_exponent()` come `constexpr`, verificare GREEN
@@ -128,7 +128,7 @@
 - [ ] T030 [P] [US3] Scrivere TEST_CASE per suffissi singolo-carattere **validi** (`1.0F`, `1.0f`, `10d`, `10D`) verificando testo nel token Numeric in `test/tests.cpp`; e suffissi singolo-carattere **non validi** (`42u`, `42U`) verificando che producano `Numeric("42")` + token separato `u`/`U`
 - [ ] T031 [P] [US3] Scrivere TEST_CASE per suffissi composti validi (`255u8`, `1000i32`, `50i16`, `50I16`, `100U32`) verificando testo nel token Numeric in `test/tests.cpp`
 - [ ] T032 [P] [US3] Scrivere TEST_CASE per edge cases suffissi: `1i` → `Numeric("1")` + `i`; `1u64` → `Numeric("1u64")`; `5f32` → `Numeric("5f")` + `32`; `1u` → `Numeric("1")` + `u`; `1U` → `Numeric("1")` + `U`; `1I` → `Numeric("1")` + `I` in `test/tests.cpp`
-- [ ] T033 [P] [US3] Scrivere test constexpr in `test/constexpr_tests.cpp` CONTEMPORANEAMENTE ai test runtime (Constitution IV: TDD test-first):
+- [ ] T033 [P] [US3] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
   - Definire funzioni `consteval` che verificano suffissi validi (`1.0F`, `255u8`, `1000i32`) a compile-time
   - Usare `STATIC_REQUIRE` per edge cases (`1i`, `42u`, `1u64`, `5f32`) che producono token separati o Numeric con testo completo
   - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare RED, implementare `try_scan_type_suffix()` e `match_width_suffix()` come `constexpr`, verificare GREEN
@@ -156,7 +156,7 @@
 > **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
 
 - [ ] T039 [P] [US4] Scrivere TEST_CASE per combinazioni G1+G2+G3: `1.5e10f` → `Numeric("1.5e10f")`, `2.0E-3d` → `Numeric("2.0E-3d")`, `1e2u16` → `Numeric("1e2u16")`, `.5e1i32` → `Numeric(".5e1i32")` in `test/tests.cpp`
-- [ ] T040 [P] [US4] Scrivere test constexpr in `test/constexpr_tests.cpp` CONTEMPORANEAMENTE ai test runtime (Constitution IV: TDD test-first):
+- [ ] T040 [P] [US4] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
   - Definire funzioni `consteval` che verificano combinazioni complete (`1.5e10f`, `2.0E-3d`, `1e2u16`, `.5e1i32`) a compile-time
   - Usare `STATIC_REQUIRE` per verificare che G1→G2→G3 producano singolo token con testo esatto
   - **Workflow TDD**: Scrivere PRIMA della verifica finale, verificare che il pattern completo sia `constexpr`-compatibile
@@ -191,7 +191,7 @@
 - [ ] T044 [P] [US5] Scrivere TEST_CASE per confini di token: `-42` → `-` + `Numeric("42")`; `42 u8` → `Numeric("42")` + `u8`; `3.14+2` → `Numeric("3.14")` + `+` + `Numeric("2")`; `1e2+3` → `Numeric("1e2")` + `+` + `Numeric("3")` in `test/tests.cpp`
 - [ ] T045 [P] [US5] Scrivere TEST_CASE per terminazione su non-ASCII e fine file in `test/tests.cpp`
 - [ ] T046 [P] [US5] Scrivere TEST_CASE per terminazione newline (FR-028): `"42\n10"` → `Numeric("42")` + newline token + `Numeric("10")`; `"3.14\r\n2.5"` → `Numeric("3.14")` + newline token + `Numeric("2.5")`; `"1e2\r3"` → `Numeric("1e2")` + newline token + `Numeric("3")` in `test/tests.cpp`
-- [ ] T047 [P] [US5] Scrivere test constexpr in `test/constexpr_tests.cpp` CONTEMPORANEAMENTE ai test runtime (Constitution IV: TDD test-first):
+- [ ] T047 [P] [US5] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
   - Definire funzioni `consteval` che verificano confini di token (`-42` → `-` + `42`, `42 u8` → `42` + `u8`) a compile-time
   - Usare `STATIC_REQUIRE` per maximal munch e terminazione newline
   - **Workflow TDD**: Scrivere PRIMA della verifica finale, verificare che la logica di confinamento sia `constexpr`-compatibile
