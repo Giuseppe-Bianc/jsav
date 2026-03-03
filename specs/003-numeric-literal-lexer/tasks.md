@@ -13,6 +13,12 @@
 - **[Story]**: Which user story the task belongs to (e.g., US1, US2, US3)
 - Exact file paths included in descriptions
 
+## Phase Numbering
+
+**Note**: Implementation phases (Phase 1-8) differ from documentation phases in plan.md (Phase 0-8):
+- **plan.md Phase 0-2**: Documentation creation (research → data-model → tasks)
+- **tasks.md Phase 1-8**: Implementation workflow (setup → foundational → user stories → polish)
+
 ## Path Conventions
 
 - **Header**: `include/jsav/lexer/Lexer.hpp`
@@ -288,6 +294,11 @@
 ## Phase 8: Polish & Cross-Cutting Concerns
 
 **Purpose**: Complexity verification, complete regression, final formatting, and documentation
+
+**Note on Performance Testing Placement**: Performance profiling (T052/T053) is in Phase 8 because:
+- Accurate profiling requires complete implementation of all G1→G2→G3 functionality
+- Performance validation is a final verification step, not a driver of architectural decisions
+- The O(n) criterion is already established in FR-026/SC-008; T052/T053 verify compliance
 
 - [ ] T051 [P] Run Lizard analysis (`cmake --build build --target lizard`) and verify that all modified methods respect CCN ≤ 15 and length ≤ 100 lines (Constitution Principle III)
 - [ ] T052 [P] Write performance test in `test/tests.cpp` that defines the O(n) criterion BEFORE profiling implementation (Constitution IV: Test-First):

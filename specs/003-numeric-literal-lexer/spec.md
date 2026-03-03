@@ -103,12 +103,12 @@ The lexer must apply the maximal munch rule: it must produce the longest possibl
 
 **Independent Test**: Can be tested with inputs containing numbers adjacent to other tokens, verifying correct separation.
 
-**Acceptance Scenarios**:
+**Acceptance Scenarios** (see also FR-020, FR-021, FR-022):
 
-1. **Given** the input `-42`, **When** the lexer parses, **Then** produces the token `-` (operator) followed by the token Numeric `42`
-2. **Given** the input `42 u8`, **When** the lexer parses, **Then** produces the token Numeric `42` followed by a separate token `u8` (the space interrupts the suffix start)
-3. **Given** the input `3.14+2`, **When** the lexer parses, **Then** produces the token Numeric `3.14` followed by the token `+` and the token Numeric `2`
-4. **Given** the input `1e2+3`, **When** the lexer parses, **Then** produces the token Numeric `1e2` followed by the token `+` and the token Numeric `3`
+1. **Given** the input `-42`, **When** the lexer parses, **Then** produces the token `-` (operator) followed by the token Numeric `42` **(FR-021)**
+2. **Given** the input `42 u8`, **When** the lexer parses, **Then** produces the token Numeric `42` followed by a separate token `u8` (the space interrupts the suffix start) **(FR-022)**
+3. **Given** the input `3.14+2`, **When** the lexer parses, **Then** produces the token Numeric `3.14` followed by the token `+` and the token Numeric `2` **(FR-022)**
+4. **Given** the input `1e2+3`, **When** the lexer parses, **Then** produces the token Numeric `1e2` followed by the token `+` and the token Numeric `3` **(FR-022)**
 
 ---
 
