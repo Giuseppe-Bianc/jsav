@@ -1,39 +1,38 @@
-# Research: Riconoscimento Completo dei Literal Numerici nel Lexer
+# Research: Complete Numeric Literal Recognition in the Lexer
 
 **Feature**: 003-numeric-literal-lexer
 **Date**: 2026-03-03
 
-## R1 — Trailing-dot behavior change: impatto sulla codebase
+## R1 — Trailing-dot behavior change: impact on codebase
 
 ### Decision
 
-Cambiare il comportamento di `scan_numeric_literal()` per includere il punto finale nel token
-numerico: `123.` → `Numeric("123.")` anziché `Numeric("123") + Dot(".")`.
+Change the behavior of `scan_numeric_literal()` to include the trailing dot in the numeric token:
+`123.` → `Numeric("123.")` instead of `Numeric("123") + Dot(".")`.
 
 ### Rationale
 
-La spec FR-003 richiede esplicitamente che `3.` produca un token `Numeric` con testo `3.`.
-Il linguaggio jsav non ha method-call syntax su literal numerici (non è Rust/Kotlin/Swift),
-quindi la motivazione originale del split ("123.toString()") non si applica.
-L'utente ha confermato esplicitamente il cambio nel task description.
+The spec FR-003 explicitly requires that `3.` produces a `Numeric` token with text `3.`.
+The jsav language does not have method-call syntax on numeric literals (unlike Rust/Kotlin/Swift),
+so the original split motivation ("123.toString()") does not apply.
+The user explicitly confirmed the change in the task description.
 
 ### Alternatives considered
 
-- **Mantenere lo split** `Numeric + Dot`: rifiutata perché contraddice FR-003 e la spec
-  approvata. Il lexer jsav non necessita di supporto per method-call su literal.
-- **Rendere configurabile**: rifiutata — complessità non giustificata, YAGNI.
+- **Maintain the split** `Numeric + Dot`: rejected because it contradicts FR-003 and the approved
+  spec. The jsav lexer does not need method-call support on literals.
+- **Make it configurable**: rejected — complexity not justified, YAGNI.
 
 ### Impact assessment
 
-- **Test esistenti**: Un solo test (`Lexer_AsciiOnlySource_TokenizeCorrectly` in
-  test/tests.cpp L2771) verifica indirettamente i numeri (`"42"` come Numeric), ma nessun
-  test verifica specificamente il trailing-dot split. Il test per `Dot` come operatore
-  (`Lexer_AsciiOperators_UnchangedAfterUtf8` L3558) testa `"."` isolato, non `"42."`.
-  **Nessun test esistente si rompe** con questo cambio.
-- **Commento nel header**: Il doccomment in `Lexer.hpp` (riga 38-40) descrive il vecchio
-  trailing-dot rule e va aggiornato.
-- **Commento nell'implementazione**: Il commento in `Lexer.cpp` (righe 245-248) spiega il
-  vecchio comportamento e va rimosso/sostituito.
+- **Existing tests**: One test (`Lexer_AsciiOnlySource_TokenizeCorrectly` in test/tests.cpp L2771)
+  indirectly verifies numbers (`"42"` as Numeric), but no test specifically verifies the trailing-dot
+  split. The test for `Dot` as operator (`Lexer_AsciiOperators_UnchangedAfterUtf8` L3558) tests
+  isolated `"."`, not `"42."`. **No existing tests break** with this change.
+- **Header comment**: The doccomment in `Lexer.hpp` (line 38-40) describes the old trailing-dot
+  rule and needs updating.
+- **Implementation comment**: The comment in `Lexer.cpp` (lines 245-248) explains the old behavior
+  and needs removal/replacement.
 
 ---
 
@@ -41,44 +40,44 @@ L'utente ha confermato esplicitamente il cambio nel task description.
 
 ### Decision
 
-Aggiungere un branch in `next_token()` prima di `scan_operator_or_punctuation()`:
-se `peek_byte() == '.'` e `std::isdigit(peek_byte(1))`, invocare `scan_numeric_literal(start)`.
+Add a branch in `next_token()` before `scan_operator_or_punctuation()`: if
+`peek_byte() == '.'` and `std::isdigit(peek_byte(1))`, invoke `scan_numeric_literal(start)`.
 
 ### Rationale
 
-Il flusso attuale in `next_token()` invia qualsiasi `'.'` direttamente a
-`scan_operator_or_punctuation()` che lo emette come `Dot`. Per supportare `.5` come literal
-numerico (FR-004, spec G1-B), il check deve avvenire prima del fallthrough all'operator scanner.
+The current flow in `next_token()` sends any `'.'` directly to `scan_operator_or_punctuation()`
+which emits it as `Dot`. To support `.5` as a numeric literal (FR-004, spec G1-B), the check must
+occur before the fallthrough to the operator scanner.
 
 ### Alternatives considered
 
-- **Modificare `scan_operator_or_punctuation()`** per fare il lookahead internamente:
-  rifiutata — viola separation of concerns, la logica numerica deve stare nel numeric scanner.
-- **Aggiungere un pre-scanner generico**: rifiutata — overengineering per un singolo check.
+- **Modify `scan_operator_or_punctuation()`** to do the lookahead internally: rejected — violates
+  separation of concerns, numeric logic must stay in the numeric scanner.
+- **Add a generic pre-scanner**: rejected — overengineering for a single check.
 
 ### Implementation detail
 
-Il punto isolato `'.'` e `'.abc'` continuano a raggiungere `scan_operator_or_punctuation()` perché
-il guard `std::isdigit(peek_byte(1))` fallisce. Nessuna regressione per gli operatori Dot.
+The isolated dot `'.'` and `'.abc'` continue to reach `scan_operator_or_punctuation()` because
+the guard `std::isdigit(peek_byte(1))` fails. No regression for Dot operators.
 
 ---
 
-## R3 — Decomposizione per conformità Lizard (CCN ≤ 15)
+## R3 — Decomposition for Lizard compliance (CCN ≤ 15)
 
 ### Decision
 
-Decomporre `scan_numeric_literal()` in 4 metodi:
+Decompose `scan_numeric_literal()` into 4 methods:
 
-1. `scan_numeric_literal()` — orchestratore (G1 + chiamate a helper)
-2. `try_scan_exponent()` — G2: lookahead non-distruttivo per `[eE][+-]?\d+`
-3. `try_scan_type_suffix()` — G3: riconoscimento suffissi con maximal munch
-4. `match_width_suffix()` — utility: matching larghezze `32`/`16`/`8`
+1. `scan_numeric_literal()` — orchestrator (G1 + helper calls)
+2. `try_scan_exponent()` — G2: non-destructive lookahead for `[eE][+-]?\d+`
+3. `try_scan_type_suffix()` — G3: suffix recognition with maximal munch
+4. `match_width_suffix()` — utility: matching widths `32`/`16`/`8`
 
 ### Rationale
 
-Il pattern G1→G2→G3 completo genera almeno 20 branch (2 rami G1, 3 check esponente,
-~8 check suffisso, 3 larghezze, edge cases). Senza decomposizione, la CCN stimata è ~25-30,
-ben sopra il limite 15. Con la decomposizione:
+The complete G1→G2→G3 pattern generates at least 20 branches (2 G1 branches, 3 exponent checks,
+~8 suffix checks, 3 widths, edge cases). Without decomposition, estimated CCN is ~25-30, well
+above the 15 limit. With decomposition:
 
 - `scan_numeric_literal()`: CCN ~8 (digit loop, dot check, entry from dot, calls)
 - `try_scan_exponent()`: CCN ~6 (e/E check, sign, digit loop, rollback)
@@ -87,45 +86,45 @@ ben sopra il limite 15. Con la decomposizione:
 
 ### Alternatives considered
 
-- **Metodo monolitico con `NOLINTBEGIN`**: rifiutata — la constitution (III, enforcement)
-  richiede conformità senza eccezioni per nuove funzioni.
-- **State machine con tabella di transizione**: rifiutata — over-engineering per 4 gruppi
-  lineari, peggior leggibilità, non giustificabile.
+- **Monolithic method with `NOLINTBEGIN`**: rejected — the constitution (III, enforcement)
+  requires compliance without exceptions for new functions.
+- **State machine with transition table**: rejected — over-engineering for 4 linear groups,
+  worse readability, not justifiable.
 
 ---
 
-## R4 — Lookahead non-distruttivo per esponente (G2)
+## R4 — Non-destructive lookahead for exponent (G2)
 
 ### Decision
 
-Usare save/restore di `m_pos` e `m_column` per il lookahead dell'esponente.
-Se la validazione fallisce (`e` senza cifre), ripristinare la posizione originale.
+Use save/restore of `m_pos` and `m_column` for exponent lookahead. If validation fails
+(`e` without digits), restore the original position.
 
 ### Rationale
 
-La spec FR-009/FR-010 richiede che `1e`, `1e+`, `1E-` NON consumino il marcatore.
-L'approccio corrente in `Lexer.cpp` consuma `e`/`E` incondizionatamente (L254-258) — produce
-token errati come `"1e"` o `"1e+"` anziché separare in `"1"` + `"e"` + `"+"`.
+The spec FR-009/FR-010 requires that `1e`, `1e+`, `1E-` do NOT consume the marker. The current
+approach in `Lexer.cpp` consumes `e`/`E` unconditionally (L254-258) — produces erroneous tokens
+like `"1e"` or `"1e+"` instead of separating into `"1"` + `"e"` + `"+"`.
 
-Il pattern save/restore è il più semplice:
+The save/restore pattern is the simplest:
 
 ```cpp
 const auto saved_pos = m_pos;
 const auto saved_col = m_column;
-// tentativo di consumo...
+// attempt consumption...
 if(/*invalid*/) { m_pos = saved_pos; m_column = saved_col; }
 ```
 
 ### Alternatives considered
 
-- **Lookahead con peek_byte(n)**: possibile ma richiede contare offset manuali per
-  `e` + opzionale `+/-` + almeno 1 digit, risultando in codice più fragile.
-- **Advance e backtrack generico**: equivalente a save/restore, più verboso.
+- **Lookahead with peek_byte(n)**: possible but requires manual offset counting for
+  `e` + optional `+/-` + at least 1 digit, resulting in more fragile code.
+- **Advance and generic backtrack**: equivalent to save/restore, more verbose.
 
-### Note
+### Notes
 
-Il save/restore di `m_line` non è necessario: l'esponente non può attraversare righe (FR-028),
-e i caratteri `e`, `+`, `-`, digits sono tutti single-byte ASCII che non avanzano la riga.
+Saving/restoring `m_line` is not necessary: the exponent cannot cross lines (FR-028), and
+characters `e`, `+`, `-`, digits are all single-byte ASCII that do not advance the line.
 
 ---
 
@@ -133,27 +132,25 @@ e i caratteri `e`, `+`, `-`, digits sono tutti single-byte ASCII che non avanzan
 
 ### Decision
 
-Il supporto agli underscore come digit separator NON rientra nello scope di questa feature.
-Il pattern di riferimento è esclusivamente `(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?([uUfFdD]|[iIuU](?:8|16|32))?`.
-Gli underscore nei literal hash-prefixed (`#b`, `#o`, `#x`) rimangono invariati poiché gestiti
-da scanner separati.
+Support for underscores as digit separators is NOT in scope for this feature. The reference
+pattern is exclusively `(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?([uUfFdD]|[iIuU](?:8|16|32))?`.
+Underscores in hash-prefixed literals (`#b`, `#o`, `#x`) remain unchanged as they are handled
+by separate scanners.
 
 ---
 
-## R6 — Suffix matching: ordine e maximal munch
+## R6 — Suffix matching: order and maximal munch
 
 ### Decision
 
-Ordine di matching dei suffissi (G3): `d`/`D` → `f`/`F` → `u`/`U` → `i`/`I`.
-Per `u`/`U` e `i`/`I`: tentare prima le larghezze composte `32` → `16` → `8`
-(confronto a 2 cifre prima di 1 cifra).
+Suffix matching order (G3): `d`/`D` → `f`/`F` → `u`/`U` → `i`/`I`. For `u`/`U` and `i`/`I`:
+attempt compound widths first `32` → `16` → `8` (2-digit comparison before 1-digit).
 
 ### Rationale
 
-La spec FR-017 richiede esplicitamente l'ordine `32→16→8` per evitare match parziali.
-`d`/`D` e `f`/`F` sono sempre single-char (FR-016: `f` non forma composti).
-L'ordine `d→f→u→i` non è critico (i caratteri sono mutualmente esclusivi) ma migliora
-la leggibilità del codice.
+The spec FR-017 explicitly requires the order `32→16→8` to avoid partial matches. `d`/`D` and
+`f`/`F` are always single-char (FR-016: `f` does not form compounds). The order `d→f→u→i` is
+not critical (characters are mutually exclusive) but improves code readability.
 
 ### Key edge cases verified
 
@@ -169,27 +166,24 @@ la leggibilità del codice.
 
 ### Alternatives considered
 
-- **Ordine inversione `8→16→32`**: rifiutata — `16` verrebbe letto come `1`+`6` con peek
-  a singola cifra.
-- **Regex-based suffix pattern**: rifiutata — FR-027 vieta regex a runtime.
+- **Reverse order `8→16→32`**: rejected — `16` would be read as `1`+`6` with single-digit peek.
+- **Regex-based suffix pattern**: rejected — FR-027 forbids runtime regex.
 
 ---
 
-## R7 — `classify_word` interaction con suffissi standalone
+## R7 — `classify_word` interaction with standalone suffixes
 
 ### Decision
 
-Nessuna modifica a `classify_word()`. I token tipo `u8`, `i32`, `f32` quando appaiono
-come parole standalone (dopo whitespace) continuano a essere classificati come
-`TypeU8`, `TypeI32`, `TypeF32` rispettivamente.
+No changes to `classify_word()`. Tokens like `u8`, `i32`, `f32` when appearing as standalone
+words (after whitespace) continue to be classified as `TypeU8`, `TypeI32`, `TypeF32` respectively.
 
 ### Rationale
 
-Questo è corretto: in `42 u8` lo spazio impedisce l'attacco del suffisso al numero,
-quindi `42` → `Numeric`, poi `u8` passa per `scan_identifier_or_keyword` → `classify_word`
-→ `TypeU8`. Nessun conflitto con la logica dei suffissi numerici che opera solo su caratteri
-contigui.
+This is correct: in `42 u8` the space prevents the suffix from attaching to the number, so
+`42` → `Numeric`, then `u8` goes through `scan_identifier_or_keyword` → `classify_word` →
+`TypeU8`. No conflict with numeric suffix logic which operates only on contiguous characters.
 
 ### Alternatives considered
 
-- Nessuna — il design attuale è già corretto.
+- None — the current design is already correct.

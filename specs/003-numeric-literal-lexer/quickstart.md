@@ -3,36 +3,36 @@
 **Feature**: 003-numeric-literal-lexer
 **Branch**: `003-numeric-literal-lexer`
 
-## Prerequisiti
+## Prerequisites
 
-- MSVC 2026 (Windows) oppure GCC/Clang con supporto C++23
+- MSVC 2026 (Windows) or GCC/Clang with C++23 support
 - CMake 4.2+, Ninja
-- clang-format installato
+- clang-format installed
 
-## Setup ambiente
+## Environment setup
 
 ```powershell
-# Clonare e posizionarsi sul branch
+# Clone and checkout branch
 git checkout 003-numeric-literal-lexer
 
-# Configurare build (dalla root del progetto)
+# Configure build (from project root)
 cmake -S . -B ./build -Djsav_ENABLE_CLANG_TIDY:BOOL=OFF -Djsav_ENABLE_IPO:BOOL=OFF -Djsav_ENABLE_CPPCHECK:BOOL=OFF -DFMT_PEDANTIC:BOOL=ON -Djsav_ENABLE_SANITIZER_ADDRESS:BOOL=OFF
 ```
 
-## File coinvolti
+## Files involved
 
-| File | Tipo modifica |
-|------|--------------|
-| `src/jsav_Lib/lexer/Lexer.cpp` | Rewrite `scan_numeric_literal()` + modifica `next_token()` |
-| `include/jsav/lexer/Lexer.hpp` | Aggiunta dichiarazioni helper privati |
-| `test/tests.cpp` | Nuovi TEST_CASE per tutti gli scenari |
-| `test/constexpr_tests.cpp` | Eventuali test STATIC_REQUIRE per helper constexpr |
+| File | Change type |
+|------|-------------|
+| `src/jsav_Lib/lexer/Lexer.cpp` | Rewrite `scan_numeric_literal()` + modify `next_token()` |
+| `include/jsav/lexer/Lexer.hpp` | Add private helper declarations |
+| `test/tests.cpp` | New TEST_CASE for all scenarios |
+| `test/constexpr_tests.cpp` | Possible STATIC_REQUIRE tests for constexpr helpers |
 
-## Workflow di sviluppo (TDD)
+## Development workflow (TDD)
 
-### 1. Scrivere test failing
+### 1. Write failing tests
 
-Aggiungere i test in `test/tests.cpp` seguendo la struttura:
+Add tests to `test/tests.cpp` following the structure:
 
 ```cpp
 TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][phase7]") {
@@ -46,7 +46,7 @@ TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][phase7
 }
 ```
 
-### 2. Build e verifica test red
+### 2. Build and verify tests red
 
 ```powershell
 cd build
@@ -54,17 +54,17 @@ ninja tests relaxed_constexpr_tests
 ctest -R "unittests|relaxed_constexpr" --output-on-failure
 ```
 
-### 3. Implementare il codice minimo
+### 3. Implement minimum code
 
-Modificare `Lexer.cpp` per far passare i test.
+Modify `Lexer.cpp` to make tests pass.
 
-### 4. Formattare
+### 4. Format
 
 ```powershell
 clang-format -i src/jsav_Lib/lexer/Lexer.cpp include/jsav/lexer/Lexer.hpp test/tests.cpp test/constexpr_tests.cpp
 ```
 
-### 5. Verificare regressione
+### 5. Verify regression
 
 ```powershell
 cd build
@@ -72,26 +72,26 @@ ninja tests relaxed_constexpr_tests
 ctest -R "unittests|relaxed_constexpr" --output-on-failure
 ```
 
-### 6. Verificare complessità
+### 6. Verify complexity
 
 ```powershell
 cmake --build build --target lizard
 ```
 
-## Priorità task
+## Task priorities
 
-| Priorità | Task | Descrizione |
+| Priority | Task | Description |
 |----------|------|-------------|
-| P0 | Task 1 | Modifica `next_token()` per leading-dot |
+| P0 | Task 1 | Modify `next_token()` for leading-dot |
 | P0 | Task 2 | Rewrite `scan_numeric_literal()` |
-| P0 | Task 3 | Dichiarazioni helper in header |
-| P1 | Task 4 | Test runtime (5 user stories) |
-| P1 | Task 5 | Test constexpr |
-| P2 | Task 6 | Suite di regressione completa |
+| P0 | Task 3 | Helper declarations in header |
+| P1 | Task 4 | Runtime tests (5 user stories) |
+| P1 | Task 5 | Compile-time tests |
+| P2 | Task 6 | Complete regression suite |
 
-## Verifica rapida
+## Quick verification
 
-Dopo l'implementazione completa, un quick smoke test:
+After full implementation, a quick smoke test:
 
 ```cpp
 jsv::Lexer lex{"3.14e+2f .5 1e 42u8 1i", "test.jsav"};
