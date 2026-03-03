@@ -189,31 +189,31 @@ The lexer must apply the maximal munch rule: it must produce the longest possibl
 
 ### Key Entities
 
-- **Token Numerico**: Token di tipo Numeric prodotto dal lexer; contiene il testo letterale del numero riconosciuto, le coordinate di posizione nel sorgente (indice inizio, indice fine, riga, colonna), e rappresenta la concatenazione dei gruppi G1, G2 (se presente) e G3 (se presente)
-- **Gruppo G1 (Parte numerica)**: Componente obbligatorio del literal numerico, con due alternative mutuamente esclusive: (A) parte intera con opzionale punto e cifre frazionarie, (B) punto seguito da cifre frazionarie
-- **Gruppo G2 (Esponente)**: Componente opzionale per la notazione scientifica, composto da marcatore `e`/`E`, segno opzionale e cifre obbligatorie
-- **Gruppo G3 (Suffisso di tipo)**: Componente opzionale che indica il tipo numerico; può essere singolo-carattere (`u`, `f`, `d`) o composto con larghezza (`i8`, `u16`, `i32`, ecc.)
-- **Suffisso Singolo**: Uno tra `u`/`U`, `f`/`F`, `d`/`D`
-- **Suffisso Composto**: Lettera prefisso (`i`/`I`/`u`/`U`) seguita da larghezza valida (`8`, `16`, `32`)
+- **Numeric Token**: Numeric type token produced by the lexer; it contains the literal text of the recognized number, the position coordinates in the source (start index, end index, row, column), and represents the concatenation of groups G1, G2 (if present), and G3 (if present).
+- **Group G1 (Numeric Part)**: Mandatory component of the numeric literal, with two mutually exclusive alternatives: (A) integer part with optional period and fractional digits, (B) period followed by fractional digits.
+- **Group G2 (Exponent)**: Optional component for scientific notation, consisting of the `e`/`E` marker, optional sign, and mandatory digits.
+- **Group G3 (Type Suffix)**: Optional component indicating the numeric type. Can be single-character (`u`, `f`, `d`) or compound with width (`i8`, `u16`, `i32`, etc.)
+- **Single Suffix**: One of `u`/`U`, `f`/`F`, `d`/`D`
+- **Compound Suffix**: Prefix letter (`i`/`I`/`u`/`U`) followed by a valid width (`8`, `16`, `32`)
 
 ## Assumptions
 
-- Il lexer opera in un contesto single-threaded durante l'analisi di un singolo flusso di input
-- Il set di caratteri cifra è limitato a `0-9` (cifre ASCII); cifre Unicode non sono considerate
-- L'ordine di precedenza delle alternative di G1 (prima A, poi B) è rilevante solo quando il primo carattere è una cifra — se il primo carattere è `.`, si attiva direttamente l'alternativa B
-- I suffissi di tipo sono case-insensitive nel riconoscimento ma il testo originale viene preservato nel token
-- Il suffisso `d`/`D` è ammesso solo come singolo carattere (non forma composti con cifre, analogamente a `f`/`F`)
-- I caratteri `+` e `-` che precedono un literal numerico sono sempre token separati (operatori unari), anche quando l'intento semantico è quello di indicare un numero negativo
+- The lexer operates in a single-threaded context when parsing a single input stream.
+- The digit character set is limited to `0-9` (ASCII digits); Unicode digits are not considered.
+- The order of precedence of G1 alternatives (first A, then B) is relevant only when the first character is a digit. If the first character is `.`, alternative B is activated directly.
+- Type suffixes are case-insensitive in recognition, but the original text is preserved in the token.
+- The suffix `d`/`D` is only allowed as a single character (it does not form compounds with digits, similarly to `f`/`F`).
+- The characters `+` and `-` preceding a numeric literal are always separate tokens (unary operators), even when the semantic intent is to indicate a negative number.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Il 100% dei casi di test per numeri interi semplici (`0`, `1`, `42`, `007`) produce token con testo esatto e tipo Numeric
-- **SC-002**: Il 100% dei casi di test per numeri decimali (con parte intera, con punto finale, con sola parte frazionaria) produce token corretti senza alterazione del testo sorgente
-- **SC-003**: Il 100% dei casi di test per notazione scientifica valida (`1e10`, `3.14E+2`, `2.5e-3`) produce un singolo token Numeric contenente l'intera espressione
-- **SC-004**: Il 100% dei casi di confine per notazione scientifica non valida (`1e`, `1e+`, `1E-`) produce token separati conformi alle regole di non-consumo
-- **SC-005**: Il 100% dei casi di test per suffissi di tipo validi (singoli e composti) produce token con suffisso correttamente incluso
-- **SC-006**: Il 100% dei casi di confine per suffissi non validi (`1i`, `1u64`, `5f32`) produce tokenizzazione conforme alle regole di maximal munch
-- **SC-007**: Tutti i test preesistenti per il lexer continuano a passare senza regressioni
-- **SC-008**: Il tempo di riconoscimento di un singolo literal numerico rimane proporzionale alla sua lunghezza (complessità lineare O(n)), verificabile per input fino a 1000 caratteri
+- **SC-001**: 100% of the test cases for simple integers (`0`, `1`, `42`, `007`) produce tokens with exact text and Numeric type.
+- **SC-002**: 100% of the test cases for decimal numbers (with integer part, with trailing point, with fractional part only) produce correct tokens without altering the source text.
+- **SC-003**: 100% of the test cases for valid scientific notation (`1e10`, `3.14E+2`, `2.5e-3`) produce a single Numeric token containing the entire expression.
+- **SC-004**: 100% of the boundary cases for invalid scientific notation (`1e`, `1e+`, `1E-`) produce separate tokens that comply with the non-consumption rules.
+- **SC-005**: 100% of the test cases for Valid type suffixes (single and compound) produce tokens with correctly included suffixes.
+- **SC-006**: 100% of boundary cases for invalid suffixes (`1i`, `1u64`, `5f32`) produce tokenization that conforms to maximal munch rules.
+- **SC-007**: All pre-existing lexer tests continue to pass without regressions.
+- **SC-008**: The recognition time for a single numeric literal remains proportional to its length (linear complexity O(n)), verifiable for inputs up to 1000 characters.
