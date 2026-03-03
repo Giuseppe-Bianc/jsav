@@ -47,27 +47,27 @@ The lexer must recognize the exponent group (G2) immediately following the numer
 
 ---
 
-### User Story 3 — Riconoscimento suffissi di tipo (Priority: P3)
+### User Story 3 — Type Suffix Recognition (Priority: P3)
 
-Il lexer deve riconoscere i suffissi di tipo (G3) immediatamente dopo G1 o G2. I suffissi singolo-carattere ammessi sono `u`/`U` (unsigned), `f`/`F` (float 32-bit), `d`/`D` (double 64-bit). I suffissi composti ammessi sono `i8`/`i16`/`i32` e `u8`/`u16`/`u32` (case insensitive). La regola maximal munch impone che i suffissi composti abbiano priorità. Il carattere `i`/`I` da solo non è un suffisso valido. `f`/`F` non forma mai suffissi composti con cifre.
+The lexer must recognize type suffixes (G3) immediately following G1 or G2. Allowed single-character suffixes are `u`/`U` (unsigned), `f`/`F` (float 32-bit), and `d`/`D` (double 64-bit). Allowed compound suffixes are `i8`/`i16`/`i32` and `u8`/`u16`/`u32` (case insensitive). The maximal munch rule dictates that compound suffixes have priority. The character `i`/`I` alone is not a valid suffix. `f`/`F` never forms compound suffixes with digits.
 
-**Why this priority**: I suffissi di tipo completano il pattern numerico e permettono di tipizzare i literal, ma sono meno frequenti della notazione scientifica pura.
+**Why this priority**: Type suffixes complete the numeric pattern and allow literals to be typed, but they are less common than pure scientific notation.
 
-**Independent Test**: Può essere testato fornendo cifre seguite da tutti i suffissi ammessi e verificando la corretta tokenizzazione.
+**Independent Test**: Can be tested by providing digits followed by all allowed suffixes and verifying correct tokenization.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'input `42u`, **When** il lexer analizza, **Then** produce token `1` + token `u` (`u` da solo non è suffisso valido)
-2. **Given** l'input `1.0F`, **When** il lexer analizza, **Then** produce token Numeric con testo `1.0F` (`F` è suffisso singolo valido)
-3. **Given** l'input `10d`, **When** il lexer analizza, **Then** produce token Numeric con testo `10d` (`d` è suffisso singolo valido)
-4. **Given** l'input `255u8`, **When** il lexer analizza, **Then** produce token Numeric con testo `255u8` (suffisso composto valido)
-5. **Given** l'input `1000i32`, **When** il lexer analizza, **Then** produce token Numeric con testo `1000i32` (suffisso composto valido)
-6. **Given** l'input `50i16`, **When** il lexer analizza, **Then** produce token Numeric con testo `50i16` (suffisso composto valido)
-7. **Given** l'input `1i`, **When** il lexer analizza, **Then** produce token `1` + token `i` (`i` da solo non è suffisso valido)
-8. **Given** l'input `1u64`, **When** il lexer analizza, **Then** produce token Numeric con testo `1u64` (maximal munch: `u` + cifre consuma tutto)
-9. **Given** l'input `5f32`, **When** il lexer analizza, **Then** produce token `5f` + token `32` (`f` non forma mai suffissi composti)
-10. **Given** l'input `42U`, **When** il lexer analizza, **Then** produce token `42` + token `U` (`U` da solo non è suffisso valido)
-11. **Given** l'input `100I`, **When** il lexer analizza, **Then** produce token `100` + token `I` (`I` da solo non è suffisso valido)
+1. **Given** the input `42u`, **When** the lexer parses, **Then** produces token `1` + token `u` (`u` alone is not a valid suffix)
+2. **Given** the input `1.0F`, **When** the lexer parses, **Then** produces Numeric token with text `1.0F` (`F` is a valid single suffix)
+3. **Given** the input `10d`, **When** the lexer parses, **Then** produces Numeric token with text `10d` (`d` is a valid single suffix)
+4. **Given** the input `255u8`, **When** the lexer parses, **Then** produces Numeric token with text `255u8` (valid compound suffix)
+5. **Given** the input `1000i32`, **When** the lexer parses, **Then** produces Numeric token with text `1000i32` (valid compound suffix)
+6. **Given** the input `50i16`, **When** the lexer parses, **Then** produces Numeric token with text `50i16` (valid compound suffix)
+7. **Given** the input `1i`, **When** the lexer parses, **Then** produces token `1` + token `i` (`i` alone is not a valid suffix)
+8. **Given** the input `1u64`, **When** the lexer parses, **Then** produces Numeric token with text `1u64` (maximal munch: `u` + digits consumes everything)
+9. **Given** the input `5f32`, **When** the lexer parses, **Then** produces token `5f` + token `32` (`f` never forms suffixes) (compounds)
+10. **Given** the input `42U`, **When** the lexer parses, **Then** produces token `42` + token `U` (`U` alone is not a valid suffix)
+11. **Given** the input `100I`, **When** the lexer parses, **Then** produces token `100` + token `I` (`I` alone is not a valid suffix)
 
 ---
 
