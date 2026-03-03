@@ -71,103 +71,103 @@ The lexer must recognize type suffixes (G3) immediately following G1 or G2. Allo
 
 ---
 
-### User Story 4 — Pattern completo G1-G2-G3 combinato (Priority: P4)
+### User Story 4 — Complete G1-G2-G3 Combined Pattern (Priority: P4)
 
-Il lexer deve riconoscere la combinazione dei tre gruppi nell'ordine esclusivo G1 → G2 → G3, contigui e senza separatori. Espressioni che combinano notazione scientifica e suffisso di tipo devono produrre un singolo token numerico.
+The lexer must recognize the combination of the three groups in the exclusive order G1 → G2 → G3, contiguous and without separators. Expressions combining scientific notation and a type suffix must produce a single numeric token.
 
-**Why this priority**: Questo scenario copre la combinazione completa del pattern ed è il meno frequente in input reali, ma necessario per la correttezza complessiva.
+**Why this priority**: This scenario covers the complete combination of the pattern and is the least frequent in real inputs, but necessary for overall correctness.
 
-**Independent Test**: Può essere testato con stringhe che combinano tutti e tre i gruppi e verificando il token risultante.
+**Independent Test**: It can be tested with strings that combine all three groups and checking the resulting token.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'input `1.5e10f`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `1.5e10f`
-2. **Given** l'input `2.0E-3d`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `2.0E-3d`
-3. **Given** l'input `1e2u16`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `1e2u16`
-4. **Given** l'input `.5e1i32`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `.5e1i32`
+1. **Given** the input `1.5e10f`, **When** the lexer parses, **Then** produces a single Numeric token with the text `1.5e10f`
+2. **Given** the input `2.0E-3d`, **When** the lexer parses, **Then** produces a single Numeric token with the text `2.0E-3d`
+3. **Given** the input `1e2u16`, **When** the lexer parses, **Then** produces a single Numeric token with the text `1e2u16`
+4. **Given** the input `.5e1i32`, **When** the lexer parses, **Then** produces a single Numeric token with the text `.5e1i32`
 
 ---
 
-### User Story 5 — Regola maximal munch e confini di token (Priority: P5)
+### User Story 5 — Maximal Munch Rule and Token Boundaries (Priority: P5)
 
-Il lexer deve applicare la regola del massimo consumo: deve produrre il token numerico più lungo possibile. I caratteri `+` e `-` sono parte del token solo all'interno del gruppo G2. Spazi, operatori, delimitatori, fine file e caratteri non-ASCII terminano il literal.
+The lexer must apply the maximal munch rule: it must produce the longest possible numeric token. The characters `+` and `-` are part of the token only within the G2 group. Spaces, operators, delimiters, end-of-file characters, and non-ASCII characters terminate the literal.
 
-**Why this priority**: La correttezza dei confini di token è essenziale per evitare consumo eccessivo o insufficiente di caratteri, ma si basa sulla corretta implementazione dei gruppi precedenti.
+**Why this priority**: Correct token boundaries are essential to avoid over- or under-consumption of characters, but it relies on the correct implementation of the previous groups.
 
-**Independent Test**: Può essere testato con input che contengono numeri adiacenti ad altri token e verificando la corretta separazione.
+**Independent Test**: Can be tested with inputs containing numbers adjacent to other tokens, verifying correct separation.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'input `-42`, **When** il lexer analizza, **Then** produce token `-` (operatore) seguito da token Numeric `42`
-2. **Given** l'input `42 u8`, **When** il lexer analizza, **Then** produce token Numeric `42` seguito da token separato `u8` (lo spazio interrompe l'attacco del suffisso)
-3. **Given** l'input `3.14+2`, **When** il lexer analizza, **Then** produce token Numeric `3.14` seguito da token `+` e token Numeric `2`
-4. **Given** l'input `1e2+3`, **When** il lexer analizza, **Then** produce token Numeric `1e2` seguito da token `+` e token Numeric `3`
+1. **Given** the input `-42`, **When** the lexer parses, **Then** produces the token `-` (operator) followed by the token Numeric `42`
+2. **Given** the input `42 u8`, **When** the lexer parses, **Then** produces the token Numeric `42` followed by a separate token `u8` (the space interrupts the suffix start)
+3. **Given** the input `3.14+2`, **When** the lexer parses, **Then** produces the token Numeric `3.14` followed by the token `+` and the token Numeric `2`
+4. **Given** the input `1e2+3`, **When** the lexer parses, **Then** produces the token Numeric `1e2` followed by the token `+` and the token Numeric `3`
 
 ---
 
 ### Edge Cases
 
-- Un punto isolato (`.`) non deve essere riconosciuto come token numerico
-- Un punto seguito da un carattere non-cifra (`.abc`) non è un token numerico
-- `1e` produce token `1` + token `e` (esponente incompleto)
-- `1e+` produce token `1` + token `e` + token `+` (esponente senza cifre dopo il segno)
-- `1E-` produce token `1` + token `E` + token `-`
-- `1u` produce token `1` + token `u` (`u` da solo non è suffisso valido)
-- `1u64` produce token Numeric `1u64` (maximal munch: `u` seguito da cifre consuma tutto)
-- `1i` produce token `1` + token `i` (`i` da solo non è suffisso valido)
-- `1i64` produce token Numeric `1i64` (maximal munch: `i` seguito da cifre consuma tutto)
-- `42 u8` produce token `42` + token `u8` (lo spazio impedisce l'attacco del suffisso al numero)
-- `-42` produce token `-` + token `42` (`-` non fa parte del literal numerico)
-- `5f32` produce token `5f` + token `32` (`f` non forma mai suffissi composti con cifre)
-- `1d` produce token Numeric `1d` (`d` è suffisso singolo valido)
-- `1f` produce token Numeric `1f` (`f` è suffisso singolo valido)
-- Caratteri non-ASCII terminano immediatamente il token numerico
-- Il literal numerico non può estendersi su più righe
-- La priorità nel riconoscimento delle larghezze dei suffissi composti è: `32`, poi `16`, poi `8`
-- `1e2i32` produce un singolo token `1e2i32` (G1 + G2 + G3 combinati)
+- A single period (`.`) must not be recognized as a numeric token.
+- A period followed by a non-digit character (`.abc`) is not a numeric token.
+- `1e` produces token `1` + token `e` (incomplete exponent)
+- `1e+` produces token `1` + token `e` + token `+` (exponent without digits after the sign)
+- `1E-` produces token `1` + token `E` + token `-`
+- `1u` produces token `1` + token `u` (`u` alone is not a valid suffix)
+- `1u64` produces Numeric token `1u64` (maximal munch: `u` followed by digits consumes all)
+- `1i` produces token `1` + token `i` (`i` alone is not a valid suffix)
+- `1i64` produces Numeric token `1i64` (maximal munch: `i` followed by (The digits consume everything.)
+- `42 u8` produces token `42` + token `u8` (the space prevents the suffix from attaching to the number).
+- `-42` produces tokens `-` + token `42` (`-` is not part of the numeric literal)
+- `5f32` produces tokens `5f` + token `32` (`f` never forms compound suffixes with digits)
+- `1d` produces Numeric token `1d` (`d` is a valid single suffix)
+- `1f` produces Numeric token `1f` (`f` is a valid single suffix)
+- Non-ASCII characters immediately terminate the numeric token.
+- The numeric literal cannot span multiple lines.
+- The priority for recognizing compound suffix widths is: `32`, then `16`, then `8`.
+- `1e2i32` produces a single token `1e2i32` (G1 + G2 + G3 combined).
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-#### Gruppo G1 — Parte numerica (obbligatorio)
+#### Group G1 — Numeric Part (required)
 
-- **FR-001**: Il sistema DEVE riconoscere numeri interi composti da una o più cifre decimali (es. `0`, `1`, `42`, `007`)
-- **FR-002**: Il sistema DEVE riconoscere numeri decimali con parte intera e parte frazionaria (es. `1.0`, `3.14`, `0.5`)
-- **FR-003**: Il sistema DEVE riconoscere numeri con punto finale senza cifre frazionarie (es. `3.`, `42.`) preservando il punto nel testo del token
-- **FR-004**: Il sistema DEVE riconoscere numeri con sola parte frazionaria composti da un punto seguito da una o più cifre (es. `.5`, `.14`, `.0`)
-- **FR-005**: Il sistema NON DEVE riconoscere un punto isolato (`.`) come token numerico
-- **FR-006**: Il sistema NON DEVE riconoscere un punto seguito da carattere non-cifra (es. `.abc`) come token numerico
-- **FR-007**: Le due alternative di G1 devono essere valutate nell'ordine: prima la forma con parte intera (A), poi la forma con solo punto (B)
+- **FR-001**: The system MUST recognize integers composed of one or more decimal digits (e.g., `0`, `1`, `42`, `007`)
+- **FR-002**: The system MUST recognize decimal numbers with both a whole number and a fractional part (e.g., `1.0`, `3.14`, `0.5`)
+- **FR-003**: The system MUST recognize numbers with a final period without fractional digits (e.g., `3.`, `42.`) while preserving the period in the token text.
+- **FR-004**: The system MUST recognize numbers with only a fractional part composed of a period followed by one or more digits (e.g., `.5`, `.14`, `.0`)
+- **FR-005**: The system MUST NOT recognize a single period (`.`) as a numeric token.
+- **FR-006**: The system MUST NOT recognize a period followed by a non-digit character (e.g., `.abc`) as a numeric token.
+- **FR-007**: The two G1 alternatives must be evaluated in order: first the form with the integer part (A), then the form with only the period (B).
 
-#### Gruppo G2 — Notazione scientifica (opzionale)
+#### Group G2 — Scientific Notation (Optional)
 
-- **FR-008**: Il sistema DEVE riconoscere un gruppo esponente composto da `e`/`E`, un segno opzionale `+`/`-`, e una o più cifre obbligatorie, se immediatamente contiguo a G1
-- **FR-009**: Se dopo `e`/`E` non compaiono cifre (con o senza segno intermedio), il marcatore `e`/`E` NON DEVE essere incluso nel token numerico e DEVE essere restituito come token separato
-- **FR-010**: Se `e`/`E` è seguito da `+`/`-` ma senza cifre successive, né il segno né il marcatore DEVONO essere consumati nel token numerico
+- **FR-008**: The system MUST recognize an exponent group consisting of `e`/`E`, an optional sign `+`/`-`, and one or more mandatory digits, if immediately adjacent to G1.
+- **FR-009**: If no digits (with or without an intervening sign) appear after `e`/`E`, the `e`/`E` marker MUST NOT be included in the numeric token and MUST be returned as a separate token.
+- **FR-010**: If `e`/`E` is followed by `+`/`-` but with no subsequent digits, neither the sign nor the marker MUST be consumed in the numeric token.
 
-#### Gruppo G3 — Suffisso di tipo (opzionale)
+#### Group G3 — Type Suffix (optional)
 
-- **FR-011**: Il sistema DEVE riconoscere i suffissi singolo-carattere **validi**: `f`/`F` (float 32-bit), `d`/`D` (double 64-bit). I caratteri `u`/`U` da soli **NON** sono suffissi validi e NON DEVONO essere consumati come parte del token numerico
-- **FR-011b**: Il sistema DEVE applicare la regola maximal munch per `u`/`U` e `i`/`I` seguiti da cifre: se la lettera è seguita da una o più cifre, il lexer DEVE consumare l'intera sequenza (lettera + cifre) come parte del token numerico, anche se le cifre non costituiscono una larghezza valida (es. `1u64` → `Numeric("1u64")`, `1i64` → `Numeric("1i64")`)
-- **FR-012**: Il sistema DEVE riconoscere i suffissi composti: `i8`/`i16`/`i32`, `I8`/`I16`/`I32` (signed integer), `u8`/`u16`/`u32`, `U8`/`U16`/`U32` (unsigned integer)
-- **FR-013**: Il sistema DEVE applicare la regola del match più lungo (maximal munch) per i suffissi: i suffissi composti hanno priorità sui singolo-carattere quando il carattere successivo forma una larghezza valida
-- **FR-014**: Le larghezze valide per i suffissi composti sono esclusivamente `8`, `16` e `32`; sequenze come `i64`, `u64`, `i128`, `u128` NON sono suffissi validi (ma vengono consumate per maximal munch se precedute da `u`/`U` o `i`/`I`)
-- **FR-015**: Il carattere `i`/`I` da solo (senza cifre successive) NON è un suffisso valido e NON DEVE essere consumato nel token numerico
-- **FR-015b**: Il carattere `u`/`U` da solo (senza cifre successive) NON è un suffisso valido e NON DEVE essere consumato nel token numerico
-- **FR-016**: Il carattere `f`/`F` NON forma mai un suffisso composto con cifre (es. `f32` deve essere letto come suffisso `f` seguito da token separato `32`)
-- **FR-017**: Il riconoscimento delle larghezze DEVE tentare prima `32`, poi `16`, poi `8`, per evitare match parziali (es. `16` letto come `1` + `6`)
+- **FR-011**: The system MUST recognize **valid** single-character suffixes: `f`/`F` (float 32-bit), `d`/`D` (double 64-bit). The characters `u`/`U` alone are **NOT** valid suffixes and MUST NOT be consumed as part of the numeric token.
+- **FR-011b**: The system MUST apply the maximal munch rule for `u`/`U` and `i`/`I` followed by digits: if the letter is followed by one or more digits, the lexer MUST consume the entire sequence (letter + digits) as part of the numeric token, even if the digits do not constitute a valid width (e.g., `1u64` → `Numeric("1u64")`, `1i64` → `Numeric("1i64")`)
+- **FR-012**: The system MUST recognize the compound suffixes: `i8`/`i16`/`i32`, `I8`/`I16`/`I32` (signed integer), `u8`/`u16`/`u32`, `U8`/`U16`/`U32` (unsigned integer)
+- **FR-013**: The system MUST apply the longest match (maximal munch) rule for suffixes: compound suffixes take priority over single-character suffixes when the next character forms a valid width.
+- **FR-014**: Valid widths for compound suffixes are only `8`, `16` and `32`; Sequences such as `i64`, `u64`, `i128`, `u128` are NOT valid suffixes (but are consumed for maximal munch if preceded by `u`/`U` or `i`/`I`).
+- **FR-015**: The character `i`/`I` alone (without any following digits) is NOT a valid suffix and MUST NOT be consumed in the numeric token.
+- **FR-015b**: The character `u`/`U` alone (without any following digits) is NOT a valid suffix and MUST NOT be consumed in the numeric token.
+- **FR-016**: The character `f`/`F` NEVER forms a composite suffix with digits (e.g., `f32` must be read as the suffix `f` followed by a separate token `32`).
+- **FR-017**: Width recognition MUST first attempt `32`, then `16`, then `16`. `8`, to avoid partial matches (e.g. `16` read as `1` + `6`)
 
-#### Ordine e contiguità dei gruppi
+#### Group Order and Contiguity
 
-- **FR-018**: I tre gruppi DEVONO comparire esclusivamente nell'ordine G1 → G2 → G3, senza spazi o caratteri interposti
-- **FR-019**: Ogni gruppo è opzionale tranne G1, che è obbligatorio
+- **FR-018**: The three groups MUST appear exclusively in the order G1 → G2 → G3, without spaces or intervening characters.
+- **FR-019**: Each group is optional except G1, which is mandatory.
 
-#### Regola maximal munch e confini del token
+#### Maximal Munch Rule and Token Boundaries
 
-- **FR-020**: Il sistema DEVE applicare la regola del massimo consumo: a parità di posizione iniziale, deve essere prodotto il token numerico più lungo possibile
-- **FR-021**: I caratteri `+` e `-` sono parte del token numerico ESCLUSIVAMENTE quando compaiono immediatamente dopo `e`/`E` nel gruppo G2; in tutti gli altri contesti sono token separati
-- **FR-022**: Il token numerico termina al primo carattere non consumabile: spazi bianchi, operatori, delimitatori, fine file, caratteri non-ASCII o caratteri alfabetici che non formano un suffisso valido nella posizione attuale
+- **FR-020**: The system MUST apply the maximal munch rule: for the same starting position, the longest possible numeric token must be produced.
+- **FR-021**: The characters `+` and `-` are part of the numeric token ONLY when they appear immediately after `e`/`E` in group G2; in all other contexts, they are separate tokens.
+- **FR-022**: The numeric token ends at the first non-consumable character: whitespace, operators, delimiters, end-of-file, non-ASCII characters, or alphabetic characters that do not form a valid suffix at the current position.
 
 #### Formato del token prodotto
 
