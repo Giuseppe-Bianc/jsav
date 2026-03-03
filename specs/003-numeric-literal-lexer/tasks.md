@@ -1,243 +1,243 @@
-# Tasks: Riconoscimento Completo dei Literal Numerici nel Lexer
+# Tasks: Complete Numeric Literal Recognition in the Lexer
 
 **Input**: Design documents from `/specs/003-numeric-literal-lexer/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/numeric-token-contract.md
 
-**Tests**: Inclusi — il progetto adotta il workflow TDD (Red-Green-Refactor) come da Constitution Principle IV.
+**Tests**: Included — the project adopts the TDD workflow (Red-Green-Refactor) as per Constitution Principle IV.
 
-**Organization**: Task organizzati per user story per consentire implementazione e test indipendenti di ciascuna storia.
+**Organization**: Tasks organized by user story to enable independent implementation and testing of each story.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Può essere eseguito in parallelo (file diversi, nessuna dipendenza)
-- **[Story]**: A quale user story appartiene il task (es. US1, US2, US3)
-- Percorsi file esatti inclusi nelle descrizioni
+- **[P]**: Can be executed in parallel (different files, no dependencies)
+- **[Story]**: Which user story the task belongs to (e.g., US1, US2, US3)
+- Exact file paths included in descriptions
 
 ## Path Conventions
 
 - **Header**: `include/jsav/lexer/Lexer.hpp`
 - **Source**: `src/jsav_Lib/lexer/Lexer.cpp`
-- **Tests runtime**: `test/tests.cpp`
-- **Tests constexpr**: `test/constexpr_tests.cpp`
+- **Runtime tests**: `test/tests.cpp`
+- **Constexpr tests**: `test/constexpr_tests.cpp`
 
 ---
 
 ## Phase 1: Setup
 
-**Purpose**: Preparazione branch e verifica build esistente
+**Purpose**: Branch preparation and existing build verification
 
-- [ ] T001 Verificare che il branch `003-numeric-literal-lexer` sia attivo e che la build compili senza errori con `cmake -S . -B ./build -Djsav_ENABLE_IPO:BOOL=OFF -Djsav_ENABLE_CPPCHECK:BOOL=OFF -DFMT_PEDANTIC:BOOL=ON -Djsav_ENABLE_SANITIZER_ADDRESS:BOOL=OFF`
-- [ ] T002 Eseguire la suite di test esistente (`ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure`) e verificare che tutti i test passino (baseline di regressione)
+- [ ] T001 Verify that the branch `003-numeric-literal-lexer` is active and that the build compiles without errors with `cmake -S . -B ./build -Djsav_ENABLE_IPO:BOOL=OFF -Djsav_ENABLE_CPPCHECK:BOOL=OFF -DFMT_PEDANTIC:BOOL=ON -Djsav_ENABLE_SANITIZER_ADDRESS:BOOL=OFF`
+- [ ] T002 Run the existing test suite (`ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure`) and verify that all tests pass (regression baseline)
 
 ---
 
 ## Phase 2: Foundational (Blocking Prerequisites)
 
-**Purpose**: Dichiarazioni helper privati nel header e modifica entry point `next_token()` — prerequisiti che bloccano tutte le user story
+**Purpose**: Private helper declarations in the header and modification of `next_token()` entry point — prerequisites that block all user stories
 
-**⚠️ CRITICAL**: Nessun lavoro sulle user story può iniziare prima del completamento di questa fase
+**⚠️ CRITICAL**: No work on user stories can begin before completion of this phase
 
-- [ ] T003 Aggiornare il doccomment di `scan_numeric_literal()` in `include/jsav/lexer/Lexer.hpp` per riflettere il nuovo comportamento trailing-dot (rimuovere riferimento al vecchio split `Numeric + Dot`) come da ricerca R1
-- [ ] T004 [P] Dichiarare il metodo helper privato `void try_scan_exponent()` in `include/jsav/lexer/Lexer.hpp` con doccomment per G2 (come da data-model.md Method Signatures)
-- [ ] T005 [P] Dichiarare il metodo helper privato `void try_scan_type_suffix()` in `include/jsav/lexer/Lexer.hpp` con doccomment per G3 (come da data-model.md Method Signatures)
-- [ ] T006 [P] Dichiarare il metodo helper privato `[[nodiscard]] bool match_width_suffix()` in `include/jsav/lexer/Lexer.hpp` con doccomment (come da data-model.md Method Signatures)
-- [ ] T007 Modificare `next_token()` in `src/jsav_Lib/lexer/Lexer.cpp` per aggiungere il branch leading-dot: se `peek_byte() == '.'` e `std::isdigit(peek_byte(1))` allora invocare `scan_numeric_literal(start)` prima di `scan_operator_or_punctuation()` come da ricerca R2
-- [ ] T008 Formattare i file modificati con `clang-format -i include/jsav/lexer/Lexer.hpp src/jsav_Lib/lexer/Lexer.cpp`
-- [ ] T009 Build e verifica che i test esistenti continuino a passare (regressione baseline)
-- [ ] T010 [P] [FR-027] Verificare assenza di utilizzo regex in `src/jsav_Lib/lexer/Lexer.cpp`:
-  - Verificare che `#include <regex>` NON sia presente
-  - Verificare che `std::regex`, `std::regex_match`, `std::regex_search`, `std::regex_replace` NON siano utilizzati
-  - Metodo: eseguire `Select-String -Pattern "include <regex>" -Path "src/jsav_Lib/lexer/Lexer.cpp"` e `Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/Lexer.cpp"` in PowerShell
-  - Entrambi i comandi NON devono restituire risultati (nessun match trovato)
+- [ ] T003 Update the doccomment of `scan_numeric_literal()` in `include/jsav/lexer/Lexer.hpp` to reflect the new trailing-dot behavior (remove reference to old `Numeric + Dot` split) as per research R1
+- [ ] T004 [P] Declare the private helper method `void try_scan_exponent()` in `include/jsav/lexer/Lexer.hpp` with doccomment for G2 (as per data-model.md Method Signatures)
+- [ ] T005 [P] Declare the private helper method `void try_scan_type_suffix()` in `include/jsav/lexer/Lexer.hpp` with doccomment for G3 (as per data-model.md Method Signatures)
+- [ ] T006 [P] Declare the private helper method `[[nodiscard]] bool match_width_suffix()` in `include/jsav/lexer/Lexer.hpp` with doccomment (as per data-model.md Method Signatures)
+- [ ] T007 Modify `next_token()` in `src/jsav_Lib/lexer/Lexer.cpp` to add the leading-dot branch: if `peek_byte() == '.'` and `std::isdigit(peek_byte(1))` then invoke `scan_numeric_literal(start)` before `scan_operator_or_punctuation()` as per research R2
+- [ ] T008 Format the modified files with `clang-format -i include/jsav/lexer/Lexer.hpp src/jsav_Lib/lexer/Lexer.cpp`
+- [ ] T009 Build and verify that existing tests continue to pass (regression baseline)
+- [ ] T010 [P] [FR-027] Verify absence of regex usage in `src/jsav_Lib/lexer/Lexer.cpp`:
+  - Verify that `#include <regex>` is NOT present
+  - Verify that `std::regex`, `std::regex_match`, `std::regex_search`, `std::regex_replace` are NOT used
+  - Method: run `Select-String -Pattern "include <regex>" -Path "src/jsav_Lib/lexer/Lexer.cpp"` and `Select-String -Pattern "std::regex" -Path "src/jsav_Lib/lexer/Lexer.cpp"` in PowerShell
+  - Both commands MUST NOT return results (no matches found)
 
-**Checkpoint**: Foundation pronta — l'implementazione delle user story può iniziare
+**Checkpoint**: Foundation ready — user story implementation can begin
 
 ---
 
-## Phase 3: User Story 1 — Riconoscimento numeri interi e decimali di base (Priority: P1) 🎯 MVP
+## Phase 3: User Story 1 — Recognizing basic integers and decimals (Priority: P1) 🎯 MVP
 
-**Goal**: Il lexer riconosce correttamente numeri interi semplici (`0`, `1`, `42`, `007`), decimali con parte intera e frazionaria (`1.0`, `3.14`), decimali con punto finale (`3.`, `42.`), e numeri con sola parte frazionaria (`.5`, `.14`, `.0`). Il testo del token è preservato senza normalizzazione.
+**Goal**: The lexer correctly recognizes simple integers (`0`, `1`, `42`, `007`), decimals with integer and fractional parts (`1.0`, `3.14`), decimals with trailing dot (`3.`, `42.`), and numbers with only fractional part (`.5`, `.14`, `.0`). Token text is preserved without normalization.
 
-**Independent Test**: Fornire al lexer stringhe con ciascuna forma numerica di base e verificare tipo `Numeric`, testo esatto e coordinate di posizione.
+**Independent Test**: Provide the lexer with strings containing each basic numeric form and verify `Numeric` type, exact text, and position coordinates.
 
 ### Tests for User Story 1 ⚠️
 
-> **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
+> **NOTE: Write these tests BEFORE implementation. Verify that they FAIL (RED phase) before implementing.**
 
-- [ ] T011 [P] [US1] Scrivere TEST_CASE per interi semplici (`0`, `1`, `42`, `007`) verificando `TokenKind::Numeric` e testo esatto in `test/tests.cpp`; includere SECTION che verifica coordinate di posizione (`span.start`, `span.end`, riga, colonna) su almeno 5 token rappresentativi (FR-025)
-- [ ] T012 [P] [US1] Scrivere TEST_CASE per decimali con parte intera e frazionaria (`1.0`, `3.14`, `0.5`) verificando testo esatto in `test/tests.cpp`
-- [ ] T013 [P] [US1] Scrivere TEST_CASE per decimali con punto finale (`3.`, `42.`) verificando che il punto sia incluso nel token `Numeric("3.")` in `test/tests.cpp`
-- [ ] T014 [P] [US1] Scrivere TEST_CASE per numeri con sola parte frazionaria (`.5`, `.14`, `.0`) verificando token `Numeric(".5")` in `test/tests.cpp`
-- [ ] T015 [P] [US1] Scrivere TEST_CASE per edge cases: punto isolato (`.`) → non Numeric, punto seguito da non-cifra (`.abc`) → non Numeric in `test/tests.cpp`
-- [ ] T016 [P] [US1] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
-  - Definire funzioni `consteval` che invocano il lexer su input di base (`42`, `3.14`, `3.`, `.5`)
-  - Usare `STATIC_REQUIRE` per verificare a compile-time che il token prodotto abbia tipo `TokenKind::Numeric` e testo esatto
-  - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare che NON compili (RED perché lexer non è ancora constexpr), implementare rendendo i metodi constexpr, verificare che compili (GREEN)
+- [ ] T011 [P] [US1] Write TEST_CASE for simple integers (`0`, `1`, `42`, `007`) verifying `TokenKind::Numeric` and exact text in `test/tests.cpp`; include SECTION that verifies position coordinates (`span.start`, `span.end`, line, column) on at least 5 representative tokens (FR-025)
+- [ ] T012 [P] [US1] Write TEST_CASE for decimals with integer and fractional parts (`1.0`, `3.14`, `0.5`) verifying exact text in `test/tests.cpp`
+- [ ] T013 [P] [US1] Write TEST_CASE for decimals with trailing dot (`3.`, `42.`) verifying that the dot is included in the `Numeric("3.")` token in `test/tests.cpp`
+- [ ] T014 [P] [US1] Write TEST_CASE for numbers with only fractional part (`.5`, `.14`, `.0`) verifying `Numeric(".5")` token in `test/tests.cpp`
+- [ ] T015 [P] [US1] Write TEST_CASE for edge cases: isolated dot (`.`) → not Numeric, dot followed by non-digit (`.abc`) → not Numeric in `test/tests.cpp`
+- [ ] T016 [P] [US1] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - Define `consteval` functions that invoke the lexer on basic inputs (`42`, `3.14`, `3.`, `.5`)
+  - Use `STATIC_REQUIRE` to verify at compile-time that the produced token has type `TokenKind::Numeric` and exact text
+  - **TDD Workflow**: Write BEFORE implementation, verify that it does NOT compile (RED because lexer is not yet constexpr), implement by making methods constexpr, verify that it compiles (GREEN)
 
 ### Implementation for User Story 1
 
-- [ ] T017 [US1] Riscrivere il corpo di `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` per implementare il gruppo G1 ramo A: consumo cifre intere, consumo opzionale del punto decimale e cifre frazionarie — il punto finale (`3.`) DEVE essere incluso nel token come da FR-003 e R1
-- [ ] T018 [US1] Implementare in `scan_numeric_literal()` il gruppo G1 ramo B in `src/jsav_Lib/lexer/Lexer.cpp`: quando l'entry point è un punto (da `next_token()`), consumare il punto e le cifre frazionarie successive
-- [ ] T019 [US1] Rimuovere/sostituire il commento legacy sul vecchio trailing-dot behavior in `src/jsav_Lib/lexer/Lexer.cpp` (righe ~245-248) come da R1
-- [ ] T020 [US1] Formattare con `clang-format -i src/jsav_Lib/lexer/Lexer.cpp test/tests.cpp test/constexpr_tests.cpp`
-- [ ] T021 [US1] Eseguire `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — tutti i test US1 devono passare e nessuna regressione
+- [ ] T017 [US1] Rewrite the body of `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` to implement group G1 branch A: consumption of integer digits, optional consumption of decimal point and fractional digits — the trailing dot (`3.`) MUST be included in the token as per FR-003 and R1
+- [ ] T018 [US1] Implement in `scan_numeric_literal()` group G1 branch B in `src/jsav_Lib/lexer/Lexer.cpp`: when the entry point is a dot (from `next_token()`), consume the dot and subsequent fractional digits
+- [ ] T019 [US1] Remove/replace the legacy comment on old trailing-dot behavior in `src/jsav_Lib/lexer/Lexer.cpp` (lines ~245-248) as per R1
+- [ ] T020 [US1] Format with `clang-format -i src/jsav_Lib/lexer/Lexer.cpp test/tests.cpp test/constexpr_tests.cpp`
+- [ ] T021 [US1] Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — all US1 tests must pass and no regression
 
-**Checkpoint**: User Story 1 completa — numeri di base riconosciuti correttamente, testati indipendentemente
+**Checkpoint**: User Story 1 complete — base numbers correctly recognized, independently tested
 
 ---
 
-## Phase 4: User Story 2 — Riconoscimento notazione scientifica (Priority: P2)
+## Phase 4: User Story 2 — Scientific notation recognition (Priority: P2)
 
-**Goal**: Il lexer riconosce il gruppo esponente G2 (`[eE][+-]?\d+`) immediatamente dopo G1. Se l'esponente è incompleto (`1e`, `1e+`), il marcatore e il segno non vengono consumati.
+**Goal**: The lexer recognizes the exponent group G2 (`[eE][+-]?\d+`) immediately after G1. If the exponent is incomplete (`1e`, `1e+`), the marker and sign are not consumed.
 
-**Independent Test**: Fornire stringhe con notazione scientifica valida e non valida, verificare token prodotti.
+**Independent Test**: Provide strings with valid and invalid scientific notation, verify produced tokens.
 
 ### Tests for User Story 2 ⚠️
 
-> **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
+> **NOTE: Write these tests BEFORE implementation. Verify that they FAIL (RED phase) before implementing.**
 
-- [ ] T022 [P] [US2] Scrivere TEST_CASE per esponenti validi (`1e10`, `3.14E+2`, `2.5e-3`, `.5E10`) verificando singolo token Numeric in `test/tests.cpp`
-- [ ] T023 [P] [US2] Scrivere TEST_CASE per esponenti non validi: `1e` → `Numeric("1")` + token `e`; `1e+` → `Numeric("1")` + `e` + `+`; `1E-` → `Numeric("1")` + `E` + `-` in `test/tests.cpp`
-- [ ] T024 [P] [US2] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
-  - Definire funzioni `consteval` che verificano notazione scientifica valida (`1e10`, `3.14E+2`, `2.5e-3`) a compile-time
-  - Usare `STATIC_REQUIRE` per verificare che esponenti incompleti (`1e`, `1e+`, `1E-`) producano token separati
-  - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare RED, implementare `try_scan_exponent()` come `constexpr`, verificare GREEN
+- [ ] T022 [P] [US2] Write TEST_CASE for valid exponents (`1e10`, `3.14E+2`, `2.5e-3`, `.5E10`) verifying single Numeric token in `test/tests.cpp`
+- [ ] T023 [P] [US2] Write TEST_CASE for invalid exponents: `1e` → `Numeric("1")` + token `e`; `1e+` → `Numeric("1")` + `e` + `+`; `1E-` → `Numeric("1")` + `E` + `-` in `test/tests.cpp`
+- [ ] T024 [P] [US2] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - Define `consteval` functions that verify valid scientific notation (`1e10`, `3.14E+2`, `2.5e-3`) at compile-time
+  - Use `STATIC_REQUIRE` to verify that incomplete exponents (`1e`, `1e+`, `1E-`) produce separate tokens
+  - **TDD Workflow**: Write BEFORE implementation, verify RED, implement `try_scan_exponent()` as `constexpr`, verify GREEN
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Implementare `try_scan_exponent()` in `src/jsav_Lib/lexer/Lexer.cpp` con pattern save/restore di `m_pos` e `m_column`: tentare consumo `e`/`E`, opzionale `+`/`-`, cifre obbligatorie; rollback completo se cifre assenti come da R4
-- [ ] T026 [US2] Aggiungere la chiamata a `try_scan_exponent()` alla fine di G1 in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`
-- [ ] T027 [US2] Rimuovere il vecchio codice di consumo esponente incondizionato (se ancora presente) in `src/jsav_Lib/lexer/Lexer.cpp`
-- [ ] T028 [US2] Formattare con `clang-format -i src/jsav_Lib/lexer/Lexer.cpp test/tests.cpp test/constexpr_tests.cpp`
-- [ ] T029 [US2] Eseguire `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — tutti i test US1+US2 devono passare
+- [ ] T025 [US2] Implement `try_scan_exponent()` in `src/jsav_Lib/lexer/Lexer.cpp` with save/restore pattern for `m_pos` and `m_column`: attempt consumption of `e`/`E`, optional `+`/`-`, mandatory digits; complete rollback if digits absent as per R4
+- [ ] T026 [US2] Add the call to `try_scan_exponent()` at the end of G1 in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`
+- [ ] T027 [US2] Remove the old unconditional exponent consumption code (if still present) in `src/jsav_Lib/lexer/Lexer.cpp`
+- [ ] T028 [US2] Format with `clang-format -i src/jsav_Lib/lexer/Lexer.cpp test/tests.cpp test/constexpr_tests.cpp`
+- [ ] T029 [US2] Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — all US1+US2 tests must pass
 
-**Checkpoint**: User Story 2 completa — notazione scientifica riconosciuta, esponenti incompleti gestiti correttamente
+**Checkpoint**: User Story 2 complete — scientific notation recognized, incomplete exponents handled correctly
 
 ---
 
-## Phase 5: User Story 3 — Riconoscimento suffissi di tipo (Priority: P3)
+## Phase 5: User Story 3 — Type suffix recognition (Priority: P3)
 
-**Goal**: Il lexer riconosce i suffissi di tipo G3 (`d`/`D`, `f`/`F`, `u`/`U` con opzionale width, `i`/`I` con width obbligatoria). Maximal munch: suffissi composti hanno priorità. `f`/`F` non forma composti. `i`/`I` da solo non è suffisso.
+**Goal**: The lexer recognizes type suffixes G3 (`d`/`D`, `f`/`F`, `u`/`U` with optional width, `i`/`I` with mandatory width). Maximal munch: compound suffixes have priority. `f`/`F` does not form compounds. `i`/`I` alone is not a suffix.
 
-**Independent Test**: Fornire cifre seguite da tutti i suffissi ammessi e verificare tokenizzazione corretta.
+**Independent Test**: Provide digits followed by all allowed suffixes and verify correct tokenization.
 
 ### Tests for User Story 3 ⚠️
 
-> **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
+> **NOTE: Write these tests BEFORE implementation. Verify that they FAIL (RED phase) before implementing.**
 
-- [ ] T030 [P] [US3] Scrivere TEST_CASE per suffissi singolo-carattere **validi** (`1.0F`, `1.0f`, `10d`, `10D`) verificando testo nel token Numeric in `test/tests.cpp`; e suffissi singolo-carattere **non validi** (`42u`, `42U`) verificando che producano `Numeric("42")` + token separato `u`/`U`
-- [ ] T031 [P] [US3] Scrivere TEST_CASE per suffissi composti validi (`255u8`, `1000i32`, `50i16`, `50I16`, `100U32`) verificando testo nel token Numeric in `test/tests.cpp`
-- [ ] T032 [P] [US3] Scrivere TEST_CASE per edge cases suffissi: `1i` → `Numeric("1")` + `i`; `1u64` → `Numeric("1u64")`; `5f32` → `Numeric("5f")` + `32`; `1u` → `Numeric("1")` + `u`; `1U` → `Numeric("1")` + `U`; `1I` → `Numeric("1")` + `I` in `test/tests.cpp`
-- [ ] T033 [P] [US3] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
-  - Definire funzioni `consteval` che verificano suffissi validi (`1.0F`, `255u8`, `1000i32`) a compile-time
-  - Usare `STATIC_REQUIRE` per edge cases (`1i`, `42u`, `1u64`, `5f32`) che producono token separati o Numeric con testo completo
-  - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare RED, implementare `try_scan_type_suffix()` e `match_width_suffix()` come `constexpr`, verificare GREEN
+- [ ] T030 [P] [US3] Write TEST_CASE for **valid** single-character suffixes (`1.0F`, `1.0f`, `10d`, `10D`) verifying text in Numeric token in `test/tests.cpp`; and **invalid** single-character suffixes (`42u`, `42U`) verifying they produce `Numeric("42")` + separate token `u`/`U`
+- [ ] T031 [P] [US3] Write TEST_CASE for valid compound suffixes (`255u8`, `1000i32`, `50i16`, `50I16`, `100U32`) verifying text in Numeric token in `test/tests.cpp`
+- [ ] T032 [P] [US3] Write TEST_CASE for suffix edge cases: `1i` → `Numeric("1")` + `i`; `1u64` → `Numeric("1u64")`; `5f32` → `Numeric("5f")` + `32`; `1u` → `Numeric("1")` + `u`; `1U` → `Numeric("1")` + `U`; `1I` → `Numeric("1")` + `I` in `test/tests.cpp`
+- [ ] T033 [P] [US3] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - Define `consteval` functions that verify valid suffixes (`1.0F`, `255u8`, `1000i32`) at compile-time
+  - Use `STATIC_REQUIRE` for edge cases (`1i`, `42u`, `1u64`, `5f32`) that produce separate tokens or Numeric with complete text
+  - **TDD Workflow**: Write BEFORE implementation, verify RED, implement `try_scan_type_suffix()` and `match_width_suffix()` as `constexpr`, verify GREEN
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] Implementare `match_width_suffix()` in `src/jsav_Lib/lexer/Lexer.cpp`: confronto con priorità `32` → `16` → `8` con advance se match, return false senza advance se nessun match come da FR-017 e R6
-- [ ] T035 [US3] Implementare `try_scan_type_suffix()` in `src/jsav_Lib/lexer/Lexer.cpp`: riconoscimento `d`/`D` e `f`/`F` come singoli; `u`/`U` con tentativo width (bare se width non valida); `i`/`I` con width obbligatoria (non consumare se width assente) come da FR-011–FR-017 e R6
-- [ ] T036 [US3] Aggiungere la chiamata a `try_scan_type_suffix()` dopo `try_scan_exponent()` in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`
-- [ ] T037 [US3] Formattare con `clang-format -i src/jsav_Lib/lexer/Lexer.cpp test/tests.cpp test/constexpr_tests.cpp`
-- [ ] T038 [US3] Eseguire `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — tutti i test US1+US2+US3 devono passare
+- [ ] T034 [US3] Implement `match_width_suffix()` in `src/jsav_Lib/lexer/Lexer.cpp`: comparison with priority `32` → `16` → `8` with advance if match, return false without advance if no match as per FR-017 and R6
+- [ ] T035 [US3] Implement `try_scan_type_suffix()` in `src/jsav_Lib/lexer/Lexer.cpp`: recognition of `d`/`D` and `f`/`F` as singles; `u`/`U` with width attempt (bare if width invalid); `i`/`I` with mandatory width (do not consume if width absent) as per FR-011–FR-017 and R6
+- [ ] T036 [US3] Add the call to `try_scan_type_suffix()` after `try_scan_exponent()` in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`
+- [ ] T037 [US3] Format with `clang-format -i src/jsav_Lib/lexer/Lexer.cpp test/tests.cpp test/constexpr_tests.cpp`
+- [ ] T038 [US3] Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — all US1+US2+US3 tests must pass
 
-**Checkpoint**: User Story 3 completa — suffissi di tipo riconosciuti con maximal munch
+**Checkpoint**: User Story 3 complete — type suffixes recognized with maximal munch
 
 ---
 
-## Phase 6: User Story 4 — Pattern completo G1-G2-G3 combinato (Priority: P4)
+## Phase 6: User Story 4 — Complete combined G1-G2-G3 pattern (Priority: P4)
 
-**Goal**: Il lexer riconosce la combinazione dei tre gruppi nell'ordine G1 → G2 → G3, contigui e senza separatori, producendo un singolo token Numeric.
+**Goal**: The lexer recognizes the combination of the three groups in order G1 → G2 → G3, contiguous and without separators, producing a single Numeric token.
 
-**Independent Test**: Fornire stringhe che combinano tutti e tre i gruppi e verificare il token risultante.
+**Independent Test**: Provide strings combining all three groups and verify the resulting token.
 
 ### Tests for User Story 4 ⚠️
 
-> **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
+> **NOTE: Write these tests BEFORE implementation. Verify that they FAIL (RED phase) before implementing.**
 
-- [ ] T039 [P] [US4] Scrivere TEST_CASE per combinazioni G1+G2+G3: `1.5e10f` → `Numeric("1.5e10f")`, `2.0E-3d` → `Numeric("2.0E-3d")`, `1e2u16` → `Numeric("1e2u16")`, `.5e1i32` → `Numeric(".5e1i32")` in `test/tests.cpp`
-- [ ] T040 [P] [US4] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
-  - Definire funzioni `consteval` che verificano combinazioni complete (`1.5e10f`, `2.0E-3d`, `1e2u16`, `.5e1i32`) a compile-time
-  - Usare `STATIC_REQUIRE` per verificare che G1→G2→G3 producano singolo token con testo esatto
-  - **Workflow TDD**: Scrivere PRIMA della verifica finale, verificare che il pattern completo sia `constexpr`-compatibile
-- [ ] T041 [P] [US4] Scrivere TEST_CASE per opzionalità gruppi (FR-019): verificare che solo G1 sia obbligatorio:
-  - `42` → `Numeric("42")` (solo G1)
+- [ ] T039 [P] [US4] Write TEST_CASE for G1+G2+G3 combinations: `1.5e10f` → `Numeric("1.5e10f")`, `2.0E-3d` → `Numeric("2.0E-3d")`, `1e2u16` → `Numeric("1e2u16")`, `.5e1i32` → `Numeric(".5e1i32")` in `test/tests.cpp`
+- [ ] T040 [P] [US4] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - Define `consteval` functions that verify complete combinations (`1.5e10f`, `2.0E-3d`, `1e2u16`, `.5e1i32`) at compile-time
+  - Use `STATIC_REQUIRE` to verify that G1→G2→G3 produce single token with exact text
+  - **TDD Workflow**: Write BEFORE final verification, verify that the complete pattern is `constexpr`-compatible
+- [ ] T041 [P] [US4] Write TEST_CASE for group optionality (FR-019): verify that only G1 is mandatory:
+  - `42` → `Numeric("42")` (G1 only)
   - `42e10` → `Numeric("42e10")` (G1 + G2)
-  - `42u` → `Numeric("42")` + `u` (G1 + suffisso non valido, `u` da solo non è consumato)
-  - `42e10u` → `Numeric("42e10")` + `u` (G1 + G2 + suffisso non valido)
-  - `42d` → `Numeric("42d")` (G1 + G3 valido, `d` è suffisso singolo valido)
-  - `42e10d` → `Numeric("42e10d")` (G1 + G2 + G3 valido)
-  - Verificare che G2 e G3 siano opzionali ma G1 sia richiesto
+  - `42u` → `Numeric("42")` + `u` (G1 + invalid suffix, `u` alone is not consumed)
+  - `42e10u` → `Numeric("42e10")` + `u` (G1 + G2 + invalid suffix)
+  - `42d` → `Numeric("42d")` (G1 + valid G3, `d` is valid single suffix)
+  - `42e10d` → `Numeric("42e10d")` (G1 + G2 + valid G3)
+  - Verify that G2 and G3 are optional but G1 is required
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] Verificare in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` che il flusso G1 → `try_scan_exponent()` → `try_scan_type_suffix()` sia correttamente concatenato e produca un singolo token per combinazioni come `1.5e10f` e `1e2u16`
-- [ ] T043 [US4] Eseguire `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — tutti i test US1+US2+US3+US4 devono passare
+- [ ] T042 [US4] Verify in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` that the flow G1 → `try_scan_exponent()` → `try_scan_type_suffix()` is correctly concatenated and produces a single token for combinations like `1.5e10f` and `1e2u16`
+- [ ] T043 [US4] Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — all US1+US2+US3+US4 tests must pass
 
-**Checkpoint**: User Story 4 completa — pattern G1→G2→G3 funzionante end-to-end
+**Checkpoint**: User Story 4 complete — G1→G2→G3 pattern working end-to-end
 
 ---
 
-## Phase 7: User Story 5 — Regola maximal munch e confini di token (Priority: P5)
+## Phase 7: User Story 5 — Maximal munch rule and token boundaries (Priority: P5)
 
-**Goal**: Il lexer applica maximal munch, `+`/`-` sono parte del token solo dentro G2, spazi/operatori/delimitatori/fine file/non-ASCII terminano correttamente il literal. I caratteri newline (`\n`, `\r`, `\r\n`) terminano incondizionatamente il token numerico anche a pattern G1→G2→G3 incompleto (FR-028).
+**Goal**: The lexer applies maximal munch, `+`/`-` are part of the token only within G2, spaces/operators/delimiters/EOF/non-ASCII correctly terminate the literal. Newline characters (`\n`, `\r`, `\r\n`) unconditionally terminate the numeric token even with incomplete G1→G2→G3 pattern (FR-028).
 
-**Independent Test**: Fornire input con numeri adiacenti ad altri token e verificare la corretta separazione. Fornire input con newline interposti (es. `"42\n10"`) e verificare che il newline termini il primo token e il secondo numero inizi un nuovo token.
+**Independent Test**: Provide input with numbers adjacent to other tokens and verify correct separation. Provide input with interspersed newlines (e.g., `"42\n10"`) and verify that the newline terminates the first token and the second number starts a new token.
 
 ### Tests for User Story 5 ⚠️
 
-> **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
+> **NOTE: Write these tests BEFORE implementation. Verify that they FAIL (RED phase) before implementing.**
 
-- [ ] T044 [P] [US5] Scrivere TEST_CASE per confini di token: `-42` → `-` + `Numeric("42")`; `42 u8` → `Numeric("42")` + `u8`; `3.14+2` → `Numeric("3.14")` + `+` + `Numeric("2")`; `1e2+3` → `Numeric("1e2")` + `+` + `Numeric("3")` in `test/tests.cpp`
-- [ ] T045 [P] [US5] Scrivere TEST_CASE per terminazione su non-ASCII e fine file in `test/tests.cpp`
-- [ ] T046 [P] [US5] Scrivere TEST_CASE per terminazione newline (FR-028): `"42\n10"` → `Numeric("42")` + newline token + `Numeric("10")`; `"3.14\r\n2.5"` → `Numeric("3.14")` + newline token + `Numeric("2.5")`; `"1e2\r3"` → `Numeric("1e2")` + newline token + `Numeric("3")` in `test/tests.cpp`
-- [ ] T047 [P] [US5] Scrivere test constexpr in `test/constexpr_tests.cpp` PRIMA dell'implementazione (Constitution IV: TDD test-first):
-  - Definire funzioni `consteval` che verificano confini di token (`-42` → `-` + `42`, `42 u8` → `42` + `u8`) a compile-time
-  - Usare `STATIC_REQUIRE` per maximal munch e terminazione newline
-  - **Workflow TDD**: Scrivere PRIMA della verifica finale, verificare che la logica di confinamento sia `constexpr`-compatibile
+- [ ] T044 [P] [US5] Write TEST_CASE for token boundaries: `-42` → `-` + `Numeric("42")`; `42 u8` → `Numeric("42")` + `u8`; `3.14+2` → `Numeric("3.14")` + `+` + `Numeric("2")`; `1e2+3` → `Numeric("1e2")` + `+` + `Numeric("3")` in `test/tests.cpp`
+- [ ] T045 [P] [US5] Write TEST_CASE for termination on non-ASCII and end of file in `test/tests.cpp`
+- [ ] T046 [P] [US5] Write TEST_CASE for newline termination (FR-028): `"42\n10"` → `Numeric("42")` + newline token + `Numeric("10")`; `"3.14\r\n2.5"` → `Numeric("3.14")` + newline token + `Numeric("2.5")`; `"1e2\r3"` → `Numeric("1e2")` + newline token + `Numeric("3")` in `test/tests.cpp`
+- [ ] T047 [P] [US5] Write constexpr tests in `test/constexpr_tests.cpp` BEFORE implementation (Constitution IV: TDD test-first):
+  - Define `consteval` functions that verify token boundaries (`-42` → `-` + `42`, `42 u8` → `42` + `u8`) at compile-time
+  - Use `STATIC_REQUIRE` for maximal munch and newline termination
+  - **TDD Workflow**: Write BEFORE final verification, verify that the boundary logic is `constexpr`-compatible
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Verificare in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` che la terminazione del token avvenga correttamente al primo carattere non consumabile (spazi, operatori, delimitatori, EOF, non-ASCII) e che `+`/`-` non vengano consumati fuori dal contesto G2
-- [ ] T048b [US5] [FR-028] Verificare esplicita gestione newline in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`:
-  - Il carattere `\n` (LF) DEVE terminare incondizionatamente il token numerico corrente
-  - Il carattere `\r` (CR) DEVE terminare incondizionatamente il token numerico corrente
-  - La sequenza `\r\n` (CRLF) DEVE terminare il token dopo `\r`, lasciando `\n` per il prossimo token
-  - Il carattere newline NON DEVE essere consumato dal token `TokenKind::Numeric`
-  - Il carattere newline DEVE rimanere nel flusso di input per il prossimo token
-  - Implementare controllo esplicito: se `peek_byte() == '\n'` o `peek_byte() == '\r'`, interrompere immediatamente il consumo del literal anche se G1→G2→G3 sarebbe continuabile
-  - Verificare che il commento/doccomment del metodo documenti esplicitamente questo comportamento
-- [ ] T049 [US5] Verificare in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` che i caratteri `\n`, `\r` terminino incondizionatamente il token numerico anche se G1→G2→G3 sarebbe continuabile; il carattere newline NON DEVE essere consumato dal token Numeric ma deve rimanere nel flusso per il prossimo token come da FR-028
-- [ ] T050 [US5] Eseguire `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — tutti i test US1–US5 devono passare
+- [ ] T048 [US5] Verify in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` that token termination occurs correctly at the first non-consumable character (spaces, operators, delimiters, EOF, non-ASCII) and that `+`/`-` are not consumed outside G2 context
+- [ ] T048b [US5] [FR-028] Verify explicit newline handling in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`:
+  - The character `\n` (LF) MUST unconditionally terminate the current numeric token
+  - The character `\r` (CR) MUST unconditionally terminate the current numeric token
+  - The sequence `\r\n` (CRLF) MUST terminate the token after `\r`, leaving `\n` for the next token
+  - The newline character MUST NOT be consumed by the `TokenKind::Numeric` token
+  - The newline character MUST remain in the input stream for the next token
+  - Implement explicit check: if `peek_byte() == '\n'` or `peek_byte() == '\r'`, immediately interrupt literal consumption even if G1→G2→G3 would be continuable
+  - Verify that the method comment/doccomment explicitly documents this behavior
+- [ ] T049 [US5] Verify in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` that the characters `\n`, `\r` unconditionally terminate the numeric token even if G1→G2→G3 would be continuable; the newline character MUST NOT be consumed by the Numeric token but must remain in the stream for the next token as per FR-028
+- [ ] T050 [US5] Run `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — all US1–US5 tests must pass
 
-**Checkpoint**: User Story 5 completa — maximal munch e confini di token corretti
+**Checkpoint**: User Story 5 complete — maximal munch and token boundaries correct
 
 ---
 
 ## Phase 8: Polish & Cross-Cutting Concerns
 
-**Purpose**: Verifica complessità, regressione completa, formattazione finale e documentazione
+**Purpose**: Complexity verification, complete regression, final formatting, and documentation
 
-- [ ] T051 [P] Eseguire analisi Lizard (`cmake --build build --target lizard`) e verificare che tutti i metodi modificati rispettino CCN ≤ 15 e length ≤ 100 lines (Constitution Principle III)
-- [ ] T052 [P] Scrivere performance test in `test/tests.cpp` che definisce il criterio O(n) PRIMA dell'implementazione della profilazione (Constitution IV: Test-First):
-  - Includere `#include <jsav/jsav.hpp>` nel file di test
-    - **Nota Constitution V**: `vnd::Timer` è componente interno del progetto jsav (`include/jsavCore/timer/Timer.hpp`), esposto tramite header master `jsav/jsav.hpp`. **NON** è dipendenza esterna. Approvato per Constitution V (Dependency Management).
-  - Definire TEST_CASE `"Lexer_scanNumericLiteral_scalesLinearly"` che:
-    - Genera literal numerici di lunghezza 10, 100, 500, 1000 caratteri (sole cifre decimali)
-    - Misura tempo di scansione per ciascuna lunghezza usando `vnd::Timer`
-    - Verifica criterio: `tempo(1000) / tempo(10) ≤ 150` (fattore di scaling 150× per complessità O(n))
-  - **Questo test DEVE fallire inizialmente** (RED phase) perché la profilazione non è ancora implementata
-- [ ] T053 Implementare la profilazione effettiva in `scan_numeric_literal()` per far passare il performance test T052:
-  - Utilizzare `vnd::Timer` (componente interno esposto da `jsav/jsav.hpp`, Constitution V compliant) per misurare tempi di scansione su input di varie lunghezze
-  - Documentare risultati in `specs/003-numeric-literal-lexer/performance-report.md`:
-    - Tempi misurati per ciascuna lunghezza (10, 100, 500, 1000 caratteri)
-    - Calcolo del fattore di scaling `tempo(1000) / tempo(10)`
-    - Verdetto: PASS se scaling ≤ 150×, FAIL altrimenti
-  - **Criterio di accettazione**: Il performance test T052 DEVE passare (GREEN phase)
-- [ ] T054 [P] Eseguire la suite completa di test di regressione (`ctest --output-on-failure`) e verificare che TUTTI i test preesistenti passino senza regressioni (SC-007)
-- [ ] T055 Formattare tutti i file modificati con `clang-format -i src/jsav_Lib/lexer/Lexer.cpp include/jsav/lexer/Lexer.hpp test/tests.cpp test/constexpr_tests.cpp`
-- [ ] T056 Eseguire validazione quickstart.md: istanziare il quick smoke test con newline (`jsv::Lexer lex{"3.14e+2f\n.5\r1e 42u8\r\n1i", "test.jsav"}`) e verificare che i newline terminino correttamente i token numerici producendo token separati per i numeri su righe diverse
-- [ ] T057 Revisione finale del codice: verificare che commenti e doccomment siano aggiornati in `include/jsav/lexer/Lexer.hpp` e `src/jsav_Lib/lexer/Lexer.cpp`
+- [ ] T051 [P] Run Lizard analysis (`cmake --build build --target lizard`) and verify that all modified methods respect CCN ≤ 15 and length ≤ 100 lines (Constitution Principle III)
+- [ ] T052 [P] Write performance test in `test/tests.cpp` that defines the O(n) criterion BEFORE profiling implementation (Constitution IV: Test-First):
+  - Include `#include <jsav/jsav.hpp>` in the test file
+    - **Constitution V Note**: `vnd::Timer` is an internal component of the jsav project (`include/jsavCore/timer/Timer.hpp`), exposed via the master header `jsav/jsav.hpp`. **NOT** an external dependency. Approved per Constitution V (Dependency Management).
+  - Define TEST_CASE `"Lexer_scanNumericLiteral_scalesLinearly"` that:
+    - Generates numeric literals of length 10, 100, 500, 1000 characters (decimal digits only)
+    - Measures scan time for each length using `vnd::Timer`
+    - Verifies criterion: `time(1000) / time(10) ≤ 150` (scaling factor 150× for O(n) complexity)
+  - **This test MUST fail initially** (RED phase) because profiling is not yet implemented
+- [ ] T053 Implement actual profiling in `scan_numeric_literal()` to make performance test T052 pass:
+  - Use `vnd::Timer` (internal component exposed by `jsav/jsav.hpp`, Constitution V compliant) to measure scan times on inputs of various lengths
+  - Document results in `specs/003-numeric-literal-lexer/performance-report.md`:
+    - Measured times for each length (10, 100, 500, 1000 characters)
+    - Scaling factor calculation `time(1000) / time(10)`
+    - Verdict: PASS if scaling ≤ 150×, FAIL otherwise
+  - **Acceptance criterion**: Performance test T052 MUST pass (GREEN phase)
+- [ ] T054 [P] Run the complete regression test suite (`ctest --output-on-failure`) and verify that ALL pre-existing tests pass without regressions (SC-007)
+- [ ] T055 Format all modified files with `clang-format -i src/jsav_Lib/lexer/Lexer.cpp include/jsav/lexer/Lexer.hpp test/tests.cpp test/constexpr_tests.cpp`
+- [ ] T056 Run quickstart.md validation: instantiate the quick smoke test with newlines (`jsv::Lexer lex{"3.14e+2f\n.5\r1e 42u8\r\n1i", "test.jsav"}`) and verify that newlines correctly terminate numeric tokens producing separate tokens for numbers on different lines
+- [ ] T057 Final code review: verify that comments and doccomments are updated in `include/jsav/lexer/Lexer.hpp` and `src/jsav_Lib/lexer/Lexer.cpp`
 
 ---
 
@@ -245,14 +245,14 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: Nessuna dipendenza — può iniziare immediatamente
-- **Foundational (Phase 2)**: Dipende dal completamento di Phase 1 — **BLOCCA** tutte le user story
-- **User Story 1 (Phase 3)**: Dipende da Phase 2 — implementa G1, prerequisito per US2/US3/US4
-- **User Story 2 (Phase 4)**: Dipende da Phase 3 (G1 deve esistere per agganciare G2)
-- **User Story 3 (Phase 5)**: Dipende da Phase 3 (G1 deve esistere per agganciare G3); può procedere in parallelo con US2
-- **User Story 4 (Phase 6)**: Dipende da Phase 4 E Phase 5 (richiede G1+G2+G3 tutti implementati)
-- **User Story 5 (Phase 7)**: Dipende da Phase 6 (verifica confini sull'intero pattern)
-- **Polish (Phase 8)**: Dipende dal completamento di tutte le user story desiderate
+- **Setup (Phase 1)**: No dependencies — can begin immediately
+- **Foundational (Phase 2)**: Depends on completion of Phase 1 — **BLOCKS** all user stories
+- **User Story 1 (Phase 3)**: Depends on Phase 2 — implements G1, prerequisite for US2/US3/US4
+- **User Story 2 (Phase 4)**: Depends on Phase 3 (G1 must exist to attach G2)
+- **User Story 3 (Phase 5)**: Depends on Phase 3 (G1 must exist to attach G3); can proceed in parallel with US2
+- **User Story 4 (Phase 6)**: Depends on Phase 4 AND Phase 5 (requires G1+G2+G3 all implemented)
+- **User Story 5 (Phase 7)**: Depends on Phase 6 (verifies boundaries on entire pattern)
+- **Polish (Phase 8)**: Depends on completion of all desired user stories
 
 ### User Story Dependencies
 
@@ -267,14 +267,14 @@ Phase 3 (US1: G1 base) ◄──────────────────
     │
     ├─────────────┐
     ▼             ▼
-Phase 4 (US2)  Phase 5 (US3)    ← possono procedere in parallelo
+Phase 4 (US2)  Phase 5 (US3)    ← can proceed in parallel
     │             │
     └──────┬──────┘
            ▼
     Phase 6 (US4: G1+G2+G3)
            │
            ▼
-    Phase 7 (US5: confini)
+    Phase 7 (US5: boundaries)
            │
            ▼
     Phase 8 (Polish)
@@ -282,38 +282,38 @@ Phase 4 (US2)  Phase 5 (US3)    ← possono procedere in parallelo
 
 ### Within Each User Story
 
-1. Test DEVONO essere scritti e DEVONO FALLIRE prima dell'implementazione (TDD Red-Green-Refactor)
-2. Implementazione dei metodi helper prima dell'orchestratore
-3. Integrazione: chiamata all'helper nell'orchestratore
-4. Format → Build → Test verde → Checkpoint
+1. Tests MUST be written and MUST FAIL before implementation (TDD Red-Green-Refactor)
+2. Implementation of helper methods before the orchestrator
+3. Integration: call to helper in the orchestrator
+4. Format → Build → Green test → Checkpoint
 
 ### Parallel Opportunities
 
-- **Phase 2**: T004, T005, T006, T010 possono essere eseguiti in parallelo (dichiarazioni helper e verifica regex in sezioni diverse del header)
-- **Phase 3**: T011–T016 possono essere eseguiti in parallelo (test in file diversi o sezioni indipendenti)
-- **Phase 4 e Phase 5**: Possono procedere in parallelo (US2 modifica `try_scan_exponent`, US3 modifica `try_scan_type_suffix` — metodi separati)
-- **Phase 6**: T039, T040, T041 possono essere eseguiti in parallelo
-- **Phase 7**: T044, T045, T046, T047 possono essere eseguiti in parallelo
-- **Phase 8**: T051, T052, T054 possono essere eseguiti in parallelo
+- **Phase 2**: T004, T005, T006, T010 can be executed in parallel (helper declarations and regex verification in different header sections)
+- **Phase 3**: T011–T016 can be executed in parallel (tests in different files or independent sections)
+- **Phase 4 and Phase 5**: Can proceed in parallel (US2 modifies `try_scan_exponent`, US3 modifies `try_scan_type_suffix` — separate methods)
+- **Phase 6**: T039, T040, T041 can be executed in parallel
+- **Phase 7**: T044, T045, T046, T047 can be executed in parallel
+- **Phase 8**: T051, T052, T054 can be executed in parallel
 
 ---
 
 ## Parallel Example: User Story 1
 
 ```text
-# Test in parallelo (tutti su file diversi o sezioni indipendenti):
-T011: TEST_CASE interi semplici                    → test/tests.cpp
-T012: TEST_CASE decimali con parte frazionaria     → test/tests.cpp
-T013: TEST_CASE decimali con punto finale          → test/tests.cpp
-T014: TEST_CASE numeri con sola parte frazionaria  → test/tests.cpp
-T015: TEST_CASE edge cases punto                   → test/tests.cpp
-T016: STATIC_REQUIRE test constexpr                → test/constexpr_tests.cpp
+# Tests in parallel (all in different files or independent sections):
+T011: TEST_CASE simple integers                    → test/tests.cpp
+T012: TEST_CASE decimals with fractional part      → test/tests.cpp
+T013: TEST_CASE decimals with trailing dot         → test/tests.cpp
+T014: TEST_CASE numbers with only fractional part  → test/tests.cpp
+T015: TEST_CASE dot edge cases                     → test/tests.cpp
+T016: STATIC_REQUIRE constexpr tests               → test/constexpr_tests.cpp
 ```
 
-## Parallel Example: User Story 2 e 3 in parallelo
+## Parallel Example: User Story 2 and 3 in Parallel
 
 ```text
-# US2 e US3 possono procedere in parallelo dopo US1:
+# US2 and US3 can proceed in parallel after US1:
 Developer A (US2): T022-T029 → try_scan_exponent() in Lexer.cpp
 Developer B (US3): T030-T038 → try_scan_type_suffix() + match_width_suffix() in Lexer.cpp
 ```
@@ -324,42 +324,42 @@ Developer B (US3): T030-T038 → try_scan_type_suffix() + match_width_suffix() i
 
 ### MVP First (User Story 1 Only)
 
-1. Completare Phase 1: Setup
-2. Completare Phase 2: Foundational (CRITICAL — blocca tutte le story)
-3. Completare Phase 3: User Story 1 — G1 base
-4. **STOP e VALIDARE**: Testare US1 indipendentemente
-5. Il lexer riconosce già correttamente tutti i numeri di base
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (CRITICAL — blocks all stories)
+3. Complete Phase 3: User Story 1 — G1 base
+4. **STOP and VALIDATE**: Test US1 independently
+5. The lexer already correctly recognizes all base numbers
 
 ### Incremental Delivery
 
-1. Setup + Foundational → Infrastruttura pronta
-2. User Story 1 (G1) → Test indipendenti → **MVP funzionante** 🎯
-3. User Story 2 (G2) → Test indipendenti → Notazione scientifica aggiunta
-4. User Story 3 (G3) → Test indipendenti → Suffissi di tipo aggiunti
-5. User Story 4 (G1+G2+G3) → Test indipendenti → Pattern combinato validato
-6. User Story 5 → Test indipendenti → Confini di token validati
-7. Polish → Complessità, regressione, documentazione
+1. Setup + Foundational → Infrastructure ready
+2. User Story 1 (G1) → Independent tests → **Working MVP** 🎯
+3. User Story 2 (G2) → Independent tests → Scientific notation added
+4. User Story 3 (G3) → Independent tests → Type suffixes added
+5. User Story 4 (G1+G2+G3) → Independent tests → Combined pattern validated
+6. User Story 5 → Independent tests → Token boundaries validated
+7. Polish → Complexity, regression, documentation
 
 ### Parallel Team Strategy
 
-Con due sviluppatori dopo il completamento di US1:
+With two developers after US1 completion:
 
-1. Team completa Setup + Foundational + US1 insieme
-2. Dopo US1 completata:
+1. Team completes Setup + Foundational + US1 together
+2. After US1 completed:
    - **Developer A**: US2 (try_scan_exponent)
    - **Developer B**: US3 (try_scan_type_suffix + match_width_suffix)
-3. US4 e US5 sequenziali dopo il merge di US2+US3
-4. Polish finale
+3. US4 and US5 sequential after merging US2+US3
+4. Final Polish
 
 ---
 
 ## Notes
 
-- I task [P] operano su file diversi o sezioni indipendenti, senza conflitti
-- Il label [Story] mappa ogni task alla user story per tracciabilità
-- Ogni user story è testabile indipendentemente al suo checkpoint
-- **Workflow TDD**: test RED → implementazione → test GREEN → refactor
-- Commit dopo ogni task o gruppo logico
-- I file coinvolti sono 5: `Lexer.hpp`, `Lexer.cpp`, `tests.cpp`, `constexpr_tests.cpp`, `performance-report.md` (generated)
+- [P] tasks operate on different files or independent sections, without conflicts
+- The [Story] label maps each task to the user story for traceability
+- Each user story is independently testable at its checkpoint
+- **TDD Workflow**: RED tests → implementation → GREEN tests → refactor
+- Commit after each task or logical group
+- The files involved are 5: `Lexer.hpp`, `Lexer.cpp`, `tests.cpp`, `constexpr_tests.cpp`, `performance-report.md` (generated)
 - **Total tasks**: 57 (T001–T057), including T010 for FR-027 regex verification
-- **Constitution Principle IV**: Test constexpr DEVONO seguire lo stesso workflow test-first dei test runtime — scrivere PRIMA, verificare RED (non compila), implementare constexpr, verificare GREEN
+- **Constitution Principle IV**: Constexpr tests MUST follow the same test-first workflow as runtime tests — write FIRST, verify RED (does not compile), implement constexpr, verify GREEN
