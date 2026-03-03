@@ -169,23 +169,23 @@ The lexer must apply the maximal munch rule: it must produce the longest possibl
 - **FR-021**: The characters `+` and `-` are part of the numeric token ONLY when they appear immediately after `e`/`E` in group G2; in all other contexts, they are separate tokens.
 - **FR-022**: The numeric token ends at the first non-consumable character: whitespace, operators, delimiters, end-of-file, non-ASCII characters, or alphabetic characters that do not form a valid suffix at the current position.
 
-#### Formato del token prodotto
+#### Token Format
 
-- **FR-023**: Il token generato DEVE essere di tipo Numeric
-- **FR-024**: Il campo testo DEVE contenere l'intera sequenza di caratteri consumati esattamente come appaiono nel sorgente, senza alcuna normalizzazione (zeri iniziali preservati, punto finale/iniziale preservato, case dei suffissi preservato)
-- **FR-025**: Il token DEVE portare le informazioni di posizione: indice di inizio, indice di fine (inclusivo), numero di riga (1-based) e numero di colonna (1-based) del primo carattere
+- **FR-023**: The generated token MUST be of type Numeric
+- **FR-024**: The text field MUST contain the entire sequence of consumed characters exactly as they appear in the source, without any normalization (leading zeros preserved, trailing/leading periods preserved, suffix case preserved)
+- **FR-025**: The token MUST contain positional information: start index, end index (inclusive), line number (1-based), and column number (1-based) of the first character
 
-#### Vincoli di performance e architettura
+#### Performance and Architecture Constraints
 
-- **FR-026**: Il riconoscimento DEVE avvenire in un unico passaggio sul flusso (single-pass, complessità O(n) rispetto alla lunghezza del literal), senza backtracking non lineare
-  - **Definizione**: Per "backtracking non lineare" si intende scansionare la stessa posizione di carattere più di due volte durante il riconoscimento di un singolo literal numerico
-  - Il salvataggio e ripristino della posizione (`m_pos`, `m_column`) per tentativi di esponente o suffisso falliti conta come un singolo backtrack per ciascun tentativo
-- **FR-027**: Il sistema NON DEVE utilizzare librerie di regex a runtime per il riconoscimento
-- **FR-028**: Il literal numerico DEVE terminare al primo carattere newline (`\n`, `\r` o `\r\n`); il carattere newline NON DEVE essere consumato dal token `TokenKind::Numeric` e DEVE rimanere nel flusso per il token successivo, anche se il pattern G1→G2→G3 sarebbe altrimenti continuabile sulla riga successiva
+- **FR-026**: Recognition MUST occur in a single pass through the stream (single-pass, complexity O(n) with respect to the literal length), without nonlinear backtracking.
+- **Definition**: "Nonlinear backtracking" means scanning the same character position more than twice when recognizing a single numeric literal.
+- Saving and restoring the position (`m_pos`, `m_column`) for failed exponent or suffix attempts counts as a single backtrack for each attempt.
+- **FR-027**: The system MUST NOT use runtime regex libraries for recognition.
+- **FR-028**: The numeric literal MUST end at the first newline character (`\n`, `\r`, or `\r\n`); the newline character MUST NOT be consumed by the `TokenKind::Numeric` token and MUST remain in the stream for the next token, even if the pattern G1→G2→G3 would otherwise be continuable on the next line.
 
-#### Retrocompatibilità
+#### Backward Compatibility
 
-- **FR-029**: Tutti i casi già supportati DEVONO continuare a funzionare senza regressioni: interi semplici, decimali con parte intera, decimali con punto finale, decimali con sola parte frazionaria
+- **FR-029**: All previously supported cases MUST continue to work without regressions: plain integers, decimals with integer part, decimals with a dot trailing part, decimals with only a fractional part.
 
 ### Key Entities
 
