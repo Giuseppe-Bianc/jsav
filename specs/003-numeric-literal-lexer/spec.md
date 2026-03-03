@@ -33,7 +33,7 @@ un suffisso composto con cifre (es. 'f32' deve essere letto come suffisso 'f' se
 separato '32'). Il lexer deve riconoscere la larghezza tentando prima '32', poi '16', poi '8',
 per evitare che '16' venga letto come '1' seguito da '6'. Il lexer deve applicare la regola del massimo consumo (maximal munch): a parità di posizione iniziale, deve essere prodotto il token numerico più lungo possibile. Il token numerico termina al primo carattere che non può essere incluso nel pattern nella posizione corrente, inclusi: spazi bianchi, operatori, delimitatori, fine file, e qualsiasi carattere alfabetico che non formi un suffisso valido nella posizione attuale. I caratteri '+' e '-' sono parte del token numerico esclusivamente quando compaiono immediatamente dopo [eE] all'interno del gruppo G2;
 in tutti gli altri contesti, incluso prima del literal, sono token separati (es. in '-42' il
-'-' è operatore unario e il token numerico è '42'). Il token generato deve essere di tipo TokenType::Numeric e il campo text deve contenere l'intera sequenza di caratteri consumati, esattamente come appaiono nel sorgente, senza alcuna normalizzazione: gli zeri iniziali non devono essere rimossi ('007' resta '007'), il punto finale non deve essere eliminato ('3.' resta '3.'), il punto iniziale non deve essere espanso
+'-' è operatore unario e il token numerico è '42'). Il token generato deve essere di tipo TokenKind::Numeric e il campo text deve contenere l'intera sequenza di caratteri consumati, esattamente come appaiono nel sorgente, senza alcuna normalizzazione: gli zeri iniziali non devono essere rimossi ('007' resta '007'), il punto finale non deve essere eliminato ('3.' resta '3.'), il punto iniziale non deve essere espanso
 ('.5' resta '.5'), il case dei suffissi non deve essere alterato ('1.0F' resta '1.0F'), e il
 valore numerico non deve essere calcolato né interpretato. Il token deve inoltre portare le
 informazioni di posizione nel sorgente: indice di inizio, indice di fine (inclusivo), numero di
@@ -215,7 +215,7 @@ Il lexer deve applicare la regola del massimo consumo: deve produrre il token nu
 
 - **FR-026**: Il riconoscimento DEVE avvenire in un unico passaggio sul flusso (single-pass, complessità O(n) rispetto alla lunghezza del literal), senza backtracking non lineare
 - **FR-027**: Il sistema NON DEVE utilizzare librerie di regex a runtime per il riconoscimento
-- **FR-028**: Un literal numerico NON PUÒ estendersi su più righe
+- **FR-028**: Il literal numerico DEVE terminare al primo carattere newline (`\n`, `\r` o `\r\n`); il carattere newline NON DEVE essere consumato dal token `TokenKind::Numeric` e DEVE rimanere nel flusso per il token successivo, anche se il pattern G1→G2→G3 sarebbe altrimenti continuabile sulla riga successiva
 
 #### Retrocompatibilità
 
