@@ -27,23 +27,23 @@ The lexer must correctly recognize numeric literals in the following fundamental
 
 ---
 
-### User Story 2 — Riconoscimento notazione scientifica (Priority: P2)
+### User Story 2 — Scientific Notation Recognition (Priority: P2)
 
-Il lexer deve riconoscere il gruppo esponente (G2) immediatamente dopo la parte numerica (G1). Il gruppo è composto da un marcatore `e`/`E`, un segno opzionale `+`/`-`, e una o più cifre obbligatorie. Se dopo il marcatore le cifre sono assenti, il marcatore e l'eventuale segno non devono essere consumati nel token numerico.
+The lexer must recognize the exponent group (G2) immediately following the numeric portion (G1). The group consists of an `e`/`E` marker, an optional `+`/`-` sign, and one or more mandatory digits. If the digits are absent after the marker, the marker and any sign must not be consumed in the numeric token.
 
-**Why this priority**: La notazione scientifica è il secondo livello di complessità, dipende dal corretto funzionamento di G1, ed è ampiamente usata per literal float in contesti scientifici e ingegneristici.
+**Why this priority**: Scientific notation is the second level of complexity, dependent on the correct functioning of G1, and is widely used for float literals in scientific and engineering contexts.
 
-**Independent Test**: Può essere testato fornendo stringhe con notazione scientifica valida e non valida e verificando che i token prodotti siano corretti.
+**Independent Test**: It can be tested by providing strings with valid and invalid scientific notation and verifying that the tokens produced are correct.
 
 **Acceptance Scenarios**:
 
-1. **Given** l'input `1e10`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `1e10`
-2. **Given** l'input `3.14E+2`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `3.14E+2`
-3. **Given** l'input `2.5e-3`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `2.5e-3`
-4. **Given** l'input `.5E10`, **When** il lexer analizza, **Then** produce un singolo token Numeric con testo `.5E10`
-5. **Given** l'input `1e`, **When** il lexer analizza, **Then** produce token Numeric `1` seguito da un token separato `e` (nessuna cifra dopo l'esponente)
-6. **Given** l'input `1e+`, **When** il lexer analizza, **Then** produce token Numeric `1` seguito da token separati `e` e `+` (segno senza cifre)
-7. **Given** l'input `1E-`, **When** il lexer analizza, **Then** produce token Numeric `1` seguito da token separati `E` e `-`
+1. **Given** the input `1e10`, **When** the lexer parses, **Then** produces a single Numeric token with text `1e10`
+2. **Given** the input `3.14E+2`, **When** the lexer parses, **Then** produces a single Numeric token with text `3.14E+2`
+3. **Given** the input `2.5e-3`, **When** the lexer parses, **Then** produces a single Numeric token with text `2.5e-3`
+4. **Given** the input `.5E10`, **When** the lexer parses, **Then** produces a single Numeric token with text `.5E10`
+5. **Given** the input `1e`, **When** the lexer parses, **Then** produces Numeric token `1` followed by a separate token `e` (no digit after (the exponent)
+6. **Given** the input `1e+`, **When** the lexer parses, **Then** produces the Numeric token `1` followed by separate tokens `e` and `+` (sign without digits)
+7. **Given** the input `1E-`, **When** the lexer parses, **Then** produces the Numeric token `1` followed by separate tokens `E` and `-`
 
 ---
 
