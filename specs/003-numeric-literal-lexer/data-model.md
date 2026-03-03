@@ -1,87 +1,87 @@
-# Data Model: Riconoscimento Completo dei Literal Numerici
+# Data Model: Complete Numeric Literal Recognition
 
 **Feature**: 003-numeric-literal-lexer
 **Date**: 2026-03-03
 
 ## Entities
 
-### Token Numerico (existing — behavior modification)
+### Numeric Token (existing — behavior modification)
 
-L'entità `Token` con `TokenKind::Numeric` esiste già nel progetto. Questa feature modifica
-**cosa viene catturato** nel campo `text`, non la struttura del token.
+The `Token` entity with `TokenKind::Numeric` already exists in the project. This feature modifies
+**what is captured** in the `text` field, not the token structure.
 
-| Campo | Tipo | Descrizione |
+| Field | Type | Description |
 |-------|------|-------------|
-| `kind` | `TokenKind` | Sempre `TokenKind::Numeric` per i literal decimali |
-| `text` | `std::string_view` | Vista nel sorgente originale, concatenazione G1+G2+G3 |
-| `span` | `SourceSpan` | Posizione: file, start location (line, col, offset), end location |
+| `kind` | `TokenKind` | Always `TokenKind::Numeric` for decimal literals |
+| `text` | `std::string_view` | View into original source, concatenation of G1+G2+G3 |
+| `span` | `SourceSpan` | Position: file, start location (line, col, offset), end location |
 
-**Invarianti**:
+**Invariants**:
 
-- `text` contiene esattamente i byte consumati dal sorgente, senza normalizzazione
-- `text.size() >= 1` (almeno una cifra o un punto iniziale)
-- Il token non attraversa mai confini di riga
+- `text` contains exactly the bytes consumed from source, without normalization
+- `text.size() >= 1` (at least one digit or initial dot)
+- The token never crosses line boundaries
 
-### Struttura interna del literal numerico (non entità persistente)
+### Internal structure of numeric literal (non-persistent entity)
 
-Il literal numerico è composto da tre gruppi sequenziali riconosciuti durante lo scan:
+The numeric literal consists of three sequential groups recognized during scanning:
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
-│  G1 (obbligatorio)  │  G2 (opzionale)  │  G3 (opzionale)  │
+│  G1 (mandatory)     │  G2 (optional)   │  G3 (optional)   │
 │                      │                   │                   │
-│  Ramo A: \d+\.?\d*   │  [eE][+-]?\d+     │  [dDfF]           │
-│  Ramo B: \.\d+       │                   │  [uU](8|16|32)?   │
+│  Branch A: \d+\.?\d* │  [eE][+-]?\d+     │  [dDfF]           │
+│  Branch B: \.\d+     │                   │  [uU](8|16|32)?   │
 │                      │                   │  [iI](8|16|32)    │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### G1 — Parte numerica (obbligatoria)
+### G1 — Numeric part (mandatory)
 
-| Ramo | Pattern | Entry condition | Esempi |
-|------|---------|-----------------|--------|
-| A | `\d+\.?\d*` | primo byte è digit `[0-9]` | `42`, `3.`, `3.14`, `007` |
-| B | `\.\d+` | primo byte è `'.'`, `peek_byte(1)` è digit | `.5`, `.14`, `.0` |
+| Branch | Pattern | Entry condition | Examples |
+|--------|---------|-----------------|----------|
+| A | `\d+\.?\d*` | first byte is digit `[0-9]` | `42`, `3.`, `3.14`, `007` |
+| B | `\.\d+` | first byte is `'.'`, `peek_byte(1)` is digit | `.5`, `.14`, `.0` |
 
-**Regole di validazione**:
+**Validation rules**:
 
-- Ramo A: almeno una cifra iniziale (garantito dal check in `next_token()`)
-- Ramo A trailing dot: `'.'` consumato anche senza cifre frazionarie (`3.` → `Numeric("3.")`)
-- Ramo B: almeno una cifra dopo il punto (garantito dal guard in `next_token()`)
+- Branch A: at least one initial digit (guaranteed by check in `next_token()`)
+- Branch A trailing dot: `'.'` consumed even without fractional digits (`3.` → `Numeric("3.")`)
+- Branch B: at least one digit after the dot (guaranteed by guard in `next_token()`)
 
-### G2 — Esponente (opzionale)
+### G2 — Exponent (optional)
 
-| Componente | Obbligatorietà | Pattern |
-|------------|----------------|---------|
-| Marcatore | Obbligatorio | `e` \| `E` |
-| Segno | Opzionale | `+` \| `-` |
-| Cifre | **Obbligatorio** | `\d+` |
+| Component | Mandatory | Pattern |
+|-----------|-----------|---------|
+| Marker | Mandatory | `e` \| `E` |
+| Sign | Optional | `+` \| `-` |
+| Digits | **Mandatory** | `\d+` |
 
-**Regole di validazione (non-distruttivo)**:
+**Validation rules (non-destructive)**:
 
-- Se dopo il marcatore mancano le cifre → **rollback**: non consumare nulla, il token finisce prima di `e`/`E`
-- Se segno presente ma cifre mancanti → **rollback**: non consumare né `e`/`E` né il segno
-- Save/restore di `m_pos` e `m_column` per il rollback
+- If digits are missing after the marker → **rollback**: consume nothing, token ends before `e`/`E`
+- If sign present but digits missing → **rollback**: consume neither `e`/`E` nor the sign
+- Save/restore of `m_pos` and `m_column` for rollback
 
-### G3 — Suffisso di tipo (opzionale)
+### G3 — Type suffix (optional)
 
-| Suffisso | Pattern | Tipo semantico | Forma composti? |
-|----------|---------|----------------|-----------------|
-| `d` / `D` | singolo char | double (64-bit) | No |
-| `f` / `F` | singolo char | float (32-bit) | **Mai** (FR-016) |
-| `u` / `U` | char + opzionale width | unsigned | Sì: `u8`, `u16`, `u32` |
-| `i` / `I` | char + obbligatoria width | signed integer | Sì: `i8`, `i16`, `i32` |
+| Suffix | Pattern | Semantic type | Forms compounds? |
+|--------|---------|---------------|-----------------|
+| `d` / `D` | single char | double (64-bit) | No |
+| `f` / `F` | single char | float (32-bit) | **Never** (FR-016) |
+| `u` / `U` | char + optional width | unsigned | Yes: `u8`, `u16`, `u32` |
+| `i` / `I` | char + mandatory width | signed integer | Yes: `i8`, `i16`, `i32` |
 
-**Larghezze valide**: esclusivamente `8`, `16`, `32`
+**Valid widths**: exclusively `8`, `16`, `32`
 
-**Ordine matching**: `32` → `16` → `8` (per evitare match parziali di `16` come `1`+`6`)
+**Matching order**: `32` → `16` → `8` (to avoid partial matches of `16` as `1`+`6`)
 
-**Regole speciali**:
+**Special rules**:
 
-- `f`/`F` non forma mai composti: `5f32` → `Numeric("5f")` + `Numeric("32")`
-- `u`/`U` senza larghezza valida: consumato come bare unsigned (`42u`)
-- `i`/`I` senza larghezza valida: **non consumato** (`1i` → `Numeric("1")` + `Identifier("i")`)
-- `u`/`U` con larghezza non valida (64, 128): `u` consumato bare, cifre restano (`1u64` → `Numeric("1u")` + `Numeric("64")`)
+- `f`/`F` never forms compounds: `5f32` → `Numeric("5f")` + `Numeric("32")`
+- `u`/`U` alone (without digits): **NOT consumed** (`42u` → `Numeric("42")` + `Identifier("u")`)
+- `i`/`I` alone (without digits): **NOT consumed** (`1i` → `Numeric("1")` + `Identifier("i")`)
+- `u`/`U` + digits, `i`/`I` + digits: **maximal munch** — consume all even if width is invalid (`1u64` → `Numeric("1u64")`, `1i64` → `Numeric("1i64")`)
 
 ## State Transitions
 

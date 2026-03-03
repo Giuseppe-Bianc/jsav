@@ -160,11 +160,11 @@ la leggibilità del codice.
 | Input | Expected tokens | Rule applied |
 |-------|----------------|--------------|
 | `5f32` | `5f` + `32` | FR-016: `f` never forms compounds |
-| `1u64` | `1u` + `64` | FR-014: `64` not a valid width, `u` consumed as bare |
+| `1u64` | `Numeric("1u64")` | FR-011b: maximal munch — `u` + digits consumes all even if width invalid |
 | `1i` | `1` + `i` | FR-015: `i` alone is not a suffix |
 | `1i32` | `1i32` | FR-012: compound suffix consumed |
-| `1i64` | `1` + `i64` | FR-015: `64` invalid → `i` not consumed → remains as separate tokens |
-| `42u` | `42u` | FR-011: bare unsigned |
+| `1i64` | `Numeric("1i64")` | FR-011b: maximal munch — `i` + digits consumes all even if width invalid |
+| `42u` | `42` + `u` | FR-011/FR-015b: `u` alone is NOT a valid suffix |
 | `255u8` | `255u8` | FR-012: compound unsigned with width |
 
 ### Alternatives considered

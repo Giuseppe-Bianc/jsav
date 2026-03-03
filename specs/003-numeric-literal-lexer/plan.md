@@ -55,7 +55,8 @@ specs/003-numeric-literal-lexer/
 ├── data-model.md        # Phase 1 output
 ├── quickstart.md        # Phase 1 output
 ├── contracts/           # Phase 1 output
-└── tasks.md             # Phase 2 output (/speckit.tasks)
+├── tasks.md             # Phase 2 output (/speckit.tasks)
+└── performance-report.md # Phase 8 output (T053 performance profiling results)
 ```
 
 ### Source Code (repository root)

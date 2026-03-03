@@ -125,12 +125,12 @@
 
 > **NOTE: Scrivere questi test PRIMA dell'implementazione. Verificare che FALLISCANO (RED phase) prima di implementare.**
 
-- [ ] T030 [P] [US3] Scrivere TEST_CASE per suffissi singolo-carattere (`42u`, `42U`, `1.0F`, `1.0f`, `10d`, `10D`) verificando testo nel token Numeric in `test/tests.cpp`
+- [ ] T030 [P] [US3] Scrivere TEST_CASE per suffissi singolo-carattere **validi** (`1.0F`, `1.0f`, `10d`, `10D`) verificando testo nel token Numeric in `test/tests.cpp`; e suffissi singolo-carattere **non validi** (`42u`, `42U`) verificando che producano `Numeric("42")` + token separato `u`/`U`
 - [ ] T031 [P] [US3] Scrivere TEST_CASE per suffissi composti validi (`255u8`, `1000i32`, `50i16`, `50I16`, `100U32`) verificando testo nel token Numeric in `test/tests.cpp`
-- [ ] T032 [P] [US3] Scrivere TEST_CASE per edge cases suffissi: `1i` → `Numeric("1")` + `i`; `1u64` → `Numeric("1u")` + `64`; `5f32` → `Numeric("5f")` + `32`; `1i64` → `Numeric("1")` + token separati in `test/tests.cpp`
+- [ ] T032 [P] [US3] Scrivere TEST_CASE per edge cases suffissi: `1i` → `Numeric("1")` + `i`; `1u64` → `Numeric("1u64")`; `5f32` → `Numeric("5f")` + `32`; `1u` → `Numeric("1")` + `u`; `1U` → `Numeric("1")` + `U`; `1I` → `Numeric("1")` + `I` in `test/tests.cpp`
 - [ ] T033 [P] [US3] Scrivere test constexpr in `test/constexpr_tests.cpp` CONTEMPORANEAMENTE ai test runtime (Constitution IV: TDD test-first):
-  - Definire funzioni `consteval` che verificano suffissi validi (`42u`, `1.0F`, `255u8`, `1000i32`) a compile-time
-  - Usare `STATIC_REQUIRE` per edge cases (`1i`, `1u64`, `5f32`) che producono token separati
+  - Definire funzioni `consteval` che verificano suffissi validi (`1.0F`, `255u8`, `1000i32`) a compile-time
+  - Usare `STATIC_REQUIRE` per edge cases (`1i`, `42u`, `1u64`, `5f32`) che producono token separati o Numeric con testo completo
   - **Workflow TDD**: Scrivere PRIMA dell'implementazione, verificare RED, implementare `try_scan_type_suffix()` e `match_width_suffix()` come `constexpr`, verificare GREEN
 
 ### Implementation for User Story 3
@@ -163,8 +163,10 @@
 - [ ] T041 [P] [US4] Scrivere TEST_CASE per opzionalità gruppi (FR-019): verificare che solo G1 sia obbligatorio:
   - `42` → `Numeric("42")` (solo G1)
   - `42e10` → `Numeric("42e10")` (G1 + G2)
-  - `42u` → `Numeric("42u")` (G1 + G3)
-  - `42e10u` → `Numeric("42e10u")` (G1 + G2 + G3)
+  - `42u` → `Numeric("42")` + `u` (G1 + suffisso non valido, `u` da solo non è consumato)
+  - `42e10u` → `Numeric("42e10")` + `u` (G1 + G2 + suffisso non valido)
+  - `42d` → `Numeric("42d")` (G1 + G3 valido, `d` è suffisso singolo valido)
+  - `42e10d` → `Numeric("42e10d")` (G1 + G2 + G3 valido)
   - Verificare che G2 e G3 siano opzionali ma G1 sia richiesto
 
 ### Implementation for User Story 4
@@ -197,6 +199,14 @@
 ### Implementation for User Story 5
 
 - [ ] T048 [US5] Verificare in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` che la terminazione del token avvenga correttamente al primo carattere non consumabile (spazi, operatori, delimitatori, EOF, non-ASCII) e che `+`/`-` non vengano consumati fuori dal contesto G2
+- [ ] T048b [US5] [FR-028] Verificare esplicita gestione newline in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp`:
+  - Il carattere `\n` (LF) DEVE terminare incondizionatamente il token numerico corrente
+  - Il carattere `\r` (CR) DEVE terminare incondizionatamente il token numerico corrente
+  - La sequenza `\r\n` (CRLF) DEVE terminare il token dopo `\r`, lasciando `\n` per il prossimo token
+  - Il carattere newline NON DEVE essere consumato dal token `TokenKind::Numeric`
+  - Il carattere newline DEVE rimanere nel flusso di input per il prossimo token
+  - Implementare controllo esplicito: se `peek_byte() == '\n'` o `peek_byte() == '\r'`, interrompere immediatamente il consumo del literal anche se G1→G2→G3 sarebbe continuabile
+  - Verificare che il commento/doccomment del metodo documenti esplicitamente questo comportamento
 - [ ] T049 [US5] Verificare in `scan_numeric_literal()` in `src/jsav_Lib/lexer/Lexer.cpp` che i caratteri `\n`, `\r` terminino incondizionatamente il token numerico anche se G1→G2→G3 sarebbe continuabile; il carattere newline NON DEVE essere consumato dal token Numeric ma deve rimanere nel flusso per il prossimo token come da FR-028
 - [ ] T050 [US5] Eseguire `ninja tests relaxed_constexpr_tests && ctest -R "unittests|relaxed_constexpr" --output-on-failure` — tutti i test US1–US5 devono passare
 
@@ -210,14 +220,15 @@
 
 - [ ] T051 [P] Eseguire analisi Lizard (`cmake --build build --target lizard`) e verificare che tutti i metodi modificati rispettino CCN ≤ 15 e length ≤ 100 lines (Constitution Principle III)
 - [ ] T052 [P] Scrivere performance test in `test/tests.cpp` che definisce il criterio O(n) PRIMA dell'implementazione della profilazione (Constitution IV: Test-First):
-  - Includere `#include "jsavCore/timer/Timer.hpp"` nel file di test
-  - Definire TEST_CASE `"scan_numeric_literal_scales_linearly"` che:
+  - Includere `#include <jsav/jsav.hpp>` nel file di test
+    - **Nota Constitution V**: `vnd::Timer` è componente interno del progetto jsav (`include/jsavCore/timer/Timer.hpp`), esposto tramite header master `jsav/jsav.hpp`. **NON** è dipendenza esterna. Approvato per Constitution V (Dependency Management).
+  - Definire TEST_CASE `"Lexer_scanNumericLiteral_scalesLinearly"` che:
     - Genera literal numerici di lunghezza 10, 100, 500, 1000 caratteri (sole cifre decimali)
     - Misura tempo di scansione per ciascuna lunghezza usando `vnd::Timer`
-    - Verifica criterio: `tempo(1000) / tempo(10) ≤ 150` (dimostra O(n) con 50% overhead)
+    - Verifica criterio: `tempo(1000) / tempo(10) ≤ 150` (fattore di scaling 150× per complessità O(n))
   - **Questo test DEVE fallire inizialmente** (RED phase) perché la profilazione non è ancora implementata
 - [ ] T053 Implementare la profilazione effettiva in `scan_numeric_literal()` per far passare il performance test T052:
-  - Utilizzare `vnd::Timer` per misurare tempi di scansione su input di varie lunghezze
+  - Utilizzare `vnd::Timer` (componente interno esposto da `jsav/jsav.hpp`, Constitution V compliant) per misurare tempi di scansione su input di varie lunghezze
   - Documentare risultati in `specs/003-numeric-literal-lexer/performance-report.md`:
     - Tempi misurati per ciascuna lunghezza (10, 100, 500, 1000 caratteri)
     - Calcolo del fattore di scaling `tempo(1000) / tempo(10)`

@@ -78,10 +78,10 @@ I seguenti comportamenti esistenti sono preservati:
 | `1e10` | `Numeric("1e10")` (già corretto*) | `Numeric("1e10")` |
 | `1e` | `Numeric("1e")` (BUG) | `Numeric("1")` + `Identifier("e")` |
 | `1e+` | `Numeric("1e+")` (BUG) | `Numeric("1")` + `Identifier("e")` + `Plus("+")` |
-| `42u` | `Numeric("42u")` | `Numeric("42u")` (invariato) |
+| `42u` | `Numeric("42u")` | `Numeric("42")` + `Identifier("u")` (`u` da solo non è suffisso valido) |
 | `1i32` | `Numeric("1i32")` | `Numeric("1i32")` (invariato) |
-| `42f` | non riconosciuto come suffix | `Numeric("42f")` |
-| `42d` | non riconosciuto come suffix | `Numeric("42d")` |
+| `42f` | non riconosciuto come suffix | `Numeric("42f")` (`f` è suffisso singolo valido) |
+| `42d` | non riconosciuto come suffix | `Numeric("42d")` (`d` è suffisso singolo valido) |
 
 *Il vecchio scanner consumava `e` incondizionatamente; per `1e10` il risultato era accidentalmente
 corretto, ma per `1e` e `1e+` produceva token errati.

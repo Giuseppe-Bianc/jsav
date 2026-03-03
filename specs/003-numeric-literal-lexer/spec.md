@@ -44,8 +44,9 @@ sono sempre non-cifra e terminano qualsiasi literal numerico in corso.I casi gi�
 42, 007), decimali con parte intera (1.0, 3.14, 0.5), decimali con punto finale (1., 42.),
 decimali con sola parte frazionaria (.5, .14). I seguenti casi di confine devono produrre i
 token indicati: '1e' → token '1' + token separato 'e'; '1e+' → token '1 + token separati
-'e', '+'; '1u64' → token '1u' + token '64'; '1i' → token '1' + token separato 'i'; '42 u8'
-→ token '42' + token separato 'u8' (lo spazio impedisce l'attacco del suffisso); "." → non
+'e', '+'; '1u64' → token Numeric '1u64' (maximal munch); '1i' → token '1' + token separato 'i';
+'42 u8' → token '42' + token separato 'u8' (lo spazio impedisce l'attacco del suffisso);
+'42u' → token '42' + token separato 'u' ('u' da solo non è suffisso valido); "." → non
 è un token numerico; '-42' → token "-" + token '42'."
 
 ## User Scenarios & Testing *(mandatory)*
@@ -100,15 +101,17 @@ Il lexer deve riconoscere i suffissi di tipo (G3) immediatamente dopo G1 o G2. I
 
 **Acceptance Scenarios**:
 
-1. **Given** l'input `42u`, **When** il lexer analizza, **Then** produce token Numeric con testo `42u`
-2. **Given** l'input `1.0F`, **When** il lexer analizza, **Then** produce token Numeric con testo `1.0F` (case preservato)
-3. **Given** l'input `10d`, **When** il lexer analizza, **Then** produce token Numeric con testo `10d`
-4. **Given** l'input `255u8`, **When** il lexer analizza, **Then** produce token Numeric con testo `255u8` (suffisso composto)
-5. **Given** l'input `1000i32`, **When** il lexer analizza, **Then** produce token Numeric con testo `1000i32`
-6. **Given** l'input `50i16`, **When** il lexer analizza, **Then** produce token Numeric con testo `50i16`
-7. **Given** l'input `1i`, **When** il lexer analizza, **Then** produce token Numeric `1` seguito da token separato `i` (`i` da solo non è un suffisso)
-8. **Given** l'input `1u64`, **When** il lexer analizza, **Then** produce token Numeric `1u` seguito da token separato `64` (`64` non è una larghezza valida, quindi `u` è suffisso singolo)
-9. **Given** l'input `5f32`, **When** il lexer analizza, **Then** produce token Numeric `5f` seguito da token separato `32` (`f` non forma mai suffissi composti)
+1. **Given** l'input `42u`, **When** il lexer analizza, **Then** produce token `1` + token `u` (`u` da solo non è suffisso valido)
+2. **Given** l'input `1.0F`, **When** il lexer analizza, **Then** produce token Numeric con testo `1.0F` (`F` è suffisso singolo valido)
+3. **Given** l'input `10d`, **When** il lexer analizza, **Then** produce token Numeric con testo `10d` (`d` è suffisso singolo valido)
+4. **Given** l'input `255u8`, **When** il lexer analizza, **Then** produce token Numeric con testo `255u8` (suffisso composto valido)
+5. **Given** l'input `1000i32`, **When** il lexer analizza, **Then** produce token Numeric con testo `1000i32` (suffisso composto valido)
+6. **Given** l'input `50i16`, **When** il lexer analizza, **Then** produce token Numeric con testo `50i16` (suffisso composto valido)
+7. **Given** l'input `1i`, **When** il lexer analizza, **Then** produce token `1` + token `i` (`i` da solo non è suffisso valido)
+8. **Given** l'input `1u64`, **When** il lexer analizza, **Then** produce token Numeric con testo `1u64` (maximal munch: `u` + cifre consuma tutto)
+9. **Given** l'input `5f32`, **When** il lexer analizza, **Then** produce token `5f` + token `32` (`f` non forma mai suffissi composti)
+10. **Given** l'input `42U`, **When** il lexer analizza, **Then** produce token `42` + token `U` (`U` da solo non è suffisso valido)
+11. **Given** l'input `100I`, **When** il lexer analizza, **Then** produce token `100` + token `I` (`I` da solo non è suffisso valido)
 
 ---
 
@@ -153,12 +156,15 @@ Il lexer deve applicare la regola del massimo consumo: deve produrre il token nu
 - `1e` produce token `1` + token `e` (esponente incompleto)
 - `1e+` produce token `1` + token `e` + token `+` (esponente senza cifre dopo il segno)
 - `1E-` produce token `1` + token `E` + token `-`
-- `1u64` produce token `1u` + token `64` (larghezza `64` non valida, `u` è suffisso singolo)
-- `1i` produce token `1` + token `i` (`i` da solo non è un suffisso)
-- `1i64` produce token Numeric `1` (`64` non è una larghezza valida, `i` senza larghezza non è suffisso, quindi `i` non viene consumato; `i64` rimane da tokenizzare come token successivi)
+- `1u` produce token `1` + token `u` (`u` da solo non è suffisso valido)
+- `1u64` produce token Numeric `1u64` (maximal munch: `u` seguito da cifre consuma tutto)
+- `1i` produce token `1` + token `i` (`i` da solo non è suffisso valido)
+- `1i64` produce token Numeric `1i64` (maximal munch: `i` seguito da cifre consuma tutto)
 - `42 u8` produce token `42` + token `u8` (lo spazio impedisce l'attacco del suffisso al numero)
 - `-42` produce token `-` + token `42` (`-` non fa parte del literal numerico)
 - `5f32` produce token `5f` + token `32` (`f` non forma mai suffissi composti con cifre)
+- `1d` produce token Numeric `1d` (`d` è suffisso singolo valido)
+- `1f` produce token Numeric `1f` (`f` è suffisso singolo valido)
 - Caratteri non-ASCII terminano immediatamente il token numerico
 - Il literal numerico non può estendersi su più righe
 - La priorità nel riconoscimento delle larghezze dei suffissi composti è: `32`, poi `16`, poi `8`
@@ -186,11 +192,13 @@ Il lexer deve applicare la regola del massimo consumo: deve produrre il token nu
 
 #### Gruppo G3 — Suffisso di tipo (opzionale)
 
-- **FR-011**: Il sistema DEVE riconoscere i suffissi singolo-carattere: `u`/`U` (unsigned), `f`/`F` (float 32-bit), `d`/`D` (double 64-bit)
+- **FR-011**: Il sistema DEVE riconoscere i suffissi singolo-carattere **validi**: `f`/`F` (float 32-bit), `d`/`D` (double 64-bit). I caratteri `u`/`U` da soli **NON** sono suffissi validi e NON DEVONO essere consumati come parte del token numerico
+- **FR-011b**: Il sistema DEVE applicare la regola maximal munch per `u`/`U` e `i`/`I` seguiti da cifre: se la lettera è seguita da una o più cifre, il lexer DEVE consumare l'intera sequenza (lettera + cifre) come parte del token numerico, anche se le cifre non costituiscono una larghezza valida (es. `1u64` → `Numeric("1u64")`, `1i64` → `Numeric("1i64")`)
 - **FR-012**: Il sistema DEVE riconoscere i suffissi composti: `i8`/`i16`/`i32`, `I8`/`I16`/`I32` (signed integer), `u8`/`u16`/`u32`, `U8`/`U16`/`U32` (unsigned integer)
 - **FR-013**: Il sistema DEVE applicare la regola del match più lungo (maximal munch) per i suffissi: i suffissi composti hanno priorità sui singolo-carattere quando il carattere successivo forma una larghezza valida
-- **FR-014**: Le larghezze valide per i suffissi composti sono esclusivamente `8`, `16` e `32`; sequenze come `i64`, `u64`, `i128`, `u128` NON sono suffissi validi
-- **FR-015**: Il carattere `i`/`I` da solo (senza larghezza valida) NON è un suffisso valido e NON DEVE essere consumato nel token numerico
+- **FR-014**: Le larghezze valide per i suffissi composti sono esclusivamente `8`, `16` e `32`; sequenze come `i64`, `u64`, `i128`, `u128` NON sono suffissi validi (ma vengono consumate per maximal munch se precedute da `u`/`U` o `i`/`I`)
+- **FR-015**: Il carattere `i`/`I` da solo (senza cifre successive) NON è un suffisso valido e NON DEVE essere consumato nel token numerico
+- **FR-015b**: Il carattere `u`/`U` da solo (senza cifre successive) NON è un suffisso valido e NON DEVE essere consumato nel token numerico
 - **FR-016**: Il carattere `f`/`F` NON forma mai un suffisso composto con cifre (es. `f32` deve essere letto come suffisso `f` seguito da token separato `32`)
 - **FR-017**: Il riconoscimento delle larghezze DEVE tentare prima `32`, poi `16`, poi `8`, per evitare match parziali (es. `16` letto come `1` + `6`)
 
@@ -214,6 +222,8 @@ Il lexer deve applicare la regola del massimo consumo: deve produrre il token nu
 #### Vincoli di performance e architettura
 
 - **FR-026**: Il riconoscimento DEVE avvenire in un unico passaggio sul flusso (single-pass, complessità O(n) rispetto alla lunghezza del literal), senza backtracking non lineare
+  - **Definizione**: Per "backtracking non lineare" si intende scansionare la stessa posizione di carattere più di due volte durante il riconoscimento di un singolo literal numerico
+  - Il salvataggio e ripristino della posizione (`m_pos`, `m_column`) per tentativi di esponente o suffisso falliti conta come un singolo backtrack per ciascun tentativo
 - **FR-027**: Il sistema NON DEVE utilizzare librerie di regex a runtime per il riconoscimento
 - **FR-028**: Il literal numerico DEVE terminare al primo carattere newline (`\n`, `\r` o `\r\n`); il carattere newline NON DEVE essere consumato dal token `TokenKind::Numeric` e DEVE rimanere nel flusso per il token successivo, anche se il pattern G1→G2→G3 sarebbe altrimenti continuabile sulla riga successiva
 
