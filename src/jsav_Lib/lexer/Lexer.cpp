@@ -306,9 +306,7 @@ namespace jsv {
         // u/U: bare unsigned (NOT consumed) or compound with width (maximal munch)
         if(s == 'u' || s == 'U') {
             // Check if followed by a digit (start of width)
-            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
-                consume_letter_and_digits(m_source, m_pos, m_column);
-            }
+            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) { consume_letter_and_digits(m_source, m_pos, m_column); }
             // else: u/U alone is NOT consumed (FR-011/FR-015b)
             return;
         }
@@ -316,9 +314,7 @@ namespace jsv {
         // i/I: mandatory width (FR-015: i alone is NOT a suffix)
         if(s == 'i' || s == 'I') {
             // Check if followed by a digit (start of width)
-            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
-                consume_letter_and_digits(m_source, m_pos, m_column);
-            }
+            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) { consume_letter_and_digits(m_source, m_pos, m_column); }
             // else: i/I alone is NOT consumed (FR-015)
             return;
         }
