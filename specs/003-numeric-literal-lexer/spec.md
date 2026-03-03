@@ -17,13 +17,13 @@ The lexer must correctly recognize numeric literals in the following fundamental
 
 **Acceptance Scenarios**:
 
-1. **Given** l'input `42`, **When** il lexer analizza il flusso, **Then** produce un token di tipo Numeric con testo `42`
-2. **Given** l'input `3.14`, **When** il lexer analizza il flusso, **Then** produce un token di tipo Numeric con testo `3.14`
-3. **Given** l'input `3.`, **When** il lexer analizza il flusso, **Then** produce un token di tipo Numeric con testo `3.` (punto finale preservato)
-4. **Given** l'input `.5`, **When** il lexer analizza il flusso, **Then** produce un token di tipo Numeric con testo `.5` (punto iniziale preservato)
-5. **Given** l'input `007`, **When** il lexer analizza il flusso, **Then** produce un token di tipo Numeric con testo `007` (zeri iniziali preservati)
-6. **Given** l'input `.`, **When** il lexer analizza il flusso, **Then** il punto NON viene riconosciuto come token numerico
-7. **Given** l'input `.abc`, **When** il lexer analizza il flusso, **Then** il punto NON viene riconosciuto come token numerico (nessuna cifra dopo il punto)
+1. **Given** the input `42`, **When** the lexer parses the stream, **Then** produces a Numeric token with text `42`
+2. **Given** the input `3.14`, **When** the lexer parses the stream, **Then** produces a Numeric token with text `3.14`
+3. **Given** the input `3.`, **When** the lexer parses the stream, **Then** produces a Numeric token with text `3.` (ending point preserved)
+4. **Given** the input `.5`, **When** the lexer parses the stream, **Then** produces a Numeric token with text `.5` (start point preserved)
+5. **Given** the input `007`, **When** the lexer parses the stream, **Then** produces a Numeric token with text `007` (leading zeros preserved)
+6. **Given** the input `.`, **When** the lexer parses the stream, **Then** the period is NOT recognized as a numeric token
+7. **Given** the input `.abc`, **When** the lexer parses the stream, **Then** the period is NOT recognized as a numeric token (no digits after the period)
 
 ---
 
