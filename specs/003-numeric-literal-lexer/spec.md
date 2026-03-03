@@ -7,13 +7,13 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 — Riconoscimento numeri interi e decimali di base (Priority: P1)
+### User Story 1 — Recognizing basic integers and decimals (Priority: P1)
 
-Il lexer deve riconoscere correttamente i literal numerici nelle forme fondamentali: numeri interi semplici (es. `0`, `1`, `42`, `007`), numeri decimali con parte intera e frazionaria (es. `1.0`, `3.14`, `0.5`), numeri decimali con solo punto finale (es. `1.`, `42.`), e numeri con sola parte frazionaria preceduta da punto (es. `.5`, `.14`, `.0`). Il testo del token deve essere preservato esattamente come appare nel sorgente, senza normalizzazione.
+The lexer must correctly recognize numeric literals in the following fundamental forms: simple integers (e.g., `0`, `1`, `42`, `007`), decimal numbers with both an integer and a fractional part (e.g., `1.0`, `3.14`, `0.5`), decimal numbers with a trailing dot only (e.g., `1.`, `42.`), and numbers with a fractional part only, preceded by a dot (e.g., `.5`, `.14`, `.0`). The token text must be preserved exactly as it appears in the source, without normalization.
 
-**Why this priority**: Questa è la funzionalità fondamentale (gruppo G1) su cui si costruiscono tutti gli altri scenari. Senza un riconoscimento corretto dei numeri di base, notazione scientifica e suffissi non possono essere aggiunti. Include anche la non-regressione dei casi già supportati.
+**Why this priority**: This is the foundational functionality (group G1) upon which all other scenarios are built. Without correct recognition of basic numeric forms, scientific notation and suffixes cannot be added. This also includes non-regression coverage of already supported cases.
 
-**Independent Test**: Può essere testato fornendo al lexer stringhe contenenti ciascuna forma numerica di base e verificando che il token prodotto contenga il testo esatto e le coordinate di posizione corrette.
+**Independent Test**: It can be tested by supplying the lexer with strings containing each basic numeric form and verifying that the produced token contains the exact text and correct position coordinates.
 
 **Acceptance Scenarios**:
 
