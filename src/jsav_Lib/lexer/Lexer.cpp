@@ -271,7 +271,7 @@ namespace jsv {
         }
 
         // u/U: bare unsigned (NOT consumed) or compound with valid width (8, 16, 32)
-        if(s == 'u' || s == 'U'|| s == 'i' || s == 'I') {
+        if(s == 'u' || s == 'U' || s == 'i' || s == 'I') {
             // Check if followed by a digit (start of width)
             if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
                 // Try to match valid width: 32 → 16 → 8 (FR-017: avoid partial matches)
