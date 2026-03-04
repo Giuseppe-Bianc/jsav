@@ -30,9 +30,9 @@ namespace jsv {
     /// | Hexadecimal | `#x`   | `#xDEAD_BEEFu`     |
     ///
     /// # Trailing-dot rule
-    /// `123.` produces `Numeric("123")` + `Dot(".")` — the dot is NOT part of
-    /// the float literal.  This allows method-call syntax like `123.toString()`
-    /// without ambiguity.  Leading-dot floats (`.456`) are also split.
+    /// `123.` produces `Numeric("123.")` — the trailing dot IS included in the
+    /// numeric token. Leading-dot floats (`.456`) produce `Numeric(".456")`.
+    /// The jsav language does not support method-call syntax on numeric literals.
     ///
     /// # Comment syntax
     /// - Line comments:  `// …`
@@ -105,6 +105,16 @@ namespace jsv {
 
         /// Advance past a single escape sequence (after the leading backslash).
         void skip_escape();
+
+        // ── Numeric literal helpers ───────────────────────────────────────
+        /// Attempt to consume an exponent group [eE][+-]?\d+.
+        /// Uses save/restore: if the exponent is incomplete, restores position
+        /// and returns without consuming anything.
+        void try_scan_exponent();
+
+        /// Attempt to consume a type suffix (d/D, f/F, u/U[width], i/I<width>).
+        /// Returns without consuming if no valid suffix is found at current position.
+        void try_scan_type_suffix();
 
         // ── Keyword / type classification ─────────────────────────────────
         /// Map a lexed word to its `TokenKind` (keyword, type, or identifier).

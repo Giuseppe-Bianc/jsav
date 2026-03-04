@@ -3777,6 +3777,746 @@ TEST_CASE("Lexer_Benchmark_AsciiThroughput_NoRegression", "[lexer][benchmark][US
     };
 }
 
+// ==========================================================================
+// Phase 3 – User Story 1: Basic integers and decimals
+// ==========================================================================
+
+TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][us1][phase3]") {
+    SECTION("simple integers produce Numeric tokens") {
+        jsv::Lexer lex{"0 1 42 007", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 4 numbers + spaces (consumed) + Eof = 5 tokens
+        REQUIRE(tokens.size() == 5);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "0");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "1");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "42");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[3].getText() == "007");
+    }
+
+    SECTION("decimals with integer and fractional parts") {
+        jsv::Lexer lex{"1.0 3.14 0.5", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 3 numbers + spaces (consumed) + Eof = 4 tokens
+        REQUIRE(tokens.size() == 4);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.0");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "3.14");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "0.5");
+    }
+
+    SECTION("decimals with trailing dot include the dot") {
+        jsv::Lexer lex{"3. 42.", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 2 numbers + space (consumed) + Eof = 3 tokens
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "3.");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "42.");
+    }
+
+    SECTION("numbers with only fractional part (leading dot)") {
+        jsv::Lexer lex{".5 .14 .0", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 3 numbers + spaces (consumed) + Eof = 4 tokens
+        REQUIRE(tokens.size() == 4);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == ".5");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == ".14");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == ".0");
+    }
+
+    SECTION("isolated dot is not a Numeric token") {
+        jsv::Lexer lex{".", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);  // Dot + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Dot);
+        REQUIRE(tokens[0].getText() == ".");
+    }
+
+    SECTION("dot followed by non-digit is not Numeric") {
+        jsv::Lexer lex{".abc", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);  // Dot + Identifier + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Dot);
+        REQUIRE(tokens[0].getText() == ".");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "abc");
+    }
+
+    SECTION("malformed numeric: multiple decimal points 1.2.3") {
+        jsv::Lexer lex{"1.2.3", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 1.2 is a valid numeric, .3 is a valid numeric (leading dot + digits)
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.2");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == ".3");
+    }
+
+    SECTION("malformed numeric: multiple exponent markers 1e2e3") {
+        jsv::Lexer lex{"1e2e3", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 1e2 is a valid numeric, e3 is an identifier
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1e2");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "e3");
+    }
+
+    SECTION("valid compound suffix: 1U8 produces Numeric token") {
+        jsv::Lexer lex{"1U8", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1U8");
+    }
+
+    SECTION("valid compound suffix: 1u8 produces Numeric token") {
+        jsv::Lexer lex{"1u8", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1u8");
+    }
+
+    SECTION("very long digit run produces single Numeric token") {
+        jsv::Lexer lex{"12345678901234567890123456789012345678901234567890", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "12345678901234567890123456789012345678901234567890");
+        REQUIRE(tokens[0].getText().size() == 50);
+    }
+
+    SECTION("leading zeros preserved: 007e2") {
+        jsv::Lexer lex{"007e2", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "007e2");
+    }
+}
+
+TEST_CASE("Lexer_NumericPositionTracking_Correct", "[lexer][numeric][us1][phase3]") {
+    SECTION("position tracking for simple integers") {
+        jsv::Lexer lex{"42", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 3);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 2);
+    }
+
+    SECTION("position tracking for decimals with leading dot") {
+        jsv::Lexer lex{".5", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == ".5");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 3);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 2);
+    }
+
+    SECTION("position tracking for trailing dot") {
+        jsv::Lexer lex{"3.", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "3.");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 3);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 2);
+    }
+
+    SECTION("position tracking across multiple lines") {
+        jsv::Lexer lex{"42\n.5\n3.", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 3 numbers + Eof = 4 tokens (newlines are consumed as whitespace)
+        REQUIRE(tokens.size() == 4);
+
+        // First number: 42 on line 1
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+
+        // Second number: .5 on line 2 (after newline)
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == ".5");
+        REQUIRE(tokens[1].getSpan().start.line == 2);
+        REQUIRE(tokens[1].getSpan().start.column == 1);
+
+        // Third number: 3. on line 3 (after second newline)
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "3.");
+        REQUIRE(tokens[2].getSpan().start.line == 3);
+        REQUIRE(tokens[2].getSpan().start.column == 1);
+    }
+}
+
+// ==========================================================================
+// Phase 4 – User Story 2: Scientific notation recognition
+// ==========================================================================
+
+TEST_CASE("Lexer_NumericScientificNotation_TokenizeCorrectly", "[lexer][numeric][us2][phase4]") {
+    SECTION("valid exponents produce single Numeric tokens") {
+        jsv::Lexer lex{"1e10 3.14E+2 2.5e-3 .5E10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 4 numbers + spaces (consumed) + Eof = 5 tokens
+        REQUIRE(tokens.size() == 5);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1e10");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "3.14E+2");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "2.5e-3");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[3].getText() == ".5E10");
+    }
+
+    SECTION("invalid exponents: incomplete marker produces separate tokens") {
+        // 1e → Numeric("1") + Identifier("e")
+        jsv::Lexer lex1{"1e", "test.jsav"};
+        const auto tokens1 = lex1.tokenize();
+        REQUIRE(tokens1.size() == 3);  // Numeric + Identifier + Eof
+        REQUIRE(tokens1[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens1[0].getText() == "1");
+        REQUIRE(tokens1[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens1[1].getText() == "e");
+
+        // 1e+ → Numeric("1") + Identifier("e") + Plus
+        jsv::Lexer lex2{"1e+", "test.jsav"};
+        const auto tokens2 = lex2.tokenize();
+        REQUIRE(tokens2.size() == 4);  // Numeric + Identifier + Plus + Eof
+        REQUIRE(tokens2[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens2[0].getText() == "1");
+        REQUIRE(tokens2[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens2[1].getText() == "e");
+        REQUIRE(tokens2[2].getKind() == jsv::TokenKind::Plus);
+        REQUIRE(tokens2[2].getText() == "+");
+
+        // 1E- → Numeric("1") + Identifier("E") + Minus
+        jsv::Lexer lex3{"1E-", "test.jsav"};
+        const auto tokens3 = lex3.tokenize();
+        REQUIRE(tokens3.size() == 4);  // Numeric + Identifier + Minus + Eof
+        REQUIRE(tokens3[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens3[0].getText() == "1");
+        REQUIRE(tokens3[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens3[1].getText() == "E");
+        REQUIRE(tokens3[2].getKind() == jsv::TokenKind::Minus);
+        REQUIRE(tokens3[2].getText() == "-");
+    }
+
+    SECTION("exponent without digits after sign is not consumed") {
+        // 1e+abc → Numeric("1") + Identifier("e") + Plus + Identifier("abc")
+        jsv::Lexer lex{"1e+abc", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 5);  // Numeric + Identifier + Plus + Identifier + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "e");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Plus);
+        REQUIRE(tokens[2].getText() == "+");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[3].getText() == "abc");
+    }
+}
+
+TEST_CASE("Lexer_NumericScientificNotation_PositionTracking", "[lexer][numeric][us2][phase4]") {
+    SECTION("position tracking for scientific notation") {
+        jsv::Lexer lex{"1e10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1e10");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 5);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 4);
+    }
+
+    SECTION("position tracking for exponent with sign") {
+        jsv::Lexer lex{"3.14E+2", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "3.14E+2");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 8);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 7);
+    }
+}
+
+// ==========================================================================
+// Phase 5 – User Story 3: Type suffix recognition
+// ==========================================================================
+
+TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][phase5]") {
+    SECTION("valid single-character suffixes d/D and f/F") {
+        jsv::Lexer lex{"1.0F 1.0f 10d 10D", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 4 numbers + spaces (consumed) + Eof = 5 tokens
+        REQUIRE(tokens.size() == 5);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.0F");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "1.0f");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "10d");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[3].getText() == "10D");
+    }
+
+    SECTION("invalid bare unsigned u/U produces separate tokens") {
+        // 42u → Numeric("42") + Identifier("u")
+        jsv::Lexer lex1{"42u", "test.jsav"};
+        const auto tokens1 = lex1.tokenize();
+        REQUIRE(tokens1.size() == 3);  // Numeric + Identifier + Eof
+        REQUIRE(tokens1[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens1[0].getText() == "42");
+        REQUIRE(tokens1[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens1[1].getText() == "u");
+
+        // 42U → Numeric("42") + Identifier("U")
+        jsv::Lexer lex2{"42U", "test.jsav"};
+        const auto tokens2 = lex2.tokenize();
+        REQUIRE(tokens2.size() == 3);  // Numeric + Identifier + Eof
+        REQUIRE(tokens2[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens2[0].getText() == "42");
+        REQUIRE(tokens2[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens2[1].getText() == "U");
+    }
+
+    SECTION("valid compound suffixes u8/u16/u32 and i8/i16/i32") {
+        jsv::Lexer lex{"255u8 1000i32 50i16 50I16 100U32", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 5 numbers + spaces (consumed) + Eof = 6 tokens
+        REQUIRE(tokens.size() == 6);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "255u8");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "1000i32");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "50i16");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[3].getText() == "50I16");
+        REQUIRE(tokens[4].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[4].getText() == "100U32");
+    }
+
+    SECTION("suffix edge cases: strict width validation and invalid suffixes") {
+        // 1i → Numeric("1") + Identifier("i") (i alone is NOT a suffix)
+        jsv::Lexer lex1{"1i", "test.jsav"};
+        const auto tokens1 = lex1.tokenize();
+        REQUIRE(tokens1.size() == 3);
+        REQUIRE(tokens1[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens1[0].getText() == "1");
+        REQUIRE(tokens1[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens1[1].getText() == "i");
+
+        // 1u64 → Numeric("1") + TypeU64("u64") (invalid width 64 is NOT consumed as suffix)
+        jsv::Lexer lex2{"1u64", "test.jsav"};
+        const auto tokens2 = lex2.tokenize();
+        REQUIRE(tokens2.size() == 3);
+        REQUIRE(tokens2[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens2[0].getText() == "1");
+        REQUIRE(tokens2[1].getKind() == jsv::TokenKind::TypeU64);
+        REQUIRE(tokens2[1].getText() == "u64");
+
+        // 5f32 → Numeric("5f") + Numeric("32") (f never forms compounds)
+        jsv::Lexer lex3{"5f32", "test.jsav"};
+        const auto tokens3 = lex3.tokenize();
+        REQUIRE(tokens3.size() == 3);
+        REQUIRE(tokens3[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens3[0].getText() == "5f");
+        REQUIRE(tokens3[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens3[1].getText() == "32");
+
+        // 1I → Numeric("1") + Identifier("I") (I alone is NOT a suffix)
+        jsv::Lexer lex4{"1I", "test.jsav"};
+        const auto tokens4 = lex4.tokenize();
+        REQUIRE(tokens4.size() == 3);
+        REQUIRE(tokens4[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens4[0].getText() == "1");
+        REQUIRE(tokens4[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens4[1].getText() == "I");
+
+        // Additional tests for invalid widths
+        // 1i999 → Numeric("1") + Identifier("i999") (invalid width 999 is NOT consumed as suffix)
+        jsv::Lexer lex5{"1i999", "test.jsav"};
+        const auto tokens5 = lex5.tokenize();
+        REQUIRE(tokens5.size() == 3);
+        REQUIRE(tokens5[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens5[0].getText() == "1");
+        REQUIRE(tokens5[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens5[1].getText() == "i999");
+
+        // 1u8 → Numeric("1u8") (valid width 8 IS consumed)
+        jsv::Lexer lex6{"1u8", "test.jsav"};
+        const auto tokens6 = lex6.tokenize();
+        REQUIRE(tokens6.size() == 2);
+        REQUIRE(tokens6[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens6[0].getText() == "1u8");
+
+        // 1i8 → Numeric("1i8") (valid width 8 IS consumed)
+        jsv::Lexer lex7{"1i8", "test.jsav"};
+        const auto tokens7 = lex7.tokenize();
+        REQUIRE(tokens7.size() == 2);
+        REQUIRE(tokens7[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens7[0].getText() == "1i8");
+
+        // 1u80 → Numeric("1") + Identifier("u80") (invalid width 80 is NOT consumed as suffix)
+        jsv::Lexer lex8{"1u80", "test.jsav"};
+        const auto tokens8 = lex8.tokenize();
+        REQUIRE(tokens8.size() == 3);
+        REQUIRE(tokens8[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens8[0].getText() == "1");
+        REQUIRE(tokens8[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens8[1].getText() == "u80");
+    }
+}
+
+TEST_CASE("Lexer_NumericTypeSuffixes_PositionTracking", "[lexer][numeric][us3][phase5]") {
+    SECTION("position tracking for type suffix") {
+        jsv::Lexer lex{"42d", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42d");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 4);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 3);
+    }
+
+    SECTION("position tracking for compound suffix") {
+        jsv::Lexer lex{"255u16", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "255u16");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 7);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 6);
+    }
+}
+
+// ==========================================================================
+// Phase 6 – User Story 4: Complete G1→G2→G3 pattern
+// ==========================================================================
+
+TEST_CASE("Lexer_NumericCombinedPattern_TokenizeCorrectly", "[lexer][numeric][us4][phase6]") {
+    SECTION("G1+G2+G3 combinations produce single Numeric tokens") {
+        jsv::Lexer lex{"1.5e10f 2.0E-3d 1e2u16 .5e1i32", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 4 numbers + spaces (consumed) + Eof = 5 tokens
+        REQUIRE(tokens.size() == 5);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.5e10f");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "2.0E-3d");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "1e2u16");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[3].getText() == ".5e1i32");
+    }
+
+    SECTION("group optionality: G1 mandatory, G2 and G3 optional") {
+        // 42 → Numeric("42") (G1 only)
+        jsv::Lexer lex1{"42", "test.jsav"};
+        const auto tokens1 = lex1.tokenize();
+        REQUIRE(tokens1.size() == 2);
+        REQUIRE(tokens1[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens1[0].getText() == "42");
+
+        // 42e10 → Numeric("42e10") (G1 + G2)
+        jsv::Lexer lex2{"42e10", "test.jsav"};
+        const auto tokens2 = lex2.tokenize();
+        REQUIRE(tokens2.size() == 2);
+        REQUIRE(tokens2[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens2[0].getText() == "42e10");
+
+        // 42u → Numeric("42") + Identifier("u") (G1 + invalid suffix, u alone NOT consumed)
+        jsv::Lexer lex3{"42u", "test.jsav"};
+        const auto tokens3 = lex3.tokenize();
+        REQUIRE(tokens3.size() == 3);
+        REQUIRE(tokens3[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens3[0].getText() == "42");
+        REQUIRE(tokens3[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens3[1].getText() == "u");
+
+        // 42e10u → Numeric("42e10") + Identifier("u") (G1 + G2 + invalid suffix)
+        jsv::Lexer lex4{"42e10u", "test.jsav"};
+        const auto tokens4 = lex4.tokenize();
+        REQUIRE(tokens4.size() == 3);
+        REQUIRE(tokens4[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens4[0].getText() == "42e10");
+        REQUIRE(tokens4[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens4[1].getText() == "u");
+
+        // 42d → Numeric("42d") (G1 + valid G3, d is valid single suffix)
+        jsv::Lexer lex5{"42d", "test.jsav"};
+        const auto tokens5 = lex5.tokenize();
+        REQUIRE(tokens5.size() == 2);
+        REQUIRE(tokens5[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens5[0].getText() == "42d");
+
+        // 42e10d → Numeric("42e10d") (G1 + G2 + valid G3)
+        jsv::Lexer lex6{"42e10d", "test.jsav"};
+        const auto tokens6 = lex6.tokenize();
+        REQUIRE(tokens6.size() == 2);
+        REQUIRE(tokens6[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens6[0].getText() == "42e10d");
+    }
+}
+
+TEST_CASE("Lexer_NumericCombinedPattern_PositionTracking", "[lexer][numeric][us4][phase6]") {
+    SECTION("position tracking for complete G1+G2+G3 pattern") {
+        jsv::Lexer lex{"1.5e10f", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.5e10f");
+        REQUIRE(tokens[0].getSpan().start.line == 1);
+        REQUIRE(tokens[0].getSpan().start.column == 1);
+        REQUIRE(tokens[0].getSpan().start.absolute_pos == 0);
+        REQUIRE(tokens[0].getSpan().end.line == 1);
+        REQUIRE(tokens[0].getSpan().end.column == 8);
+        REQUIRE(tokens[0].getSpan().end.absolute_pos == 7);
+    }
+}
+// ==========================================================================
+// Phase 7 – User Story 5: Maximal munch rule and token boundaries
+// ==========================================================================
+
+TEST_CASE("Lexer_NumericTokenBoundaries_TokenizeCorrectly", "[lexer][numeric][us5][phase7]") {
+    SECTION("token boundaries: -42 produces Minus + Numeric") {
+        jsv::Lexer lex{"-42", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);  // Minus + Numeric + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Minus);
+        REQUIRE(tokens[0].getText() == "-");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "42");
+    }
+
+    SECTION("token boundaries: 42 u8 produces Numeric + TypeU8") {
+        jsv::Lexer lex{"42 u8", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);  // Numeric + TypeU8 + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::TypeU8);
+        REQUIRE(tokens[1].getText() == "u8");
+    }
+
+    SECTION("token boundaries: 3.14+2 produces Numeric + Plus + Numeric") {
+        jsv::Lexer lex{"3.14+2", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 4);  // Numeric + Plus + Numeric + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "3.14");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Plus);
+        REQUIRE(tokens[1].getText() == "+");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "2");
+    }
+
+    SECTION("token boundaries: 1e2+3 produces Numeric + Plus + Numeric") {
+        jsv::Lexer lex{"1e2+3", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 4);  // Numeric + Plus + Numeric + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1e2");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Plus);
+        REQUIRE(tokens[1].getText() == "+");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "3");
+    }
+
+    SECTION("termination on non-ASCII byte") {
+        // 42 followed by non-ASCII byte (0xC3) should terminate numeric token
+        const std::string src = "42\xC3\xA9";  // 42 + é
+        jsv::Lexer lex{src, "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);  // Numeric + Error(é) + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+    }
+
+    SECTION("termination at EOF") {
+        jsv::Lexer lex{"42", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);  // Numeric + Eof
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    }
+}
+
+TEST_CASE("Lexer_NumericNewlineTermination_FR028", "[lexer][numeric][us5][fr-028][phase7]") {
+    SECTION("newline terminates complete numeric token") {
+        // 42\n10 → Numeric("42") + Numeric("10") + Eof (newline consumed as whitespace)
+        jsv::Lexer lex{"42\n10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "10");
+    }
+
+    SECTION("CRLF terminates complete numeric token") {
+        // 3.14\r\n2.5 → Numeric("3.14") + Numeric("2.5") + Eof
+        jsv::Lexer lex{"3.14\r\n2.5", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "3.14");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "2.5");
+    }
+
+    SECTION("incomplete G1 (trailing dot) + newline terminates token") {
+        // 3.\n10 → Numeric("3.") + Numeric("10") + Eof
+        jsv::Lexer lex{"3.\n10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "3.");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "10");
+    }
+
+    SECTION("incomplete G2 (no digits) + newline terminates token") {
+        // 1e\n10 → Numeric("1") + Identifier("e") + Numeric("10") + Eof
+        jsv::Lexer lex{"1e\n10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 4);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "e");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "10");
+    }
+
+    SECTION("incomplete G2+sign + newline terminates token") {
+        // 1e+\n5 → Numeric("1") + Identifier("e") + Plus + Numeric("5") + Eof
+        jsv::Lexer lex{"1e+\n5", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 5);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "e");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Plus);
+        REQUIRE(tokens[2].getText() == "+");
+        REQUIRE(tokens[3].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[3].getText() == "5");
+    }
+
+    SECTION("incomplete G3 (bare u) + newline terminates token") {
+        // 42u\n10 → Numeric("42") + Identifier("u") + Numeric("10") + Eof
+        jsv::Lexer lex{"42u\n10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 4);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "u");
+        REQUIRE(tokens[2].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[2].getText() == "10");
+    }
+
+    SECTION("complete G1+G2 + newline terminates token") {
+        // 1e10\n5 → Numeric("1e10") + Numeric("5") + Eof
+        jsv::Lexer lex{"1e10\n5", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1e10");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "5");
+    }
+
+    SECTION("complete G1+G2+G3 + newline terminates token") {
+        // 1.5e10f\n5 → Numeric("1.5e10f") + Numeric("5") + Eof
+        jsv::Lexer lex{"1.5e10f\n5", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.5e10f");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "5");
+    }
+
+    SECTION("multiple consecutive newlines") {
+        // 42\n\n10 → Numeric + Numeric + Eof (all newlines consumed as whitespace)
+        jsv::Lexer lex{"42\n\n10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "10");
+    }
+
+    SECTION("newline at EOF") {
+        // 42\n → Numeric + Eof (newline consumed as whitespace)
+        jsv::Lexer lex{"42\n", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+    }
+
+    SECTION("CR-only newline (Mac-style)") {
+        // 42\r10 → Numeric("42") + Numeric("10") + Eof
+        jsv::Lexer lex{"42\r10", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "42");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == "10");
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on

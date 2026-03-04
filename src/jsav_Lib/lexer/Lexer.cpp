@@ -42,6 +42,9 @@ namespace jsv {
         // ── Numeric literal ──────────────────────────────────────────────
         if(std::isdigit(first) != 0) { return scan_numeric_literal(start); }
 
+        // ── Leading-dot numeric: .5, .14, .0 (dot followed by digit) ────
+        if(first == '.' && std::isdigit(C_UC(peek_byte(1))) != 0) { return scan_numeric_literal(start); }
+
         // ── Hash-prefixed numeric (#b, #o, #x) ──────────────────────────
         if(first == '#') { return scan_hash_numeric(start); }
 
@@ -232,59 +235,99 @@ namespace jsv {
     // Numeric literal scanner
     // =========================================================================
 
+    void Lexer::try_scan_exponent() {
+        // Save position for potential rollback (R4: non-destructive lookahead)
+        const auto saved_pos = m_pos;
+        const auto saved_col = m_column;
+
+        // Consume 'e' or 'E'
+        if(is_at_end() || (peek_byte() != 'e' && peek_byte() != 'E')) { return; }
+        advance_byte();
+
+        // Consume optional sign
+        if(!is_at_end() && (peek_byte() == '+' || peek_byte() == '-')) { advance_byte(); }
+
+        // Consume mandatory digits
+        if(is_at_end() || std::isdigit(C_UC(peek_byte())) == 0) {
+            // Incomplete exponent: rollback to saved position
+            m_pos = saved_pos;
+            m_column = saved_col;
+            return;
+        }
+
+        // Valid exponent: consume all digits
+        while(!is_at_end() && std::isdigit(C_UC(peek_byte())) != 0) { advance_byte(); }
+    }
+
+    void Lexer::try_scan_type_suffix() {
+        if(is_at_end()) { return; }
+
+        const char s = peek_byte();
+
+        // Single-character suffixes: d/D, f/F (FR-016: f never forms compounds)
+        if(s == 'd' || s == 'D' || s == 'f' || s == 'F') {
+            advance_byte();
+            return;
+        }
+
+        // u/U: bare unsigned (NOT consumed) or compound with valid width (8, 16, 32)
+        if(s == 'u' || s == 'U' || s == 'i' || s == 'I') {
+            // Check if followed by a digit (start of width)
+            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
+                // Try to match valid width: 32 → 16 → 8 (FR-017: avoid partial matches)
+                // Width must NOT be followed by another digit (e.g., i80 is invalid)
+                if(peek_byte(1) == '3' && peek_byte(2) == '2' && (is_at_end() || std::isdigit(C_UC(peek_byte(3))) == 0)) {
+                    advance_byte();  // consume i/I
+                    advance_byte();  // consume 3
+                    advance_byte();  // consume 2
+                    return;
+                }
+                if(peek_byte(1) == '1' && peek_byte(2) == '6' && (is_at_end() || std::isdigit(C_UC(peek_byte(3))) == 0)) {
+                    advance_byte();  // consume i/I
+                    advance_byte();  // consume 1
+                    advance_byte();  // consume 6
+                    return;
+                }
+                if(peek_byte(1) == '8' && (is_at_end() || std::isdigit(C_UC(peek_byte(2))) == 0)) {
+                    advance_byte();  // consume i/I
+                    advance_byte();  // consume 8
+                    return;
+                }
+                // Invalid width (e.g., 64, 999, 80): do NOT consume anything
+            }
+            // i/I alone is NOT consumed (FR-015)
+            return;
+        }
+    }
+
     // NOLINTBEGIN(readability-function-cognitive-complexity)
     Token Lexer::scan_numeric_literal(const SourceLocation &start) {
         const auto text_start = m_pos;
 
-        // ── Integer part (underscore separators allowed) ──────────────────────
-        while(!is_at_end() && (std::isdigit(C_UC(peek_byte())) != 0 || peek_byte() == '_')) { advance_byte(); }
+        // ── G1: Numeric part (mandatory) ────────────────────────────────────
+        // Branch A: starts with digit (e.g., 42, 3., 3.14)
+        // Branch B: starts with dot followed by digit (e.g., .5, .14) - handled by next_token()
+        if(std::isdigit(C_UC(peek_byte())) != 0) {
+            // Consume integer digits
+            while(!is_at_end() && std::isdigit(C_UC(peek_byte())) != 0) { advance_byte(); }
 
-        // ── Optional fractional part ──────────────────────────────────────────
-        // Only consumed when '.' is IMMEDIATELY followed by a decimal digit.
-        // "123." is intentionally split into Numeric("123") + Dot(".") so that
-        // trailing-dot method calls (e.g. 123.toString()) parse correctly,
-        // matching the behaviour of Rust, Kotlin, and Swift.
-        if(!is_at_end() && peek_byte() == '.' && (std::isdigit(C_UC(peek_byte(1))) != 0)) {
-            advance_byte();  // '.'
-            while(!is_at_end() && (std::isdigit(C_UC(peek_byte())) != 0 || peek_byte() == '_')) { advance_byte(); }
-        }
-
-        // ── Optional exponent: e/E, optional sign, digits ─────────────────────
-        if(!is_at_end() && (peek_byte() == 'e' || peek_byte() == 'E')) {
-            advance_byte();  // 'e' / 'E'
-            if(!is_at_end() && (peek_byte() == '+' || peek_byte() == '-')) {
-                advance_byte();  // sign
+            // Consume optional trailing dot (FR-003: trailing dot IS included)
+            if(!is_at_end() && peek_byte() == '.') {
+                advance_byte();
+                // Consume fractional digits (optional)
+                while(!is_at_end() && std::isdigit(C_UC(peek_byte())) != 0) { advance_byte(); }
             }
-            while(!is_at_end() && (std::isdigit(C_UC(peek_byte())) != 0)) { advance_byte(); }
+        } else if(peek_byte() == '.' && !is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
+            // Branch B: leading dot followed by digits
+            advance_byte();  // consume '.'
+            while(!is_at_end() && std::isdigit(C_UC(peek_byte())) != 0) { advance_byte(); }
         }
 
-        // ── Optional type suffix ──────────────────────────────────────────────
-        // Recognised patterns (must immediately follow the number):
-        //   i8  i16  i32  i64   →  'i' + one-or-more digits
-        //   u8  u16  u32  u64   →  'u' + one-or-more digits
-        //   f32 f64             →  'f' + one-or-more digits
-        //   u   U               →  bare unsigned marker, NOT followed by alnum
-        //
-        // Only consume the suffix letter when it is either:
-        //   (a) 'u'/'U' standing alone (next char is not alnum), or
-        //   (b) 'i'/'u'/'f' immediately followed by one or more digits.
-        //
-        // This prevents "42identifier" from incorrectly eating "identifier":
-        //   "42 myVar"  → Numeric("42"), Identifier("myVar")  ✓
-        //   "42myVar"   → Numeric("42"), Identifier("myVar")  ✓
-        if(!is_at_end()) {
-            const char s = peek_byte();
-            const char s1 = peek_byte(1);
+        // ── G2: Optional exponent ───────────────────────────────────────────
+        try_scan_exponent();
 
-            const bool bare_unsigned = (s == 'u' || s == 'U') && (std::isalnum(C_UC(s1)) == 0);
-
-            const bool typed_suffix = (s == 'i' || s == 'u' || s == 'f') && (std::isdigit(C_UC(s1)) != 0);
-
-            if(bare_unsigned || typed_suffix) {
-                advance_byte();  // suffix letter
-                while(!is_at_end() && (std::isdigit(C_UC(peek_byte())) != 0)) { advance_byte(); }
-            }
-        }
+        // ── G3: Optional type suffix ────────────────────────────────────────
+        try_scan_type_suffix();
 
         return make_token(TokenKind::Numeric, m_source.substr(text_start, m_pos - text_start), start);
     }

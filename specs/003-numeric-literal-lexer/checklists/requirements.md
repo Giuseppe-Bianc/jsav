@@ -1,7 +1,7 @@
-# Specification Quality Checklist: Full UTF-8 Unicode Whitespace Support in Lexer
+# Specification Quality Checklist: Riconoscimento Completo dei Literal Numerici nel Lexer
 
-**Purpose**: Validate specification completeness and quality before proceeding to planning  
-**Created**: 2025-03-02  
+**Purpose**: Validate specification completeness and quality before proceeding to planning
+**Created**: 2026-03-03
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -31,7 +31,7 @@
 
 ## Notes
 
-- All 16 checklist items pass on first validation iteration.
-- The spec enumerates all 26 Unicode `\p{White_Space}` code points explicitly in FR-001, ensuring no ambiguity.
-- 4 assumptions documented covering column tracking convention, CR+LF handling, VT/FF line-terminator classification, and Unicode property stability.
-- 6 edge cases cover string literals, comments, consecutive whitespace, EOF, invalid lead bytes, and non-whitespace multi-byte sequences.
+- The spec describes constraints like "single-pass O(n)" and "no regex at runtime" — these are architectural constraints specified by the user, not implementation decisions
+- Token type "Numeric" is a domain concept from the existing system, not a technology choice
+- All 29 functional requirements are testable through specific input → output assertions
+- Validation passed on first iteration — no remediation needed
