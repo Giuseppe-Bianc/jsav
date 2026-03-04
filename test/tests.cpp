@@ -3851,6 +3851,61 @@ TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][us1][p
         REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
         REQUIRE(tokens[1].getText() == "abc");
     }
+
+    SECTION("malformed numeric: multiple decimal points 1.2.3") {
+        jsv::Lexer lex{"1.2.3", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 1.2 is a valid numeric, .3 is a valid numeric (leading dot + digits)
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1.2");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[1].getText() == ".3");
+    }
+
+    SECTION("malformed numeric: multiple exponent markers 1e2e3") {
+        jsv::Lexer lex{"1e2e3", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        // 1e2 is a valid numeric, e3 is an identifier
+        REQUIRE(tokens.size() == 3);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1e2");
+        REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens[1].getText() == "e3");
+    }
+
+    SECTION("valid compound suffix: 1U8 produces Numeric token") {
+        jsv::Lexer lex{"1U8", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1U8");
+    }
+
+    SECTION("valid compound suffix: 1u8 produces Numeric token") {
+        jsv::Lexer lex{"1u8", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "1u8");
+    }
+
+    SECTION("very long digit run produces single Numeric token") {
+        jsv::Lexer lex{"12345678901234567890123456789012345678901234567890", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "12345678901234567890123456789012345678901234567890");
+        REQUIRE(tokens[0].getText().size() == 50);
+    }
+
+    SECTION("leading zeros preserved: 007e2") {
+        jsv::Lexer lex{"007e2", "test.jsav"};
+        const auto tokens = lex.tokenize();
+        REQUIRE(tokens.size() == 2);
+        REQUIRE(tokens[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens[0].getText() == "007e2");
+    }
 }
 
 TEST_CASE("Lexer_NumericPositionTracking_Correct", "[lexer][numeric][us1][phase3]") {
