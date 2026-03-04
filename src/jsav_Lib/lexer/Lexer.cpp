@@ -580,39 +580,42 @@ namespace jsv {
     // Keyword / type classification
     // =========================================================================
 
+    // In Lexer.cpp:
     TokenKind Lexer::classify_word(const std::string_view text) noexcept {
         using namespace std::string_view_literals;
 
-        // Keywords
-        if(text == "fun"sv) { return TokenKind::KeywordFun; }
-        if(text == "if"sv) { return TokenKind::KeywordIf; }
-        if(text == "else"sv) { return TokenKind::KeywordElse; }
-        if(text == "return"sv) { return TokenKind::KeywordReturn; }
-        if(text == "while"sv) { return TokenKind::KeywordWhile; }
-        if(text == "for"sv) { return TokenKind::KeywordFor; }
-        if(text == "main"sv) { return TokenKind::KeywordMain; }
-        if(text == "var"sv) { return TokenKind::KeywordVar; }
-        if(text == "const"sv) { return TokenKind::KeywordConst; }
-        if(text == "nullptr"sv) { return TokenKind::KeywordNullptr; }
-        if(text == "break"sv) { return TokenKind::KeywordBreak; }
-        if(text == "continue"sv) { return TokenKind::KeywordContinue; }
-        if(text == "bool"sv) { return TokenKind::KeywordBool; }
+        static const std::unordered_map<std::string_view, TokenKind> kTable{
+            // Keywords
+            {"fun"sv, TokenKind::KeywordFun},
+            {"if"sv, TokenKind::KeywordIf},
+            {"else"sv, TokenKind::KeywordElse},
+            {"return"sv, TokenKind::KeywordReturn},
+            {"while"sv, TokenKind::KeywordWhile},
+            {"for"sv, TokenKind::KeywordFor},
+            {"main"sv, TokenKind::KeywordMain},
+            {"var"sv, TokenKind::KeywordVar},
+            {"const"sv, TokenKind::KeywordConst},
+            {"nullptr"sv, TokenKind::KeywordNullptr},
+            {"break"sv, TokenKind::KeywordBreak},
+            {"continue"sv, TokenKind::KeywordContinue},
+            {"bool"sv, TokenKind::KeywordBool},
+            // Primitive types
+            {"i8"sv, TokenKind::TypeI8},
+            {"i16"sv, TokenKind::TypeI16},
+            {"i32"sv, TokenKind::TypeI32},
+            {"i64"sv, TokenKind::TypeI64},
+            {"u8"sv, TokenKind::TypeU8},
+            {"u16"sv, TokenKind::TypeU16},
+            {"u32"sv, TokenKind::TypeU32},
+            {"u64"sv, TokenKind::TypeU64},
+            {"f32"sv, TokenKind::TypeF32},
+            {"f64"sv, TokenKind::TypeF64},
+            {"char"sv, TokenKind::TypeChar},
+            {"string"sv, TokenKind::TypeString},
+        };
 
-        // Primitive types
-        if(text == "i8"sv) { return TokenKind::TypeI8; }
-        if(text == "i16"sv) { return TokenKind::TypeI16; }
-        if(text == "i32"sv) { return TokenKind::TypeI32; }
-        if(text == "i64"sv) { return TokenKind::TypeI64; }
-        if(text == "u8"sv) { return TokenKind::TypeU8; }
-        if(text == "u16"sv) { return TokenKind::TypeU16; }
-        if(text == "u32"sv) { return TokenKind::TypeU32; }
-        if(text == "u64"sv) { return TokenKind::TypeU64; }
-        if(text == "f32"sv) { return TokenKind::TypeF32; }
-        if(text == "f64"sv) { return TokenKind::TypeF64; }
-        if(text == "char"sv) { return TokenKind::TypeChar; }
-        if(text == "string"sv) { return TokenKind::TypeString; }
-
-        return TokenKind::IdentifierAscii;
+        const auto it = kTable.find(text);
+        return (it != kTable.end()) ? it->second : TokenKind::IdentifierAscii;
     }
 
 }  // namespace jsv
