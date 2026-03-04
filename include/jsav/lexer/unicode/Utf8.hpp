@@ -113,12 +113,13 @@ namespace jsv::unicode {
 
         [[nodiscard]] constexpr Utf8DecodeResult decode_3byte(std::string_view input, std::size_t offset) noexcept {
             const auto b0 = C_UI8T(input[offset]);
+            const auto offset1 = offset + 1;
+            const auto offset2 = offset + 2;
             // Need exactly 2 continuation bytes
-            if(offset + 2 >= input.size()) {
+            if(offset2 >= input.size()) {
                 // Maximal subpart: if b1 exists and is a valid continuation, consume 2
-                if(offset + 1 < input.size()) {
-                    const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
-                    if(is_continuation(b1)) {
+                if(offset1 < input.size()) {
+                    if(const auto b1 = C_UI8T(input[offset1]); is_continuation(b1)) {
                         if(b0 == 0xE0 && b1 < 0xA0) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
                         if(b0 == 0xED && b1 >= 0xA0) { return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate}; }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence};
@@ -126,8 +127,8 @@ namespace jsv::unicode {
                 }
                 return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence};
             }
-            const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
-            const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
+            const auto b1 = C_UI8T(input[offset1]);
+            const auto b2 = C_UI8T(input[offset2]);
             if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 3-byte: E0 with b1 < A0 — consume maximal subpart (all 3 bytes if valid)
             if(b0 == 0xE0U && b1 < 0xA0U) {
@@ -147,24 +148,25 @@ namespace jsv::unicode {
 
         [[nodiscard]] constexpr Utf8DecodeResult decode_4byte_truncated(std::string_view input, std::size_t offset,
                                                                         std::uint8_t b0) noexcept {
-            if(offset + 1 < input.size()) {
-                const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
-                if(is_continuation(b1)) {
+            const auto offset1 = offset + 1;
+            const auto offset2 = offset + 2;
+            if(offset1 < input.size()) {
+                if(const auto b1 = C_UI8T(input[offset1]); is_continuation(b1)) {
                     // Overlong 4-byte: F0 with b1 < 90 — consume maximal subpart
                     if(b0 == 0xF0U && b1 < 0x90U) {
-                        if(offset + 2 < input.size() && is_continuation(C_UI8T(input[offset + 2]))) {
+                        if(offset2 < input.size() && is_continuation(C_UI8T(input[offset2]))) {
                             return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong};
                         }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
                     }
                     // Out-of-range: F4 with b1 >= 90 — consume maximal subpart
                     if(b0 == 0xF4U && b1 >= 0x90U) {
-                        if(offset + 2 < input.size() && is_continuation(C_UI8T(input[offset + 2]))) {
+                        if(offset2 < input.size() && is_continuation(C_UI8T(input[offset2]))) {
                             return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange};
                         }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::OutOfRange};
                     }
-                    if(offset + 2 < input.size() && is_continuation(C_UI8T(input[offset + 2]))) {
+                    if(offset2 < input.size() && is_continuation(C_UI8T(input[offset2]))) {
                         return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence};
                     }
                     return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence};
@@ -175,26 +177,27 @@ namespace jsv::unicode {
 
         [[nodiscard]] constexpr Utf8DecodeResult decode_4byte(std::string_view input, std::size_t offset) noexcept {
             const auto b0 = C_UI8T(input[offset]);
+            const auto offset3 = offset + 3;
             // Need exactly 3 continuation bytes
-            if(offset + 3 >= input.size()) { return decode_4byte_truncated(input, offset, b0); }
-            const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
-            const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
-            const auto b3 = static_cast<std::uint8_t>(input[offset + 3]);
-            if((b1 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
+            if(offset3 >= input.size()) { return decode_4byte_truncated(input, offset, b0); }
+            const auto b1 = C_UI8T(input[offset + 1]);
+            const auto b2 = C_UI8T(input[offset + 2]);
+            const auto b3 = C_UI8T(input[offset3]);
+            if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 4-byte: F0 with b1 < 90 — consume all 4 bytes (maximal subpart)
             if(b0 == 0xF0U && b1 < 0x90U) {
-                if((b2 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
-                if((b3 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
+                if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
+                if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
                 return {REPLACEMENT_CHAR, 4, Utf8Status::Overlong};
             }
             // Out-of-range: F4 90+ (U+110000+) — consume all 4 bytes (maximal subpart)
             if(b0 == 0xF4U && b1 >= 0x90U) {
-                if((b2 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 2, Utf8Status::OutOfRange}; }
-                if((b3 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange}; }
+                if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::OutOfRange}; }
+                if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange}; }
                 return {REPLACEMENT_CHAR, 4, Utf8Status::OutOfRange};
             }
-            if((b2 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
-            if((b3 & 0xC0U) != 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
             const char32_t cp = ((b0 & 0x07) << 18U) | ((b1 & PAYLOAD_MASK) << 12U) | ((b2 & PAYLOAD_MASK) << 6U) | (b3 & PAYLOAD_MASK);
             return {cp, 4, Utf8Status::Ok};
         }
