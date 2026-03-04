@@ -25,7 +25,7 @@ import urllib.request
 import bisect
 from pathlib import Path
 from datetime import date
-from typing import Dict
+from typing import Dict, Iterable
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -297,16 +297,37 @@ def validate_round_trip(
 # Format C++ output
 # -----------------------------------------------------------------------------
 
-def format_ranges_cpp(ranges: list[tuple[int, int]], indent: str = "    ") -> str:
-    """Format ranges as C++ initializer list, 4 entries per line."""
-    lines: list[str] = []
-    chunk: list[str] = []
-    for i, (first, last) in enumerate(ranges):
-        chunk.append(f"{{U'\\U{first:08X}', U'\\U{last:08X}'}}")
-        if len(chunk) == 4 or i == len(ranges) - 1:
-            lines.append(indent + ", ".join(chunk) + ",")
-            chunk = []
-    return "\n".join(lines)
+def format_ranges_cpp(
+    ranges: Iterable[tuple[int, int]], 
+    indent: str = "    ",
+) -> str:
+    """Format ranges as C++ initializer list, 4 entries per line.
+
+    Optimized to:
+    - Minimize temporary allocations
+    - Avoid intermediate chunk lists
+    - Reduce repeated computations
+    """
+
+    result: list[str] = []
+    append = result.append  # Local binding (faster lookup)
+    
+    current_line = []
+    line_count = 0
+
+    for first, last in ranges:
+        current_line.append(f"{{U'\\U{first:08X}', U'\\U{last:08X}'}}")
+        line_count += 1
+
+        if line_count == 4:
+            append(indent + ", ".join(current_line) + ",")
+            current_line.clear()
+            line_count = 0
+
+    if current_line:
+        append(indent + ", ".join(current_line) + ",")
+
+    return "\n".join(result)
 
 
 def generate_header(
