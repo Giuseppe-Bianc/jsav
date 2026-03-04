@@ -149,26 +149,23 @@ namespace jsv::unicode {
                                                                         std::uint8_t b0) noexcept {
             if(offset + 1 < input.size()) {
                 const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
-                if((b1 & 0xC0U) == 0x80U) {
+                if(is_continuation(b1)) {
                     // Overlong 4-byte: F0 with b1 < 90 — consume maximal subpart
                     if(b0 == 0xF0U && b1 < 0x90U) {
-                        if(offset + 2 < input.size()) {
-                            const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
-                            if((b2 & 0xC0U) == 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
+                        if(offset + 2 < input.size() && is_continuation(C_UI8T(input[offset + 2]))) {
+                            return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong};
                         }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
                     }
                     // Out-of-range: F4 with b1 >= 90 — consume maximal subpart
                     if(b0 == 0xF4U && b1 >= 0x90U) {
-                        if(offset + 2 < input.size()) {
-                            const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
-                            if((b2 & 0xC0U) == 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange}; }
+                        if(offset + 2 < input.size() && is_continuation(C_UI8T(input[offset + 2]))) {
+                            return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange};
                         }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::OutOfRange};
                     }
-                    if(offset + 2 < input.size()) {
-                        const auto b2 = static_cast<std::uint8_t>(input[offset + 2]);
-                        if((b2 & 0xC0U) == 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
+                    if(offset + 2 < input.size() && is_continuation(C_UI8T(input[offset + 2]))) {
+                        return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence};
                     }
                     return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence};
                 }
