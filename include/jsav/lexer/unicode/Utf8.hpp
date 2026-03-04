@@ -88,11 +88,22 @@ namespace jsv::unicode {
         constexpr std::uint8_t CONTINUATION_MAX = 0xBF;
         constexpr std::uint8_t LEAD_2BYTE_MIN = 0xC2;
         constexpr std::uint8_t LEAD_2BYTE_MAX = 0xDF;
+        constexpr std::uint8_t LEAD_2BYTE_OVERLONG_MAX = 0xC1;
         constexpr std::uint8_t LEAD_3BYTE_MIN = 0xE0;
         constexpr std::uint8_t LEAD_3BYTE_MAX = 0xEF;
+        constexpr std::uint8_t LEAD_3BYTE_SURROGATE = 0xED;
         constexpr std::uint8_t LEAD_4BYTE_MIN = 0xF0;
         constexpr std::uint8_t LEAD_4BYTE_MAX = 0xF4;
+        constexpr std::uint8_t LEAD_INVALID_MIN = 0xF5;
         constexpr std::uint8_t PAYLOAD_MASK = 0x3F;
+        constexpr std::uint8_t LEAD_2BYTE_PAYLOAD_MASK = 0x1F;
+        constexpr std::uint8_t LEAD_3BYTE_PAYLOAD_MASK = 0x0F;
+        constexpr std::uint8_t LEAD_4BYTE_PAYLOAD_MASK = 0x07;
+        constexpr std::uint8_t OVERLONG_3BYTE_THRESHOLD = 0xA0;
+        constexpr std::uint8_t OVERLONG_4BYTE_THRESHOLD = 0x90;
+        constexpr std::uint8_t SHIFT_2BYTE = 6U;
+        constexpr std::uint8_t SHIFT_3BYTE = 12U;
+        constexpr std::uint8_t SHIFT_4BYTE = 18U;
 
         constexpr char32_t REPLACEMENT_CHAR = U'\uFFFD';
 
@@ -105,7 +116,7 @@ namespace jsv::unicode {
             if(offset + 1 >= input.size()) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
             if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
-            const char32_t cp = ((b0 & 0x1F) << 6U) | (b1 & PAYLOAD_MASK);
+            const char32_t cp = ((b0 & LEAD_2BYTE_PAYLOAD_MASK) << SHIFT_2BYTE) | (b1 & PAYLOAD_MASK);
             // Overlong check: valid 2-byte range is U+0080–U+07FF.
             // b0 is 0xC2–0xDF which guarantees cp >= U+0080, no extra check needed.
             return {cp, 2, Utf8Status::Ok};
@@ -120,8 +131,10 @@ namespace jsv::unicode {
                 // Maximal subpart: if b1 exists and is a valid continuation, consume 2
                 if(offset1 < input.size()) {
                     if(const auto b1 = C_UI8T(input[offset1]); is_continuation(b1)) {
-                        if(b0 == 0xE0 && b1 < 0xA0) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
-                        if(b0 == 0xED && b1 >= 0xA0) { return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate}; }
+                        if(b0 == LEAD_3BYTE_MIN && b1 < OVERLONG_3BYTE_THRESHOLD) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
+                        if(b0 == LEAD_3BYTE_SURROGATE && b1 >= OVERLONG_3BYTE_THRESHOLD) {
+                            return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate};
+                        }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence};
                     }
                 }
@@ -131,17 +144,18 @@ namespace jsv::unicode {
             const auto b2 = C_UI8T(input[offset2]);
             if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 3-byte: E0 with b1 < A0 — consume maximal subpart (all 3 bytes if valid)
-            if(b0 == 0xE0U && b1 < 0xA0U) {
+            if(b0 == LEAD_3BYTE_MIN && b1 < OVERLONG_3BYTE_THRESHOLD) {
                 if(is_continuation(b2)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
             }
             // Surrogate: ED with b1 in A0–BF — consume maximal subpart (all 3 bytes if valid)
-            if(b0 == 0xEDU && b1 >= 0xA0U) {
+            if(b0 == LEAD_3BYTE_SURROGATE && b1 >= OVERLONG_3BYTE_THRESHOLD) {
                 if(is_continuation(b2)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Surrogate}; }
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate};
             }
             if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
-            const char32_t cp = ((b0 & 0x0F) << 12U) | ((b1 & PAYLOAD_MASK) << 6U) | (b2 & PAYLOAD_MASK);
+            const char32_t cp = ((b0 & LEAD_3BYTE_PAYLOAD_MASK) << SHIFT_3BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_2BYTE) |
+                                (b2 & PAYLOAD_MASK);
 
             return {cp, 3, Utf8Status::Ok};
         }
@@ -153,14 +167,14 @@ namespace jsv::unicode {
             if(offset1 < input.size()) {
                 if(const auto b1 = C_UI8T(input[offset1]); is_continuation(b1)) {
                     // Overlong 4-byte: F0 with b1 < 90 — consume maximal subpart
-                    if(b0 == 0xF0U && b1 < 0x90U) {
+                    if(b0 == LEAD_4BYTE_MIN && b1 < OVERLONG_4BYTE_THRESHOLD) {
                         if(offset2 < input.size() && is_continuation(C_UI8T(input[offset2]))) {
                             return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong};
                         }
                         return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
                     }
                     // Out-of-range: F4 with b1 >= 90 — consume maximal subpart
-                    if(b0 == 0xF4U && b1 >= 0x90U) {
+                    if(b0 == LEAD_4BYTE_MAX && b1 >= OVERLONG_4BYTE_THRESHOLD) {
                         if(offset2 < input.size() && is_continuation(C_UI8T(input[offset2]))) {
                             return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange};
                         }
@@ -185,20 +199,21 @@ namespace jsv::unicode {
             const auto b3 = C_UI8T(input[offset3]);
             if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 4-byte: F0 with b1 < 90 — consume all 4 bytes (maximal subpart)
-            if(b0 == 0xF0U && b1 < 0x90U) {
+            if(b0 == LEAD_4BYTE_MIN && b1 < OVERLONG_4BYTE_THRESHOLD) {
                 if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
                 if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
                 return {REPLACEMENT_CHAR, 4, Utf8Status::Overlong};
             }
             // Out-of-range: F4 90+ (U+110000+) — consume all 4 bytes (maximal subpart)
-            if(b0 == 0xF4U && b1 >= 0x90U) {
+            if(b0 == LEAD_4BYTE_MAX && b1 >= OVERLONG_4BYTE_THRESHOLD) {
                 if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::OutOfRange}; }
                 if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange}; }
                 return {REPLACEMENT_CHAR, 4, Utf8Status::OutOfRange};
             }
             if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
             if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
-            const char32_t cp = ((b0 & 0x07) << 18U) | ((b1 & PAYLOAD_MASK) << 12U) | ((b2 & PAYLOAD_MASK) << 6U) | (b3 & PAYLOAD_MASK);
+            const char32_t cp = ((b0 & LEAD_4BYTE_PAYLOAD_MASK) << SHIFT_4BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_3BYTE) |
+                                ((b2 & PAYLOAD_MASK) << SHIFT_2BYTE) | (b3 & PAYLOAD_MASK);
             return {cp, 4, Utf8Status::Ok};
         }
 
@@ -213,17 +228,17 @@ namespace jsv::unicode {
         if(offset >= input.size()) { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OutOfRange}; }
         const auto first = C_UI8T(input[offset]);
         // ASCII fast-path (> 95% of real-world input)
-        if(first < 0x80U) [[likely]] { return {static_cast<char32_t>(first), 1, Utf8Status::Ok}; }
+        if(first <= detail::ASCII_MAX) [[likely]] { return {static_cast<char32_t>(first), 1, Utf8Status::Ok}; }
 
         // Orphaned continuation byte (0x80–0xBF)
-        if(first < 0xC0U) { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OrphanedContinuation}; }
+        if(first <= detail::CONTINUATION_MAX) { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OrphanedContinuation}; }
 
         // 2-byte sequence: lead byte 0xC0–0xDF
-        if(first < 0xE0U) {
+        if(first < detail::LEAD_3BYTE_MIN) {
             // 0xC0–0xC1 are always overlong (would encode U+0000–U+007F)
             // Consume maximal subpart: both bytes if valid continuation exists
-            if(first < 0xC2U) {
-                if(offset + 1 < input.size() && (C_UI8T(input[offset + 1]) & 0xC0U) == 0x80U) {
+            if(first <= detail::LEAD_2BYTE_OVERLONG_MAX) {
+                if(offset + 1 < input.size() && detail::is_continuation(C_UI8T(input[offset + 1]))) {
                     return {detail::REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
                 }
                 return {detail::REPLACEMENT_CHAR, 1, Utf8Status::Overlong};
@@ -232,10 +247,10 @@ namespace jsv::unicode {
         }
 
         // 3-byte sequence: lead byte 0xE0–0xEF
-        if(first < 0xF0U) { return detail::decode_3byte(input, offset); }
+        if(first < detail::LEAD_4BYTE_MIN) { return detail::decode_3byte(input, offset); }
 
         // 4-byte sequence: lead byte 0xF0–0xF4
-        if(first <= 0xF4U) { return detail::decode_4byte(input, offset); }
+        if(first <= detail::LEAD_4BYTE_MAX) { return detail::decode_4byte(input, offset); }
 
         // 0xF5–0xFF: invalid lead byte
         return {detail::REPLACEMENT_CHAR, 1, Utf8Status::InvalidLeadByte};
