@@ -132,9 +132,31 @@ def format_duration(duration_ns: float) -> str:
 
 def download_unicode_data() -> str:
     print(f"Downloading UnicodeData.txt (Unicode {UNICODE_VERSION})...")
-    with urllib.request.urlopen(UNICODE_DATA_URL) as response:
-        data = response.read().decode("utf-8")
-    print(f"  Downloaded {len(data):,} bytes.")
+
+    request = urllib.request.Request(UNICODE_DATA_URL)
+    # Accept compressed responses to reduce network transfer time
+    request.add_header("Accept-Encoding", "gzip, deflate")
+
+    with urllib.request.urlopen(request) as response:
+        raw_data = response.read()
+
+        # Handle compressed responses if the server supports it
+        content_encoding = response.headers.get("Content-Encoding", "")
+        if content_encoding == "gzip":
+            import gzip
+            raw_data = gzip.decompress(raw_data)
+        elif content_encoding == "deflate":
+            import zlib
+            raw_data = zlib.decompress(raw_data)
+
+        # Decode in-place; use the raw bytes length for reporting
+        # since that reflects actual download size
+        raw_len = len(raw_data)
+        data = raw_data.decode("utf-8")
+        # Allow GC to reclaim the bytes buffer immediately
+        del raw_data
+
+    print(f"  Downloaded {raw_len:,} bytes.")
     return data
 
 
