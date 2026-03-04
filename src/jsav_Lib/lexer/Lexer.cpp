@@ -162,7 +162,7 @@ namespace jsv {
             const char c = peek_byte();
 
             // Plain whitespace (ASCII: space, tab, CR, VT, FF)
-            if(c == ' ' || c == '\t' || c == '\r' || c == '\v' || c == '\f') {
+            if(is_ascii_horizontal_space(c)) {
                 advance_byte();
                 continue;
             }

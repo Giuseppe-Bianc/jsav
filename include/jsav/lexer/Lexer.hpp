@@ -9,7 +9,9 @@
 #include "Token.hpp"
 
 namespace jsv {
-
+    [[nodiscard]] static constexpr bool is_ascii_horizontal_space(const char c) noexcept {
+        return c == ' ' || c == '\t' || c == '\r' || c == '\v' || c == '\f';
+    }
     /// UTF-8 aware lexer that produces a flat stream of `Token`s from source text.
     ///
     /// # Design notes

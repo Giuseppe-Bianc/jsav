@@ -546,6 +546,65 @@ TEST_CASE("UnicodeLineTerminator_TruthTable", "[Unicode][T004a]") {
     STATIC_REQUIRE(!is_unicode_line_terminator(U'A'));               // ASCII letter
 }
 
+// ==========================================================================
+// Lexer: is_ascii_horizontal_space constexpr tests
+// ==========================================================================
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_SpaceCharacter", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(is_ascii_horizontal_space(' '));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_TabCharacter", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(is_ascii_horizontal_space('\t'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_CarriageReturn", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(is_ascii_horizontal_space('\r'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_VerticalTab", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(is_ascii_horizontal_space('\v'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_FormFeed", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(is_ascii_horizontal_space('\f'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_NewlineReturnsFalse", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(!is_ascii_horizontal_space('\n'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_LettersReturnFalse", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(!is_ascii_horizontal_space('A'));
+    STATIC_REQUIRE(!is_ascii_horizontal_space('z'));
+    STATIC_REQUIRE(!is_ascii_horizontal_space('a'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_DigitsReturnFalse", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(!is_ascii_horizontal_space('0'));
+    STATIC_REQUIRE(!is_ascii_horizontal_space('9'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_NullCharacterReturnsFalse", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(!is_ascii_horizontal_space('\0'));
+}
+
+TEST_CASE("Lexer_IsAsciiHorizontalSpace_OtherPunctuationReturnsFalse", "[Lexer]") {
+    using namespace jsv;
+    STATIC_REQUIRE(!is_ascii_horizontal_space('_'));
+    STATIC_REQUIRE(!is_ascii_horizontal_space(','));
+    STATIC_REQUIRE(!is_ascii_horizontal_space(';'));
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization)
 // clang-format on
