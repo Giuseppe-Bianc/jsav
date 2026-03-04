@@ -259,35 +259,6 @@ namespace jsv {
         while(!is_at_end() && std::isdigit(C_UC(peek_byte())) != 0) { advance_byte(); }
     }
 
-    bool Lexer::match_width_suffix() {
-        // Match widths in order: 32 → 16 → 8 (R6: avoid partial matches)
-        if(!is_at_end() && peek_byte() == '3' && peek_byte(1) == '2') {
-            advance_byte();
-            advance_byte();
-            return true;
-        }
-        if(!is_at_end() && peek_byte() == '1' && peek_byte(1) == '6') {
-            advance_byte();
-            advance_byte();
-            return true;
-        }
-        if(!is_at_end() && peek_byte() == '8') {
-            advance_byte();
-            return true;
-        }
-        return false;
-    }
-
-    /// Helper for try_scan_type_suffix: consume letter + all following digits
-    static void consume_letter_and_digits(std::string_view source, std::size_t &pos, std::size_t &column) {
-        ++pos;
-        ++column;
-        while(pos < source.size() && std::isdigit(C_UC(source[pos])) != 0) {
-            ++pos;
-            ++column;
-        }
-    }
-
     void Lexer::try_scan_type_suffix() {
         if(is_at_end()) { return; }
 
@@ -303,19 +274,67 @@ namespace jsv {
             return;
         }
 
-        // u/U: bare unsigned (NOT consumed) or compound with width (maximal munch)
+        // u/U: bare unsigned (NOT consumed) or compound with valid width (8, 16, 32)
         if(s == 'u' || s == 'U') {
             // Check if followed by a digit (start of width)
-            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) { consume_letter_and_digits(m_source, m_pos, m_column); }
-            // else: u/U alone is NOT consumed (FR-011/FR-015b)
+            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
+                // Try to match valid width: 32 → 16 → 8 (FR-017: avoid partial matches)
+                // Width must NOT be followed by another digit (e.g., u80 is invalid)
+                if(peek_byte(1) == '3' && peek_byte(2) == '2' &&
+                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                    advance_byte();  // consume u/U
+                    advance_byte();  // consume 3
+                    advance_byte();  // consume 2
+                    return;
+                }
+                if(peek_byte(1) == '1' && peek_byte(2) == '6' &&
+                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                    advance_byte();  // consume u/U
+                    advance_byte();  // consume 1
+                    advance_byte();  // consume 6
+                    return;
+                }
+                if(peek_byte(1) == '8' &&
+                   (is_at_end() || !std::isdigit(C_UC(peek_byte(2))))) {
+                    advance_byte();  // consume u/U
+                    advance_byte();  // consume 8
+                    return;
+                }
+                // Invalid width (e.g., 64, 999, 80): do NOT consume anything
+            }
+            // u/U alone is NOT consumed (FR-011/FR-015b)
             return;
         }
 
         // i/I: mandatory width (FR-015: i alone is NOT a suffix)
         if(s == 'i' || s == 'I') {
             // Check if followed by a digit (start of width)
-            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) { consume_letter_and_digits(m_source, m_pos, m_column); }
-            // else: i/I alone is NOT consumed (FR-015)
+            if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
+                // Try to match valid width: 32 → 16 → 8 (FR-017: avoid partial matches)
+                // Width must NOT be followed by another digit (e.g., i80 is invalid)
+                if(peek_byte(1) == '3' && peek_byte(2) == '2' &&
+                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                    advance_byte();  // consume i/I
+                    advance_byte();  // consume 3
+                    advance_byte();  // consume 2
+                    return;
+                }
+                if(peek_byte(1) == '1' && peek_byte(2) == '6' &&
+                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                    advance_byte();  // consume i/I
+                    advance_byte();  // consume 1
+                    advance_byte();  // consume 6
+                    return;
+                }
+                if(peek_byte(1) == '8' &&
+                   (is_at_end() || !std::isdigit(C_UC(peek_byte(2))))) {
+                    advance_byte();  // consume i/I
+                    advance_byte();  // consume 8
+                    return;
+                }
+                // Invalid width (e.g., 64, 999, 80): do NOT consume anything
+            }
+            // i/I alone is NOT consumed (FR-015)
             return;
         }
     }

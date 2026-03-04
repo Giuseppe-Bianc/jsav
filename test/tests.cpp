@@ -4078,7 +4078,7 @@ TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][
         REQUIRE(tokens[4].getText() == "100U32");
     }
 
-    SECTION("suffix edge cases: maximal munch and invalid suffixes") {
+    SECTION("suffix edge cases: strict width validation and invalid suffixes") {
         // 1i → Numeric("1") + Identifier("i") (i alone is NOT a suffix)
         jsv::Lexer lex1{"1i", "test.jsav"};
         const auto tokens1 = lex1.tokenize();
@@ -4088,12 +4088,14 @@ TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][
         REQUIRE(tokens1[1].getKind() == jsv::TokenKind::IdentifierAscii);
         REQUIRE(tokens1[1].getText() == "i");
 
-        // 1u64 → Numeric("1u64") (maximal munch: u + digits consumes all even if width invalid)
+        // 1u64 → Numeric("1") + TypeU64("u64") (invalid width 64 is NOT consumed as suffix)
         jsv::Lexer lex2{"1u64", "test.jsav"};
         const auto tokens2 = lex2.tokenize();
-        REQUIRE(tokens2.size() == 2);
+        REQUIRE(tokens2.size() == 3);
         REQUIRE(tokens2[0].getKind() == jsv::TokenKind::Numeric);
-        REQUIRE(tokens2[0].getText() == "1u64");
+        REQUIRE(tokens2[0].getText() == "1");
+        REQUIRE(tokens2[1].getKind() == jsv::TokenKind::TypeU64);
+        REQUIRE(tokens2[1].getText() == "u64");
 
         // 5f32 → Numeric("5f") + Numeric("32") (f never forms compounds)
         jsv::Lexer lex3{"5f32", "test.jsav"};
@@ -4112,6 +4114,39 @@ TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][
         REQUIRE(tokens4[0].getText() == "1");
         REQUIRE(tokens4[1].getKind() == jsv::TokenKind::IdentifierAscii);
         REQUIRE(tokens4[1].getText() == "I");
+
+        // Additional tests for invalid widths
+        // 1i999 → Numeric("1") + Identifier("i999") (invalid width 999 is NOT consumed as suffix)
+        jsv::Lexer lex5{"1i999", "test.jsav"};
+        const auto tokens5 = lex5.tokenize();
+        REQUIRE(tokens5.size() == 3);
+        REQUIRE(tokens5[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens5[0].getText() == "1");
+        REQUIRE(tokens5[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens5[1].getText() == "i999");
+
+        // 1u8 → Numeric("1u8") (valid width 8 IS consumed)
+        jsv::Lexer lex6{"1u8", "test.jsav"};
+        const auto tokens6 = lex6.tokenize();
+        REQUIRE(tokens6.size() == 2);
+        REQUIRE(tokens6[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens6[0].getText() == "1u8");
+
+        // 1i8 → Numeric("1i8") (valid width 8 IS consumed)
+        jsv::Lexer lex7{"1i8", "test.jsav"};
+        const auto tokens7 = lex7.tokenize();
+        REQUIRE(tokens7.size() == 2);
+        REQUIRE(tokens7[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens7[0].getText() == "1i8");
+
+        // 1u80 → Numeric("1") + Identifier("u80") (invalid width 80 is NOT consumed as suffix)
+        jsv::Lexer lex8{"1u80", "test.jsav"};
+        const auto tokens8 = lex8.tokenize();
+        REQUIRE(tokens8.size() == 3);
+        REQUIRE(tokens8[0].getKind() == jsv::TokenKind::Numeric);
+        REQUIRE(tokens8[0].getText() == "1");
+        REQUIRE(tokens8[1].getKind() == jsv::TokenKind::IdentifierAscii);
+        REQUIRE(tokens8[1].getText() == "u80");
     }
 }
 

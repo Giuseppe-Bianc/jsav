@@ -116,11 +116,6 @@ namespace jsv {
         /// Returns without consuming if no valid suffix is found at current position.
         void try_scan_type_suffix();
 
-        /// Check if the next 1-2 bytes form a valid width suffix (32, 16, or 8).
-        /// If matched, advance past the width bytes and return true.
-        /// Otherwise return false without advancing.
-        [[nodiscard]] bool match_width_suffix();
-
         // ── Keyword / type classification ─────────────────────────────────
         /// Map a lexed word to its `TokenKind` (keyword, type, or identifier).
         [[nodiscard]] static TokenKind classify_word(std::string_view text) noexcept;
