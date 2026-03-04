@@ -336,6 +336,13 @@ namespace jsv {
     // =========================================================================
     // Hash-prefixed numeric scanner  (#b, #o, #x)
     // =========================================================================
+    template <typename IsDigit>
+    Token Lexer::scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit) {
+        if(is_at_end() || !is_digit(peek_byte())) { return error_token(m_source.substr(text_start, m_pos - text_start), start); }
+        while(!is_at_end() && (is_digit(peek_byte()) || peek_byte() == '_')) { advance_byte(); }
+        if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
+        return make_token(kind, m_source.substr(text_start, m_pos - text_start), start);
+    }
 
     // NOLINTBEGIN(readability-function-cognitive-complexity)
     Token Lexer::scan_hash_numeric(const SourceLocation &start) {
@@ -345,49 +352,19 @@ namespace jsv {
         if(is_at_end()) { return error_token(m_source.substr(text_start, m_pos - text_start), start); }
 
         const char tag = peek_byte();
+        advance_byte();  // consume tag
 
-        // ── Binary: #b[01_]+ [uU]? ───────────────────────────────────────────
-        if(tag == 'b') {
-            advance_byte();  // 'b'
-            if(is_at_end() || (peek_byte() != '0' && peek_byte() != '1')) {
-                // No valid binary digit immediately after prefix → Error.
-                // Recovery is local: cursor sits on the bad char so the next
-                // next_token() call sees it fresh.
-                return error_token(m_source.substr(text_start, m_pos - text_start), start);
-            }
-            while(!is_at_end() && (peek_byte() == '0' || peek_byte() == '1' || peek_byte() == '_')) { advance_byte(); }
-            // Bare unsigned suffix: 'u'/'U' not followed by alnum.
-            if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
-            return make_token(TokenKind::Binary, m_source.substr(text_start, m_pos - text_start), start);
+        switch(tag) {
+        case 'b':
+            return scan_based_literal(text_start, start, TokenKind::Binary, [](const char c) noexcept { return c == '0' || c == '1'; });
+        case 'o':
+            return scan_based_literal(text_start, start, TokenKind::Octal, [](const char c) noexcept { return c >= '0' && c <= '7'; });
+        case 'x':
+            return scan_based_literal(text_start, start, TokenKind::Hexadecimal,
+                                      [](const char c) noexcept { return std::isxdigit(C_UC(c)) != 0; });
+        default:
+            return error_token(m_source.substr(text_start, m_pos - text_start), start);
         }
-
-        // ── Octal: #o[0-7_]+ [uU]? ───────────────────────────────────────────
-        if(tag == 'o') {
-            advance_byte();  // 'o'
-            if(is_at_end() || peek_byte() < '0' || peek_byte() > '7') {
-                return error_token(m_source.substr(text_start, m_pos - text_start), start);
-            }
-            while(!is_at_end() && ((peek_byte() >= '0' && peek_byte() <= '7') || peek_byte() == '_')) { advance_byte(); }
-            if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
-            return make_token(TokenKind::Octal, m_source.substr(text_start, m_pos - text_start), start);
-        }
-
-        // ── Hexadecimal: #x[0-9a-fA-F_]+ [uU]? ─────────────────────────────
-        if(tag == 'x') {
-            advance_byte();  // 'x'
-            if(is_at_end() || (std::isxdigit(C_UC(peek_byte())) == 0)) {
-                return error_token(m_source.substr(text_start, m_pos - text_start), start);
-            }
-            while(!is_at_end() && ((std::isxdigit(C_UC(peek_byte())) != 0) || peek_byte() == '_')) { advance_byte(); }
-            // 'u'/'U' are NOT valid hex digits so they are unambiguously a suffix
-            // here — they could not have been consumed by the digit loop above.
-            if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
-            return make_token(TokenKind::Hexadecimal, m_source.substr(text_start, m_pos - text_start), start);
-        }
-
-        // '#' followed by an unrecognised tag byte → emit Error for '#' + tag.
-        advance_byte();  // consume the unknown byte so we always make forward progress
-        return error_token(m_source.substr(text_start, m_pos - text_start), start);
     }
     // NOLINTEND(readability-function-cognitive-complexity)
 
