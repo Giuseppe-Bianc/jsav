@@ -131,18 +131,19 @@ namespace jsv::unicode {
             if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 3-byte: E0 with b1 < A0 — consume maximal subpart (all 3 bytes if valid)
             if(b0 == 0xE0U && b1 < 0xA0U) {
-                if((b2 & 0xC0U) == 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
+                if(is_continuation(b2)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
             }
             // Surrogate: ED with b1 in A0–BF — consume maximal subpart (all 3 bytes if valid)
             if(b0 == 0xEDU && b1 >= 0xA0U) {
-                if((b2 & 0xC0U) == 0x80U) { return {REPLACEMENT_CHAR, 3, Utf8Status::Surrogate}; }
+                if(is_continuation(b2)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Surrogate}; }
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate};
             }
             if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
             const char32_t cp = ((b0 & 0x0F) << 12U) | ((b1 & PAYLOAD_MASK) << 6U) | (b2 & PAYLOAD_MASK);
+
             return {cp, 3, Utf8Status::Ok};
-        }  // namespace detail
+        }
 
         [[nodiscard]] constexpr Utf8DecodeResult decode_4byte_truncated(std::string_view input, std::size_t offset,
                                                                         std::uint8_t b0) noexcept {
@@ -222,7 +223,7 @@ namespace jsv::unicode {
             // 0xC0–0xC1 are always overlong (would encode U+0000–U+007F)
             // Consume maximal subpart: both bytes if valid continuation exists
             if(first < 0xC2U) {
-                if(offset + 1 < input.size() && (static_cast<std::uint8_t>(input[offset + 1]) & 0xC0U) == 0x80U) {
+                if(offset + 1 < input.size() && (C_UI8T(input[offset + 1]) & 0xC0U) == 0x80U) {
                     return {detail::REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
                 }
                 return {detail::REPLACEMENT_CHAR, 1, Utf8Status::Overlong};
