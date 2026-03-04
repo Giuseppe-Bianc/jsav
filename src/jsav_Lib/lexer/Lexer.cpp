@@ -280,22 +280,19 @@ namespace jsv {
             if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
                 // Try to match valid width: 32 → 16 → 8 (FR-017: avoid partial matches)
                 // Width must NOT be followed by another digit (e.g., u80 is invalid)
-                if(peek_byte(1) == '3' && peek_byte(2) == '2' &&
-                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                if(peek_byte(1) == '3' && peek_byte(2) == '2' && (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
                     advance_byte();  // consume u/U
                     advance_byte();  // consume 3
                     advance_byte();  // consume 2
                     return;
                 }
-                if(peek_byte(1) == '1' && peek_byte(2) == '6' &&
-                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                if(peek_byte(1) == '1' && peek_byte(2) == '6' && (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
                     advance_byte();  // consume u/U
                     advance_byte();  // consume 1
                     advance_byte();  // consume 6
                     return;
                 }
-                if(peek_byte(1) == '8' &&
-                   (is_at_end() || !std::isdigit(C_UC(peek_byte(2))))) {
+                if(peek_byte(1) == '8' && (is_at_end() || !std::isdigit(C_UC(peek_byte(2))))) {
                     advance_byte();  // consume u/U
                     advance_byte();  // consume 8
                     return;
@@ -312,22 +309,19 @@ namespace jsv {
             if(!is_at_end() && std::isdigit(C_UC(peek_byte(1))) != 0) {
                 // Try to match valid width: 32 → 16 → 8 (FR-017: avoid partial matches)
                 // Width must NOT be followed by another digit (e.g., i80 is invalid)
-                if(peek_byte(1) == '3' && peek_byte(2) == '2' &&
-                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                if(peek_byte(1) == '3' && peek_byte(2) == '2' && (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
                     advance_byte();  // consume i/I
                     advance_byte();  // consume 3
                     advance_byte();  // consume 2
                     return;
                 }
-                if(peek_byte(1) == '1' && peek_byte(2) == '6' &&
-                   (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
+                if(peek_byte(1) == '1' && peek_byte(2) == '6' && (is_at_end() || !std::isdigit(C_UC(peek_byte(3))))) {
                     advance_byte();  // consume i/I
                     advance_byte();  // consume 1
                     advance_byte();  // consume 6
                     return;
                 }
-                if(peek_byte(1) == '8' &&
-                   (is_at_end() || !std::isdigit(C_UC(peek_byte(2))))) {
+                if(peek_byte(1) == '8' && (is_at_end() || !std::isdigit(C_UC(peek_byte(2))))) {
                     advance_byte();  // consume i/I
                     advance_byte();  // consume 8
                     return;
