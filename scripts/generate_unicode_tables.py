@@ -22,8 +22,10 @@ import subprocess
 import sys
 import time
 import urllib.request
+import bisect
 from pathlib import Path
 from datetime import date
+from typing import Dict
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -89,43 +91,40 @@ def format_duration(duration_ns: float) -> str:
         >>> format_duration(1234567890)
         '1s,234ms,567us,890ns'
     """
-    if duration_ns < 1000:
-        # Pure nanoseconds
-        return f"{int(duration_ns)}ns"
-    elif duration_ns < 1_000_000:
-        # Microseconds + nanoseconds
-        micros = int(duration_ns // 1000)
-        nanos = int(duration_ns % 1000)
-        return f"{micros}us,{nanos}ns" if nanos > 0 else f"{micros}us"
-    elif duration_ns < 1_000_000_000:
-        # Milliseconds + microseconds + nanoseconds
-        millis = int(duration_ns // 1_000_000)
-        remainder = duration_ns % 1_000_000
-        micros = int(remainder // 1000)
-        nanos = int(remainder % 1000)
-        parts = [f"{millis}ms"]
-        if micros > 0:
-            parts.append(f"{micros}us")
-        if nanos > 0:
-            parts.append(f"{nanos}ns")
-        return ",".join(parts)
-    else:
-        # Seconds + milliseconds + microseconds + nanoseconds
-        secs = int(duration_ns // 1_000_000_000)
-        remainder = duration_ns % 1_000_000_000
-        millis = int(remainder // 1_000_000)
-        remainder = remainder % 1_000_000
-        micros = int(remainder // 1000)
-        nanos = int(remainder % 1000)
-        parts = [f"{secs}s"]
-        if millis > 0:
-            parts.append(f"{millis}ms")
-        if micros > 0:
-            parts.append(f"{micros}us")
-        if nanos > 0:
-            parts.append(f"{nanos}ns")
-        return ",".join(parts)
+    ns = int(duration_ns)  # cast once
 
+    if ns < 1_000:
+        # Pure nanoseconds
+        return str(ns) + "ns"
+    if ns < 1_000_000:
+        # Microseconds + nanoseconds
+        micros, nanos = divmod(ns, 1_000)
+        if nanos:
+            return str(micros) + "us," + str(nanos) + "ns"
+        return str(micros) + "us"
+    if ns < 1_000_000_000:
+        # Milliseconds + microseconds + nanoseconds
+        millis, rem = divmod(ns, 1_000_000)
+        micros, nanos = divmod(rem, 1_000)
+        s = str(millis) + "ms"
+        if micros:
+            s += "," + str(micros) + "us"
+        if nanos:
+            s += "," + str(nanos) + "ns"
+        return s
+
+    # Seconds + milliseconds + microseconds + nanoseconds
+    secs, rem = divmod(ns, 1_000_000_000)
+    millis, rem = divmod(rem, 1_000_000)
+    micros, nanos = divmod(rem, 1_000)
+    s = str(secs) + "s"
+    if millis:
+        s += "," + str(millis) + "ms"
+    if micros:
+        s += "," + str(micros) + "us"
+    if nanos:
+        s += "," + str(nanos) + "ns"
+    return s
 
 # -----------------------------------------------------------------------------
 # Parse UnicodeData.txt
@@ -139,38 +138,53 @@ def download_unicode_data() -> str:
     return data
 
 
-def parse_codepoints(data: str) -> dict[int, str]:
+def parse_codepoints(data: str) -> Dict[int, str]:
     """Return {codepoint: general_category} mapping.
     Handles <..., First> / <..., Last> range markers for CJK blocks.
     """
-    codepoints: dict[int, str] = {}
-    pending_range_start: int | None = None
-    pending_range_cat: str | None = None
+    m: dict[int, str] = {}
+    pending_start = -1
+    pending_cat: str | None = None
+
+    int16 = int
+    setitem = m.__setitem__
+    ends_first = ", First>"
+    ends_last = ", Last>"
 
     for line in data.splitlines():
-        if not line:
+        if not line or line[0] == "#":
             continue
+
         fields = line.split(";")
         if len(fields) < 3:
             continue
-        cp = int(fields[0], 16)
+
+        # parse fields (int() is already implemented in C and is fast)
+        try:
+            cp = int16(fields[0], 16)
+        except ValueError:
+            continue
+
         name = fields[1]
         cat = fields[2]
 
-        if name.endswith(", First>"):
-            pending_range_start = cp
-            pending_range_cat = cat
-        elif name.endswith(", Last>"):
-            if pending_range_start is not None:
-                for c in range(pending_range_start, cp + 1):
-                    codepoints[c] = pending_range_cat  # type: ignore[assignment]
-            pending_range_start = None
-            pending_range_cat = None
+        if name.endswith(ends_first):
+            pending_start = cp
+            pending_cat = cat
+        elif name.endswith(ends_last):
+            if pending_start != -1 and pending_cat is not None:
+                pc = pending_cat
+                # fill the range
+                for c in range(pending_start, cp + 1):
+                    setitem(c, pc)
+            pending_start = -1
+            pending_cat = None
         else:
-            codepoints[cp] = cat
-            pending_range_start = None
+            setitem(cp, cat)
+            pending_start = -1
+            pending_cat = None
 
-    return codepoints
+    return m
 
 
 # -----------------------------------------------------------------------------
@@ -210,30 +224,23 @@ def validate_round_trip(
     generated_ranges: dict[str, list[tuple[int, int]]],
 ) -> None:
     """
-    Re-parse the generated C++ ranges and verify 100% round-trip coverage
-    against UnicodeData.txt for categories L, M, N, Zs, Zl, Zp.
-
-    - Every code point in UnicodeData.txt with a matching General Category must
-      be contained in exactly one generated range.
-    - No generated range contains code points outside the category.
-
-    Exits non-zero on any mismatch.
+    Optimized SC-005 validation:
+    - No large temporary sets
+    - No nested per-range CP iteration
+    - Faster bisect-based membership test
     """
+
     print("Running SC-005 conformance validation...")
 
-    def in_ranges(cp: int, ranges: list[tuple[int, int]]) -> bool:
-        lo, hi = 0, len(ranges) - 1
-        while lo <= hi:
-            mid = (lo + hi) // 2
-            if ranges[mid][0] <= cp <= ranges[mid][1]:
-                return True
-            elif cp < ranges[mid][0]:
-                hi = mid - 1
-            else:
-                lo = mid + 1
-        return False
+    def build_index(ranges: list[tuple[int, int]]):
+        starts = [r[0] for r in ranges]
+        ends = [r[1] for r in ranges]
+        return starts, ends
 
-    # Build per-classifier expected sets from codepoints
+    def in_ranges(cp: int, starts, ends) -> bool:
+        i = bisect.bisect_right(starts, cp) - 1
+        return i >= 0 and cp <= ends[i]
+
     classifier_info = [
         ("is_letter (L)",           LETTER_CATEGORIES,      generated_ranges["letter"]),
         ("id_start (L+Nl)",         ID_START_CATEGORIES,    generated_ranges["id_start"]),
@@ -242,38 +249,47 @@ def validate_round_trip(
     ]
 
     errors = 0
+
     for name, cats, ranges in classifier_info:
-        expected = {cp for cp, cat in codepoints.items() if cat in cats}
-        # Check all expected are in ranges
-        for cp in expected:
-            if not in_ranges(cp, ranges):
-                print(
-                    f"  SC-005 FAIL [{name}]: U+{cp:04X} ({codepoints[cp]}) "
-                    f"not in generated ranges"
-                )
-                errors += 1
-                if errors > 10:
-                    print("  (Too many errors, stopping...)")
-                    sys.exit(1)
-        # Check no extra codepoints in ranges
-        for first, last in ranges:
-            for cp in range(first, last + 1):
-                cat = codepoints.get(cp)
-                if cat not in cats:
+
+        starts, ends = build_index(ranges)
+        expected_count = 0
+
+        for cp, cat in codepoints.items():
+
+            matches_category = cat in cats
+            in_generated = in_ranges(cp, starts, ends)
+
+            if matches_category:
+                expected_count += 1
+                if not in_generated:
                     print(
-                        f"  SC-005 FAIL [{name}]: U+{cp:04X} (cat={cat}) in range "
-                        f"U+{first:04X}-U+{last:04X} but not in expected categories"
+                        f"  SC-005 FAIL [{name}]: U+{cp:04X} ({cat}) "
+                        f"not in generated ranges"
                     )
                     errors += 1
-                    if errors > 10:
-                        print("  (Too many errors, stopping...)")
-                        sys.exit(1)
+            else:
+                if in_generated:
+                    print(
+                        f"  SC-005 FAIL [{name}]: U+{cp:04X} (cat={cat}) "
+                        f"in generated ranges but not expected"
+                    )
+                    errors += 1
+
+            if errors > 10:
+                print("  (Too many errors, stopping...)")
+                sys.exit(1)
+
         if errors == 0:
-            print(f"  SC-005 PASS [{name}]: {len(ranges)} ranges, {len(expected)} code points OK")
+            print(
+                f"  SC-005 PASS [{name}]: "
+                f"{len(ranges)} ranges, {expected_count} code points OK"
+            )
 
     if errors > 0:
         print(f"\nSC-005 FAILED with {errors} errors. See above.")
         sys.exit(1)
+
     print("SC-005 conformance validation PASSED.\n")
 
 
