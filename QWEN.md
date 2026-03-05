@@ -25,16 +25,43 @@ jsav/
 ├── include/
 │   ├── jsav/                   # Public headers (main module)
 │   │   ├── fs/                 # Filesystem utilities
+│   │   │   ├── FileCreationResult.hpp
+│   │   │   ├── FileDeletionResult.hpp
+│   │   │   ├── FolderCreationResult.hpp
+│   │   │   ├── FolderDeletionResult.hpp
+│   │   │   ├── fs.hpp
+│   │   │   ├── FSConstats.hpp
+│   │   │   └── OSOperationResult.hpp
+│   │   ├── lexer/              # Lexer utilities
+│   │   │   ├── unicode/        # Unicode support
+│   │   │   │   ├── UnicodeData.hpp
+│   │   │   │   └── Utf8.hpp
+│   │   │   ├── Lexer.hpp
+│   │   │   ├── SourceLocation.hpp
+│   │   │   ├── SourceSpan.hpp
+│   │   │   └── Token.hpp
 │   │   ├── headers.hpp         # Master include for jsav module
 │   │   └── jsav.hpp            # Main module header
 │   └── jsavCore/               # Core library headers
 │       ├── cast/               # Casting utilities
+│       │   ├── BaseCast.hpp
+│       │   ├── BitCast.hpp
+│       │   ├── casts.hpp
+│       │   ├── NarrowCast.hpp
+│       │   └── TypeSizes.hpp
 │       ├── timer/              # Timer utilities
+│       │   ├── timeFactors.hpp
+│       │   ├── Timer.hpp
+│       │   ├── TimerConstats.hpp
+│       │   └── Times.hpp
 │       ├── disableWarn.hpp     # Warning suppression macros
 │       ├── FileReader.hpp      # File reading utilities
+│       ├── FileReaderError.hpp # File reader error types
 │       ├── format.hpp          # Formatting utilities
+│       ├── headersCore.hpp     # Core master include
+│       ├── jsavCore.hpp        # Core module header
 │       ├── Log.hpp             # Logging utilities
-│       └── headersCore.hpp     # Core master include
+│       └── move.hpp            # Move semantics utilities
 ├── src/
 │   ├── CMakeLists.txt          # Source subdirectory config
 │   ├── jsav/                   # Main executable
@@ -46,14 +73,48 @@ jsav/
 │   │   └── jsavCore.cpp
 │   └── jsav_Lib/               # Main library implementation
 │       ├── CMakeLists.txt
-│       └── jsav.cpp
+│       ├── jsav.cpp
+│       └── lexer/              # Lexer implementation
+│           ├── Lexer.cpp
+│           ├── SourceLocation.cpp
+│           ├── SourceSpan.cpp
+│           └── Token.cpp
 ├── test/
 │   ├── CMakeLists.txt          # Test configuration
 │   ├── constexpr_tests.cpp     # Compile-time constexpr tests
-│   └── tests.cpp               # Runtime tests
-├── fuzz_test/                  # Fuzz testing (optional)
+│   ├── tests.cpp               # Runtime tests
+│   └── testsConstanst.hpp      # Test constants
+├── fuzz_test/                  # Fuzz testing
+│   ├── CMakeLists.txt
+│   └── fuzz_tester.cpp
 ├── cmake/                      # CMake modules and utilities
-└── configured_files/           # Template files for generation
+│   ├── _FORTIFY_SOURCE.hpp
+│   ├── Cache.cmake
+│   ├── CompilerWarnings.cmake
+│   ├── CPM.cmake
+│   ├── Cuda.cmake
+│   ├── Doxygen.cmake
+│   ├── Emscripten.cmake
+│   ├── Hardening.cmake
+│   ├── InterproceduralOptimization.cmake
+│   ├── LibFuzzer.cmake
+│   ├── Linker.cmake
+│   ├── PackageProject.cmake
+│   ├── PreventInSourceBuilds.cmake
+│   ├── Sanitizers.cmake
+│   ├── Simd.cmake
+│   ├── StandardProjectSettings.cmake
+│   ├── StaticAnalyzers.cmake
+│   ├── SystemLink.cmake
+│   ├── Tests.cmake
+│   ├── Utilities.cmake
+│   └── VCEnvironment.cmake
+├── configured_files/           # Template files for generation
+│   ├── CMakeLists.txt
+│   └── config.hpp.in
+├── scripts/                    # Utility scripts
+├── specs/                      # Specification documents
+└── vn_files/                   # Version number files
 ```
 
 ### Library Targets
