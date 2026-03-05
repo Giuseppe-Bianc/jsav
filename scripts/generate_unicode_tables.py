@@ -17,11 +17,16 @@ Output:
     include/jsav/lexer/unicode/UnicodeData.hpp
 """
 
+from bisect import bisect_right
+from itertools import batched
 import shutil
 import subprocess
 import sys
 import time
 import urllib.request
+import gzip
+import io
+import zlib
 from pathlib import Path
 from datetime import date
 
@@ -41,6 +46,9 @@ OUTPUT_PATH = (
         / "UnicodeData.hpp"
 )
 
+UNITS = ("B", "KB", "MB", "GB", "TB")
+_UNIT_MAX = len(UNITS) - 1
+
 # General Category sets for each classifier
 # id_start : Letter (Lu Ll Lt Lm Lo Nl) — categories starting with L, plus Nl
 ID_START_CATEGORIES = frozenset({"Lu", "Ll", "Lt", "Lm", "Lo", "Nl"})
@@ -57,6 +65,15 @@ WHITESPACE_CATEGORIES = frozenset({"Zs", "Zl", "Zp", "Cc"})
 # "Letter" for is_letter() — all L categories
 LETTER_CATEGORIES = frozenset({"Lu", "Ll", "Lt", "Lm", "Lo"})
 
+def format_size(bytes: int) -> tuple[float, str]:
+    size = float(bytes)
+    unit = 0
+
+    while size >= 1024.0 and unit < _UNIT_MAX:
+        size /= 1024.0
+        unit += 1
+
+    return size, UNITS[unit]
 
 # -----------------------------------------------------------------------------
 # Timing Utilities
@@ -130,65 +147,112 @@ def format_duration(duration_ns: float) -> str:
 # -----------------------------------------------------------------------------
 
 def download_unicode_data() -> str:
+    """Download UnicodeData.txt and return its contents as a UTF-8 string.
+
+    Optimizations vs. original:
+    - gzip/zlib imports hoisted to module level (avoids repeated sys.modules lookup).
+    - Content-Encoding is checked before reading the body so decompression is
+      performed as a streaming pass over the wire bytes, eliminating the
+      double-buffer peak that existed when decompress() was called on an already-
+      fully-read bytes object.
+    - A timeout guards against indefinite blocking.
+    """
     print(f"Downloading UnicodeData.txt (Unicode {UNICODE_VERSION})...")
 
     request = urllib.request.Request(UNICODE_DATA_URL)
-    # Accept compressed responses to reduce network transfer time
+    # Signal that we can handle compressed responses to reduce transfer size.
     request.add_header("Accept-Encoding", "gzip, deflate")
 
-    with urllib.request.urlopen(request) as response:
-        raw_data = response.read()
+    with urllib.request.urlopen(request, timeout=30) as response:
+        content_encoding = response.headers.get("Content-Encoding", "").lower()
 
-        # Handle compressed responses if the server supports it
-        content_encoding = response.headers.get("Content-Encoding", "")
         if content_encoding == "gzip":
-            import gzip
-            raw_data = gzip.decompress(raw_data)
+            # Wrap the raw socket stream in GzipFile so decompression happens
+            # incrementally — we never hold both the compressed and decompressed
+            # bytes in memory at the same time.
+            with gzip.GzipFile(fileobj=response) as gz_stream:
+                raw_data: bytes = gz_stream.read()
+
         elif content_encoding == "deflate":
-            import zlib
-            raw_data = zlib.decompress(raw_data)
+            # zlib's decompressobj lets us feed chunks from the wire directly,
+            # again avoiding a second full-size allocation.
+            decompressor = zlib.decompressobj(wbits=-zlib.MAX_WBITS)
+            chunks: list[bytes] = []
+            while chunk := response.read(65536):  # 64 KiB chunks
+                chunks.append(decompressor.decompress(chunk))
+            chunks.append(decompressor.flush())
+            # join() performs a single allocation sized exactly to the output.
+            raw_data = b"".join(chunks)
 
-        # Decode in-place; use the raw bytes length for reporting
-        # since that reflects actual download size
-        raw_len = len(raw_data)
-        data = raw_data.decode("utf-8")
-        # Allow GC to reclaim the bytes buffer immediately
-        del raw_data
+        else:
+            # No compression — read directly.
+            raw_data = response.read()
 
-    print(f"  Downloaded {raw_len:,} bytes.")
+    # Report the byte count before decoding so it reflects actual download size.
+    raw_len = len(raw_data)
+
+    # Decode to str; raw_data goes out of scope immediately after and is
+    # eligible for GC — no explicit del needed since there are no other refs.
+    data = raw_data.decode("utf-8")
+
+    size, unit = format_size(raw_len)
+    print(f"  Downloaded {size:.2f} {unit} ({raw_len:,} bytes).")
     return data
 
 
 def parse_codepoints(data: str) -> dict[int, str]:
     """Return {codepoint: general_category} mapping.
+
     Handles <..., First> / <..., Last> range markers for CJK blocks.
+
+    Optimisations vs. original:
+      - io.StringIO iterator: avoids materialising a full list of lines.
+      - split(";", 2):        only splits the three fields we actually use.
+      - dict.fromkeys+update: expands codepoint ranges in C, not a Python loop.
     """
     codepoints: dict[int, str] = {}
     pending_range_start: int | None = None
     pending_range_cat: str | None = None
 
-    for line in data.splitlines():
+    # Opt 1: iterate lazily — no upfront list allocation for all ~34 k lines.
+    for line in io.StringIO(data):
+        line = line.rstrip("\n\r")
         if not line:
             continue
-        fields = line.split(";")
+
+        # Opt 2: maxsplit=2 — stop after the three fields we need;
+        #         avoids allocating the 11 unused trailing fields per line.
+        fields = line.split(";", 2)
         if len(fields) < 3:
             continue
+
         cp = int(fields[0], 16)
         name = fields[1]
-        cat = fields[2]
+        # fields[2] may contain trailing semicolons; we only need the category
+        # token which is always the first thing before any further delimiter.
+        cat = fields[2].split(";", 1)[0]   # isolate category from remainder
 
         if name.endswith(", First>"):
             pending_range_start = cp
             pending_range_cat = cat
+
         elif name.endswith(", Last>"):
             if pending_range_start is not None:
-                for c in range(pending_range_start, cp + 1):
-                    codepoints[c] = pending_range_cat  # type: ignore[assignment]
+                # Opt 3: dict.fromkeys runs entirely in C — no Python bytecode
+                #         dispatch per codepoint.  For the CJK Unified Ideographs
+                #         block (~20 902 entries) this is the dominant win.
+                codepoints.update(
+                    dict.fromkeys(range(pending_range_start, cp + 1), pending_range_cat)
+                )
             pending_range_start = None
             pending_range_cat = None
+
         else:
             codepoints[cp] = cat
-            pending_range_start = None
+            # Opt 4: only clear pending state when it is actually set,
+            #         avoiding a redundant store on the hot (non-range) path.
+            if pending_range_start is not None:
+                pending_range_start = None
 
     return codepoints
 
@@ -201,22 +265,30 @@ def build_ranges(
         codepoints: dict[int, str], categories: frozenset[str]
 ) -> list[tuple[int, int]]:
     """Build sorted, merged list of (first, last) inclusive ranges for the given categories."""
+    category_set: frozenset[str] = (
+        categories if isinstance(categories, frozenset) else frozenset(categories)
+    )
+
+    # --- Bottleneck 2 fix: bail out before any allocation on empty input.
+    if not codepoints:
+        return []
+
     # Collect and sort matching code points
-    matching = sorted(cp for cp, cat in codepoints.items() if cat in categories)
+    matching: list[int] = sorted(
+        cp for cp, cat in codepoints.items() if cat in category_set
+    )
     if not matching:
         return []
 
     ranges: list[tuple[int, int]] = []
-    start = matching[0]
-    end = matching[0]
+    start = end = matching[0]
 
     for cp in matching[1:]:
         if cp == end + 1:
             end = cp
         else:
             ranges.append((start, end))
-            start = cp
-            end = cp
+            start = end = cp  # --- Bottleneck 4 fix: collapsed tuple unpack
     ranges.append((start, end))
     return ranges
 
@@ -242,16 +314,8 @@ def validate_round_trip(
     print("Running SC-005 conformance validation...")
 
     def in_ranges(cp: int, ranges: list[tuple[int, int]]) -> bool:
-        lo, hi = 0, len(ranges) - 1
-        while lo <= hi:
-            mid = (lo + hi) // 2
-            if ranges[mid][0] <= cp <= ranges[mid][1]:
-                return True
-            elif cp < ranges[mid][0]:
-                hi = mid - 1
-            else:
-                lo = mid + 1
-        return False
+        i = bisect_right(ranges, cp, key=lambda r: r[0])
+        return i > 0 and ranges[i - 1][1] >= cp
 
     # Build per-classifier expected sets from codepoints
     classifier_info = [
@@ -303,14 +367,16 @@ def validate_round_trip(
 
 def format_ranges_cpp(ranges: list[tuple[int, int]], indent: str = "    ") -> str:
     """Format ranges as C++ initializer list, 4 entries per line."""
-    lines: list[str] = []
-    chunk: list[str] = []
-    for i, (first, last) in enumerate(ranges):
-        chunk.append(f"{{U'\\U{first:08X}', U'\\U{last:08X}'}}")
-        if len(chunk) == 4 or i == len(ranges) - 1:
-            lines.append(indent + ", ".join(chunk) + ",")
-            chunk = []
-    return "\n".join(lines)
+    def _fmt_entry(first: int, last: int) -> str:
+        # Extracted to a named closure so the f-string is written once;
+        # also makes the generator expression below easier to read.
+        return f"{{U'\\U{first:08X}', U'\\U{last:08X}'}}"
+    return "\n".join(
+        # Each batch is at most 4 pairs; batched() handles the final short batch
+        # automatically — no manual flush condition needed.
+        indent + ", ".join(_fmt_entry(f, l) for f, l in batch) + ","
+        for batch in batched(ranges, 4)
+    )
 
 
 def generate_header(
@@ -490,6 +556,7 @@ namespace jsv::unicode {{
 # -----------------------------------------------------------------------------
 
 def run_clang_format(file_path: Path) -> None:
+    timeout = 30
     """
     Run clang-format on the generated file using the project's .clang-format config.
 
@@ -519,14 +586,30 @@ def run_clang_format(file_path: Path) -> None:
                 f"--style=file:{clang_format_config}",
                 str(file_path),
             ],
-            capture_output=True,
+            # Only capture stderr: we never inspect stdout on the success path,
+            # so routing it to DEVNULL avoids allocating a stdout pipe buffer
+            # in Python heap memory entirely.
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.PIPE,
             text=True,
             check=True,
+            # Prevent an unresponsive clang-format from blocking the process
+            # indefinitely; raises subprocess.TimeoutExpired on breach.
+            timeout=timeout,
         )
-        print("  clang-format completed successfully.")
+    except subprocess.TimeoutExpired as e:
+        # Re-raise with richer context; caller decides whether to retry or abort.
+        raise subprocess.TimeoutExpired(
+            e.cmd, timeout, stderr=e.stderr
+        ) from e
     except subprocess.CalledProcessError as e:
-        print(f"  clang-format failed: {e.stderr}")
-        sys.exit(1)
+        # Raise instead of sys.exit so this function remains composable and
+        # unit-testable without spawning a real subprocess in every test.
+        raise RuntimeError(
+            f"clang-format failed on {file_path!r}:\n{e.stderr}"
+        ) from e
+
+    print("  clang-format completed successfully.")
 
 
 # -----------------------------------------------------------------------------
@@ -548,8 +631,9 @@ def main() -> None:
         "id_continue": build_ranges(codepoints, ID_CONTINUE_CATEGORIES),
         "whitespace": build_ranges(codepoints, WHITESPACE_CATEGORIES),
     }
-    for name, ranges in generated_ranges.items():
-        print(f"  {name}: {len(ranges)} ranges")
+    sys.stdout.write(
+        "\n".join(f"  {name}: {len(ranges)} ranges" for name, ranges in generated_ranges.items())+ "\n"
+    )
 
     # SC-005 conformance validation
     validate_round_trip(codepoints, generated_ranges)
@@ -559,16 +643,18 @@ def main() -> None:
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(header_content, encoding="utf-8")
-    print(f"Written: {OUTPUT_PATH}")
-    print(f"  {len(header_content):,} bytes, {header_content.count(chr(10))} lines.")
+    line_count = header_content.count("\n")
+    size, unit = format_size(len(header_content))
+    print(f"Written: {OUTPUT_PATH}\n{size:.2f} {unit} ({len(header_content):,} bytes), {line_count} lines.")
+
 
     end_time = time.perf_counter_ns()
     total_time = end_time - start_time
-    print(f"Total generation time: {format_duration(total_time)}")
     start_time_clang = time.perf_counter_ns()
     run_clang_format(OUTPUT_PATH)
     end_time_clang = time.perf_counter_ns()
     total_time_clang = end_time_clang - start_time_clang
+    print(f"Total generation time: {format_duration(total_time)}")
     print(f"Total clang-format time: {format_duration(total_time_clang)}")
 
 
