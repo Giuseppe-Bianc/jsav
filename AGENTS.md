@@ -3036,15 +3036,18 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 - `tests.cpp` additions using `REQUIRE`, `REQUIRE_NOTHROW`, `REQUIRE_THROWS_AS` for runtime behavior
 - Test case names following the `ClassName_MethodName_Scenario` convention with appropriate `[tag]` annotations
 - Detailed test execution reports with coverage analysis via `gcovr`, targeting ≥80% line coverage and ≥70% branch coverage
-- Code duplication analysis using `similarity-rs`:
-    - Installation: `cargo install similarity-rs`
-    - **Critical Exclusion Policy:** The `test/` and `fuzz_test/` directories must be excluded from duplicate code analysis to prevent false positive detections. Use the `--skip-test` flag where applicable.
+- Code duplication and complexity analysis using `lizard`:
+    - **Tool:** Lizard (Python-based code complexity and duplication analyzer)
+    - **Installation:** `pip install lizard`
+    - **Command:** `lizard --CCN 15 --length 100 --arguments 6 src/ include/ --exclude "src/jsav/main.cpp"`
+    - **Critical Exclusion Policy:** The `test/` and `fuzz_test/` directories must be excluded from duplicate code analysis to prevent false positive detections. Lizard automatically excludes these directories when configured properly.
 
 **Technical Infrastructure:** The Tester Agent employs:
 
 - **Catch2 v3.13.0:** Standard unit, integration, and compile-time testing (`STATIC_REQUIRE`)
 - **gcovr:** Coverage report generation in HTML and Cobertura XML formats
 - **AddressSanitizer / UndefinedBehaviorSanitizer:** Configured via `jsav_ENABLE_SANITIZER_ADDRESS=ON` and `jsav_ENABLE_SANITIZER_UNDEFINED=ON`; all tests must report zero violations
+- **lizard:** Complexity and duplication analysis — `lizard --CCN 15 --length 100 --arguments 6 src/ include/ --exclude "src/jsav/main.cpp"`
 
 ---
 
@@ -3279,11 +3282,10 @@ The following rules are mandatory for all agents operating on this codebase. The
 | **Never modify `_deps/`** — update only `Dependencies.cmake` via CPM with explicit version locks | All agents | Build system integrity |
 | **Never expose dependency types** (spdlog, fmt, CLI11) in `include/jsav/` public headers | Coder | Header leak anti-pattern; consumer breakage |
 | **Always produce unified diff output** for every code modification | Refactor, Security, Performance | Audit trail requirement (Pattern 7) |
-| **Exclude `test/` and `fuzz_test/` from `similarity-rs` analysis** using `--skip-test` | Tester | False positive prevention |
+| **Exclude `test/` and `fuzz_test/` from `lizard` analysis** | Tester | False positive prevention |
 | **Zero sanitizer violations** required before any phase transition | Tester | AddressSanitizer + UndefinedBehaviorSanitizer |
 | **Never disable compiler warnings** project-wide; fix the underlying code | All agents | Section 7 Compilation Rules |
 | **All `constexpr`-capable functions must have `STATIC_REQUIRE` coverage** in `constexpr_tests.cpp` | Tester | Section 5.2 requirements |
-
 
 ## Appendix C: Document Verification
 
