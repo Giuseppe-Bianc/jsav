@@ -22,10 +22,8 @@ import subprocess
 import sys
 import time
 import urllib.request
-import bisect
 from pathlib import Path
 from datetime import date
-from typing import Dict, Iterable
 
 # -----------------------------------------------------------------------------
 # Configuration
@@ -35,12 +33,12 @@ UNICODE_DATA_URL = (
     f"https://www.unicode.org/Public/{UNICODE_VERSION}/ucd/UnicodeData.txt"
 )
 OUTPUT_PATH = (
-    Path(__file__).parent.parent
-    / "include"
-    / "jsav"
-    / "lexer"
-    / "unicode"
-    / "UnicodeData.hpp"
+        Path(__file__).parent.parent
+        / "include"
+        / "jsav"
+        / "lexer"
+        / "unicode"
+        / "UnicodeData.hpp"
 )
 
 # General Category sets for each classifier
@@ -49,12 +47,12 @@ ID_START_CATEGORIES = frozenset({"Lu", "Ll", "Lt", "Lm", "Lo", "Nl"})
 # id_continue : id_start + Mark (Mn Mc Me) + Number (Nd Nl No) + connector punct (Pc)
 ID_CONTINUE_CATEGORIES = frozenset({
     "Lu", "Ll", "Lt", "Lm", "Lo",  # Letter
-    "Mn", "Mc", "Me",               # Mark
-    "Nd", "Nl", "No",               # Number
-    "Pc",                           # Connector punctuation (underscore etc.)
+    "Mn", "Mc", "Me",  # Mark
+    "Nd", "Nl", "No",  # Number
+    "Pc",  # Connector punctuation (underscore etc.)
 })
 # whitespace : General Category Zs, Zl, Zp
-WHITESPACE_CATEGORIES = frozenset({"Zs", "Zl", "Zp"})
+WHITESPACE_CATEGORIES = frozenset({"Zs", "Zl", "Zp", "Cc"})
 
 # "Letter" for is_letter() — all L categories
 LETTER_CATEGORIES = frozenset({"Lu", "Ll", "Lt", "Lm", "Lo"})
@@ -126,6 +124,7 @@ def format_duration(duration_ns: float) -> str:
         s += "," + str(nanos) + "ns"
     return s
 
+
 # -----------------------------------------------------------------------------
 # Parse UnicodeData.txt
 # -----------------------------------------------------------------------------
@@ -160,53 +159,38 @@ def download_unicode_data() -> str:
     return data
 
 
-def parse_codepoints(data: str) -> Dict[int, str]:
+def parse_codepoints(data: str) -> dict[int, str]:
     """Return {codepoint: general_category} mapping.
     Handles <..., First> / <..., Last> range markers for CJK blocks.
     """
-    m: dict[int, str] = {}
-    pending_start = -1
-    pending_cat: str | None = None
-
-    int16 = int
-    setitem = m.__setitem__
-    ends_first = ", First>"
-    ends_last = ", Last>"
+    codepoints: dict[int, str] = {}
+    pending_range_start: int | None = None
+    pending_range_cat: str | None = None
 
     for line in data.splitlines():
-        if not line or line[0] == "#":
+        if not line:
             continue
-
         fields = line.split(";")
         if len(fields) < 3:
             continue
-
-        # parse fields (int() is already implemented in C and is fast)
-        try:
-            cp = int16(fields[0], 16)
-        except ValueError:
-            continue
-
+        cp = int(fields[0], 16)
         name = fields[1]
         cat = fields[2]
 
-        if name.endswith(ends_first):
-            pending_start = cp
-            pending_cat = cat
-        elif name.endswith(ends_last):
-            if pending_start != -1 and pending_cat is not None:
-                pc = pending_cat
-                # fill the range
-                for c in range(pending_start, cp + 1):
-                    setitem(c, pc)
-            pending_start = -1
-            pending_cat = None
+        if name.endswith(", First>"):
+            pending_range_start = cp
+            pending_range_cat = cat
+        elif name.endswith(", Last>"):
+            if pending_range_start is not None:
+                for c in range(pending_range_start, cp + 1):
+                    codepoints[c] = pending_range_cat  # type: ignore[assignment]
+            pending_range_start = None
+            pending_range_cat = None
         else:
-            setitem(cp, cat)
-            pending_start = -1
-            pending_cat = None
+            codepoints[cp] = cat
+            pending_range_start = None
 
-    return m
+    return codepoints
 
 
 # -----------------------------------------------------------------------------
@@ -214,7 +198,7 @@ def parse_codepoints(data: str) -> Dict[int, str]:
 # -----------------------------------------------------------------------------
 
 def build_ranges(
-    codepoints: dict[int, str], categories: frozenset[str]
+        codepoints: dict[int, str], categories: frozenset[str]
 ) -> list[tuple[int, int]]:
     """Build sorted, merged list of (first, last) inclusive ranges for the given categories."""
     # Collect and sort matching code points
@@ -242,76 +226,74 @@ def build_ranges(
 # -----------------------------------------------------------------------------
 
 def validate_round_trip(
-    codepoints: dict[int, str],
-    generated_ranges: dict[str, list[tuple[int, int]]],
+        codepoints: dict[int, str],
+        generated_ranges: dict[str, list[tuple[int, int]]],
 ) -> None:
     """
-    Optimized SC-005 validation:
-    - No large temporary sets
-    - No nested per-range CP iteration
-    - Faster bisect-based membership test
-    """
+    Re-parse the generated C++ ranges and verify 100% round-trip coverage
+    against UnicodeData.txt for categories L, M, N, Zs, Zl, Zp.
 
+    - Every code point in UnicodeData.txt with a matching General Category must
+      be contained in exactly one generated range.
+    - No generated range contains code points outside the category.
+
+    Exits non-zero on any mismatch.
+    """
     print("Running SC-005 conformance validation...")
 
-    def build_index(ranges: list[tuple[int, int]]):
-        starts = [r[0] for r in ranges]
-        ends = [r[1] for r in ranges]
-        return starts, ends
+    def in_ranges(cp: int, ranges: list[tuple[int, int]]) -> bool:
+        lo, hi = 0, len(ranges) - 1
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            if ranges[mid][0] <= cp <= ranges[mid][1]:
+                return True
+            elif cp < ranges[mid][0]:
+                hi = mid - 1
+            else:
+                lo = mid + 1
+        return False
 
-    def in_ranges(cp: int, starts, ends) -> bool:
-        i = bisect.bisect_right(starts, cp) - 1
-        return i >= 0 and cp <= ends[i]
-
+    # Build per-classifier expected sets from codepoints
     classifier_info = [
-        ("is_letter (L)",           LETTER_CATEGORIES,      generated_ranges["letter"]),
-        ("id_start (L+Nl)",         ID_START_CATEGORIES,    generated_ranges["id_start"]),
+        ("is_letter (L)", LETTER_CATEGORIES, generated_ranges["letter"]),
+        ("id_start (L+Nl)", ID_START_CATEGORIES, generated_ranges["id_start"]),
         ("id_continue (L+M+N+Pc)", ID_CONTINUE_CATEGORIES, generated_ranges["id_continue"]),
-        ("whitespace (Zs+Zl+Zp)",  WHITESPACE_CATEGORIES,  generated_ranges["whitespace"]),
+        ("whitespace (Zs+Zl+Zp+Cc)", WHITESPACE_CATEGORIES, generated_ranges["whitespace"]),
     ]
 
     errors = 0
-
     for name, cats, ranges in classifier_info:
-
-        starts, ends = build_index(ranges)
-        expected_count = 0
-
-        for cp, cat in codepoints.items():
-
-            matches_category = cat in cats
-            in_generated = in_ranges(cp, starts, ends)
-
-            if matches_category:
-                expected_count += 1
-                if not in_generated:
+        expected = {cp for cp, cat in codepoints.items() if cat in cats}
+        # Check all expected are in ranges
+        for cp in expected:
+            if not in_ranges(cp, ranges):
+                print(
+                    f"  SC-005 FAIL [{name}]: U+{cp:04X} ({codepoints[cp]}) "
+                    f"not in generated ranges"
+                )
+                errors += 1
+                if errors > 10:
+                    print("  (Too many errors, stopping...)")
+                    sys.exit(1)
+        # Check no extra codepoints in ranges
+        for first, last in ranges:
+            for cp in range(first, last + 1):
+                cat = codepoints.get(cp)
+                if cat not in cats:
                     print(
-                        f"  SC-005 FAIL [{name}]: U+{cp:04X} ({cat}) "
-                        f"not in generated ranges"
+                        f"  SC-005 FAIL [{name}]: U+{cp:04X} (cat={cat}) in range "
+                        f"U+{first:04X}-U+{last:04X} but not in expected categories"
                     )
                     errors += 1
-            else:
-                if in_generated:
-                    print(
-                        f"  SC-005 FAIL [{name}]: U+{cp:04X} (cat={cat}) "
-                        f"in generated ranges but not expected"
-                    )
-                    errors += 1
-
-            if errors > 10:
-                print("  (Too many errors, stopping...)")
-                sys.exit(1)
-
+                    if errors > 10:
+                        print("  (Too many errors, stopping...)")
+                        sys.exit(1)
         if errors == 0:
-            print(
-                f"  SC-005 PASS [{name}]: "
-                f"{len(ranges)} ranges, {expected_count} code points OK"
-            )
+            print(f"  SC-005 PASS [{name}]: {len(ranges)} ranges, {len(expected)} code points OK")
 
     if errors > 0:
         print(f"\nSC-005 FAILED with {errors} errors. See above.")
         sys.exit(1)
-
     print("SC-005 conformance validation PASSED.\n")
 
 
@@ -319,53 +301,32 @@ def validate_round_trip(
 # Format C++ output
 # -----------------------------------------------------------------------------
 
-def format_ranges_cpp(
-    ranges: Iterable[tuple[int, int]], 
-    indent: str = "    ",
-) -> str:
-    """Format ranges as C++ initializer list, 4 entries per line.
-
-    Optimized to:
-    - Minimize temporary allocations
-    - Avoid intermediate chunk lists
-    - Reduce repeated computations
-    """
-
-    result: list[str] = []
-    append = result.append  # Local binding (faster lookup)
-    
-    current_line = []
-    line_count = 0
-
-    for first, last in ranges:
-        current_line.append(f"{{U'\\U{first:08X}', U'\\U{last:08X}'}}")
-        line_count += 1
-
-        if line_count == 4:
-            append(indent + ", ".join(current_line) + ",")
-            current_line.clear()
-            line_count = 0
-
-    if current_line:
-        append(indent + ", ".join(current_line) + ",")
-
-    return "\n".join(result)
+def format_ranges_cpp(ranges: list[tuple[int, int]], indent: str = "    ") -> str:
+    """Format ranges as C++ initializer list, 4 entries per line."""
+    lines: list[str] = []
+    chunk: list[str] = []
+    for i, (first, last) in enumerate(ranges):
+        chunk.append(f"{{U'\\U{first:08X}', U'\\U{last:08X}'}}")
+        if len(chunk) == 4 or i == len(ranges) - 1:
+            lines.append(indent + ", ".join(chunk) + ",")
+            chunk = []
+    return "\n".join(lines)
 
 
 def generate_header(
-    generated_ranges: dict[str, list[tuple[int, int]]],
-    unicode_version: str,
-    generation_date: str,
+        generated_ranges: dict[str, list[tuple[int, int]]],
+        unicode_version: str,
+        generation_date: str,
 ) -> str:
-    letter_ranges      = generated_ranges["letter"]
-    id_start_ranges    = generated_ranges["id_start"]
+    letter_ranges = generated_ranges["letter"]
+    id_start_ranges = generated_ranges["id_start"]
     id_continue_ranges = generated_ranges["id_continue"]
-    whitespace_ranges  = generated_ranges["whitespace"]
+    whitespace_ranges = generated_ranges["whitespace"]
 
-    letter_cpp      = format_ranges_cpp(letter_ranges)
-    id_start_cpp    = format_ranges_cpp(id_start_ranges)
+    letter_cpp = format_ranges_cpp(letter_ranges)
+    id_start_cpp = format_ranges_cpp(id_start_ranges)
     id_continue_cpp = format_ranges_cpp(id_continue_ranges)
-    whitespace_cpp  = format_ranges_cpp(whitespace_ranges)
+    whitespace_cpp = format_ranges_cpp(whitespace_ranges)
 
     return f"""\
 /*
@@ -582,10 +543,10 @@ def main() -> None:
 
     print("Building ranges...")
     generated_ranges = {
-        "letter":      build_ranges(codepoints, LETTER_CATEGORIES),
-        "id_start":    build_ranges(codepoints, ID_START_CATEGORIES),
+        "letter": build_ranges(codepoints, LETTER_CATEGORIES),
+        "id_start": build_ranges(codepoints, ID_START_CATEGORIES),
         "id_continue": build_ranges(codepoints, ID_CONTINUE_CATEGORIES),
-        "whitespace":  build_ranges(codepoints, WHITESPACE_CATEGORIES),
+        "whitespace": build_ranges(codepoints, WHITESPACE_CATEGORIES),
     }
     for name, ranges in generated_ranges.items():
         print(f"  {name}: {len(ranges)} ranges")
