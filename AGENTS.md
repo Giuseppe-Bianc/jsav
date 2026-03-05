@@ -2968,6 +2968,322 @@ ctest -E "benchmark" --output-on-failure
 
 ---
 
+---
+
+## 8. Agent-Based Code Generation Framework
+
+This section introduces a comprehensive framework of autonomous AI agents for automating code generation, maintenance, and quality assurance within the `jsav` compiler project. Each agent has a specialized role and operates in coordination with the others through well-defined interfaces and communication protocols.
+
+---
+
+### 8.1 Specialized Agent Roles and Responsibilities
+
+#### Agent 1: Planner Agent — Strategic Task Decomposition and Workflow Orchestration
+
+**Primary Responsibility:** The Planner Agent functions as the central orchestrator of the code generation ecosystem, serving as the primary interface between high-level development objectives and their tactical implementation. This agent possesses comprehensive understanding of project architecture, dependency relationships, and development constraints as documented in this `AGENTS.md` file.
+
+**Input Specifications:** Natural language descriptions of desired features, performance optimizations, or architectural modifications. Input may range from broad directives such as "implement Unicode escape sequences in the lexer" to specific technical requirements such as "optimize token stream generation to reduce memory allocations."
+
+**Output Deliverables:**
+
+- Comprehensive file modification schedules with dependency ordering respecting the `jsav_Core_lib` → `jsav_Lib` → `jsav` dependency hierarchy
+- Detailed specifications for new functions and modules, including their target directory (`include/jsav/`, `include/jsavCore/`, `src/jsav_Lib/`, etc.)
+- Test coverage requirements mapped to the three test targets (`constexpr_tests`, `relaxed_constexpr_tests`, `tests`)
+- Risk assessment and mitigation strategies, particularly for changes to public API headers in `include/jsav/`
+- CMake target update requirements when new source files or dependencies are introduced
+
+**Technical Infrastructure:** The Planner Agent leverages the architectural knowledge documented in this file, specifically Sections 2.2 (Directory Relationships), 2.3 (Build Pipeline Flow), and 7 (Rules for Automated Agents), to generate plans that preserve overall system coherence and ensure compatibility with the established CMake build system.
+
+---
+
+#### Agent 2: Coder Agent — Automated Code Implementation and Integration
+
+**Primary Responsibility:** The Coder Agent specializes in translating detailed technical specifications into production-quality C++23 code. It demonstrates expertise in C++23-specific best practices, established software design patterns, and the coding conventions defined in Section 4 of this document.
+
+**Input Specifications:** Precisely defined implementation requirements from the Planner Agent, including:
+
+- Full function signatures with return types and parameter lists, including `[[nodiscard]]`, `constexpr`, `noexcept` qualifiers where applicable; each parameter documented with its type, purpose, and applicable constraints
+- Detailed algorithmic logic descriptions aligned with the project's C++23 feature preferences (Section 4.3)
+- Target file paths and namespace definitions following the `jsv` / `fs` / `vnd` namespace conventions
+- Integration requirements with existing modules, specifying which CMake targets must be linked
+
+**Output Deliverables:**
+
+- Complete function implementations with robust error handling using `std::expected<T, E>` or `std::optional<T>` as appropriate, avoiding raw exceptions for expected failure paths
+- `#pragma once` header guards, correct include ordering per `.clang-format` configuration, and proper use of forward declarations to minimize compilation dependencies
+- Doxygen-compatible documentation for all public symbols in `include/jsav/`
+- CMake `CMakeLists.txt` updates when new `.cpp` source files are added to `src/jsav_Lib/` or `src/jsav_Core_lib/`
+- Compliance with the column limit (140 characters) and indentation (4 spaces) specified in `.clang-format`
+
+**Technical Infrastructure:** The Coder Agent applies deep expertise in C++23 semantics, memory ownership (Section 4.4), and the project's compiler warning configuration (`cmake/CompilerWarnings.cmake`). It performs static analysis awareness by producing code that generates zero warnings under `-Wall -Wextra -Wshadow -Wconversion -Wsign-conversion` (GCC/Clang) or `/W4 /permissive-` (MSVC).
+
+---
+
+#### Agent 3: Tester Agent — Quality Assurance and Code Integrity Validation
+
+**Primary Responsibility:** The Tester Agent provides comprehensive quality assurance by automating test generation and execution, alongside systematic code quality analysis. It verifies functional correctness using the three-target Catch2 testing strategy established in Section 5.
+
+**Input Specifications:**
+
+- Complete function implementations requiring validation, with their behavioral specifications
+- Expected behavior descriptions including edge cases, boundary conditions, and error scenarios
+- Performance requirements and compile-time evaluation constraints
+- Integration testing requirements for inter-module interactions
+
+**Output Deliverables:**
+
+- `constexpr_tests.cpp` additions using `STATIC_REQUIRE` for all `constexpr`-capable functions
+- `tests.cpp` additions using `REQUIRE`, `REQUIRE_NOTHROW`, `REQUIRE_THROWS_AS` for runtime behavior
+- Test case names following the `ClassName_MethodName_Scenario` convention with appropriate `[tag]` annotations
+- Detailed test execution reports with coverage analysis via `gcovr`, targeting ≥80% line coverage and ≥70% branch coverage
+- Code duplication analysis using `similarity-rs`:
+    - Installation: `cargo install similarity-rs`
+    - **Critical Exclusion Policy:** The `test/` and `fuzz_test/` directories must be excluded from duplicate code analysis to prevent false positive detections. Use the `--skip-test` flag where applicable.
+
+**Technical Infrastructure:** The Tester Agent employs:
+
+- **Catch2 v3.13.0:** Standard unit, integration, and compile-time testing (`STATIC_REQUIRE`)
+- **gcovr:** Coverage report generation in HTML and Cobertura XML formats
+- **AddressSanitizer / UndefinedBehaviorSanitizer:** Configured via `jsav_ENABLE_SANITIZER_ADDRESS=ON` and `jsav_ENABLE_SANITIZER_UNDEFINED=ON`; all tests must report zero violations
+
+---
+
+#### Agent 4: Refactor Agent — Code Quality Enhancement and Architectural Improvement
+
+**Primary Responsibility:** The Refactor Agent specializes in systematic code quality improvement through structural refactoring, performance optimization, and maintainability enhancement. It operates at both the function level (complexity reduction) and the architectural level (dependency restructuring).
+
+**Input Specifications:**
+
+- Target modules or functions requiring refactoring, with specific quality metrics to improve (cyclomatic complexity ≤15, function length ≤100 lines, parameters ≤6 per Section 7)
+- Architectural constraints: refactoring must not introduce circular dependencies between `jsav_Core_lib` and `jsav_Lib`
+- Performance benchmarks and acceptance criteria for optimization-focused refactors
+- Compatibility requirements when modifying public API headers in `include/jsav/`
+
+**Output Deliverables:**
+
+- Refactored code maintaining functional equivalence, verified by the full test suite
+- Enhanced documentation following the Doxygen standards required for `include/jsav/` headers
+
+**Mandatory Output Format — Unified Diff:** All refactoring operations must produce complete unified diff output (`diff -u` format):
+
+- **File Path Documentation:** Full file paths with line number references
+- **Change Visualization:** Removed lines prefixed with `-`, added lines prefixed with `+`
+- **Context Preservation:** Minimum 3 lines of unchanged code surrounding each modification
+- **Comprehensive Coverage:** All changes across the entire refactoring scope documented without omissions
+
+**Technical Infrastructure:** The Refactor Agent integrates with:
+
+- **clang-tidy:** Static analysis enforcement (configured via `jsav_ENABLE_CLANG_TIDY=ON`)
+- **cppcheck:** Complementary static analysis (`jsav_ENABLE_CPPCHECK=ON`)
+- **lizard:** Complexity analysis — `lizard src/**/*.cpp include/**/*.hpp --CCN 15 --length 100 --arguments 6`
+- **clang-format:** Mandatory formatting pass after every refactoring increment — `clang-format -i <files>`
+
+---
+
+#### Agent 5: Security Agent — Vulnerability Detection and Hardening
+
+**Primary Responsibility:** The Security Agent identifies, prioritizes, and remediates security vulnerabilities and insecure coding patterns throughout the codebase. It minimizes the project's attack surface and establishes secure defaults for the compiler's public API and build tooling.
+
+**Input Specifications:**
+
+- Source code under `src/` and `include/`, dependency declarations in `Dependencies.cmake`, and CI configurations
+- Threat model defining expected trust boundaries (e.g., processing potentially malicious source files through the lexer)
+- Optional compliance targets or organizational security policies
+
+**Output Deliverables:**
+
+- Vulnerability reports mapped to specific files and functions with remediation suggestions and patches in unified diff format
+- Dependency CVE audits with recommended version constraints for `Dependencies.cmake` (all dependencies are version-locked via CPM)
+- Safe-configuration patches, including additional compiler warning flags for `cmake/CompilerWarnings.cmake` and hardening options in `cmake/Hardening.cmake`
+- Security-focused unit and integration tests in `test/tests.cpp` covering boundary conditions, malformed input handling, and resource exhaustion scenarios
+
+**Technical Infrastructure:** The Security Agent integrates with:
+
+- **cmake/Hardening.cmake:** FORTIFY_SOURCE, RELRO, and related hardening flags
+- **AddressSanitizer:** Mandatory for security validation — zero leaks policy enforced
+- **Static analysis (clang-tidy, cppcheck):** Taint analysis and unsafe pattern detection
+- **Dependency auditing:** CVE lookups for fmtlib/fmt v12.1.0, spdlog v1.17.0, CLI11 v2.6.1, Catch2 v3.13.0
+
+**Key Constraint:** Per Section 4.3 and 4.4, any introduction of `reinterpret_cast` or manual memory management requires explicit justification and Security Agent approval. All raw pointer usage must be reviewed against the Non-Owning Reference policy.
+
+---
+
+#### Agent 6: Performance Agent — Profiling and Optimization
+
+**Primary Responsibility:** The Performance Agent evaluates runtime and compile-time performance metrics, identifies hotspots in the compiler pipeline, and recommends targeted optimizations that maintain functional correctness while improving throughput and reducing memory footprint.
+
+**Input Specifications:**
+
+- Benchmarks, flamegraphs, and compiled artifacts from the `out/build/<preset>/` directory
+- Performance requirements and SLOs for specific compilation phases (lexical analysis, file I/O)
+- CI benchmark history for regression detection across builds
+
+**Output Deliverables:**
+
+- Hotspot analysis reports with concrete file- and function-level recommendations
+- Microbenchmarks added to `test/tests.cpp` using Catch2's built-in benchmark support
+- Safe refactor suggestions (algorithmic improvements, data layout changes, `constexpr` promotion)
+- Patch sets in unified diff format with before/after performance measurements and CI integration guidance
+- `cmake/InterproceduralOptimization.cmake` configuration recommendations for LTO/IPO where appropriate
+
+**Technical Infrastructure:**
+
+- **Profiling tools:** `perf` (Linux), Windows ETW, flamegraph generators
+- **Catch2 benchmarks:** Integrated into `test/tests.cpp` using `BENCHMARK` sections
+- **Build type selection:** `RelWithDebInfo` (`-O2 -g`) for profiling with debug symbols
+- **ccache analysis:** `cmake/Cache.cmake` configuration review for optimal cache hit rates
+- **Compiler flags:** `-O3`, LTO (`cmake/InterproceduralOptimization.cmake`), SIMD (`cmake/Simd.cmake`)
+
+**Workflow Constraint:** All optimization decisions must be based on empirical profiling data. Per Anti-Pattern 7 (Speculative Optimization Without Empirical Validation), theoretical analysis alone is insufficient justification for introducing code complexity.
+
+---
+
+#### Agent 7: Documentation Agent — API Docs and Onboarding Guides
+
+**Primary Responsibility:** The Documentation Agent produces and maintains high-quality developer and user documentation. It automates generation of Doxygen comments, usage examples, design notes, and onboarding guides to reduce cognitive load for contributors to the `jsav` project.
+
+**Input Specifications:**
+
+- Public API headers in `include/jsav/` and internal headers in `include/jsavCore/`
+- Module interfaces, example code from `test/tests.cpp`, and `README` drafts
+- Issue and PR discussions that indicate unclear or undocumented areas
+- Audience targets: new contributor, library consumer, compiler developer, CI maintainer
+
+**Output Deliverables:**
+
+- Complete Doxygen comments for all public symbols in `include/jsav/`, following C++ documentation conventions:
+
+  ```cpp
+  /// @brief Brief description of the class or function.
+  ///
+  /// Detailed explanation of functionality, parameters, and return values.
+  ///
+  /// @param paramName Description of the parameter, its units, and valid ranges.
+  /// @return Description of the return value.
+  ///
+  /// @throws std::runtime_error If applicable (prefer std::expected over throws).
+  ///
+  /// @note Any important implementation notes or constraints.
+  ///
+  /// @code
+  /// // Usage example
+  /// Lexer lex(source);
+  /// auto tokens = lex.tokenize();
+  /// @endcode
+  ```
+
+- Usage examples and short how-to guides for common workflows (lexer initialization, token stream traversal, filesystem operations)
+- Updates to this `AGENTS.md` and `QWEN.md` when architectural decisions change
+- A contributor onboarding checklist covering: prerequisites installation (Section 3.1), first build (Section 3.4), running tests (Section 5.3), and code style setup (Section 4)
+- Doxygen configuration updates in `cmake/Doxygen.cmake` for new modules
+
+**Technical Infrastructure:**
+
+- **Doxygen:** Configured via `cmake/Doxygen.cmake`; CI verification that documentation builds without warnings
+- **clang-tidy:** `modernize-use-nodiscard` and `readability-*` checks enforce documentation completeness
+- **Automated verification:** CI ensures all code examples in documentation compile successfully under C++23
+
+---
+
+### 8.2 Agent Interaction Protocol and Workflow Architecture
+
+The agent ecosystem operates through a carefully orchestrated sequential workflow:
+
+**Phase 1 — Strategic Planning:** The **Planner Agent** receives high-level development objectives and produces implementation strategies with task prioritization, dependency analysis per the `jsav_Core_lib` → `jsav_Lib` → `jsav` hierarchy, and identification of affected CMake targets.
+
+**Phase 2 — Test Specification:** The **Tester Agent** generates comprehensive test specifications (including `STATIC_REQUIRE` contracts for `constexpr` functions) before implementation begins, establishing behavioral contracts that guide the Coder Agent.
+
+**Phase 3 — Code Generation:** The **Coder Agent** produces implementation artifacts compliant with C++23 standards, project naming conventions (Section 4.1), and the memory ownership model (Section 4.4).
+
+**Phase 4 — Quality Assessment:** The **Tester Agent** validates generated code through:
+
+- `ninja constexpr_tests relaxed_constexpr_tests tests` build and execution
+- `ctest --output-on-failure` with all three test targets
+- `similarity-rs` duplicate code analysis (excluding `test/` and `fuzz_test/`)
+- Zero AddressSanitizer and UndefinedBehaviorSanitizer violations
+
+**Phase 5 — Quality Gate Evaluation:**
+
+- **Success Criteria:** All three test targets pass, ≥80% line coverage, zero sanitizer violations, zero clang-tidy and cppcheck issues
+- **Failure Protocol:** Non-conforming code returns to the **Coder Agent** with precise failure diagnostics
+- No phase may be bypassed; quality gate failures are mandatory stop points
+
+**Phase 6 — Security and Performance Review:** The **Security Agent** and **Performance Agent** may be invoked in parallel for security hardening and performance baseline validation.
+
+**Phase 7 — Continuous Improvement:** The **Refactor Agent** is invoked to address complexity violations (lizard CCN >15), function length violations (>100 lines), or architectural improvements identified during review, always producing unified diff output.
+
+**Phase 8 — Documentation Synchronization:** The **Documentation Agent** updates Doxygen comments, this `AGENTS.md`, and `QWEN.md` to reflect all changes made in preceding phases.
+
+---
+
+### 8.3 Patterns: Established Best Practices for Agent-Based Code Generation
+
+#### Pattern 1: Single Responsibility Agent Design
+
+Each agent maintains exclusive ownership of a distinct development phase. Responsibilities do not overlap. Clear input/output contracts define boundaries. Apply this pattern when designing new agents: resist scope creep and create new specialized agents when novel capabilities are required.
+
+#### Pattern 2: Dependency-Ordered Task Execution
+
+The Planner Agent must construct explicit dependency graphs respecting the `jsav_Core_lib` → `jsav_Lib` → `jsav` hierarchy (Section 2.2). Apply topological sorting to establish valid execution sequences. Resolve circular dependencies by introducing abstract interfaces before proceeding with implementation.
+
+#### Pattern 3: Test-First Specification Generation
+
+`STATIC_REQUIRE` contracts and `REQUIRE`-based test cases must be generated before implementation begins. The Coder Agent treats test suites as authoritative behavioral contracts. Failed test executions trigger immediate revision cycles with precise failure diagnostics.
+
+#### Pattern 4: Incremental Refactoring with Regression Protection
+
+Decompose large refactoring operations into minimal atomic changes. Execute `ctest --output-on-failure` after each increment. Generate unified diff output for every increment. Maintain rollback capability for any increment that introduces regressions.
+
+#### Pattern 5: Security-by-Default Configuration
+
+Default configurations prioritize security over convenience. Unsafe operations (`reinterpret_cast`, raw `new`/`delete`) require explicit opt-in. Enable `cmake/Hardening.cmake` options by default. Audit all CPM dependencies for CVEs before approval.
+
+#### Pattern 6: Performance-Aware Development with Baseline Tracking
+
+Establish performance baselines using `RelWithDebInfo` builds before optimization. Integrate Catch2 `BENCHMARK` sections into CI. Base all optimization decisions on empirical profiling data (flamegraphs, perf). Define acceptable regression thresholds and flag changes that exceed them.
+
+#### Pattern 7: Comprehensive Change Documentation with Unified Diff Format
+
+All agents that modify code must produce `diff -u` output with full file paths, minimum 3 lines of context, and complete coverage of the entire change scope. This is mandatory for audit trail capabilities and effective code review.
+
+#### Pattern 8: Modular Documentation with Audience Targeting
+
+Create discrete documentation modules targeting specific audiences: new contributors (onboarding checklist), library consumers (public API in `include/jsav/`), compiler developers (internal architecture), and CI maintainers (build system). Minimize duplication through cross-references. Verify all code examples compile under C++23.
+
+---
+
+### 8.4 Anti-Patterns: Common Pitfalls to Avoid
+
+| Anti-Pattern | Description | Consequence | Correct Alternative |
+|---|---|---|---|
+| **Monolithic Agent Design** | Agent spans planning, coding, testing, and refactoring simultaneously | Diluted expertise, reduced output quality | Pattern 1: Single Responsibility Agent Design |
+| **Quality Gate Bypass** | Proceeding to the next phase before completing validation of the current one | Compounding defects, architectural debt | Strict Phase 5 enforcement; treat failures as mandatory stop points |
+| **Incomplete Change Documentation** | Producing diffs that omit context, file paths, or portions of the change scope | Audit trail gaps, review impediments, rollback failure | Pattern 7: Unified Diff Format for all modifications |
+| **Implementation-First Development** | Generating code before establishing test specifications | Specification ambiguity, delayed error detection, inadequate coverage | Pattern 3: Test-First Specification Generation |
+| **Large-Scale Refactoring Without Incremental Validation** | Modifying numerous files simultaneously without intermediate checkpoints | Regression localization impossible, forced full rollback | Pattern 4: Incremental Refactoring with Regression Protection |
+| **Security as a Final-Phase Activity** | Deferring security review until after implementation and deployment | Architectural security flaws, entrenched vulnerable dependencies | Pattern 5: Security-by-Default Configuration |
+| **Speculative Optimization** | Implementing optimizations without empirical profiling data | Wasted effort, unmeasured regressions, unnecessary complexity | Pattern 6: Performance-Aware Development with Baseline Tracking |
+| **Generic Documentation Without Audience Differentiation** | Documentation that attempts to serve all audiences simultaneously | Cognitive overload for novices, insufficient depth for experts | Pattern 8: Modular Documentation with Audience Targeting |
+
+---
+
+### 8.5 Enforced Rules for Agent Operations
+
+The following rules are mandatory for all agents operating on this codebase. They extend and reinforce Section 7 (Rules for Automated Agents and AI Tools).
+
+| Rule | Scope | Enforcement |
+|---|---|---|
+| **Never bypass the three-target test suite** (`constexpr_tests`, `relaxed_constexpr_tests`, `tests`) | All agents | Phase 5 quality gate |
+| **Never introduce circular dependencies** between `jsav_Core_lib` and `jsav_Lib` | Planner, Coder | Build failure at link time |
+| **Always run `clang-format -i`** on all modified `.cpp` and `.hpp` files before finalizing output | Coder, Refactor | CI formatting check failure |
+| **Never modify `_deps/`** — update only `Dependencies.cmake` via CPM with explicit version locks | All agents | Build system integrity |
+| **Never expose dependency types** (spdlog, fmt, CLI11) in `include/jsav/` public headers | Coder | Header leak anti-pattern; consumer breakage |
+| **Always produce unified diff output** for every code modification | Refactor, Security, Performance | Audit trail requirement (Pattern 7) |
+| **Exclude `test/` and `fuzz_test/` from `similarity-rs` analysis** using `--skip-test` | Tester | False positive prevention |
+| **Zero sanitizer violations** required before any phase transition | Tester | AddressSanitizer + UndefinedBehaviorSanitizer |
+| **Never disable compiler warnings** project-wide; fix the underlying code | All agents | Section 7 Compilation Rules |
+| **All `constexpr`-capable functions must have `STATIC_REQUIRE` coverage** in `constexpr_tests.cpp` | Tester | Section 5.2 requirements |
+
 
 ## Appendix C: Document Verification
 
