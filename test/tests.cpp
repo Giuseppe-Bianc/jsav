@@ -2567,13 +2567,13 @@ TEST_CASE("Token noexcept contracts", "[Token]") {
         REQUIRE_NOTHROW(std::ignore = token.to_string());
     }
 
+    // NOLINTBEGIN(*-analyzer-cplusplus.Move, *-diagnostic-unused-variable)
     SECTION("copy operations do not throw") {
         const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
         REQUIRE_NOTHROW([&]() { const jsv::Token copied(token); }());
         REQUIRE_NOTHROW([&]() { const jsv::Token assigned = token; }());
     }
 
-    // NOLINTBEGIN(*-analyzer-cplusplus.Move)
     SECTION("move operations do not throw") {
         jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
         REQUIRE_NOTHROW([&]() { const jsv::Token moved(std::move(token)); }());
@@ -2581,7 +2581,7 @@ TEST_CASE("Token noexcept contracts", "[Token]") {
         jsv::Token token2(jsv::TokenKind::KeywordElse, "else", span);
         REQUIRE_NOTHROW(token2 = std::move(token));
     }
-    // NOLINTEND(*-analyzer-cplusplus.Move)
+    // NOLINTEND(*-analyzer-cplusplus.Move, *-diagnostic-unused-variable)
 
     SECTION("comparison operators do not throw") {
         const jsv::Token token1(jsv::TokenKind::KeywordIf, "if", span);
@@ -3617,60 +3617,6 @@ TEST_CASE("Lexer_OneMBMixedFile_CompletesWithin100ms", "[lexer][utf8][performanc
         return bench_lex.tokenize();
     };
 }
-
-// ==========================================================================
-// T043 Phase 7: ASCII Throughput Benchmark (SC-005 Performance Guard)
-// ==========================================================================
-
-/*TEST_CASE("Lexer_Benchmark_AsciiThroughput_NoRegression", "[lexer][benchmark][US4][T043]") {
-    // SC-005: ASCII-only tokenization throughput must not regress by more than 5%
-    // Generate 1 MB of ASCII-only source code for baseline comparison
-    const std::string block = "var x = 42; "
-                              "let y = 100; "
-                              "fn add(a: i32, b: i32) -> i32 { return a + b; } "
-                              "if(x < y) { print(x); } "
-                              "while(x > 0) { x = x - 1; } "
-                              "\"hello world\" "
-                              "'a' "
-                              "// line comment\n"
-                              "/* block comment #1# ";
-
-    const std::size_t target = std::size_t{1024} * 1024;  // 1MB
-    std::string src;
-    src.reserve(target);
-    while(src.size() < target) { src += block; }
-
-    // Performance guard: in Release only (Debug is too slow for timing bounds)
-#ifdef NDEBUG
-    const auto t0 = ch::high_resolution_clock::now();
-    {
-        jsv::Lexer lex{src, "bench_ascii.jsav"};
-        [[maybe_unused]] const auto tokens = lex.tokenize();
-    }
-    const auto elapsed = duration_cast<ch::milliseconds>(ch::high_resolution_clock::now() - t0).count();
-    // NOLINTBEGIN(*-mt-unsafe)
-    const auto *const timeout_env = std::getenv("BENCHMARK_TIMEOUT_MS");
-    // NOLINTEND(*-mt-unsafe)
-    int timeout_ms = 100;  // default
-    if(timeout_env != nullptr) {
-        try {
-            const int parsed = std::stoi(timeout_env);
-            if(parsed > 0) { timeout_ms = parsed; }
-        } catch(const std::invalid_argument &) {  // NOLINT(bugprone-empty-catch)
-            // malformed input — keep default
-        } catch(const std::out_of_range &) {  // NOLINT(bugprone-empty-catch)
-            // value out of range — keep default
-        }
-    }
-    REQUIRE(elapsed < timeout_ms);
-#endif
-
-    // Benchmark with Catch2 BENCHMARK macro
-    BENCHMARK("Tokenize 1MB ASCII-only") {
-        jsv::Lexer bench_lex{src, "bench_ascii.jsav"};
-        return bench_lex.tokenize();
-    };
-}*/
 
 // ==========================================================================
 // Phase 3 – User Story 1: Basic integers and decimals
