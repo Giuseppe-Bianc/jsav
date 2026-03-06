@@ -58,7 +58,7 @@ namespace jsv {
         std::size_t m_pos = 0;      ///< Current byte offset (0-indexed).
         std::size_t m_line = 1;     ///< Current line (1-indexed).
         std::size_t m_column = 1;   ///< Current column, byte-based (1-indexed).
-        std::shared_ptr<const std::string> m_file_path;
+        std::string m_file_path;
 
         // ── Navigation ────────────────────────────────────────────────────
         [[nodiscard]] bool is_at_end() const noexcept;

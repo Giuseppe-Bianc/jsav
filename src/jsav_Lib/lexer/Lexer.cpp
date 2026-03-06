@@ -8,8 +8,7 @@
 #include "jsav/lexer/unicode/UnicodeData.hpp"
 #include "jsav/lexer/unicode/Utf8.hpp"
 namespace jsv {
-    Lexer::Lexer(std::string_view source, std::string file_path)
-      : m_source{source}, m_file_path{MAKE_SHARED(const std::string, vnd_move(file_path))} {}
+    Lexer::Lexer(std::string_view source, std::string file_path) : m_source{source}, m_file_path{vnd_move(file_path)} {}
 
     std::vector<Token> Lexer::tokenize() {
         std::vector<Token> tokens;
@@ -22,7 +21,7 @@ namespace jsv {
         while(true) {
             auto tok = next_token();
             const bool done = (tok.getKind() == TokenKind::Eof);
-            tokens.emplace_back(tok);
+            tokens.emplace_back(vnd_move(tok));
             if(done) { break; }
         }
         return tokens;
@@ -105,7 +104,9 @@ namespace jsv {
 
     SourceLocation Lexer::current_location() const noexcept { return SourceLocation{m_line, m_column, m_pos}; }
 
-    SourceSpan Lexer::make_span(const SourceLocation &start) const { return SourceSpan{m_file_path, start, current_location()}; }
+    SourceSpan Lexer::make_span(const SourceLocation &start) const {
+        return SourceSpan{std::string_view{m_file_path}, start, current_location()};
+    }
 
     Token Lexer::make_token(const TokenKind kind, const std::string_view text, const SourceLocation &start) const {
         return Token{kind, text, make_span(start)};

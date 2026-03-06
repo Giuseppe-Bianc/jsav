@@ -21,7 +21,7 @@ namespace jsv {
     class SourceSpan {
     public:
         /// Path to source file (shared, immutable — mirrors Rust's Arc<str>)
-        std::shared_ptr<const std::string> file_path;
+        std::string_view file_path;
 
         /// Starting position of the span (inclusive)
         SourceLocation start;
@@ -30,14 +30,15 @@ namespace jsv {
         SourceLocation end;
 
         /// Default constructor — empty path, zero positions.
-        SourceSpan();
+        constexpr SourceSpan() noexcept = default;
 
         /// Creates a new source span covering a specific range.
         ///
-        /// @param file_path  Shared pointer to source file path string
-        /// @param start      Starting position (inclusive)
-        /// @param end        Ending position (exclusive)
-        SourceSpan(std::shared_ptr<const std::string> p_file_path, const SourceLocation &p_start, const SourceLocation &p_end) noexcept;
+        /// @param p_file_path Shared pointer to source file path string
+        /// @param p_start      Starting position (inclusive)
+        /// @param p_end        Ending position (exclusive)
+        constexpr SourceSpan(std::string_view p_file_path, const SourceLocation &p_start, const SourceLocation &p_end) noexcept
+          : file_path{p_file_path}, start{p_start}, end{p_end} {}
 
         /// Merges another span into this one in-place.
         /// Only merges if spans are from the same file.
@@ -56,9 +57,6 @@ namespace jsv {
         [[nodiscard]] std::string to_string() const;
 
         friend std::ostream &operator<<(std::ostream &os, const SourceSpan &span);
-
-    private:
-        [[nodiscard]] static auto empty_path() -> std::shared_ptr<const std::string>;
     };
 
     /// Truncates a path to show only the last `depth` components.
