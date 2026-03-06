@@ -33,5 +33,21 @@
         "MD050": {
             "style": "asterisk"
         }
-    }
+    },
+     "claudeCode.preferredLocation": "panel",
+     "claudeCode.environmentVariables": [
+        {
+            "name": "ANTHROPIC_AUTH_TOKEN",
+            "value": "ollama"
+        },
+        {
+            "name": "ANTHROPIC_API_KEY",
+            "value": "ollama"
+        },
+        {
+            "name": "ANTHROPIC_BASE_URL",
+            "value": "http://localhost:11434"
+        }
+    ]
+
 }
