@@ -223,7 +223,7 @@ Tasks T033-T041: Unicode identifier preservation tests + implementation
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 1
-4. **STOP and VALIDATE**: 
+4. **STOP and VALIDATE**:
    - Run tests T010-T015 (should all PASS)
    - Verify existing tests still pass (zero regressions)
    - Test: Compile source with `if`, `for`, `class` keywords
@@ -256,6 +256,7 @@ With multiple developers:
 **Total Tasks**: 52
 
 **By Phase**:
+
 - Phase 1 (Setup): 4 tasks
 - Phase 2 (Foundational): 5 tasks
 - Phase 3 (User Story 1): 12 tasks (6 tests + 6 implementation)
@@ -264,21 +265,25 @@ With multiple developers:
 - Phase 6 (Polish): 11 tasks
 
 **By User Story**:
+
 - User Story 1 (P1 - MVP): 12 tasks
 - User Story 2 (P2 - Security): 11 tasks
 - User Story 3 (P3 - Compatibility): 9 tasks
 
 **Parallel Opportunities**:
+
 - 3 user stories can be implemented in parallel
 - All test tasks within each story can be written in parallel
 - All foundational tasks can run in parallel
 
 **Independent Test Criteria**:
+
 - **US1**: Standard ASCII keywords tokenize as keyword tokens
 - **US2**: Non-ASCII keyword lookalikes tokenize as identifier tokens
 - **US3**: Unicode identifiers continue to tokenize as identifier tokens
 
 **Suggested MVP Scope**: User Story 1 only (Tasks T001-T021)
+
 - Core functionality: ASCII keywords work correctly
 - Independently testable and valuable
 - Can be deployed/demonstrated alone
