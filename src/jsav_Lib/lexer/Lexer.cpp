@@ -114,6 +114,20 @@ namespace jsv {
     Token Lexer::error_token(const std::string_view text, const SourceLocation &start) const {
         return make_token(TokenKind::Error, text, start);
     }
+
+    std::string_view Lexer::current_text(const std::size_t text_start) const noexcept {
+        return m_source.substr(text_start, m_pos - text_start);
+    }
+
+    std::optional<Token> Lexer::try_two_char_token(const char c1, const char expected, const TokenKind kind, const std::size_t text_start,
+                                                   const SourceLocation &start) {
+        if(c1 == expected) {
+            advance_byte();
+            return make_token(kind, current_text(text_start), start);
+        }
+        return std::nullopt;
+    }
+
     // =========================================================================
     // Whitespace & comments
     // =========================================================================
@@ -258,6 +272,17 @@ namespace jsv {
         // Valid exponent: consume all digits
         while(!is_at_end() && std::isdigit(C_UC(peek_byte())) != 0) { advance_byte(); }
     }
+    bool Lexer::try_scan_width(const std::initializer_list<char> digits) {
+        std::size_t off = 1;
+        for(const char d : digits) {
+            if(peek_byte(off) != d) { return false; }
+            ++off;
+        }
+        // Width must not be followed by another digit (FR-017)
+        if(std::isdigit(C_UC(peek_byte(off))) != 0) { return false; }
+        for(std::size_t i = 0; i <= digits.size(); ++i) { advance_byte(); }
+        return true;
+    }
 
     void Lexer::try_scan_type_suffix() {
         if(is_at_end()) { return; }
@@ -274,24 +299,10 @@ namespace jsv {
                 return;
             }
 
-            // Returns true and consumes (prefix + width_chars) when the digits at
-            // offsets [1..] spell out `width` and are not followed by another digit.
-            auto try_width = [&](std::initializer_list<char> digits) -> bool {
-                std::size_t off = 1;
-                for(const char d : digits) {
-                    if(peek_byte(off) != d) { return false; }
-                    ++off;
-                }
-                // Width must not be followed by another digit (FR-017)
-                if(std::isdigit(C_UC(peek_byte(off))) != 0) { return false; }
-                for(std::size_t i = 0; i <= digits.size(); ++i) { advance_byte(); }
-                return true;
-            };
-
             // Longest-match first to avoid partial consumption (32 before 3, etc.)
-            if(try_width({'3', '2'})) { return; }
-            if(try_width({'1', '6'})) { return; }
-            if(try_width({'8'})) { return; }
+            if(try_scan_width({'3', '2'})) { return; }
+            if(try_scan_width({'1', '6'})) { return; }
+            if(try_scan_width({'8'})) { return; }
             // Invalid width (e.g. 64, 80, 999) — do NOT consume anything
         }
     }
@@ -329,6 +340,12 @@ namespace jsv {
     }
     // NOLINTEND(readability-function-cognitive-complexity)
 
+    constexpr bool Lexer::is_binary_digit(const char c) noexcept { return c == '0' || c == '1'; }
+
+    constexpr bool Lexer::is_octal_digit(const char c) noexcept { return c >= '0' && c <= '7'; }
+
+    bool Lexer::is_hex_digit(const char c) noexcept { return std::isxdigit(C_UC(c)) != 0; }
+
     // =========================================================================
     // Hash-prefixed numeric scanner  (#b, #o, #x)
     // =========================================================================
@@ -352,12 +369,11 @@ namespace jsv {
 
         switch(tag) {
         case 'b':
-            return scan_based_literal(text_start, start, TokenKind::Binary, [](const char c) noexcept { return c == '0' || c == '1'; });
+            return scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit);
         case 'o':
-            return scan_based_literal(text_start, start, TokenKind::Octal, [](const char c) noexcept { return c >= '0' && c <= '7'; });
+            return scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit);
         case 'x':
-            return scan_based_literal(text_start, start, TokenKind::Hexadecimal,
-                                      [](const char c) noexcept { return std::isxdigit(C_UC(c)) != 0; });
+            return scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit);
         default:
             return error_token(m_source.substr(text_start, m_pos - text_start), start);
         }
@@ -451,87 +467,75 @@ namespace jsv {
         const char c0 = advance_byte();
         const char c1 = peek_byte();
 
-        // Returns the slice of source consumed so far.
-        const auto text = [&]() noexcept { return m_source.substr(text_start, m_pos - text_start); };
-
-        // Consume c1 and return a two-char token if c1 == expected.
-        auto two = [&](const char expected, const TokenKind kind) -> std::optional<Token> {
-            if(c1 == expected) {
-                advance_byte();
-                return make_token(kind, text(), start);
-            }
-            return std::nullopt;
-        };
-
         switch(c0) {
         case '+':
-            if(auto t = two('=', TokenKind::PlusEqual)) { return *t; }
-            if(auto t = two('+', TokenKind::PlusPlus)) { return *t; }
-            return make_token(TokenKind::Plus, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::PlusEqual, text_start, start)) { return *t; }
+            if(auto t = try_two_char_token(c1, '+', TokenKind::PlusPlus, text_start, start)) { return *t; }
+            return make_token(TokenKind::Plus, current_text(text_start), start);
 
         case '-':
-            if(auto t = two('=', TokenKind::MinusEqual)) { return *t; }
-            if(auto t = two('-', TokenKind::MinusMinus)) { return *t; }
-            return make_token(TokenKind::Minus, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::MinusEqual, text_start, start)) { return *t; }
+            if(auto t = try_two_char_token(c1, '-', TokenKind::MinusMinus, text_start, start)) { return *t; }
+            return make_token(TokenKind::Minus, current_text(text_start), start);
 
         case '=':
-            if(auto t = two('=', TokenKind::EqualEqual)) { return *t; }
-            return make_token(TokenKind::Equal, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::EqualEqual, text_start, start)) { return *t; }
+            return make_token(TokenKind::Equal, current_text(text_start), start);
 
         case '!':
-            if(auto t = two('=', TokenKind::NotEqual)) { return *t; }
-            return make_token(TokenKind::Not, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::NotEqual, text_start, start)) { return *t; }
+            return make_token(TokenKind::Not, current_text(text_start), start);
 
         case '<':
-            if(auto t = two('=', TokenKind::LessEqual)) { return *t; }
-            if(auto t = two('<', TokenKind::ShiftLeft)) { return *t; }
-            return make_token(TokenKind::Less, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::LessEqual, text_start, start)) { return *t; }
+            if(auto t = try_two_char_token(c1, '<', TokenKind::ShiftLeft, text_start, start)) { return *t; }
+            return make_token(TokenKind::Less, current_text(text_start), start);
 
         case '>':
-            if(auto t = two('=', TokenKind::GreaterEqual)) { return *t; }
-            if(auto t = two('>', TokenKind::ShiftRight)) { return *t; }
-            return make_token(TokenKind::Greater, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::GreaterEqual, text_start, start)) { return *t; }
+            if(auto t = try_two_char_token(c1, '>', TokenKind::ShiftRight, text_start, start)) { return *t; }
+            return make_token(TokenKind::Greater, current_text(text_start), start);
 
         case '|':
-            if(auto t = two('|', TokenKind::OrOr)) { return *t; }
-            return make_token(TokenKind::Or, text(), start);
+            if(auto t = try_two_char_token(c1, '|', TokenKind::OrOr, text_start, start)) { return *t; }
+            return make_token(TokenKind::Or, current_text(text_start), start);
 
         case '&':
-            if(auto t = two('&', TokenKind::AndAnd)) { return *t; }
-            return make_token(TokenKind::And, text(), start);
+            if(auto t = try_two_char_token(c1, '&', TokenKind::AndAnd, text_start, start)) { return *t; }
+            return make_token(TokenKind::And, current_text(text_start), start);
 
         case '%':
-            if(auto t = two('=', TokenKind::PercentEqual)) { return *t; }
-            return make_token(TokenKind::Percent, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::PercentEqual, text_start, start)) { return *t; }
+            return make_token(TokenKind::Percent, current_text(text_start), start);
 
         case '^':
-            if(auto t = two('=', TokenKind::XorEqual)) { return *t; }
-            return make_token(TokenKind::Xor, text(), start);
+            if(auto t = try_two_char_token(c1, '=', TokenKind::XorEqual, text_start, start)) { return *t; }
+            return make_token(TokenKind::Xor, current_text(text_start), start);
 
         case '*':
-            return make_token(TokenKind::Star, text(), start);
+            return make_token(TokenKind::Star, current_text(text_start), start);
         case '/':
-            return make_token(TokenKind::Slash, text(), start);
+            return make_token(TokenKind::Slash, current_text(text_start), start);
         case ':':
-            return make_token(TokenKind::Colon, text(), start);
+            return make_token(TokenKind::Colon, current_text(text_start), start);
         case ',':
-            return make_token(TokenKind::Comma, text(), start);
+            return make_token(TokenKind::Comma, current_text(text_start), start);
         case '.':
-            return make_token(TokenKind::Dot, text(), start);
+            return make_token(TokenKind::Dot, current_text(text_start), start);
         case ';':
-            return make_token(TokenKind::Semicolon, text(), start);
+            return make_token(TokenKind::Semicolon, current_text(text_start), start);
         case '(':
-            return make_token(TokenKind::OpenParen, text(), start);
+            return make_token(TokenKind::OpenParen, current_text(text_start), start);
         case ')':
-            return make_token(TokenKind::CloseParen, text(), start);
+            return make_token(TokenKind::CloseParen, current_text(text_start), start);
         case '[':
-            return make_token(TokenKind::OpenBracket, text(), start);
+            return make_token(TokenKind::OpenBracket, current_text(text_start), start);
         case ']':
-            return make_token(TokenKind::CloseBracket, text(), start);
+            return make_token(TokenKind::CloseBracket, current_text(text_start), start);
         case '{':
-            return make_token(TokenKind::OpenBrace, text(), start);
+            return make_token(TokenKind::OpenBrace, current_text(text_start), start);
         case '}':
-            return make_token(TokenKind::CloseBrace, text(), start);
+            return make_token(TokenKind::CloseBrace, current_text(text_start), start);
 
         default:
             // Gracefully consume unknown UTF-8 sequences (first byte already advanced).
@@ -539,24 +543,15 @@ namespace jsv {
                 const auto seq = unicode::decode_utf8(m_source, text_start);
                 for(std::size_t i = 1; i < seq.byte_length && !is_at_end(); ++i) { advance_byte(); }
             }
-            return error_token(text(), start);
+            return error_token(current_text(text_start), start);
         }
     }
     // NOLINTEND(readability-function-cognitive-complexity)
 
     // =========================================================================
-    // Unicode XID classification
-    //
-    // Covers the scripts most commonly found in source code identifiers.
-    // For full conformance, generate lookup tables from:
-    //   https://www.unicode.org/Public/UCD/latest/ucd/DerivedCoreProperties.txt
-    // =========================================================================
-
-    // =========================================================================
     // Keyword / type classification
     // =========================================================================
 
-    // In Lexer.cpp:
     TokenKind Lexer::classify_word(const std::string_view text) noexcept {
         using namespace std::string_view_literals;
 

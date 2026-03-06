@@ -87,6 +87,10 @@ namespace jsv {
         [[nodiscard]] Token make_token(TokenKind kind, std::string_view text, const SourceLocation &start) const;
         [[nodiscard]] Token error_token(std::string_view text, const SourceLocation &start) const;
 
+        /// Return the source slice [text_start, m_pos) as a string_view.
+        /// Extracted from the `text` lambda in scan_operator_or_punctuation.
+        [[nodiscard]] std::string_view current_text(std::size_t text_start) const noexcept;
+
         // ── Whitespace / comments ─────────────────────────────────────────
         void skip_whitespace_and_comments();
 
@@ -119,6 +123,30 @@ namespace jsv {
         /// Attempt to consume a type suffix (d/D, f/F, u/U[width], i/I<width>).
         /// Returns without consuming if no valid suffix is found at current position.
         void try_scan_type_suffix();
+
+        /// Attempt to match and consume a specific integer width suffix starting at
+        /// offset 1 from the current position. The `digits` list describes the expected
+        /// digit characters of the width (e.g., {'3','2'} for "32"). Consumes the prefix
+        /// byte plus all width digits if they match and are not followed by another digit.
+        /// Returns true on success, false if the pattern does not match.
+        /// Extracted from the `try_width` lambda in try_scan_type_suffix.
+        [[nodiscard]] bool try_scan_width(std::initializer_list<char> digits);
+
+        /// If `c1 == expected`, consumes it, builds a two-character token of `kind`,
+        /// and returns it. Otherwise returns std::nullopt without consuming.
+        /// Extracted from the `two` lambda in scan_operator_or_punctuation.
+        [[nodiscard]] std::optional<Token> try_two_char_token(char c1, char expected, TokenKind kind, std::size_t text_start,
+                                                              const SourceLocation &start);
+
+        // ── Digit classification (formerly stateless lambdas) ─────────────
+        /// Returns true iff `c` is a valid binary digit (0 or 1).
+        [[nodiscard]] static constexpr bool is_binary_digit(char c) noexcept;
+
+        /// Returns true iff `c` is a valid octal digit (0–7).
+        [[nodiscard]] static constexpr bool is_octal_digit(char c) noexcept;
+
+        /// Returns true iff `c` is a valid hexadecimal digit (0–9, a–f, A–F).
+        [[nodiscard]] static bool is_hex_digit(char c) noexcept;
 
         // ── Keyword / type classification ─────────────────────────────────
         /// Map a lexed word to its `TokenKind` (keyword, type, or identifier).
