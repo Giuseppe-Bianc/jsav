@@ -34,8 +34,8 @@
             "style": "asterisk"
         }
     },
-     "claudeCode.preferredLocation": "panel",
-     "claudeCode.environmentVariables": [
+    "claudeCode.preferredLocation": "panel",
+    "claudeCode.environmentVariables": [
         {
             "name": "ANTHROPIC_AUTH_TOKEN",
             "value": "ollama"
@@ -49,5 +49,4 @@
             "value": "http://localhost:11434"
         }
     ]
-
 }

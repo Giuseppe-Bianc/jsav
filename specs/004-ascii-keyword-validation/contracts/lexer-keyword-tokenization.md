@@ -39,7 +39,7 @@ This document defines the interface contract for lexer keyword tokenization afte
 
 **Postcondition**: Each keyword is tokenized as its corresponding `Keyword` token type
 
-**Invariant**: Case-sensitivity is preserved (keywords recognized only in defined case)
+**Invariant**: Keywords are case-sensitive and must be lowercase (e.g., `if` is recognized, `If` and `IF` are not)
 
 **Examples**:
 
@@ -119,6 +119,7 @@ This document defines the interface contract for lexer keyword tokenization afte
 | `if\u0000` | `TokenType::Identifier` | ASCII + NUL control character |
 | `for\u0001` | `TokenType::Identifier` | ASCII + SOH control character |
 | `wörld` | `TokenType::Identifier` | ASCII + non-ASCII |
+| `clаss` | `TokenType::Identifier` | ASCII `cl` + Cyrillic `а` (U+0430) + ASCII `ss` |
 
 **Verification**: Edge case test cases must cover mixed sequences.
 
@@ -210,8 +211,9 @@ This document defines the interface contract for lexer keyword tokenization afte
 
 **Extension Mechanism**:
 
-- Add new keyword to table → Validation applies automatically
-- No code changes needed in `is_ascii_keyword_candidate`
+- Add new keyword to keyword table → ASCII validation applies automatically
+- No changes needed to validation logic
+- Generic validation design ensures extensibility without code modifications
 
 ---
 

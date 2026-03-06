@@ -32,6 +32,7 @@ Use `std::string_view` with manual UTF-8 decoding, or leverage existing UTF-8 ut
 
 ```cpp
 [[nodiscard]] constexpr bool is_ascii_keyword_candidate(std::string_view identifier) noexcept {
+    assert(!identifier.empty() && "Scanner invariant: identifier sequence must not be empty");
     const auto* data = reinterpret_cast<const unsigned char*>(identifier.data());
     const auto size = identifier.size();
     std::size_t pos = 0;

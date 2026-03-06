@@ -69,8 +69,8 @@ As a developer using international characters in variable names, I expect that i
 
 ### Session 2026-03-05
 
-- Q: Should ASCII control characters (U+0000-U+001F) be considered valid ASCII for keyword matching, or should they cause the sequence to be treated as an identifier? → A: ASCII stampabile: intervallo U+0020–U+007E e underscore (U+005F). Sequenze contenenti caratteri fuori da questo insieme sono trattate come identificatori.
- - Q: Selected validation range option → A: Option C — use U+0021–U+007E (printable ASCII excluding space U+0020); underscore (U+005F) explicitly allowed.
+- Q: Should ASCII control characters (U+0000-U+001F) be considered valid ASCII for keyword matching, or should they cause the sequence to be treated as an identifier? → A: Printable ASCII: range U+0020–U+007E and underscore (U+005F). Sequences containing characters outside this set are treated as identifiers.
+- Q: Selected validation range option → A: Option C — use U+0021–U+007E (printable ASCII excluding space U+0020); underscore (U+005F) explicitly allowed.
 
 ## Requirements
 
