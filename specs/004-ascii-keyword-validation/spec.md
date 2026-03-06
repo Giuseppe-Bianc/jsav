@@ -63,7 +63,14 @@ As a developer using international characters in variable names, I expect that i
 - **Mixed ASCII/non-ASCII in keyword-like sequence**: How does the lexer handle sequences like `iф` (ASCII 'i' + Cyrillic 'ф')? (Should be treated as identifier, not keyword)
 - **Whitespace after non-ASCII keyword lookalike**: How does the lexer handle `fôr ` (with trailing space)? (Should tokenize as identifier followed by whitespace)
 - **Punctuation after non-ASCII keyword lookalike**: How does the lexer handle `fôr;` or `fôr(`? (Should tokenize as identifier followed by operator/punctuation)
-- **Keywords with ASCII control characters**: How does the lexer handle sequences like `if\u0000` or `for\u0001`? (Should not match keyword; control characters are not valid ASCII for keyword matching)
+- **Keywords with ASCII control characters**: Sequences containing ASCII control characters (U+0000-U+001F) MUST fail the ASCII validation check and be treated as identifiers, not keywords. For example, `if\u0000` or `for\u0001` are tokenized as identifiers.
+
+## Clarifications
+
+### Session 2026-03-05
+
+- Q: Should ASCII control characters (U+0000-U+001F) be considered valid ASCII for keyword matching, or should they cause the sequence to be treated as an identifier? → A: ASCII stampabile: intervallo U+0020–U+007E e underscore (U+005F). Sequenze contenenti caratteri fuori da questo insieme sono trattate come identificatori.
+ - Q: Selected validation range option → A: Option C — use U+0021–U+007E (printable ASCII excluding space U+0020); underscore (U+005F) explicitly allowed.
 
 ## Requirements
 
@@ -71,7 +78,9 @@ As a developer using international characters in variable names, I expect that i
 
 - **FR-001**: The lexer MUST continue to read and return identifiers exactly as before, including identifiers containing Unicode or extended characters
 - **FR-002**: The lexer MUST collect character sequences during identifier/keyword scanning using the existing scanning logic without modification
-- **FR-003**: Before comparing a collected character sequence against the keyword table, the lexer MUST verify that every character in the sequence belongs to the valid ASCII set (Unicode code points U+0000 through U+007F)
+- **FR-003**: Before comparing a collected character sequence against the keyword table, the lexer MUST verify that every character in the sequence belongs to the valid ASCII set (Unicode code points U+0020 through U+007F, printable ASCII only, excluding control characters U+0000-U+001F)
+- **FR-003**: Before comparing a collected character sequence against the keyword table, the lexer MUST verify that every character in the sequence belongs to the validated ASCII set: Unicode code points U+0021 through U+007E (printable ASCII excluding space U+0020). The underscore character (U+005F) is explicitly allowed. Sequences containing characters outside this set MUST be treated as identifiers and NOT matched against the keyword table.
+- **FR-003B**: (Obsoleted by FR-003) Removed: prior alternatives referencing U+0020–U+007E or U+0020–U+007F are superseded by FR-003.
 - **FR-004**: The lexer MUST perform keyword table comparison only if the ASCII validation check passes (all characters are ASCII)
 - **FR-005**: If the ASCII validation check fails (any character is non-ASCII), the lexer MUST treat the sequence as an identifier and NOT attempt keyword matching
 - **FR-006**: The lexer MUST preserve existing case-sensitivity rules for keyword recognition
@@ -84,7 +93,10 @@ As a developer using international characters in variable names, I expect that i
 ### Key Entities
 
 - **Character Sequence**: The contiguous sequence of characters read by the scanner that potentially forms an identifier or keyword
-- **Valid ASCII Set**: Characters with Unicode code points in the range U+0000 through U+007F (7-bit ASCII character set)
+- **Valid ASCII Set**: Characters with Unicode code points in the range U+0020 through U+007F (printable ASCII only, excluding control characters U+0000-U+001F)
+- **Valid ASCII SetB**: Characters with Unicode code points in the range U+0020 through U+007E (printable ASCII); underscore (U+005F) is explicitly allowed. Sequences containing characters outside this set are treated as identifiers.
+- **Valid ASCII Set**: Characters with Unicode code points in the range U+0021 through U+007E (printable ASCII excluding space U+0020). The underscore character (U+005F) is explicitly allowed. Sequences containing characters outside this set are treated as identifiers.
+- **Valid ASCII SetB**: (Deprecated) Previous definitions using U+0020 ranges are superseded by the above `Valid ASCII Set` definition.
 - **Keyword Table**: The language's predefined set of reserved words that have special meaning (e.g., `if`, `for`, `class`, `while`, `return`)
 - **Identifier Token**: A token representing a user-defined name (variable, function, class, etc.)
 - **Keyword Token**: A token representing a language reserved word with special syntactic meaning
