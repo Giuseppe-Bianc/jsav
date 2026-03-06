@@ -154,8 +154,8 @@
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phase 3-5)**: All depend on Foundational phase completion
-  - User stories can then proceed in parallel (if staffed)
-  - Or sequentially in priority order (P1 → P2 → P3)
+    - User stories can then proceed in parallel (if staffed)
+    - Or sequentially in priority order (P1 → P2 → P3)
 - **Polish (Phase 6)**: Depends on all user stories being complete
 
 ### User Story Dependencies
