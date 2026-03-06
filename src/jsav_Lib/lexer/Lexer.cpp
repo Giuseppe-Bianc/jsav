@@ -217,9 +217,7 @@ namespace jsv {
         const auto text_start = m_pos;
 
         while(!is_at_end()) {
-            const auto first = C_UC(peek_byte());
-
-            if(first < 0x80) {
+            if(const auto first = C_UC(peek_byte()); first < 0x80) {
                 // ASCII fast path
                 if((std::isalnum(first) != 0) || first == '_') {
                     advance_byte();
@@ -228,8 +226,7 @@ namespace jsv {
                 }
             } else {
                 // Non-ASCII: decode and check XID_Continue
-                const auto cp = peek_codepoint();
-                if(unicode::is_id_continue(cp)) {
+                if(const auto cp = peek_codepoint(); unicode::is_id_continue(cp)) {
                     seen_unicode = true;
                     advance_codepoint();
                 } else {
@@ -386,10 +383,8 @@ namespace jsv {
 
     void Lexer::skip_escape() {
         if(is_at_end()) { return; }
-        const char c = advance_byte();  // consume the character after '\'
-
         // Unicode escapes consume additional hex digits
-        if(c == 'u') {
+        if(const char c = advance_byte(); c == 'u') {
             for(int i = 0; i < 4 && !is_at_end() && (std::isxdigit(C_UC(peek_byte())) != 0); ++i) { advance_byte(); }
         } else if(c == 'U') {
             for(int i = 0; i < 8 && !is_at_end() && (std::isxdigit(C_UC(peek_byte())) != 0); ++i) { advance_byte(); }
