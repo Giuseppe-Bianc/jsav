@@ -45,7 +45,6 @@ jsav -i <input_file> [options]
 | `-i, --input <file>` | **Required.** The input source file to process |
 | `-v, --version` | Show version information and exit |
 
-
 ## Examples
 
 ```bash
