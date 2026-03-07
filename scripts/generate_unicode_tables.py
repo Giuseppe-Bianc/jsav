@@ -384,15 +384,15 @@ def generate_header(
         unicode_version: str,
         generation_date: str,
 ) -> str:
-    letter_ranges = generated_ranges["letter"]
-    id_start_ranges = generated_ranges["id_start"]
+    letter_ranges    = generated_ranges["letter"]
+    id_start_ranges  = generated_ranges["id_start"]
     id_continue_ranges = generated_ranges["id_continue"]
-    whitespace_ranges = generated_ranges["whitespace"]
+    whitespace_ranges  = generated_ranges["whitespace"]
 
-    letter_cpp = format_ranges_cpp(letter_ranges)
-    id_start_cpp = format_ranges_cpp(id_start_ranges)
+    letter_cpp      = format_ranges_cpp(letter_ranges)
+    id_start_cpp    = format_ranges_cpp(id_start_ranges)
     id_continue_cpp = format_ranges_cpp(id_continue_ranges)
-    whitespace_cpp = format_ranges_cpp(whitespace_ranges)
+    whitespace_cpp  = format_ranges_cpp(whitespace_ranges)
 
     return f"""\
 /*
@@ -424,6 +424,15 @@ namespace jsv::unicode {{
     static inline constexpr std::array<CodepointRange, {len(letter_ranges)}> letter_ranges{{{{{letter_cpp}}}}};
 
     static_assert(letter_ranges.size() == {len(letter_ranges)}, "letter_ranges size mismatch");
+    // CORRECTNESS: same sorted/non-overlapping guarantee as the other three tables.
+    static_assert(
+        []() consteval {{
+            for(std::size_t i = 1; i < letter_ranges.size(); ++i) {{
+                if(letter_ranges[i - 1].last >= letter_ranges[i].first) {{ return false; }}
+            }}
+            return true;
+        }}(),
+        "letter_ranges must be sorted and non-overlapping (required for binary search)");
 
     // =========================================================================
     // id_start ranges — General Category L + Nl
@@ -505,14 +514,16 @@ namespace jsv::unicode {{
     /// True if cp has Unicode General Category L (Letter).
     /// ASCII fast-path: [A-Za-z]
     [[nodiscard]] constexpr bool is_letter(char32_t cp) noexcept {{
-        if(cp < 0x80U) {{ return (cp >= U'A' && cp <= U'Z') || (cp >= U'a' && cp <= U'z'); }}
+        if(cp < 0x80U) [[likely]] {{
+            return (cp >= U'A' && cp <= U'Z') || (cp >= U'a' && cp <= U'z');
+        }}
         return detail::in_ranges(cp, letter_ranges);
     }}
 
     /// True if cp may start an identifier: \\p{{Letter}} or '_' (U+005F).
     /// ASCII fast-path: [A-Za-z_]
     [[nodiscard]] constexpr bool is_id_start(char32_t cp) noexcept {{
-        if(cp < 0x80U) {{
+        if(cp < 0x80U) [[likely]] {{
             return (cp >= U'A' && cp <= U'Z') || (cp >= U'a' && cp <= U'z') || cp == U'_';
         }}
         return detail::in_ranges(cp, id_start_ranges);
@@ -522,7 +533,7 @@ namespace jsv::unicode {{
     /// \\p{{Letter}} | \\p{{Mark}} | \\p{{Number}} | '_' | ASCII digits.
     /// ASCII fast-path: [A-Za-z0-9_]
     [[nodiscard]] constexpr bool is_id_continue(char32_t cp) noexcept {{
-        if(cp < 0x80U) {{
+        if(cp < 0x80U) [[likely]] {{
             return (cp >= U'A' && cp <= U'Z') || (cp >= U'a' && cp <= U'z')
                 || (cp >= U'0' && cp <= U'9') || cp == U'_';
         }}
@@ -533,8 +544,8 @@ namespace jsv::unicode {{
     /// Note: U+0020 SPACE is General Category Zs and returns true.
     /// Other ASCII whitespace (tab U+0009, LF U+000A, CR U+000D) are NOT Zs/Zl/Zp.
     [[nodiscard]] constexpr bool is_unicode_whitespace(char32_t cp) noexcept {{
-        if(cp == U' ') {{ return true; }}   // U+0020 SPACE is Zs — fast-path
-        if(cp < 0x80U) {{ return false; }}  // Other ASCII not in Zs/Zl/Zp
+        if(cp == U' ') [[likely]] {{ return true; }}  // U+0020 SPACE is Zs — fast-path
+        if(cp < 0x80U) {{ return false; }}             // Other ASCII not in Zs/Zl/Zp
         return detail::in_ranges(cp, whitespace_ranges);
     }}
 
