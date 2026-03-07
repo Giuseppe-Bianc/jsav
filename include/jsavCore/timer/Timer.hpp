@@ -278,7 +278,7 @@ namespace vnd {
          */
         [[nodiscard]] std::string time_it(const std::function<void()> &f, long double target_time = 1) {
             const time_point start = start_;
-            [[maybe_unused]] auto total_time = std::numeric_limits<long double>::quiet_NaN();
+            auto total_time = std::numeric_limits<long double>::quiet_NaN();
 
             start_ = clock::now();
             std::size_t n = 0;

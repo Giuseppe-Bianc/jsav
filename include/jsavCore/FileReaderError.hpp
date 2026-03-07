@@ -37,7 +37,7 @@ public:
      * throw FileReadError("Failed to open file: config.txt");
      * @endcode
      */
-    explicit FileReadError(const std::string &message) : std::runtime_error(message) {}
+    explicit FileReadError(std::string message) : std::runtime_error(vnd_move(message)) {}
 };
 
 /**
