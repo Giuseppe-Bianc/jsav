@@ -6,7 +6,7 @@
 
 ## About jsav
 
-a compiler writtern in c++23
+An operating system-independent compiler, written in C++23, designed to process source code files with the .vn extension. The compiler accepts these files as input, parsing their syntax and generating optimized executables compatible with the target operating system. It provides detailed diagnostic messages in case of errors and supports configurable compilation options, enabling both local development and deployment of standalone applications. The design aims for maximum portability and efficiency, ensuring a consistent and reliable compilation process across different platforms.
 
 ## More Details
 
