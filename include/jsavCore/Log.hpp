@@ -70,10 +70,9 @@ DISABLE_WARNINGS_POP()
 /**
  * @brief Disable GCC warning about uninitialized variables for spdlog.
  */
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wuninitialized"
+DISABLE_GCC_WARNINGS_PUSH("-Wuninitialized")
 #include <spdlog/details/null_mutex.h>
-#pragma GCC diagnostic pop
+DISABLE_GCC_WARNINGS_POP()
 #endif
 /** \endcond */
 
