@@ -54,7 +54,7 @@ namespace vnd {
          *          and a ValueLabel, returning a formatted std::string. Used to store
          *          the custom print function for timer output.
          */
-        using time_print_t = std::function<std::string(std::string, std::size_t, ValueLabel)>;
+        using time_print_t = std::function<std::string(const std::string &, std::size_t, const ValueLabel &)>;
 
         std::string title_;         ///< The title/description for this timer measurement.
         std::size_t title_lenpadd;  ///< Title length plus padding for aligned output.
