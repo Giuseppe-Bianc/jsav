@@ -2,7 +2,9 @@
  * Created by gbian on 28/02/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner,*-identifier-length,*-avoid-magic-numbers,*-magic-numbers)
+// clang-format off
+//NOLINTBEGIN(*-include-cleaner,*-identifier-length,*-avoid-magic-numbers,*-magic-numbers, *-pro-bounds-constant-array-index, *-qualified-auto)
+// clang-format on
 
 #include "jsav/lexer/Lexer.hpp"
 #include "jsav/lexer/unicode/UnicodeData.hpp"
@@ -582,18 +584,17 @@ namespace jsv {
         static_assert(
             []() consteval {
                 for(std::size_t i = 1; i < kTable.size(); ++i) {
-                    // NOLINTNEXTLINE(*-pro-bounds-constant-array-index)
                     if(kTable[i - 1].first >= kTable[i].first) { return false; }
                 }
                 return true;
             }(),
             "kTable must be sorted lexicographically for lower_bound to be correct");
-        // NOLINTNEXTLINE(*-qualified-auto)
         const auto it = std::ranges::lower_bound(kTable, text, {}, &std::pair<std::string_view, TokenKind>::first);
-        // NOLINTBEGIN(*-pro-bounds-constant-array-index, *-qualified-auto)
         if(it != kTable.end() && it->first == text) { return it->second; }
         return TokenKind::IdentifierAscii;
     }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner,*-identifier-length,*-avoid-magic-numbers,*-magic-numbers)
+// clang-format off
+// NOLINTEND(*-include-cleaner,*-identifier-length,*-avoid-magic-numbers,*-magic-numbers, *-pro-bounds-constant-array-index, *-qualified-auto)
+// clang-format on
