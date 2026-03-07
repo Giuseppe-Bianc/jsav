@@ -2570,13 +2570,13 @@ TEST_CASE("Token noexcept contracts", "[Token]") {
     // NOLINTBEGIN(*-analyzer-cplusplus.Move, *-diagnostic-unused-variable)
     SECTION("copy operations do not throw") {
         const jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
-        REQUIRE_NOTHROW([&]() { const jsv::Token copied(token); }());
-        REQUIRE_NOTHROW([&]() { const jsv::Token assigned = token; }());
+        REQUIRE_NOTHROW([&]() { [[maybe_unused]] const jsv::Token copied(token); }());
+        REQUIRE_NOTHROW([&]() { [[maybe_unused]] const jsv::Token assigned = token; }());
     }
 
     SECTION("move operations do not throw") {
         jsv::Token token(jsv::TokenKind::KeywordIf, "if", span);
-        REQUIRE_NOTHROW([&]() { const jsv::Token moved(std::move(token)); }());
+        REQUIRE_NOTHROW([&]() { [[maybe_unused]] const jsv::Token moved(std::move(token)); }());
 
         jsv::Token token2(jsv::TokenKind::KeywordElse, "else", span);
         REQUIRE_NOTHROW(token2 = std::move(token));
