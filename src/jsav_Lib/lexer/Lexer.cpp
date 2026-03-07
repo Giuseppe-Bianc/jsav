@@ -579,6 +579,7 @@ namespace jsv {
             {"var"sv, TokenKind::KeywordVar},
             {"while"sv, TokenKind::KeywordWhile},
         }};
+        // NOLINTBEGIN(*-pro-bounds-constant-array-index, *-qualified-auto)
         static_assert(
             []() consteval {
                 for(std::size_t i = 1; i < kTable.size(); ++i) {
@@ -588,7 +589,7 @@ namespace jsv {
             }(),
             "kTable must be sorted lexicographically for lower_bound to be correct");
         const auto it = std::ranges::lower_bound(kTable, text, {}, &std::pair<std::string_view, TokenKind>::first);
-
+        // NOLINTBEGIN(*-pro-bounds-constant-array-index, *-qualified-auto)
         if(it != kTable.end() && it->first == text) { return it->second; }
         return TokenKind::IdentifierAscii;
     }
