@@ -552,21 +552,41 @@ namespace jsv {
         using namespace std::string_view_literals;
 
         // Replace inside TokenKind Lexer::classify_word(...)
-        static constexpr std::array<std::pair<std::string_view, TokenKind>, 25> kTable{
-            {{"fun"sv, TokenKind::KeywordFun},     {"if"sv, TokenKind::KeywordIf},
-             {"else"sv, TokenKind::KeywordElse},   {"return"sv, TokenKind::KeywordReturn},
-             {"while"sv, TokenKind::KeywordWhile}, {"for"sv, TokenKind::KeywordFor},
-             {"main"sv, TokenKind::KeywordMain},   {"var"sv, TokenKind::KeywordVar},
-             {"const"sv, TokenKind::KeywordConst}, {"nullptr"sv, TokenKind::KeywordNullptr},
-             {"break"sv, TokenKind::KeywordBreak}, {"continue"sv, TokenKind::KeywordContinue},
-             {"bool"sv, TokenKind::KeywordBool},   {"i8"sv, TokenKind::TypeI8},
-             {"i16"sv, TokenKind::TypeI16},        {"i32"sv, TokenKind::TypeI32},
-             {"i64"sv, TokenKind::TypeI64},        {"u8"sv, TokenKind::TypeU8},
-             {"u16"sv, TokenKind::TypeU16},        {"u32"sv, TokenKind::TypeU32},
-             {"u64"sv, TokenKind::TypeU64},        {"f32"sv, TokenKind::TypeF32},
-             {"f64"sv, TokenKind::TypeF64},        {"char"sv, TokenKind::TypeChar},
-             {"string"sv, TokenKind::TypeString}}};
-
+        static constexpr std::array<std::pair<std::string_view, TokenKind>, 25> kTable{{
+            {"bool"sv, TokenKind::KeywordBool},
+            {"break"sv, TokenKind::KeywordBreak},
+            {"char"sv, TokenKind::TypeChar},
+            {"const"sv, TokenKind::KeywordConst},
+            {"continue"sv, TokenKind::KeywordContinue},
+            {"else"sv, TokenKind::KeywordElse},
+            {"f32"sv, TokenKind::TypeF32},
+            {"f64"sv, TokenKind::TypeF64},
+            {"for"sv, TokenKind::KeywordFor},
+            {"fun"sv, TokenKind::KeywordFun},
+            {"i16"sv, TokenKind::TypeI16},
+            {"i32"sv, TokenKind::TypeI32},
+            {"i64"sv, TokenKind::TypeI64},
+            {"i8"sv, TokenKind::TypeI8},
+            {"if"sv, TokenKind::KeywordIf},
+            {"main"sv, TokenKind::KeywordMain},
+            {"nullptr"sv, TokenKind::KeywordNullptr},
+            {"return"sv, TokenKind::KeywordReturn},
+            {"string"sv, TokenKind::TypeString},
+            {"u16"sv, TokenKind::TypeU16},
+            {"u32"sv, TokenKind::TypeU32},
+            {"u64"sv, TokenKind::TypeU64},
+            {"u8"sv, TokenKind::TypeU8},
+            {"var"sv, TokenKind::KeywordVar},
+            {"while"sv, TokenKind::KeywordWhile},
+        }};
+        static_assert(
+            []() consteval {
+                for(std::size_t i = 1; i < kTable.size(); ++i) {
+                    if(kTable[i - 1].first >= kTable[i].first) { return false; }
+                }
+                return true;
+            }(),
+            "kTable must be sorted lexicographically for lower_bound to be correct");
         const auto it = std::ranges::lower_bound(kTable, text, {}, &std::pair<std::string_view, TokenKind>::first);
 
         if(it != kTable.end() && it->first == text) { return it->second; }
