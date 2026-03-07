@@ -51,9 +51,6 @@ jsav -i <input_file> [options]
 # Process a .vn file
 jsav -i program.vn
 
-# Process and compile
-jsav -i program.vn --compile
-
 # Show version
 jsav --version
 ```
