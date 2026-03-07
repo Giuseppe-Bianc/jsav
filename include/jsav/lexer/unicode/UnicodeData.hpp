@@ -693,21 +693,23 @@ namespace jsv::unicode {
         return detail::in_ranges(cp, id_continue_ranges);
     }
 
-    /// True if cp is Unicode whitespace: General Category Zs, Zl, or Zp.
-    /// Note: U+0020 SPACE is General Category Zs and returns true.
-    /// Other ASCII whitespace (tab U+0009, LF U+000A, CR U+000D) are NOT Zs/Zl/Zp.
-    [[nodiscard]] constexpr bool is_unicode_whitespace(char32_t cp) noexcept {
-        if(cp == U' ') [[likely]] { return true; }  // U+0020 SPACE is Zs — fast-path
-        if(cp < 0x80U) { return false; }            // Other ASCII not in Zs/Zl/Zp
-        return detail::in_ranges(cp, whitespace_ranges);
-    }
-
     /// True if cp is a Unicode line terminator: NEL (U+0085), LINE SEPARATOR (U+2028),
     /// or PARAGRAPH SEPARATOR (U+2029). Used by skip_unicode_whitespace() to determine
     /// when to increment the line counter and reset the column counter.
     /// Note: LF (U+000A) is handled by the ASCII fast-path and is NOT included here.
     [[nodiscard]] constexpr bool is_unicode_line_terminator(char32_t cp) noexcept {
         return cp == U'\U00000085' || cp == U'\U00002028' || cp == U'\U00002029';
+    }
+
+    /// True if cp is Unicode whitespace: General Category Zs, Zl, or Zp.
+    /// Note: U+0020 SPACE is General Category Zs and returns true.
+    /// Other ASCII whitespace (tab U+0009, LF U+000A, CR U+000D) are NOT Zs/Zl/Zp.
+    [[nodiscard]] constexpr bool is_unicode_whitespace(char32_t cp) noexcept {
+        if(cp == U' ') [[likely]] { return true; }  // U+0020 SPACE is Zs — fast-path
+        if(cp < 0x80U) { return false; }            // Other ASCII not in Zs/Zl/Zp
+        // Line terminators (U+0085, U+2028, U+2029) are whitespace even if not in Zs/Zl/Zp ranges
+        if(is_unicode_line_terminator(cp)) { return true; }
+        return detail::in_ranges(cp, whitespace_ranges);
     }
 }  // namespace jsv::unicode
 
