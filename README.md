@@ -24,9 +24,43 @@ To run this program smoothly, please ensure the following prerequisites are in p
 # Usage
 
 ```bash
-jsav -i input_file.vn [-c] [-r] [-x] [-m]
+jsav -i <input_file> [options]
 ```
 
-Flags:
+## Options
 
-- --input (-i): the vn input source file;
+| Option | Description |
+|--------|-------------|
+| `-i, --input <file>` | **Required.** The input source file to process |
+| `-v, --version` | Show version information and exit |
+
+
+## Examples
+
+```bash
+# Process a .vn file
+jsav -i program.vn
+
+# Process and compile
+jsav -i program.vn --compile
+
+# Show version
+jsav --version
+```
+
+## Notes
+
+- The input file path can be relative or absolute
+- The compiler supports `.vn` extension files with UTF-8 encoding
+
+## Acknowledgments
+
+The jsav compiler project builds upon the excellent work of the open-source community:
+
+- **[fmtlib/fmt](https://github.com/fmtlib/fmt)** - Modern formatting library used as a fallback for `std::format`
+- **[spdlog](https://github.com/gabime/spdlog)** - High-performance C++ logging library
+- **[CLI11](https://github.com/CLIUtils/CLI11)** - Command-line argument parsing library
+- **[Catch2](https://github.com/catchorg/Catch2)** - Modern C++ testing framework
+- **[CMake](https://cmake.org/)** - Cross-platform build system generator
+
+Special thanks to all contributors and the broader C++ community for their continuous support and valuable feedback.
