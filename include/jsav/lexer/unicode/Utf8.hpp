@@ -116,7 +116,7 @@ namespace jsv::unicode {
             if(offset + 1 >= input.size()) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
             if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
-            const char32_t cp = ((b0 & LEAD_2BYTE_PAYLOAD_MASK) << SHIFT_2BYTE) | (b1 & PAYLOAD_MASK);
+            const char32_t cp = C_C32(((b0 & LEAD_2BYTE_PAYLOAD_MASK) << SHIFT_2BYTE) | (b1 & PAYLOAD_MASK));
             // Overlong check: valid 2-byte range is U+0080–U+07FF.
             // b0 is 0xC2–0xDF which guarantees cp >= U+0080, no extra check needed.
             return {cp, 2, Utf8Status::Ok};
@@ -154,8 +154,8 @@ namespace jsv::unicode {
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate};
             }
             if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
-            const char32_t cp = ((b0 & LEAD_3BYTE_PAYLOAD_MASK) << SHIFT_3BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_2BYTE) |
-                                (b2 & PAYLOAD_MASK);
+            const char32_t cp = C_C32(((b0 & LEAD_3BYTE_PAYLOAD_MASK) << SHIFT_3BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_2BYTE) |
+                                      (b2 & PAYLOAD_MASK));
 
             return {cp, 3, Utf8Status::Ok};
         }
@@ -212,8 +212,8 @@ namespace jsv::unicode {
             }
             if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
             if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
-            const char32_t cp = ((b0 & LEAD_4BYTE_PAYLOAD_MASK) << SHIFT_4BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_3BYTE) |
-                                ((b2 & PAYLOAD_MASK) << SHIFT_2BYTE) | (b3 & PAYLOAD_MASK);
+            const char32_t cp = C_C32(((b0 & LEAD_4BYTE_PAYLOAD_MASK) << SHIFT_4BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_3BYTE) |
+                                      ((b2 & PAYLOAD_MASK) << SHIFT_2BYTE) | (b3 & PAYLOAD_MASK));
             return {cp, 4, Utf8Status::Ok};
         }
 
