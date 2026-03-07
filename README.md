@@ -5,6 +5,17 @@
 [![CodeQL](https://github.com/Giuseppe-Bianc/jsav/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Giuseppe-Bianc/jsav/actions/workflows/codeql-analysis.yml)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
 
+## Table of Contents
+
+- [About jsav](#about-jsav)
+- [Requirements](#requirements)
+- [More Details](#more-details)
+- [Usage](#usage)
+    - [Options](#options)
+    - [Examples](#examples)
+    - [Notes](#notes)
+- [Acknowledgments](#acknowledgments)
+
 ## About jsav
 
 An operating system-independent compiler, written in C++23, designed to process source code files with the .vn extension. The compiler accepts these files as input, parsing their syntax and generating optimized executables compatible with the target operating system. It provides detailed diagnostic messages in case of errors and supports configurable compilation options, enabling both local development and deployment of standalone applications. The design aims for maximum portability and efficiency, ensuring a consistent and reliable compilation process across different platforms.
