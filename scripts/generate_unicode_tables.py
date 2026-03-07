@@ -447,7 +447,7 @@ namespace jsv::unicode {{
     // Used by is_id_continue()
     // =========================================================================
 
-    inline constexpr std::array<CodepointRange, {len(id_continue_ranges)}> id_continue_ranges{{{{{id_continue_cpp}}}}};
+    static inline constexpr std::array<CodepointRange, {len(id_continue_ranges)}> id_continue_ranges{{{{{id_continue_cpp}}}}};
 
     static_assert(id_continue_ranges.size() == {len(id_continue_ranges)}, "id_continue_ranges size mismatch");
     static_assert(

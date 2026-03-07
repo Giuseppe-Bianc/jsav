@@ -2,14 +2,12 @@
  * Created by gbian on 01/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-magic-numbers, *-avoid-magic-numbers)
 
 #pragma once
 
-#include <cstddef>
 #include <cstdint>
 #include <string_view>
-
-// NOLINTBEGIN(*-magic-numbers, *-avoid-magic-numbers)
 
 namespace jsv::unicode {
 
@@ -107,15 +105,17 @@ namespace jsv::unicode {
 
         constexpr char32_t REPLACEMENT_CHAR = U'\uFFFD';
 
-        constexpr bool is_continuation(std::uint8_t b) noexcept { return (b & CONT_MASK) == CONT_TAG; }
+        [[nodiscard]] constexpr bool is_continuation(std::uint8_t b) noexcept { return (b & CONT_MASK) == CONT_TAG; }
 
         [[nodiscard]] constexpr Utf8DecodeResult decode_2byte(std::string_view input, std::size_t offset) noexcept {
             // Lead byte already validated as 0xC2–0xDF by caller
             const auto b0 = C_UI8T(input[offset]);
-            // Need exactly 1 continuation byte
-            if(offset + 1 >= input.size()) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
-            const auto b1 = static_cast<std::uint8_t>(input[offset + 1]);
-            if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
+            const auto offset1 = offset + 1;
+
+            // PERF: [[unlikely]] — well-formed input has a valid continuation byte here.
+            if(offset1 >= input.size()) [[unlikely]] { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
+            const auto b1 = C_UI8T(input[offset1]);
+            if(!is_continuation(b1)) [[unlikely]] { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             const char32_t cp = C_C32(((b0 & LEAD_2BYTE_PAYLOAD_MASK) << SHIFT_2BYTE) | (b1 & PAYLOAD_MASK));
             // Overlong check: valid 2-byte range is U+0080–U+07FF.
             // b0 is 0xC2–0xDF which guarantees cp >= U+0080, no extra check needed.
@@ -127,7 +127,7 @@ namespace jsv::unicode {
             const auto offset1 = offset + 1;
             const auto offset2 = offset + 2;
             // Need exactly 2 continuation bytes
-            if(offset2 >= input.size()) {
+            if(offset2 >= input.size()) [[unlikely]] {
                 // Maximal subpart: if b1 exists and is a valid continuation, consume 2
                 if(offset1 < input.size()) {
                     if(const auto b1 = C_UI8T(input[offset1]); is_continuation(b1)) {
@@ -142,18 +142,18 @@ namespace jsv::unicode {
             }
             const auto b1 = C_UI8T(input[offset1]);
             const auto b2 = C_UI8T(input[offset2]);
-            if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b1)) [[unlikely]] { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 3-byte: E0 with b1 < A0 — consume maximal subpart (all 3 bytes if valid)
-            if(b0 == LEAD_3BYTE_MIN && b1 < OVERLONG_3BYTE_THRESHOLD) {
+            if(b0 == LEAD_3BYTE_MIN && b1 < OVERLONG_3BYTE_THRESHOLD) [[unlikely]] {
                 if(is_continuation(b2)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
             }
             // Surrogate: ED with b1 in A0–BF — consume maximal subpart (all 3 bytes if valid)
-            if(b0 == LEAD_3BYTE_SURROGATE && b1 >= OVERLONG_3BYTE_THRESHOLD) {
+            if(b0 == LEAD_3BYTE_SURROGATE && b1 >= OVERLONG_3BYTE_THRESHOLD) [[unlikely]] {
                 if(is_continuation(b2)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Surrogate}; }
                 return {REPLACEMENT_CHAR, 2, Utf8Status::Surrogate};
             }
-            if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b2)) [[unlikely]] { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
             const char32_t cp = C_C32(((b0 & LEAD_3BYTE_PAYLOAD_MASK) << SHIFT_3BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_2BYTE) |
                                       (b2 & PAYLOAD_MASK));
 
@@ -191,27 +191,30 @@ namespace jsv::unicode {
 
         [[nodiscard]] constexpr Utf8DecodeResult decode_4byte(std::string_view input, std::size_t offset) noexcept {
             const auto b0 = C_UI8T(input[offset]);
+            const auto offset1 = offset + 1;  // PERF: pre-computed, consistent with decode_3byte
+            const auto offset2 = offset + 2;  // PERF: pre-computed, consistent with decode_3byte
             const auto offset3 = offset + 3;
             // Need exactly 3 continuation bytes
-            if(offset3 >= input.size()) { return decode_4byte_truncated(input, offset, b0); }
-            const auto b1 = C_UI8T(input[offset + 1]);
-            const auto b2 = C_UI8T(input[offset + 2]);
+            if(offset3 >= input.size()) [[unlikely]] { return decode_4byte_truncated(input, offset, b0); }
+
+            const auto b1 = C_UI8T(input[offset1]);
+            const auto b2 = C_UI8T(input[offset2]);
             const auto b3 = C_UI8T(input[offset3]);
-            if(!is_continuation(b1)) { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b1)) [[unlikely]] { return {REPLACEMENT_CHAR, 1, Utf8Status::TruncatedSequence}; }
             // Overlong 4-byte: F0 with b1 < 90 — consume all 4 bytes (maximal subpart)
-            if(b0 == LEAD_4BYTE_MIN && b1 < OVERLONG_4BYTE_THRESHOLD) {
+            if(b0 == LEAD_4BYTE_MIN && b1 < OVERLONG_4BYTE_THRESHOLD) [[unlikely]] {
                 if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::Overlong}; }
                 if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::Overlong}; }
                 return {REPLACEMENT_CHAR, 4, Utf8Status::Overlong};
             }
             // Out-of-range: F4 90+ (U+110000+) — consume all 4 bytes (maximal subpart)
-            if(b0 == LEAD_4BYTE_MAX && b1 >= OVERLONG_4BYTE_THRESHOLD) {
+            if(b0 == LEAD_4BYTE_MAX && b1 >= OVERLONG_4BYTE_THRESHOLD) [[unlikely]] {
                 if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::OutOfRange}; }
                 if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::OutOfRange}; }
                 return {REPLACEMENT_CHAR, 4, Utf8Status::OutOfRange};
             }
-            if(!is_continuation(b2)) { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
-            if(!is_continuation(b3)) { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b2)) [[unlikely]] { return {REPLACEMENT_CHAR, 2, Utf8Status::TruncatedSequence}; }
+            if(!is_continuation(b3)) [[unlikely]] { return {REPLACEMENT_CHAR, 3, Utf8Status::TruncatedSequence}; }
             const char32_t cp = C_C32(((b0 & LEAD_4BYTE_PAYLOAD_MASK) << SHIFT_4BYTE) | ((b1 & PAYLOAD_MASK) << SHIFT_3BYTE) |
                                       ((b2 & PAYLOAD_MASK) << SHIFT_2BYTE) | (b3 & PAYLOAD_MASK));
             return {cp, 4, Utf8Status::Ok};
@@ -225,19 +228,19 @@ namespace jsv::unicode {
 
     [[nodiscard]] constexpr Utf8DecodeResult decode_utf8(std::string_view input, std::size_t offset) noexcept {
         // Defensive bounds check: prevent out-of-bounds access
-        if(offset >= input.size()) { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OutOfRange}; }
+        if(offset >= input.size()) [[unlikely]] { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OutOfRange}; }
         const auto first = C_UI8T(input[offset]);
         // ASCII fast-path (> 95% of real-world input)
         if(first <= detail::ASCII_MAX) [[likely]] { return {static_cast<char32_t>(first), 1, Utf8Status::Ok}; }
 
         // Orphaned continuation byte (0x80–0xBF)
-        if(first <= detail::CONTINUATION_MAX) { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OrphanedContinuation}; }
+        if(first <= detail::CONTINUATION_MAX) [[unlikely]] { return {detail::REPLACEMENT_CHAR, 1, Utf8Status::OrphanedContinuation}; }
 
         // 2-byte sequence: lead byte 0xC0–0xDF
         if(first < detail::LEAD_3BYTE_MIN) {
             // 0xC0–0xC1 are always overlong (would encode U+0000–U+007F)
             // Consume maximal subpart: both bytes if valid continuation exists
-            if(first <= detail::LEAD_2BYTE_OVERLONG_MAX) {
+            if(first <= detail::LEAD_2BYTE_OVERLONG_MAX) [[unlikely]] {
                 if(offset + 1 < input.size() && detail::is_continuation(C_UI8T(input[offset + 1]))) {
                     return {detail::REPLACEMENT_CHAR, 2, Utf8Status::Overlong};
                 }
@@ -258,7 +261,7 @@ namespace jsv::unicode {
 
     [[nodiscard]] constexpr bool is_valid_utf8_at(std::string_view input, std::size_t offset) noexcept {
         // Defensive bounds check: prevent out-of-bounds access
-        if(offset >= input.size()) { return false; }
+        if(offset >= input.size()) [[unlikely]] { return false; }
         return decode_utf8(input, offset).status == Utf8Status::Ok;
     }
 
