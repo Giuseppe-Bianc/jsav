@@ -4377,13 +4377,15 @@ TEST_CASE("Lexer_baseNumericst_whit_suffix", "[lexer][numeric]") {
 }
 
 TEST_CASE("Lexer_strings", "[lexer][string]") {
-    jsv::Lexer lex{R"("Hello, World!" "Escaped \"quote\" inside")", "test.jsav"};
+    const std::string strSrc = std::string(R"("Hello, World!" )") + R"("Escaped \"quote\" inside")";
+    jsv::Lexer lex{strSrc, "test.jsav"};
     const auto tokens = lex.tokenize();
     REQUIRE(tokens.size() == 3);  // 2 string literals + Eof
     REQUIRE(tokens[0].getKind() == jsv::TokenKind::StringLiteral);
     REQUIRE(tokens[0].getText() == R"("Hello, World!")");
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::StringLiteral);
-    REQUIRE(tokens[1].getText() == R"("Escaped \"quote\" inside")");
+    const std::string escapedQuoteLiteral = R"("Escaped \"quote\" inside")";
+    REQUIRE(tokens[1].getText() == escapedQuoteLiteral);
 }
 
 TEST_CASE("Lexer_char", "[lexer][char]") {
