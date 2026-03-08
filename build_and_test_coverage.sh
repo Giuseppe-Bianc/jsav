@@ -86,5 +86,10 @@ echo "Current working directory: $(pwd)"
 
   gcovr -j 3 --root ../ --config ../gcovr.cfg --gcov-executable 'gcov' --exclude-unreachable-branches --exclude-noncode-lines || die "gcovr failed."
 
-xdg-open "${COBERTURA_HTML}" || die "Failed to open coverage report."
+if ! command -v firefox &>/dev/null; then
+  die "Firefox is not installed or not on PATH."
+fi
+
+firefox "${COBERTURA_HTML}" >/dev/null 2>&1 &
+disown
 echo "complete."
