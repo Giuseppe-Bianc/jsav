@@ -3531,64 +3531,6 @@ TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer][utf8][ascii-co
 }
 
 // ==========================================================================
-// Phase 7 – Performance (benchmarks + functional correctness)
-// ==========================================================================
-
-TEST_CASE("Lexer_LargeAsciiFile_TokenizesWithinBaseline", "[lexer][utf8][performance][phase7]") {
-    // Generate ~10K ASCII identifier tokens: "x0 x1 x2 ... x9999"
-    std::string src;
-    src.reserve(std::size_t{10000} * 8);
-    for(int i = 0; i < 10000; ++i) {
-        src += 'x';
-        src += std::to_string(i);
-        src += ' ';
-    }
-    jsv::Lexer lex{src, "test.jsav"};
-    const auto tokens = lex.tokenize();
-    // 10000 IdentifierAscii tokens + 1 Eof
-    REQUIRE(tokens.size() == 10001);
-    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
-    REQUIRE(tokens[0].getText() == "x0");
-    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
-
-    BENCHMARK("Tokenize 10K ASCII tokens") {
-        jsv::Lexer bench_lex{src, "bench.jsav"};
-        return bench_lex.tokenize();
-    };
-}
-
-TEST_CASE("Lexer_MixedUnicodeFile_TokenizesCompletely", "[lexer][utf8][performance][phase7]") {
-    // Mix ASCII identifiers, CJK identifiers, Cyrillic identifiers,
-    // and string literals containing valid UTF-8 multi-byte characters.
-    std::string src;
-    src.reserve(5000);
-    for(int i = 0; i < 100; ++i) {
-        src += 'a';
-        src += std::to_string(i);
-        src += ' ';                           // ASCII identifiers
-        src += "\xe5\x8f\x98\xe9\x87\x8f ";   // 変量 (CJK)
-        src += "\xd0\xb0\xd0\xb1\xd0\xb2 ";   // абв (Cyrillic)
-        src += "\"hello\xf0\x9f\x98\x80\" ";  // string with emoji inside
-    }
-    jsv::Lexer lex{src, "test.jsav"};
-    const auto tokens = lex.tokenize();
-    REQUIRE_FALSE(tokens.empty());
-    REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
-    // 100 × (ASCII-ident + CJK-ident + Cyrillic-ident + StringLiteral) + Eof = 401 tokens
-    REQUIRE(tokens.size() == 401);
-    // Spot-check: first is ASCII identifier, second is CJK Unicode identifier
-    REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
-    REQUIRE(tokens[1].getKind() == jsv::TokenKind::IdentifierUnicode);
-    REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierUnicode);
-    REQUIRE(tokens[3].getKind() == jsv::TokenKind::StringLiteral);
-
-    BENCHMARK("Tokenize mixed Unicode") {
-        jsv::Lexer bench_lex{src, "bench.jsav"};
-        return bench_lex.tokenize();
-    };
-}
-
-// ==========================================================================
 // Phase 3 – User Story 1: Basic integers and decimals
 // ==========================================================================
 

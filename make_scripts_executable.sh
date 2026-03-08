@@ -16,6 +16,7 @@ set -euo pipefail
 readonly SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 readonly -a TARGET_SCRIPTS=(
+  "build_and_benchmark.sh"
   "build_and_callgrind.sh"
   "build_and_run.sh"
   "build_and_test_coverage.sh"
