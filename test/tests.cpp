@@ -3438,7 +3438,7 @@ TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat
         const char *src;
         jsv::TokenKind kind;
     };
-    const std::array<OpCase, 28> cases = {{
+    const std::array<OpCase, 34> cases = {{
         {.src = "+", .kind = jsv::TokenKind::Plus},
         {.src = "-", .kind = jsv::TokenKind::Minus},
         {.src = "*", .kind = jsv::TokenKind::Star},
@@ -3467,6 +3467,12 @@ TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat
         {.src = ";", .kind = jsv::TokenKind::Semicolon},
         {.src = ",", .kind = jsv::TokenKind::Comma},
         {.src = ".", .kind = jsv::TokenKind::Dot},
+        {.src = "!", .kind = jsv::TokenKind::Not},
+        {.src = "%", .kind = jsv::TokenKind::Percent},
+        {.src = "%=", .kind = jsv::TokenKind::PercentEqual},
+        {.src = "^", .kind = jsv::TokenKind::Xor},
+        {.src = "^=", .kind = jsv::TokenKind::XorEqual},
+        {.src = ":", .kind = jsv::TokenKind::Colon},
     }};
     for(const auto &c : cases) {
         INFO("Operator: " << c.src);
