@@ -411,10 +411,6 @@ namespace jsv {
                 skip_escape();
                 continue;
             }
-            if(c == '\n' || c == '\r') {
-                // Unterminated single-line string — stop and let the parser reject.
-                break;
-            }
             // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
             if(C_UC(c) > 0x7F) {
                 advance_with_utf8_check(has_malformed);
