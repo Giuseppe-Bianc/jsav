@@ -50,7 +50,7 @@ if [[ -d "${BENCHMARK_DIR}" ]]; then
   echo "============================================================"
   echo ""
   
-  ./Release/benchmarks.exe [!benchmark] --benchmark-samples 2500 --benchmark-warmup-time 3 \
+  ./benchmarks [!benchmark] --benchmark-samples 2500 --benchmark-warmup-time 3 \
     || die "Benchmark run failed."
 
   echo ""
