@@ -4376,6 +4376,26 @@ TEST_CASE("Lexer_baseNumericst_whit_suffix", "[lexer][numeric]") {
     REQUIRE(tokens[8].getText() == "#xdeadBEEFu");
 }
 
+TEST_CASE("Lexer_strings", "[lexer][string]") {
+    jsv::Lexer lex{R"("Hello, World!" "Escaped \"quote\" inside")", "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);  // 2 string literals + Eof
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::StringLiteral);
+    REQUIRE(tokens[0].getText() == R"("Hello, World!")");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::StringLiteral);
+    REQUIRE(tokens[1].getText() == R"("Escaped \"quote\" inside")");
+}
+
+TEST_CASE("Lexer_char", "[lexer][char]") {
+    jsv::Lexer lex{R"('\r' '\n')", "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 3);  // 2 string literals + Eof
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::CharLiteral);
+    REQUIRE(tokens[0].getText() == R"('\r')");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::CharLiteral);
+    REQUIRE(tokens[1].getText() == R"('\n')");
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
