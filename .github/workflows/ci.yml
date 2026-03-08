@@ -209,7 +209,7 @@ jobs:
         if: runner.os == 'Windows'
         working-directory: ./build
         run: |
-          OpenCppCoverage.exe --sources "${{ github.workspace }}/include" --sources "${{ github.workspace }}/src" --modules "${{ github.workspace }}/build" --excluded_sources ".*\\_deps\\.*" --excluded_sources ".*\\vcpkg_installed\\.*" --excluded_sources ".*\\configured_files\\.*" --excluded_sources ".*\\.cmake\\.*" --export_type cobertura:coverage.xml --cover_children -- ctest -C ${{ matrix.build_type }} -j ${{ steps.cpu-cores.outputs.count }} --output-on-failure --no-compress-output
+          OpenCppCoverage.exe --sources "${{ github.workspace }}\include" --sources "${{ github.workspace }}\src" --modules "${{ github.workspace }}\build" --excluded_sources ".*\\_deps\\.*" --excluded_sources ".*\\vcpkg_installed\\.*" --excluded_sources ".*\\configured_files\\.*" --excluded_sources ".*\\.cmake\\.*" --export_type cobertura:coverage.xml --cover_children -- ctest -C ${{ matrix.build_type }} -j ${{ steps.cpu-cores.outputs.count }} --output-on-failure --no-compress-output
 
       - name: CPack
         if: matrix.package_generator != ''
