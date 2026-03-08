@@ -4328,6 +4328,54 @@ TEST_CASE("Lexer_NumericNewlineTermination_FR028", "[lexer][numeric][us5][fr-028
     }
 }
 
+TEST_CASE("Lexer_baseNumerics", "[lexer][numeric]") {
+    jsv::Lexer lex{"#b1010 #o777 #x1f #b0 #o0 #x0 #b11111111 #o377 #xdeadBEEF", "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 10);  // 9 numeric tokens + Eof
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Binary);
+    REQUIRE(tokens[0].getText() == "#b1010");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Octal);
+    REQUIRE(tokens[1].getText() == "#o777");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Hexadecimal);
+    REQUIRE(tokens[2].getText() == "#x1f");
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::Binary);
+    REQUIRE(tokens[3].getText() == "#b0");
+    REQUIRE(tokens[4].getKind() == jsv::TokenKind::Octal);
+    REQUIRE(tokens[4].getText() == "#o0");
+    REQUIRE(tokens[5].getKind() == jsv::TokenKind::Hexadecimal);
+    REQUIRE(tokens[5].getText() == "#x0");
+    REQUIRE(tokens[6].getKind() == jsv::TokenKind::Binary);
+    REQUIRE(tokens[6].getText() == "#b11111111");
+    REQUIRE(tokens[7].getKind() == jsv::TokenKind::Octal);
+    REQUIRE(tokens[7].getText() == "#o377");
+    REQUIRE(tokens[8].getKind() == jsv::TokenKind::Hexadecimal);
+    REQUIRE(tokens[8].getText() == "#xdeadBEEF");
+}
+
+TEST_CASE("Lexer_baseNumericst_whit_suffix", "[lexer][numeric]") {
+    jsv::Lexer lex{"#b1010u #o777u #x1fu #b0u #o0u #x0u #b11111111u #o377u #xdeadBEEFu", "test.jsav"};
+    const auto tokens = lex.tokenize();
+    REQUIRE(tokens.size() == 10);  // 9 numeric tokens + Eof
+    REQUIRE(tokens[0].getKind() == jsv::TokenKind::Binary);
+    REQUIRE(tokens[0].getText() == "#b1010u");
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Octal);
+    REQUIRE(tokens[1].getText() == "#o777u");
+    REQUIRE(tokens[2].getKind() == jsv::TokenKind::Hexadecimal);
+    REQUIRE(tokens[2].getText() == "#x1fu");
+    REQUIRE(tokens[3].getKind() == jsv::TokenKind::Binary);
+    REQUIRE(tokens[3].getText() == "#b0u");
+    REQUIRE(tokens[4].getKind() == jsv::TokenKind::Octal);
+    REQUIRE(tokens[4].getText() == "#o0u");
+    REQUIRE(tokens[5].getKind() == jsv::TokenKind::Hexadecimal);
+    REQUIRE(tokens[5].getText() == "#x0u");
+    REQUIRE(tokens[6].getKind() == jsv::TokenKind::Binary);
+    REQUIRE(tokens[6].getText() == "#b11111111u");
+    REQUIRE(tokens[7].getKind() == jsv::TokenKind::Octal);
+    REQUIRE(tokens[7].getText() == "#o377u");
+    REQUIRE(tokens[8].getKind() == jsv::TokenKind::Hexadecimal);
+    REQUIRE(tokens[8].getText() == "#xdeadBEEFu");
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
