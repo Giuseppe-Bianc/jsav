@@ -5,3 +5,10 @@ paths-ignore:
   - '**/deps/**'
   - '**/build/**'
   - '**/_deps/**'          # CMake FetchContent default dir
+
+query-filters:
+  - exclude:
+      id: cpp/unused-static-function
+      paths:
+        - '**/test/**'
+        - '**/tests/**'
