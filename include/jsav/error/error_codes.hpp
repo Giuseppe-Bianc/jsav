@@ -22,7 +22,16 @@
 namespace jsv {
 
     // ---------------------------------------------------------------------------
-    // Severity
+    /// \enum Severity error_codes.hpp jsav/error/error_codes.hpp
+    /// \brief Defines the severity levels for compiler errors
+    /// \var Severity::Note
+    ///     A note-level diagnostic (lowest severity)
+    /// \var Severity::Warning
+    ///     A warning-level diagnostic
+    /// \var Severity::Error
+    ///     An error-level diagnostic (default)
+    /// \var Severity::Fatal
+    ///     A fatal error that stops compilation
     // ---------------------------------------------------------------------------
 
     enum class Severity : uint8_t {
@@ -34,7 +43,11 @@ namespace jsv {
     std::string to_string(Severity severity);
 
     // ---------------------------------------------------------------------------
-    // CompilerPhase
+    /// \enum CompilerPhase error_codes.hpp jsav/error/error_codes.hpp
+    /// \brief Defines the compiler phases where errors can occur
+    /// \var CompilerPhase::Lexer
+    ///     Lexical analysis phase
+    /// \note Currently only Lexer phase is enabled; others are commented out
     // ---------------------------------------------------------------------------
 
     enum class CompilerPhase : uint8_t {
@@ -48,93 +61,139 @@ namespace jsv {
     std::string to_string(CompilerPhase phase);
 
     // ---------------------------------------------------------------------------
-    // ErrorCode
+    /// \enum ErrorCode error_codes.hpp jsav/error/error_codes.hpp
+    /// \brief Defines all error codes for the jsav compiler
+    /// \details Error codes follow a systematic naming convention:
+    ///          - E0001-E0999: Lexer errors (lexical analysis)
+    ///          - E1001-E1999: Parser errors (syntax analysis)
+    ///          - E2001-E2999: Semantic analysis errors (type checking, scope)
+    ///          - E3001-E3999: IR generation errors (intermediate representation)
+    ///          - E4001-E4999: Code generation errors (assembly output)
+    ///          - E5001-E5999: System/I/O errors (file operations, CLI)
+    ///
+    /// Each error code is unique and can be used to reference documentation,
+    /// search error databases, and integrate with IDE diagnostic tools.
     // ---------------------------------------------------------------------------
-
     enum class ErrorCode {
-        E0001,
-        E0002,
-        E0003,
-        E0004,
-        E0005,
-        E0006,
-        E0007,
-        E0008,
-        E0009,
-        E0010,
-        E1001,
-        E1002,
-        E1003,
-        E1004,
-        E1005,
-        E1006,
-        E1007,
-        E1008,
-        E1009,
-        E1010,
-        E1011,
-        E1012,
-        E1013,
-        E1014,
-        E1015,
+        // -------------------------------------------------------------------------
+        // Lexer Errors (E0001-E0999)
+        // -------------------------------------------------------------------------
+        E0001,  ///< Token not valid or unrecognized
+        E0002,  ///< Malformed binary numeric literal (e.g., `0b2`, `0b102`)
+        E0003,  ///< Malformed octal numeric literal (e.g., `0o8`, `0o9`)
+        E0004,  ///< Malformed hexadecimal numeric literal (e.g., `0xG`, `0xZZ`)
+        E0005,  ///< Unterminated string literal (missing closing `"`)
+        E0006,  ///< Unterminated character literal (missing closing `'`)
+        E0007,  ///< Invalid escape sequence in string or character literal
+        E0008,  ///< Unterminated multi-line comment (missing `*/`)
+        E0009,  ///< Invalid numeric suffix on literal
+        E0010,  ///< Numeric literal overflow (value exceeds type limits)
 
-        E2001,
-        E2002,
-        E2003,
-        E2004,
-        E2005,
-        E2006,
-        E2007,
-        E2008,
-        E2009,
-        E2010,
-        E2011,
-        E2012,
-        E2013,
-        E2014,
-        E2015,
-        E2016,
-        E2017,
-        E2018,
-        E2019,
-        E2020,
-        E2021,
-        E2022,
-        E2023,
-        E2024,
-        E2025,
-        E2026,
-        E2027,
-        E2028,
-        E2029,
-        E2030,
-        E2031,
-        E2032,
+        // -------------------------------------------------------------------------
+        // Parser Errors (E1001-E1999)
+        // -------------------------------------------------------------------------
+        E1001,  ///< Maximum recursion depth exceeded (parser stack overflow)
+        E1002,  ///< Invalid type specifier in declaration
+        E1003,  ///< Invalid assignment target (cannot assign to rvalue)
+        E1004,  ///< Unexpected token in current parsing context
+        E1005,  ///< Invalid binary operator for operand types
+        E1006,  ///< Expression expected but not found
+        E1007,  ///< Statement expected but not found
+        E1008,  ///< Identifier expected (e.g., in declaration)
+        E1009,  ///< Type annotation expected (e.g., in parameter list)
+        E1010,  ///< Mismatched parenthesis (missing `(` or `)`)
+        E1011,  ///< Mismatched brace (missing `{` or `}`)
+        E1012,  ///< Mismatched bracket (missing `[` or `]`)
+        E1013,  ///< Missing semicolon at end of statement (warning)
+        E1014,  ///< Invalid function signature (malformed declaration)
+        E1015,  ///< Invalid parameter list (malformed parameters)
 
-        E3001,
-        E3002,
-        E3003,
-        E3004,
-        E3005,
-        E3006,
-        E3007,
-        E3008,
+        // -------------------------------------------------------------------------
+        // Semantic Analysis Errors (E2001-E2999)
+        // -------------------------------------------------------------------------
+        E2001,  ///< Mismatched number of initializers in array/struct
+        E2002,  ///< Type mismatch in assignment (incompatible types)
+        E2003,  ///< Missing return statement in some code paths
+        E2004,  ///< Condition expression must have boolean type
+        E2005,  ///< Return statement outside function body
+        E2006,  ///< Cannot return value from void function
+        E2007,  ///< Return type mismatch (declared vs actual)
+        E2008,  ///< Missing return value in non-void function
+        E2009,  ///< Break statement outside loop body
+        E2010,  ///< Continue statement outside loop body
+        E2011,  ///< Bitwise operator requires integer operands
+        E2012,  ///< Logical operator requires boolean operands
+        E2013,  ///< Arithmetic operator requires numeric operands
+        E2014,  ///< Incompatible types in comparison operation
+        E2015,  ///< Type mismatch in binary operation
+        E2016,  ///< Arithmetic operation not supported for types
+        E2017,  ///< Logical operation requires boolean type
+        E2018,  ///< Negation requires numeric type
+        E2019,  ///< Logical NOT requires boolean type
+        E2020,  ///< Empty array literal (must have at least one element)
+        E2021,  ///< Mixed types in array literal (all must match)
+        E2022,  ///< Function cannot be used as variable
+        E2023,  ///< Variable not defined in current scope
+        E2024,  ///< Cannot assign to immutable variable (const/readonly)
+        E2025,  ///< Variable not defined in assignment target
+        E2026,  ///< Callable must be a function type
+        E2027,  ///< Function not defined (undefined reference)
+        E2028,  ///< Wrong number of arguments in function call
+        E2029,  ///< Argument type mismatch in function call
+        E2030,  ///< Array index must be integer type
+        E2031,  ///< Cannot index non-array type
+        E2032,  ///< Duplicate declaration of same identifier
 
-        E4001,
-        E4002,
-        E4003,
-        E4004,
-        E4005,
+        // -------------------------------------------------------------------------
+        // IR Generation Errors (E3001-E3999)
+        // -------------------------------------------------------------------------
+        E3001,  ///< Break outside loop in IR generation
+        E3002,  ///< Continue outside loop in IR generation
+        E3003,  ///< Invalid IR instruction generated
+        E3004,  ///< Variable not defined in IR context
+        E3005,  ///< Invalid basic block structure
+        E3006,  ///< Invalid block terminator in CFG
+        E3007,  ///< SSA transformation error (conversion failed)
+        E3008,  ///< CFG construction error (control flow invalid)
 
-        E5001,
-        E5002,
-        E5003,
-        E5004,
-        E5005,
+        // -------------------------------------------------------------------------
+        // Code Generation Errors (E4001-E4999)
+        // -------------------------------------------------------------------------
+        E4001,  ///< Invalid assembly instruction for target
+        E4002,  ///< Register allocation failed (no available registers)
+        E4003,  ///< Stack frame overflow (exceeds maximum size)
+        E4004,  ///< Unsupported target platform for compilation
+        E4005,  ///< ABI violation (calling convention mismatch)
+
+        // -------------------------------------------------------------------------
+        // System/I/O Errors (E5001-E5999)
+        // -------------------------------------------------------------------------
+        E5001,  ///< File not found (source or output file missing)
+        E5002,  ///< Permission denied (insufficient access rights)
+        E5003,  ///< Invalid file extension (unrecognized format)
+        E5004,  ///< Write error (failed to write to file)
+        E5005   ///< Read error (failed to read from file)
     };
 
     // ---------------------------------------------------------------------------
-    // ErrorInfo
+    /// \struct ErrorInfo error_codes.hpp jsav/error/error_codes.hpp
+    /// \brief Contains all information about a specific error
+    /// \var code
+    ///     The error code string (e.g., "E0001")
+    /// \var numeric_code
+    ///     The numeric part of the error code (e.g., 1)
+    /// \var severity
+    ///     The severity level of the error
+    /// \var phase
+    ///     The compiler phase where the error occurred
+    /// \var message
+    ///     A brief user-facing error message
+    /// \var explanation
+    ///     A detailed explanation of the error
+    /// \var suggestions
+    ///     A list of actionable suggestions to fix the error
+    /// \details This structure provides complete error metadata for diagnostics
+    ///          and IDE integration.
     // ---------------------------------------------------------------------------
 
     struct ErrorInfo {
@@ -147,15 +206,50 @@ namespace jsv {
         std::vector<const char *> suggestions;  // Suggerimenti per risolvere l'errore
     };
 
+    /// \brief Retrieves the complete error information for the given error code
+    /// \param error_code The error code to look up
+    /// \return A const reference to the ErrorInfo structure
+    /// \note The returned pointer is valid for the lifetime of the program
     [[nodiscard]] const ErrorInfo &get_error_info(ErrorCode error_code);
 
+    /// \brief Returns the error code string (e.g., "E0001")
+    /// \param error_code The error code enum value
+    /// \return The error code string
     std::string code(ErrorCode error_code);
+
+    /// \brief Returns the numeric part of the error code
+    /// \param error_code The error code enum value
+    /// \return The numeric code (e.g., 1 for E0001)
     uint16_t numeric_code(ErrorCode error_code);
+
+    /// \brief Returns the severity level for the given error code
+    /// \param error_code The error code enum value
+    /// \return The severity (Note, Warning, Error, or Fatal)
     Severity severity(ErrorCode error_code);
+
+    /// \brief Returns the compiler phase where the error occurs
+    /// \param error_code The error code enum value
+    /// \return The compiler phase enum
     CompilerPhase phase(ErrorCode error_code);
+
+    /// \brief Returns a brief error message for the given error code
+    /// \param error_code The error code enum value
+    /// \return The error message string
     std::string message(ErrorCode error_code);
+
+    /// \brief Returns a detailed explanation for the given error code
+    /// \param error_code The error code enum value
+    /// \return A C-string with the detailed explanation
     const char *explanation(ErrorCode error_code);
+
+    /// \brief Returns actionable suggestions to fix the given error
+    /// \param error_code The error code enum value
+    /// \return A vector of suggestion strings
     std::vector<const char *> suggestions(ErrorCode error_code);
+
+    /// \brief Converts an error code to a formatted string
+    /// \param error_code The error code enum value
+    /// \return A string in the format "CODE: message"
     std::string to_string(ErrorCode error_code);
 
 }  // namespace jsv

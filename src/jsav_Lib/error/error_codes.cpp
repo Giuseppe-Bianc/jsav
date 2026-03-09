@@ -1,3 +1,32 @@
+/**
+ * @file error_codes.cpp
+ * @brief Implementation of the error code system for the jsav compiler
+ * @details This module provides a comprehensive and standardized error management
+ *          system for the jsav compiler. Each error has a unique identifier (e.g., E0001)
+ *          enabling rapid reference, documentation lookup, and IDE integration.
+ *
+ * @section error_ranges Error Code Ranges
+ *
+ * | Range     | Phase          | Description                    |
+ * |-----------|----------------|--------------------------------|
+ * | E0001-E0999 | Lexer        | Token recognition, literals, comments |
+ * | E1001-E1999 | Parser       | Syntactic structure, grammar violations |
+ * | E2001-E2999 | Semantic     | Types, scope, declarations    |
+ * | E3001-E3999 | IR Generation| CFG, SSA, control flow        |
+ * | E4001-E4999 | Code Generation| Assembly, ABI, registers    |
+ * | E5001-E5999 | System       | File operations, CLI          |
+ *
+ * @section error_structure Error Structure
+ *
+ * - ErrorCode: Unique error identifier (e.g., E0001)
+ * - ErrorInfo: Complete error metadata structure
+ * - Severity: Error severity level (Note, Warning, Error, Fatal)
+ * - CompilerPhase: Compiler phase where error occurs
+ *
+ * @author gbian
+ * @copyright Copyright (c) 2026 All rights reserved.
+ */
+
 /*
  * Created by gbian on 09/03/2026.
  * Copyright (c) 2026 All rights reserved.
@@ -6,9 +35,19 @@
 #include "jsav/error/error_codes.hpp"
 
 // ---------------------------------------------------------------------------
-// Severity
+/// \namespace jsv
+/// \brief The main namespace for the jsav compiler project
+/// \details This namespace contains all compiler components including
+///          lexer, parser, semantic analyzer, IR generator, code generator,
+///          and error handling subsystems.
 // ---------------------------------------------------------------------------
 namespace jsv {
+    // ---------------------------------------------------------------------------
+    /// \brief Converts a Severity enum to its string representation
+    /// \param severity The severity enum value to convert
+    /// \return The string representation ("nota", "avviso", "errore", or "fatale")
+    // ---------------------------------------------------------------------------
+
     std::string to_string(Severity severity) {
         switch(severity) {
         case Severity::Note:
@@ -25,7 +64,9 @@ namespace jsv {
     }  // namespace jsvstd::string
 
     // ---------------------------------------------------------------------------
-    // CompilerPhase
+    /// \brief Converts a CompilerPhase enum to its string representation
+    /// \param phase The compiler phase enum value to convert
+    /// \return The string representation ("lexer")
     // ---------------------------------------------------------------------------
 
     std::string to_string(CompilerPhase phase) {
@@ -43,7 +84,12 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // code
+    /// \brief Returns the error code string for the given error code enum
+    /// \param error_code The error code enum value
+    /// \return The error code string (e.g., "E0001")
+    /// \details This function maps all error code enum values to their
+    ///          string representation following the format "E" followed by
+    ///          four digits (E0001 through E5005).
     // ---------------------------------------------------------------------------
 
     std::string code(ErrorCode error_code) {
@@ -204,7 +250,12 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // numeric_code
+    /// \brief Returns the numeric part of the error code
+    /// \param error_code The error code enum value
+    /// \return The numeric code (e.g., 1 for E0001, 1001 for E1001)
+    /// \details Extracts the numeric portion by removing the "E" prefix.
+    ///          For E0001-E0010 returns 1-10, for E1001-E1015 returns 1001-1015,
+    ///          and so on for all error code ranges.
     // ---------------------------------------------------------------------------
 
     uint16_t numeric_code(ErrorCode error_code) {
@@ -365,7 +416,12 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // severity
+    /// \brief Returns the severity level for the given error code
+    /// \param error_code The error code enum value
+    /// \return The severity (Warning for E1013, Error for most errors)
+    /// \note E1013 (missing semicolon) is treated as a warning
+    /// \details Currently only E1013 returns Warning severity; all other
+    ///         error codes return Error severity.
     // ---------------------------------------------------------------------------
 
     Severity severity(ErrorCode error_code) {
@@ -378,7 +434,16 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // phase
+    /// \brief Returns the compiler phase for the given error code
+    /// \param error_code The error code enum value
+    /// \return The compiler phase (Lexer, Parser, Semantic, etc.)
+    /// \details Determines the phase by parsing the numeric code range:
+    ///          - 1-999: Lexer
+    ///          - 1001-1999: Parser
+    ///          - 2001-2999: Semantic
+    ///          - 3001-3999: IR Generation
+    ///          - 4001-4999: Code Generation
+    ///          - 5001-5999: System
     // ---------------------------------------------------------------------------
 
     CompilerPhase phase(ErrorCode error_code) {
@@ -392,7 +457,10 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // message
+    /// \brief Returns a brief error message for the given error code
+    /// \param error_code The error code to get the message for
+    /// \return A string containing the error message
+    /// \note Messages are in Italian for end-user display
     // ---------------------------------------------------------------------------
 
     std::string message(ErrorCode error_code) {
@@ -553,7 +621,14 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // explanation
+    /// \brief Returns a detailed explanation for the given error code
+    /// \param error_code The error code to get the explanation for
+    /// \return A C-string containing the detailed explanation
+    /// \note Explanations are in Italian and provide context-aware guidance
+    /// \details This function returns verbose explanations that help users
+    ///          understand why an error occurred and how to fix it.
+    ///          Each explanation covers the specific error pattern and provides
+    ///          concrete examples where applicable.
     // ---------------------------------------------------------------------------
 
     const char *explanation(ErrorCode error_code) {
@@ -618,7 +693,14 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // suggestions
+    /// \brief Returns a list of actionable suggestions to resolve the given error
+    /// \param error_code The error code to get suggestions for
+    /// \return A vector of C-string suggestions that users can follow
+    /// \note Suggestions are in Italian and provide specific code examples
+    /// \details This function returns practical fixes for common errors.
+    ///          Each suggestion is a concrete action the user can take to resolve
+    ///          the issue. For errors without specific suggestions, an empty vector
+    ///          is returned.
     // ---------------------------------------------------------------------------
 
     std::vector<const char *> suggestions(ErrorCode error_code) {
@@ -646,7 +728,11 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
-    // to_string(ErrorCode)
+    /// \brief Converts an error code to a formatted diagnostic string
+    /// \param error_code The error code enum value
+    /// \return A string in the format "CODE: message" (e.g., "E0001: token non valido o non riconosciuto")
+    /// \details This function combines the error code string with its brief message
+    ///          for use in diagnostic output.
     // ---------------------------------------------------------------------------
 
     std::string to_string(ErrorCode error_code) { return std::string(code(error_code)) + ": " + message(error_code); }
