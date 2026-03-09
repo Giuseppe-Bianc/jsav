@@ -11,6 +11,8 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/lexer/Lexer.hpp
         ../../include/jsav/lexer/unicode/Utf8.hpp
         ../../include/jsav/lexer/unicode/UnicodeData.hpp
+        error/error_codes.cpp
+        ../../include/jsav/error/error_codes.hpp
         #[[lexer/Token.cpp
                 lexer/Tokenizer.cpp
                 lexer/TokenizerUtility.cpp

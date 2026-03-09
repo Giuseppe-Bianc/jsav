@@ -10,6 +10,7 @@
 #include "fs/fs.hpp"
 #include "location/SourceLocation.hpp"
 #include "location/SourceSpan.hpp"
+#include "error/error_codes.hpp"
 #include "lexer/Token.hpp"
 #include "lexer/Lexer.hpp"
 // clang-format on

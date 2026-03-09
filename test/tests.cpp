@@ -4360,6 +4360,117 @@ TEST_CASE("Lexer_char_escape_long", "[lexer][char]") {
     REQUIRE(tokens[1].getText() == R"('\U10101010')");
 }
 
+// -------------------------------------------------------------------------
+// Error Codes Formatting Tests
+// -------------------------------------------------------------------------
+
+TEST_CASE("Severity to_string tests", "[error][severity]") {
+    REQUIRE(jsv::to_string(jsv::Severity::Note) == "nota");
+    REQUIRE(jsv::to_string(jsv::Severity::Warning) == "avviso");
+    REQUIRE(jsv::to_string(jsv::Severity::Error) == "errore");
+    REQUIRE(jsv::to_string(jsv::Severity::Fatal) == "fatale");
+}
+
+TEST_CASE("Severity std::format integration", "[error][severity][format]") {
+    SECTION("format Note") { REQUIRE(FORMAT("{}", jsv::Severity::Note) == "nota"); }
+    SECTION("format Warning") { REQUIRE(FORMAT("{}", jsv::Severity::Warning) == "avviso"); }
+    SECTION("format Error") { REQUIRE(FORMAT("{}", jsv::Severity::Error) == "errore"); }
+    SECTION("format Fatal") { REQUIRE(FORMAT("{}", jsv::Severity::Fatal) == "fatale"); }
+    SECTION("format in larger string") { REQUIRE(FORMAT("Severity: {}", jsv::Severity::Warning) == "Severity: avviso"); }
+}
+
+TEST_CASE("Severity fmt::format integration", "[error][severity][fmt]") {
+    SECTION("fmt::format Note") { REQUIRE(fmt::format("{}", jsv::Severity::Note) == "nota"); }
+    SECTION("fmt::format Warning") { REQUIRE(fmt::format("{}", jsv::Severity::Warning) == "avviso"); }
+    SECTION("fmt::format Error") { REQUIRE(fmt::format("{}", jsv::Severity::Error) == "errore"); }
+    SECTION("fmt::format Fatal") { REQUIRE(fmt::format("{}", jsv::Severity::Fatal) == "fatale"); }
+}
+
+TEST_CASE("CompilerPhase to_string tests", "[error][phase]") { REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer"); }
+
+TEST_CASE("CompilerPhase std::format integration", "[error][phase][format]") {
+    SECTION("format Lexer") { REQUIRE(FORMAT("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
+    SECTION("format in larger string") { REQUIRE(FORMAT("Phase: {}", jsv::CompilerPhase::Lexer) == "Phase: lexer"); }
+}
+
+TEST_CASE("CompilerPhase fmt::format integration", "[error][phase][fmt]") {
+    SECTION("fmt::format Lexer") { REQUIRE(fmt::format("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
+}
+
+TEST_CASE("ErrorCode code() tests", "[error][code]") {
+    REQUIRE(jsv::code(jsv::ErrorCode::E0001) == "E0001");
+    REQUIRE(jsv::code(jsv::ErrorCode::E1005) == "E1005");
+    REQUIRE(jsv::code(jsv::ErrorCode::E2023) == "E2023");
+    REQUIRE(jsv::code(jsv::ErrorCode::E5001) == "E5001");
+}
+
+TEST_CASE("ErrorCode numeric_code() tests", "[error][numeric_code]") {
+    REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0001) == 1);
+    REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0010) == 10);
+    REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1001) == 1001);
+    REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2023) == 2023);
+    REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5001) == 5001);
+}
+
+TEST_CASE("ErrorCode severity() tests", "[error][severity_func]") {
+    REQUIRE(jsv::severity(jsv::ErrorCode::E1013) == jsv::Severity::Warning);
+    REQUIRE(jsv::severity(jsv::ErrorCode::E0001) == jsv::Severity::Error);
+    REQUIRE(jsv::severity(jsv::ErrorCode::E2023) == jsv::Severity::Error);
+}
+
+TEST_CASE("ErrorCode phase() tests", "[error][phase_func]") {
+    REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
+    REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Lexer);
+    REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
+}
+
+TEST_CASE("ErrorCode message() tests", "[error][message]") {
+    REQUIRE(jsv::message(jsv::ErrorCode::E0001) == "token non valido o non riconosciuto");
+    REQUIRE(jsv::message(jsv::ErrorCode::E1001) == "profondità massima di ricorsione superata");
+    REQUIRE(jsv::message(jsv::ErrorCode::E2023) == "variabile non definita");
+    REQUIRE(jsv::message(jsv::ErrorCode::E5001) == "file non trovato");
+}
+
+TEST_CASE("ErrorCode explanation() tests", "[error][explanation]") {
+    REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("lexer"));
+    REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("caratteri"));
+    REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2023), ContainsSubstring("dichiarata"));
+}
+
+TEST_CASE("ErrorCode suggestions() tests", "[error][suggestions]") {
+    auto suggestions = jsv::suggestions(jsv::ErrorCode::E2023);
+    REQUIRE(suggestions.size() == 3);
+    REQUIRE(std::string(suggestions[0]) == "Dichiarare la variabile: var x: i32 = 0");
+    REQUIRE(std::string(suggestions[1]) == "Verificare errori di battitura nel nome della variabile");
+    REQUIRE(std::string(suggestions[2]) == "Assicurarsi che la variabile sia nello scope");
+}
+
+TEST_CASE("ErrorCode to_string tests", "[error][to_string]") {
+    REQUIRE(jsv::to_string(jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto");
+    REQUIRE(jsv::to_string(jsv::ErrorCode::E1001) == "E1001: profondità massima di ricorsione superata");
+    REQUIRE(jsv::to_string(jsv::ErrorCode::E2023) == "E2023: variabile non definita");
+}
+
+TEST_CASE("ErrorCode std::format integration", "[error][format]") {
+    SECTION("format E0001") { REQUIRE(FORMAT("{}", jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto"); }
+    SECTION("format E2023") { REQUIRE(FORMAT("{}", jsv::ErrorCode::E2023) == "E2023: variabile non definita"); }
+    SECTION("format in larger string") {
+        REQUIRE(FORMAT("Error {}", jsv::ErrorCode::E2023, "variable x") == "Error E2023: variabile non definita");
+    }
+    SECTION("format multiple error codes") {
+        REQUIRE(FORMAT("{} and {}", jsv::ErrorCode::E0001, jsv::ErrorCode::E1001) ==
+                "E0001: token non valido o non riconosciuto and E1001: profondità massima di ricorsione superata");
+    }
+}
+
+TEST_CASE("ErrorCode fmt::format integration", "[error][fmt]") {
+    SECTION("fmt::format E0001") { REQUIRE(fmt::format("{}", jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto"); }
+    SECTION("fmt::format E2023") { REQUIRE(fmt::format("{}", jsv::ErrorCode::E2023) == "E2023: variabile non definita"); }
+    SECTION("fmt::format in larger string") {
+        REQUIRE(fmt::format("Error {}", jsv::ErrorCode::E2023) == "Error E2023: variabile non definita");
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
