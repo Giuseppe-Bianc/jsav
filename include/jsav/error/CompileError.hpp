@@ -53,28 +53,27 @@ namespace jsv {
         std::string_view message
     );*/
 
-    // --- Accessors ---
+        // --- Accessors ---
 
-    std::string                      what()        const;
-    const std::optional<ErrorCode>&  error_code()  const;
-    std::string_view                 message()     const;
-    const SourceSpan&                span()        const;
-    std::optional<const std::string*> help()       const;
-    Kind                             kind()        const;
+        std::string what() const;
+        const std::optional<ErrorCode> &error_code() const;
+        std::string_view message() const;
+        const SourceSpan &span() const;
+        std::optional<const std::string *> help() const;
+        Kind kind() const;
 
-    // --- Mutators ---
+        // --- Mutators ---
 
-    void set_message(std::shared_ptr<const std::string> new_message);
-    void set_span(SourceSpan new_span);
-    void set_help(std::optional<std::string> new_help);
+        void set_message(std::shared_ptr<const std::string> new_message);
+        void set_span(SourceSpan new_span);
+        void set_help(std::optional<std::string> new_help);
 
-private:
-    Kind                      kind_;
-    std::optional<ErrorCode>  code_;
-    std::string_view          message_;
-    SourceSpan                span_;
-    std::optional<std::string> help_;
-};
-
+    private:
+        Kind kind_;
+        std::optional<ErrorCode> code_;
+        std::string_view message_;
+        SourceSpan span_;
+        std::optional<std::string> help_;
+    };
 
 }  // namespace jsv
