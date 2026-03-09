@@ -1,19 +1,20 @@
-// Sistema di Codici di Errore per il Compilatore jsavrs
-//
-// Questo modulo fornisce un sistema completo e standardizzato di gestione dei codici di errore
-// per il compilatore jsavrs. Ogni errore ha un identificatore unico (es. E0001) che
-// abilita riferimenti rapidi, ricerca nella documentazione e integrazione con IDE.
-//
-// Intervalli Codici di Errore
-//
-// | Intervallo | Fase | Descrizione |
-// |------------|------|-------------|
-// | E0001-E0999 | Analisi Lessicale | Riconoscimento token, letterali, commenti |
-// | E1001-E1999 | Parsing | Struttura sintattica, violazioni grammaticali |
-// | E2001-E2999 | Analisi Semantica | Tipi, scope, dichiarazioni |
-// | E3001-E3999 | Generazione IR | CFG, SSA, flusso di controllo |
-// | E4001-E4999 | Generazione Codice | Assembly, ABI, registri |
-// | E5001-E5999 | I/O & Sistema | Operazioni su file, CLI |
+/// @file error_codes.hpp
+/// @brief Comprehensive error code system for the jsav compiler
+///
+/// This module provides a complete and standardized error code management system
+/// for the jsav compiler. Each error has a unique identifier (e.g., E0001) that
+/// enables quick references, documentation lookup, and IDE integration.
+///
+/// ## Error Code Ranges
+///
+/// | Range      | Phase              | Description                                      |
+/// |------------|--------------------|--------------------------------------------------|
+/// | E0001-E0999  | Lexical Analysis   | Token recognition, literals, comments            |
+/// | E1001-E1999  | Parsing            | Syntactic structure, grammar violations          |
+/// | E2001-E2999  | Semantic Analysis  | Type checking, scope, declarations               |
+/// | E3001-E3999  | IR Generation      | Control flow graph, SSA, control flow            |
+/// | E4001-E4999  | Code Generation    | Assembly output, ABI, registers                  |
+/// | E5001-E5999  | I/O & System       | File operations, CLI                             |
 
 #pragma once
 
@@ -22,36 +23,29 @@
 namespace jsv {
 
     // ---------------------------------------------------------------------------
-    /// \enum Severity error_codes.hpp jsav/error/error_codes.hpp
-    /// \brief Defines the severity levels for compiler errors
-    /// \var Severity::Note
-    ///     A note-level diagnostic (lowest severity)
-    /// \var Severity::Warning
-    ///     A warning-level diagnostic
-    /// \var Severity::Error
-    ///     An error-level diagnostic (default)
-    /// \var Severity::Fatal
-    ///     A fatal error that stops compilation
+    /// @enum Severity
+    /// @brief Defines the severity levels for compiler errors
+    ///
+    /// Error severity determines how the diagnostic is presented and whether
+    /// compilation continues.
     // ---------------------------------------------------------------------------
-
     enum class Severity : uint8_t {
-        Note = 0,
-        Warning = 1,
-        Error = 2,
-        Fatal = 3,
+        Note = 0,    ///< Note-level diagnostic (lowest severity, informational only)
+        Warning = 1, ///< Warning-level diagnostic (does not stop compilation)
+        Error = 2,   ///< Error-level diagnostic (compilation continues with error recovery)
+        Fatal = 3,   ///< Fatal error (stops compilation immediately)
     };
     std::string to_string(Severity severity);
 
     // ---------------------------------------------------------------------------
-    /// \enum CompilerPhase error_codes.hpp jsav/error/error_codes.hpp
-    /// \brief Defines the compiler phases where errors can occur
-    /// \var CompilerPhase::Lexer
-    ///     Lexical analysis phase
-    /// \note Currently only Lexer phase is enabled; others are commented out
+    /// @enum CompilerPhase
+    /// @brief Defines the compiler phases where errors can occur
+    ///
+    /// Each error is associated with a specific compiler phase to help identify
+    /// where in the compilation pipeline the error originated.
     // ---------------------------------------------------------------------------
-
     enum class CompilerPhase : uint8_t {
-        Lexer = 0,
+        Lexer = 0,  ///< Lexical analysis phase (tokenization)
         /*Parser = 1,
         Semantic = 2,
         IrGeneration = 3,
@@ -176,80 +170,66 @@ namespace jsv {
     };
 
     // ---------------------------------------------------------------------------
-    /// \struct ErrorInfo error_codes.hpp jsav/error/error_codes.hpp
-    /// \brief Contains all information about a specific error
-    /// \var code
-    ///     The error code string (e.g., "E0001")
-    /// \var numeric_code
-    ///     The numeric part of the error code (e.g., 1)
-    /// \var severity
-    ///     The severity level of the error
-    /// \var phase
-    ///     The compiler phase where the error occurred
-    /// \var message
-    ///     A brief user-facing error message
-    /// \var explanation
-    ///     A detailed explanation of the error
-    /// \var suggestions
-    ///     A list of actionable suggestions to fix the error
-    /// \details This structure provides complete error metadata for diagnostics
-    ///          and IDE integration.
+    /// @struct ErrorInfo
+    /// @brief Contains complete information about a specific error
+    ///
+    /// This structure provides complete error metadata for diagnostics
+    /// and IDE integration.
     // ---------------------------------------------------------------------------
-
     struct ErrorInfo {
-        const char *code;                       // Codice di errore (es. "E0001")
-        uint16_t numeric_code;                  // Codice numerico (es. 1)
-        Severity severity;                      // Gravità dell'errore
-        CompilerPhase phase;                    // Fase del compilatore in cui si verifica l'errore
-        const char *message;                    // Messaggio breve per l'utente
-        const char *explanation;                // Spiegazione dettagliata dell'errore
-        std::vector<const char *> suggestions;  // Suggerimenti per risolvere l'errore
+        const char *code;                       ///< Error code string (e.g., "E0001")
+        uint16_t numeric_code;                  ///< Numeric part of error code (e.g., 1)
+        Severity severity;                      ///< Severity level of the error
+        CompilerPhase phase;                    ///< Compiler phase where error occurred
+        const char *message;                    ///< Brief user-facing error message
+        const char *explanation;                ///< Detailed explanation of the error
+        std::vector<const char *> suggestions;  ///< Actionable suggestions to fix the error
     };
 
-    /// \brief Retrieves the complete error information for the given error code
-    /// \param error_code The error code to look up
-    /// \return A const reference to the ErrorInfo structure
-    /// \note The returned pointer is valid for the lifetime of the program
+    /// @brief Retrieves complete error information for the given error code
+    /// @param error_code The error code to look up
+    /// @return A const reference to the ErrorInfo structure
+    /// @note The returned reference is valid for the lifetime of the program
     [[nodiscard]] const ErrorInfo &get_error_info(ErrorCode error_code);
 
-    /// \brief Returns the error code string (e.g., "E0001")
-    /// \param error_code The error code enum value
-    /// \return The error code string
+    /// @brief Returns the error code string (e.g., "E0001")
+    /// @param error_code The error code enum value
+    /// @return The error code string
     std::string code(ErrorCode error_code);
 
-    /// \brief Returns the numeric part of the error code
-    /// \param error_code The error code enum value
-    /// \return The numeric code (e.g., 1 for E0001)
+    /// @brief Returns the numeric part of the error code
+    /// @param error_code The error code enum value
+    /// @return The numeric code (e.g., 1 for E0001)
     uint16_t numeric_code(ErrorCode error_code);
 
-    /// \brief Returns the severity level for the given error code
-    /// \param error_code The error code enum value
-    /// \return The severity (Note, Warning, Error, or Fatal)
+    /// @brief Returns the severity level for the given error code
+    /// @param error_code The error code enum value
+    /// @return The severity (Note, Warning, Error, or Fatal)
     Severity severity(ErrorCode error_code);
 
-    /// \brief Returns the compiler phase where the error occurs
-    /// \param error_code The error code enum value
-    /// \return The compiler phase enum
+    /// @brief Returns the compiler phase where the error occurs
+    /// @param error_code The error code enum value
+    /// @return The compiler phase enum
     CompilerPhase phase(ErrorCode error_code);
 
-    /// \brief Returns a brief error message for the given error code
-    /// \param error_code The error code enum value
-    /// \return The error message string
+    /// @brief Returns a brief error message for the given error code
+    /// @param error_code The error code enum value
+    /// @return The error message string
     std::string message(ErrorCode error_code);
 
-    /// \brief Returns a detailed explanation for the given error code
-    /// \param error_code The error code enum value
-    /// \return A C-string with the detailed explanation
+    /// @brief Returns a detailed explanation for the given error code
+    /// @param error_code The error code enum value
+    /// @return A C-string with the detailed explanation
     const char *explanation(ErrorCode error_code);
 
-    /// \brief Returns actionable suggestions to fix the given error
-    /// \param error_code The error code enum value
-    /// \return A vector of suggestion strings
+    /// @brief Returns actionable suggestions to fix the given error
+    /// @param error_code The error code enum value
+    /// @return A vector of suggestion strings
     std::vector<const char *> suggestions(ErrorCode error_code);
 
-    /// \brief Converts an error code to a formatted string
-    /// \param error_code The error code enum value
-    /// \return A string in the format "CODE: message"
+    /// @brief Converts an error code to a formatted string
+    /// @param error_code The error code enum value
+    /// @return A string in the format "CODE: message"
     std::string to_string(ErrorCode error_code);
 
 }  // namespace jsv
