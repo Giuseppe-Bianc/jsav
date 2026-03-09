@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length)
-#include "jsav/lexer/SourceSpan.hpp"
+#include "jsav/location/SourceSpan.hpp"
 
 namespace jsv {
 

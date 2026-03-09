@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../headers.hpp"
-#include "SourceLocation.hpp"
+#include "../location/SourceLocation.hpp"
 
 namespace jsv {
 

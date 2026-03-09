@@ -8,8 +8,8 @@
 // clang-format off
 #include "headers.hpp"
 #include "fs/fs.hpp"
-#include "lexer/SourceLocation.hpp"
-#include "lexer/SourceSpan.hpp"
+#include "location/SourceLocation.hpp"
+#include "location/SourceSpan.hpp"
 #include "lexer/Token.hpp"
 #include "lexer/Lexer.hpp"
 // clang-format on

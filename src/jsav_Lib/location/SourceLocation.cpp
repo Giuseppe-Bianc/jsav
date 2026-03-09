@@ -4,7 +4,7 @@
  */
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 
-#include "jsav/lexer/SourceLocation.hpp"
+#include "jsav/location/SourceLocation.hpp"
 namespace jsv {
 
     std::string SourceLocation::to_string() const { return FORMAT("line {}:column {} (offset: {})", line, column, absolute_pos); }
