@@ -4471,6 +4471,312 @@ TEST_CASE("ErrorCode fmt::format integration", "[error][fmt]") {
     }
 }
 
+// ---------------------------------------------------------------------------
+// CompileError Tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("CompileError::Kind enum", "[CompileError][Kind]") {
+    SECTION("Kind enum values exist") { REQUIRE(static_cast<int>(jsv::CompileError::Kind::LexerError) >= 0); }
+}
+
+TEST_CASE("CompileError factory method - LexerError", "[CompileError][factory]") {
+    using namespace std::string_literals;
+    SECTION("Create LexerError with all parameters") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 5, 0), jsv::SourceLocation(1, 10, 0));
+        const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0001;
+        const std::string_view message = "invalid token"sv;
+        const std::optional<std::string> help = "check your syntax"s;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, help);
+
+        REQUIRE(err.kind() == jsv::CompileError::Kind::LexerError);
+        REQUIRE(err.error_code().has_value());
+        REQUIRE(err.error_code().value() == jsv::ErrorCode::E0001);
+        REQUIRE(err.message() == message);
+        REQUIRE(err.span().start.line == 1);
+        REQUIRE(err.span().start.column == 5);
+        REQUIRE(err.help().has_value());
+    }
+
+    SECTION("Create LexerError with nullopt code") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(2, 1, 0), jsv::SourceLocation(2, 5, 0));
+        const std::optional<jsv::ErrorCode> code = std::nullopt;
+        const std::string_view message = "unexpected character"sv;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, std::nullopt);
+
+        REQUIRE(err.kind() == jsv::CompileError::Kind::LexerError);
+        REQUIRE_FALSE(err.error_code().has_value());
+        REQUIRE(err.message() == message);
+        REQUIRE_FALSE(err.help().has_value());
+    }
+
+    SECTION("Create LexerError with empty help") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(10, 0, 0), jsv::SourceLocation(10, 15, 0));
+        const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0002;
+        const std::string_view message = "unterminated string"sv;
+        const std::optional<std::string> help = std::string("");
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, help);
+
+        REQUIRE(err.kind() == jsv::CompileError::Kind::LexerError);
+        REQUIRE(err.error_code().has_value());
+        REQUIRE(err.help().has_value());
+    }
+}
+
+TEST_CASE("CompileError::what() output", "[CompileError][what]") {
+    SECTION("what() with error code and help") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(5, 10, 0), jsv::SourceLocation(5, 20, 0));
+        const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0001;
+        const std::string_view message = "test error message"sv;
+        const std::optional<std::string> help = std::string("this is help text");
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, help);
+        const std::string what_output = err.what();
+
+        REQUIRE_THAT(what_output, ContainsSubstring("[E0001]"));
+        REQUIRE_THAT(what_output, ContainsSubstring("test error message"));
+        REQUIRE_THAT(what_output, ContainsSubstring("help: this is help text"));
+    }
+
+    SECTION("what() without error code") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
+        const std::optional<jsv::ErrorCode> code = std::nullopt;
+        const std::string_view message = "error without code"sv;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, std::nullopt);
+        const std::string what_output = err.what();
+
+        REQUIRE_THAT(what_output, ContainsSubstring("error without code"));
+        REQUIRE_THAT(what_output, !ContainsSubstring("["));  // No error code bracket
+    }
+
+    SECTION("what() without help text") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(3, 5, 0), jsv::SourceLocation(3, 15, 0));
+        const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0003;
+        const std::string_view message = "error without help"sv;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, std::nullopt);
+        const std::string what_output = err.what();
+
+        REQUIRE_THAT(what_output, ContainsSubstring("[E0003]"));
+        REQUIRE_THAT(what_output, !ContainsSubstring("help:"));
+    }
+
+    SECTION("what() includes source location") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(42, 7, 0), jsv::SourceLocation(42, 12, 0));
+        const std::optional<jsv::ErrorCode> code = std::nullopt;
+        const std::string_view message = "location test"sv;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, message, span, std::nullopt);
+        const std::string what_output = err.what();
+
+        REQUIRE_THAT(what_output, ContainsSubstring("at "));
+        // SourceSpan::to_string() format should be present
+    }
+}
+
+TEST_CASE("CompileError accessors", "[CompileError][accessors]") {
+    SECTION("error_code() returns correct optional") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0005;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(code, "msg"sv, span, std::nullopt);
+
+        const auto &returned_code = err.error_code();
+        REQUIRE(returned_code.has_value());
+        REQUIRE(returned_code.value() == jsv::ErrorCode::E0005);
+    }
+
+    SECTION("message() returns string_view") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const std::string_view test_message = "test message content"sv;
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, test_message, span, std::nullopt);
+
+        const auto returned_message = err.message();
+        REQUIRE(returned_message == test_message);
+    }
+
+    SECTION("span() returns correct SourceSpan") {
+        const jsv::SourceLocation start(10, 20, 0);
+        const jsv::SourceLocation end(10, 30, 0);
+        const jsv::SourceSpan span("test.cpp", start, end);
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+
+        const auto &returned_span = err.span();
+        REQUIRE(returned_span.start.line == 10);
+        REQUIRE(returned_span.start.column == 20);
+        REQUIRE(returned_span.end.line == 10);
+        REQUIRE(returned_span.end.column == 30);
+    }
+
+    SECTION("help() returns optional pointer") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const std::optional<std::string> help_text = std::string("helpful information");
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, help_text);
+
+        const auto returned_help = err.help();
+        REQUIRE(returned_help.has_value());
+        REQUIRE(returned_help.value() != nullptr);
+        REQUIRE(*returned_help.value() == "helpful information");
+    }
+
+    SECTION("help() returns nullopt when no help") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+
+        const auto returned_help = err.help();
+        REQUIRE_FALSE(returned_help.has_value());
+    }
+
+    SECTION("kind() returns correct Kind enum") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+
+        REQUIRE(err.kind() == jsv::CompileError::Kind::LexerError);
+    }
+}
+
+TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
+    SECTION("set_message() updates message") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "original message"sv, span, std::nullopt);
+
+        REQUIRE(err.message() == "original message"sv);
+
+        auto new_message = std::make_shared<const std::string>("new message"sv);
+        err.set_message(new_message);
+
+        REQUIRE(err.message() == "new message"sv);
+    }
+
+    SECTION("set_span() updates source span") {
+        const jsv::SourceSpan initial_span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
+        jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, initial_span, std::nullopt);
+
+        REQUIRE(err.span().start.line == 1);
+
+        const jsv::SourceSpan new_span("file.vn", jsv::SourceLocation(50, 10, 0), jsv::SourceLocation(50, 20, 0));
+        err.set_span(new_span);
+
+        REQUIRE(err.span().start.line == 50);
+        REQUIRE(err.span().start.column == 10);
+        REQUIRE(err.span().end.column == 20);
+    }
+
+    SECTION("set_help() updates help text") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+
+        REQUIRE_FALSE(err.help().has_value());
+
+        err.set_help(std::string("new help text"));
+        REQUIRE(err.help().has_value());
+        REQUIRE(*err.help().value() == "new help text");
+
+        err.set_help(std::nullopt);
+        REQUIRE_FALSE(err.help().has_value());
+    }
+}
+
+TEST_CASE("CompileError with different ErrorCode values", "[CompileError][ErrorCode]") {
+    SECTION("LexerError with E0001") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const jsv::CompileError err = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "msg"sv, span, std::nullopt);
+
+        REQUIRE(err.error_code().value() == jsv::ErrorCode::E0001);
+        REQUIRE_THAT(err.what(), ContainsSubstring("[E0001]"));
+    }
+
+    SECTION("LexerError with E0002") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const jsv::CompileError err = jsv::CompileError::LexerError(jsv::ErrorCode::E0002, "msg"sv, span, std::nullopt);
+
+        REQUIRE(err.error_code().value() == jsv::ErrorCode::E0002);
+        REQUIRE_THAT(err.what(), ContainsSubstring("[E0002]"));
+    }
+
+    SECTION("LexerError with E0010") {
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const jsv::CompileError err = jsv::CompileError::LexerError(jsv::ErrorCode::E0010, "msg"sv, span, std::nullopt);
+
+        REQUIRE(err.error_code().value() == jsv::ErrorCode::E0010);
+        REQUIRE_THAT(err.what(), ContainsSubstring("[E0010]"));
+    }
+}
+
+TEST_CASE("CompileError multiline source span", "[CompileError][SourceSpan]") {
+    SECTION("Error spanning multiple lines") {
+        const jsv::SourceLocation start(5, 10, 0);
+        const jsv::SourceLocation end(7, 5, 0);
+        const jsv::SourceSpan span("test.cpp", start, end);
+
+        const jsv::CompileError err = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "multiline error"sv, span,
+                                                                    std::string("check lines 5-7"));
+
+        REQUIRE(err.span().start.line == 5);
+        REQUIRE(err.span().end.line == 7);
+        REQUIRE_THAT(err.what(), ContainsSubstring("multiline error"));
+        REQUIRE_THAT(err.what(), ContainsSubstring("help: check lines 5-7"));
+    }
+}
+
+/*TEST_CASE("CompileError copy and move semantics", "[CompileError][semantics]") {
+    SECTION("Copy constructor") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
+        const jsv::CompileError original = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "original error"sv, span,
+                                                                         std::string("help text"));
+
+        const jsv::CompileError copied(original);
+
+        REQUIRE(copied.kind() == original.kind());
+        REQUIRE(copied.error_code().value() == original.error_code().value());
+        REQUIRE(copied.message() == original.message());
+        REQUIRE(copied.help().value() == original.help().value());
+    }
+
+    SECTION("Copy assignment") {
+        const jsv::SourceSpan span1("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
+        const jsv::SourceSpan span2("test.cpp", jsv::SourceLocation(2, 1, 0), jsv::SourceLocation(2, 10, 0));
+
+        jsv::CompileError err1 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "first"sv, span1, std::nullopt);
+        jsv::CompileError err2 = jsv::CompileError::LexerError(jsv::ErrorCode::E0002, "second"sv, span2, std::nullopt);
+
+        err2 = err1;
+
+        REQUIRE(err2.kind() == err1.kind());
+        REQUIRE(err2.error_code().value() == jsv::ErrorCode::E0001);
+        REQUIRE(err2.message() == "first"sv);
+    }
+
+    SECTION("Move constructor") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
+        jsv::CompileError original = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "moved error"sv, span, std::string("move help"));
+
+        const jsv::CompileError moved(std::move(original));
+
+        REQUIRE(moved.kind() == jsv::CompileError::Kind::LexerError);
+        REQUIRE(moved.message() == "moved error"sv);
+    }
+
+    SECTION("Move assignment") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
+        jsv::CompileError err1 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "first"sv, span, std::nullopt);
+        jsv::CompileError err2 = jsv::CompileError::LexerError(jsv::ErrorCode::E0002, "second"sv, span, std::nullopt);
+
+        err2 = std::move(err1);
+
+        REQUIRE(err2.kind() == jsv::CompileError::Kind::LexerError);
+        REQUIRE(err2.error_code().value() == jsv::ErrorCode::E0001);
+    }
+}*/
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on

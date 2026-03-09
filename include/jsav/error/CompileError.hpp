@@ -1,0 +1,80 @@
+/*
+ * Created by gbian on 09/03/2026.
+ * Copyright (c) 2026 All rights reserved.
+ */
+
+#pragma once
+
+#include "../headers.hpp"
+#include "../location/SourceSpan.hpp"
+#include "error_codes.hpp"
+
+namespace jsv {
+
+    class CompileError {
+    public:
+        enum class Kind {
+            LexerError,
+            /*SyntaxError,
+            TypeError,
+            IrGeneratorError,
+            AsmGeneratorError,
+            IoError,*/
+        };
+
+        // --- Factory methods ---
+
+        static CompileError LexerError(std::optional<ErrorCode> code, std::string_view message, SourceSpan span,
+                                       std::optional<std::string> help);
+
+        /*static CompileError SyntaxError(
+        std::optional<ErrorCode> code,
+        std::string_view message,
+        SourceSpan span,
+        std::optional<std::string> help
+    );
+
+    static CompileError TypeError(
+        std::optional<ErrorCode> code,
+        std::string_view message,
+        SourceSpan span,
+        std::optional<std::string> help
+    );
+
+    static CompileError IrGeneratorError(
+        std::optional<ErrorCode> code,
+        std::string_view message,
+        SourceSpan span,
+        std::optional<std::string> help
+    );
+
+    static CompileError AsmGeneratorError(
+        std::optional<ErrorCode> code,
+        std::string_view message
+    );*/
+
+    // --- Accessors ---
+
+    std::string                      what()        const;
+    const std::optional<ErrorCode>&  error_code()  const;
+    std::string_view                 message()     const;
+    const SourceSpan&                span()        const;
+    std::optional<const std::string*> help()       const;
+    Kind                             kind()        const;
+
+    // --- Mutators ---
+
+    void set_message(std::shared_ptr<const std::string> new_message);
+    void set_span(SourceSpan new_span);
+    void set_help(std::optional<std::string> new_help);
+
+private:
+    Kind                      kind_;
+    std::optional<ErrorCode>  code_;
+    std::string_view          message_;
+    SourceSpan                span_;
+    std::optional<std::string> help_;
+};
+
+
+}  // namespace jsv
