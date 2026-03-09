@@ -64,9 +64,7 @@ DISABLE_WARNINGS_PUSH(
 #include <internal_use_only/config.hpp>
 // Restore warning levels.
 DISABLE_WARNINGS_POP()
-// DISABLE_WARNINGS_PUSH(26476 26446 26482 26497 26472 26440 26447 26490 26481 26429 26493 26438 26455 26432 26496 26485 26819)
-// #include <nlohmann/json.hpp>
-// DISABLE_WARNINGS_POP()
+#include "FileSize.hpp"
 
 /**
  * @namespace fs
