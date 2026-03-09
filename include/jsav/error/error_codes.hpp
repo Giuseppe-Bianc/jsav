@@ -30,10 +30,10 @@ namespace jsv {
     /// compilation continues.
     // ---------------------------------------------------------------------------
     enum class Severity : uint8_t {
-        Note = 0,    ///< Note-level diagnostic (lowest severity, informational only)
-        Warning = 1, ///< Warning-level diagnostic (does not stop compilation)
-        Error = 2,   ///< Error-level diagnostic (compilation continues with error recovery)
-        Fatal = 3,   ///< Fatal error (stops compilation immediately)
+        Note = 0,     ///< Note-level diagnostic (lowest severity, informational only)
+        Warning = 1,  ///< Warning-level diagnostic (does not stop compilation)
+        Error = 2,    ///< Error-level diagnostic (compilation continues with error recovery)
+        Fatal = 3,    ///< Fatal error (stops compilation immediately)
     };
     std::string to_string(Severity severity);
 
