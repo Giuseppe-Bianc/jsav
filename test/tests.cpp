@@ -4650,8 +4650,7 @@ TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
 
         REQUIRE(err.message() == "original message"sv);
 
-        auto new_message = std::make_shared<const std::string>("new message"sv);
-        err.set_message(new_message);
+        err.set_message("new message"sv);
 
         REQUIRE(err.message() == "new message"sv);
     }

@@ -43,9 +43,9 @@ namespace jsv {
 
         switch(kind_) {
         case Kind::LexerError:
-            if(code_.has_value()) oss << FORMAT("[{}]", jsv::code(code_.value()));
+            if(code_.has_value()) { oss << FORMAT("[{}]", jsv::code(code_.value())); }
             oss << FORMAT("Syntax error: {} at {}", message_, span_);
-            if(help_) oss << "\nhelp: " << *help_;
+            if(help_) { oss << "\nhelp: " << *help_; }
             break;
 
             /*case Kind::SyntaxError:
@@ -136,14 +136,14 @@ namespace jsv {
     // Mutators
     // ---------------------------------------------------------------------------
 
-    void CompileError::set_message(std::shared_ptr<const std::string> new_message) {
+    void CompileError::set_message(std::string_view new_message) {
         switch(kind_) {
         case Kind::LexerError:
             /*case Kind::SyntaxError:
             case Kind::TypeError:
             case Kind::IrGeneratorError:
             case Kind::AsmGeneratorError:*/
-            message_ = *new_message;
+            message_ = new_message;
             break;
         }
     }

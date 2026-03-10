@@ -64,7 +64,7 @@ namespace jsv {
 
         // --- Mutators ---
 
-        void set_message(std::shared_ptr<const std::string> new_message);
+        void set_message(std::string_view new_message);
         void set_span(SourceSpan new_span);
         void set_help(std::optional<std::string> new_help);
 
