@@ -99,7 +99,6 @@ namespace jsv {
         // ── Varie ──
         Semicolon,
         Eof,
-        Error  // token non riconosciuto
     };
 
     /// Convert a TokenKind to its string representation.
@@ -265,9 +264,6 @@ namespace jsv {
             return "SEMICOLON";
         case TokenKind::Eof:
             return "EOF";
-        case TokenKind::Error:
-            return "ERROR";
-
         default:
             return "UNKNOWN";
         }

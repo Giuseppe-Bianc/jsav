@@ -144,7 +144,6 @@ TEST_CASE("TokenKind tokenKindToString returns correct string representation", "
     // Miscellaneous
     STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Semicolon) == "SEMICOLON");
     STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Eof) == "EOF");
-    STATIC_REQUIRE(jsv::tokenKindToString(jsv::TokenKind::Error) == "ERROR");
 }
 
 // ==========================================================================

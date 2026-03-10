@@ -2390,13 +2390,6 @@ TEST_CASE("Token to_string method", "[Token]") {
 
         REQUIRE(result == R"(EOF("") test.cpp:line 1:column 1 - line 1:column 5)");
     }
-
-    SECTION("to_string for error token") {
-        const jsv::Token token(jsv::TokenKind::Error, "@invalid", span);
-        const std::string result = token.to_string();
-
-        REQUIRE(result == R"(ERROR("@invalid") test.cpp:line 1:column 1 - line 1:column 5)");
-    }
 }
 
 TEST_CASE("Token stream output operator", "[Token]") {
@@ -2726,10 +2719,10 @@ TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer][utf8][ph
     REQUIRE(tokens.size() == 4);
     REQUIRE(tokens[0].getKind() == jsv::TokenKind::IdentifierAscii);
     REQUIRE(tokens[0].getText() == "ab");
-    // REQUIRE(tokens[1].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
     REQUIRE(tokens[2].getText() == "cd");
     REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 // ==========================================================================
@@ -2742,9 +2735,8 @@ TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
-    // REQUIRE(tokens[0].getText().size() == 1);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
@@ -2754,8 +2746,8 @@ TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][p
     const auto [tokens, errors] = lex.tokenize();
     // At minimum: first token must be Error
     REQUIRE_FALSE(tokens.empty());
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed][phase4]") {
@@ -2765,11 +2757,11 @@ TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed
     const auto [tokens, errors] = lex.tokenize();
     // Error(\x80), KeywordVar, IdentifierAscii("x"), Eof
     REQUIRE(tokens.size() == 4);
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::KeywordVar);
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
     REQUIRE(tokens[2].getText() == "x");
     REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
@@ -2779,8 +2771,8 @@ TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexe
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
@@ -2790,8 +2782,8 @@ TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer]
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
-    // // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 // ==========================================================================
@@ -2848,8 +2840,8 @@ TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer][utf8][identifi
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
@@ -2859,6 +2851,7 @@ TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][ide
     const auto [tokens, errors] = lex.tokenize();
     // None of the tokens should be IdentifierUnicode; all non-Eof tokens must be Error
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 3);
     // for(std::size_t i = 0; i + 1 < tokens.size(); ++i) { REQUIRE(tokens[i].getKind() == jsv::TokenKind::Error); }
 }
 
@@ -2868,8 +2861,8 @@ TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
@@ -2878,8 +2871,8 @@ TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][ut
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
-    // REQUIRE(tokens[0].getKind() == jsv::TokenKind::Error);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identifiers][phase5][sc001]") {
@@ -3356,16 +3349,13 @@ TEST_CASE("Lexer_Robustness_OverlongSpace_NotWhitespace", "[lexer][utf8][US3][T0
     REQUIRE(tokens.size() >= 4);  // KeywordVar + Error/Invalid + IdentifierAscii + Eof
     REQUIRE(tokens[0].getKind() == jsv::TokenKind::KeywordVar);
     REQUIRE(tokens[0].getText() == "var");
-
-    // Verify overlong bytes are NOT treated as whitespace (produce error token)
-    // REQUIRE(tokens[1].getKind() == jsv::TokenKind::Error);
-
     // Verify "x" is tokenized as identifier (not separated by whitespace)
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::IdentifierAscii);
     REQUIRE(tokens[2].getText() == "x");
 
     // Verify EOF
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
 }
 
 TEST_CASE("Lexer_Robustness_ByteFE_NoCrash", "[lexer][utf8][US3][T036]") {
