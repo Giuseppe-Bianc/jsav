@@ -391,24 +391,22 @@ static inline constexpr auto minuscs = '-';
  * constexpr auto divisors = find_divisors(12);  // {1, 2, 3, 4, 6, 12}
  * @endcode
  */
-template <std::integral T> [[nodiscard]] constexpr auto find_divisors(T num) noexcept -> std::vector<T> {
-    if(num < 1) {
-        return {};  // Handle edge case where num is less than 1.
-    }
-    T num_sqrt = T(std::sqrt(num));
-    std::vector<T> divisors;
-    divisors.reserve(num_sqrt);
+template <std::integral T> [[nodiscard]] auto find_divisors(const T num) noexcept -> std::vector<T> {
+    if(num < 1) { return {}; }
+    const T num_sqrt = static_cast<T>(std::sqrt(C_LD(num)));
 
-    for(const T &val : std::views::iota(T(1), num_sqrt + 1)) {
-        T numBval = num / val;
+    std::vector<T> divisors;
+    divisors.reserve(C_ST(num_sqrt) * 2u);
+
+    for(const T val : std::views::iota(T{1}, num_sqrt + T{1})) {
         if(is_divisor(num, val)) {
             divisors.emplace_back(val);
-            if(val != numBval) { divisors.emplace_back(numBval); }
+            const T complement = num / val;
+            if(val != complement) { divisors.emplace_back(complement); }
         }
     }
 
     std::ranges::sort(divisors);
-
     return divisors;
 }
 
@@ -435,7 +433,7 @@ template <std::integral T> [[nodiscard]] constexpr auto find_divisors(T num) noe
  */
 [[nodiscard]] static constexpr std::string_view extractTabs(const std::string_view &input) noexcept {
     const auto pos = input.find_first_not_of(CTAB);
-    return pos == std::string_view::npos ? input : input.substr(0, pos);
+    return pos == std::string_view::npos ? std::string_view{} : input.substr(pos);
 }
 
 /**
@@ -616,8 +614,7 @@ template <std::integral T> [[nodiscard]] constexpr auto find_divisors(T num) noe
  *
  * @see GENERATOR_FULLNAME
  */
-#define GENERATOR_VERSION                                                                                                                  \
-    FORMAT("v{} git sha: {}", Vandior::cmake::project_name, Vandior::cmake::project_version, Vandior::cmake::git_short_sha)
+#define GENERATOR_VERSION FORMAT("v{} git sha: {}", Vandior::cmake::project_version, Vandior::cmake::git_short_sha)
 
 // NOLINTEND(*-macro-usage)
 

@@ -252,6 +252,7 @@ inline void my_error_handler(const std::string& msg) {
  */
 inline void setup_logger() {
     std::vector<spdlog::sink_ptr> sinks;
+    sinks.reserve(2);  // PERF: 2 sinks are added; avoids reallocation
 
     // Console sink (colored, accepts all log levels starting from trace)
     const auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
@@ -262,7 +263,7 @@ inline void setup_logger() {
 
     // Add sinks to the logger, ensuring no duplicate output for same log level
     sinks.push_back(stdout_sink);
-    // sinks.push_back(stderr_sink);
+    // sinks.push_back(stderr_sink);  // available when stderr output is needed
 
     // Create logger with the defined sinks
     const auto logger = std::make_shared<spdlog::logger>("main", sinks.begin(), sinks.end());
