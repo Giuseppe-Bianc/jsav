@@ -31,7 +31,7 @@
  * Created by gbian on 09/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
+// NOLINTBEGIN(*-include-cleaner,*-avoid-magic-numbers,*-magic-numbers)
 #include "jsav/error/error_codes.hpp"
 
 // ---------------------------------------------------------------------------
@@ -737,3 +737,5 @@ namespace jsv {
 
     std::string to_string(ErrorCode error_code) { return std::string(code(error_code)) + ": " + message(error_code); }
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner,*-avoid-magic-numbers,*-magic-numbers)
