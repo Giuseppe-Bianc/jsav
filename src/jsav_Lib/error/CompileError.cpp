@@ -12,54 +12,26 @@ namespace jsv {
 
     CompileError CompileError::LexerError(std::optional<ErrorCode> code, std::string_view message, SourceSpan span,
                                           std::optional<std::string> help) {
-        CompileError err;
-        err.kind_ = Kind::LexerError;
-        err.code_ = vnd_move(code);
-        err.message_ = message;
-        err.span_ = vnd_move(span);
-        err.help_ = vnd_move(help);
-        return err;
+        return CompileError(Kind::LexerError, vnd_move(code), message, vnd_move(span), vnd_move(help));
     }
 
     /*CompileError CompileError::SyntaxError(std::optional<jsv::ErrorCode> code, std::string_view message, SourceSpan span,
                                            std::optional<std::string> help) {
-        CompileError err;
-        err.kind_ = jsv::Kind::SyntaxError;
-        err.code_ = vnd_move(code);
-        err.message_ = message;
-        err.span_ = vnd_move(span);
-        err.help_ = vnd_move(help);
-        return err;
+        return CompileError(Kind::SyntaxError, vnd_move(code), message, vnd_move(span), vnd_move(help));
     }
 
     CompileError CompileError::TypeError(std::optional<jsv::ErrorCode> code, std::string_view message, SourceSpan span,
                                          std::optional<std::string> help) {
-        CompileError err;
-        err.kind_ = jsv::Kind::TypeError;
-        err.code_ = vnd_move(code);
-        err.message_ = message;
-        err.span_ = vnd_move(span);
-        err.help_ = vnd_move(help);
-        return err;
+        return CompileError(Kind::TypeError, vnd_move(code), message, vnd_move(span), vnd_move(help));
     }
 
     CompileError CompileError::IrGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message, SourceSpan span,
                                                 std::optional<std::string> help) {
-        CompileError err;
-        err.kind_ = Kind::IrGeneratorError;
-        err.code_ = vnd_move(code);
-        err.message_ = message;
-        err.span_ = vnd_move(span);
-        err.help_ = vnd_move(help);
-        return err;
+        return CompileError(Kind::IrGeneratorError, vnd_move(code), message, vnd_move(span), vnd_move(help));
     }
 
     CompileError CompileError::AsmGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message) {
-        CompileError err;
-        err.kind_ = Kind::AsmGeneratorError;
-        err.code_ = vnd_move(code);
-        err.message_ = message;
-        return err;
+        return CompileError(Kind::AsmGeneratorError, vnd_move(code), message, SourceSpan{}, std::nullopt);
     }*/
 
     // ---------------------------------------------------------------------------

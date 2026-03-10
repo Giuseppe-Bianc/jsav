@@ -69,11 +69,13 @@ namespace jsv {
         void set_help(std::optional<std::string> new_help);
 
     private:
+        CompileError(Kind kind, std::optional<ErrorCode> code, std::string_view message, SourceSpan span, std::optional<std::string> help)
+          : kind_(kind), code_(vnd_move(code)), message_(message), span_(vnd_move(span)), help_(vnd_move(help)) {}
+
         Kind kind_;
         std::optional<ErrorCode> code_;
         std::string_view message_;
         SourceSpan span_;
         std::optional<std::string> help_;
     };
-
 }  // namespace jsv
