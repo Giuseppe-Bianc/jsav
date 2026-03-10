@@ -276,6 +276,7 @@ namespace jsv {
     class Token {
     public:
         // Costruttore primario
+        Token() = default;
         Token(const TokenKind kind, std::string_view text, const SourceSpan &span) : m_kind(kind), m_text(text), m_span(span) {}
 
         Token(const Token &other) noexcept = default;

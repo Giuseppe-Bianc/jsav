@@ -110,7 +110,7 @@ auto main(int argc, const char *const argv[]) -> int {
         LINFO("{} total of bytes read: {}", porfilename, fsz);
         jsv::Lexer lexer{code, porfilename};
         const vnd::Timer tokenizationTimer("Tokenization");
-        const auto tokens = lexer.tokenize();
+        const auto [tokens, errors] = lexer.tokenize();
         LINFO("{}", tokenizationTimer);
         LINFO("num tokens {}", tokens.size());
 

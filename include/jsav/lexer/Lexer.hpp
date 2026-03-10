@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "../error/CompileError.hpp"
 #include "../headers.hpp"
 #include "Token.hpp"
 
@@ -46,7 +47,7 @@ namespace jsv {
         explicit Lexer(std::string_view source, std::string file_path);
 
         /// Lex all tokens including the terminating `Eof`.
-        [[nodiscard]] std::vector<Token> tokenize();
+        [[nodiscard]] std::pair<std::vector<Token>, std::vector<CompileError>> tokenize();
 
         /// Produce the next single token from the stream.
         /// After `Eof` is returned, subsequent calls keep returning `Eof`.
@@ -54,12 +55,12 @@ namespace jsv {
 
     private:
         // ── Source state ──────────────────────────────────────────────────
-        std::string_view m_source;  ///< Non-owning view of the full input.
-        std::size_t m_pos = 0;      ///< Current byte offset (0-indexed).
-        std::size_t m_line = 1;     ///< Current line (1-indexed).
-        std::size_t m_column = 1;   ///< Current column, byte-based (1-indexed).
-        std::string m_file_path;
-
+        std::string_view m_source;           ///< Non-owning view of the full input.
+        std::size_t m_pos = 0;               ///< Current byte offset (0-indexed).
+        std::size_t m_line = 1;              ///< Current line (1-indexed).
+        std::size_t m_column = 1;            ///< Current column, byte-based (1-indexed).
+        std::string m_file_path;             ///< File path for diagnostics (owned by lexer, since SourceSpan needs a stable pointer).
+        std::vector<CompileError> m_errors;  ///< Collected lexer errors
         // ── Navigation ────────────────────────────────────────────────────
         [[nodiscard]] bool is_at_end() const noexcept;
 
@@ -85,8 +86,7 @@ namespace jsv {
         [[nodiscard]] SourceLocation current_location() const noexcept;
         [[nodiscard]] SourceSpan make_span(const SourceLocation &start) const;
         [[nodiscard]] Token make_token(TokenKind kind, std::string_view text, const SourceLocation &start) const;
-        [[nodiscard]] Token error_token(std::string_view text, const SourceLocation &start) const;
-
+        void make_error(const std::string_view text, const SourceLocation &start);
         /// Return the source slice [text_start, m_pos) as a string_view.
         /// Extracted from the `text` lambda in scan_operator_or_punctuation.
         [[nodiscard]] std::string_view current_text(std::size_t text_start) const noexcept;

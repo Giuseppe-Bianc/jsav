@@ -12,7 +12,7 @@
 namespace jsv {
     Lexer::Lexer(std::string_view source, std::string file_path) : m_source{source}, m_file_path{vnd_move(file_path)} {}
 
-    std::vector<Token> Lexer::tokenize() {
+    std::pair<std::vector<Token>, std::vector<CompileError>> Lexer::tokenize() {
         std::vector<Token> tokens;
         tokens.reserve(m_source.size() / 4);  // rough estimate
         // Skip UTF-8 BOM (0xEF 0xBB 0xBF) at start of input if present (FR-019)
@@ -26,7 +26,7 @@ namespace jsv {
             tokens.emplace_back(vnd_move(tok));
             if(done) { break; }
         }
-        return tokens;
+        return std::make_pair(tokens, m_errors);
     }
 
     Token Lexer::next_token() {
@@ -114,8 +114,9 @@ namespace jsv {
         return Token{kind, text, make_span(start)};
     }
 
-    Token Lexer::error_token(const std::string_view text, const SourceLocation &start) const {
-        return make_token(TokenKind::Error, text, start);
+    void Lexer::make_error(const std::string_view text, const SourceLocation &start) {
+        const auto span = make_span(start);
+        m_errors.emplace_back(CompileError::LexerError(std::nullopt, text, span, std::nullopt));
     }
 
     std::string_view Lexer::current_text(const std::size_t text_start) const noexcept {
@@ -351,7 +352,7 @@ namespace jsv {
     // =========================================================================
     template <typename IsDigit>
     Token Lexer::scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit) {
-        if(is_at_end() || !is_digit(peek_byte())) { return error_token(m_source.substr(text_start, m_pos - text_start), start); }
+        if(is_at_end() || !is_digit(peek_byte())) { make_error("Malformed base literal", start); }
         while(!is_at_end() && (is_digit(peek_byte()) || peek_byte() == '_')) { advance_byte(); }
         if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
         return make_token(kind, m_source.substr(text_start, m_pos - text_start), start);
@@ -362,22 +363,28 @@ namespace jsv {
         const auto text_start = m_pos;
         advance_byte();  // consume '#'
 
-        if(is_at_end()) { return error_token(m_source.substr(text_start, m_pos - text_start), start); }
+        if(is_at_end()) { make_error("Malformed base literal", start); }
 
         const char tag = peek_byte();
         advance_byte();  // consume tag
-
+        jsv::Token token;
         switch(tag) {
         case 'b':
-            return scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit);
+            token = scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit);
+            break;
         case 'o':
-            return scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit);
+            token = scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit);
+            break;
         case 'x':
-            return scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit);
+            token = scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit);
+            break;
         default:
-            return error_token(m_source.substr(text_start, m_pos - text_start), start);
+            make_error("Unknown base literal ", start);
+            break;
         }
+        return token;
     }
+
     // NOLINTEND(readability-function-cognitive-complexity)
 
     // =========================================================================
@@ -420,7 +427,7 @@ namespace jsv {
         }
 
         const auto text = m_source.substr(text_start, m_pos - text_start);
-        if(has_malformed) { return error_token(text, start); }
+        if(has_malformed) { make_error("Malformed UTF-8 sequence in string literal", start); }
         return make_token(TokenKind::StringLiteral, text, start);
     }
 
@@ -447,7 +454,7 @@ namespace jsv {
         if(!is_at_end() && peek_byte() == '\'') { advance_byte(); }  // closing '\''
 
         const auto text = m_source.substr(text_start, m_pos - text_start);
-        if(has_malformed) { return error_token(text, start); }
+        if(has_malformed) { make_error("Malformed UTF-8 sequence in char literal", start); }
         return make_token(TokenKind::CharLiteral, text, start);
     }
 
@@ -460,85 +467,99 @@ namespace jsv {
         const auto text_start = m_pos;
         const char c0 = advance_byte();
         const char c1 = peek_byte();
+        Token token;
 
         switch(c0) {
         case '+':
             if(auto t = try_two_char_token(c1, '=', TokenKind::PlusEqual, text_start, start)) { return *t; }
             if(auto t = try_two_char_token(c1, '+', TokenKind::PlusPlus, text_start, start)) { return *t; }
-            return make_token(TokenKind::Plus, current_text(text_start), start);
-
+            token = make_token(TokenKind::Plus, current_text(text_start), start);
+            break;
         case '-':
             if(auto t = try_two_char_token(c1, '=', TokenKind::MinusEqual, text_start, start)) { return *t; }
             if(auto t = try_two_char_token(c1, '-', TokenKind::MinusMinus, text_start, start)) { return *t; }
-            return make_token(TokenKind::Minus, current_text(text_start), start);
-
+            token = make_token(TokenKind::Minus, current_text(text_start), start);
+            break;
         case '=':
             if(auto t = try_two_char_token(c1, '=', TokenKind::EqualEqual, text_start, start)) { return *t; }
-            return make_token(TokenKind::Equal, current_text(text_start), start);
-
+            token = make_token(TokenKind::Equal, current_text(text_start), start);
+            break;
         case '!':
             if(auto t = try_two_char_token(c1, '=', TokenKind::NotEqual, text_start, start)) { return *t; }
-            return make_token(TokenKind::Not, current_text(text_start), start);
-
+            token = make_token(TokenKind::Not, current_text(text_start), start);
+            break;
         case '<':
             if(auto t = try_two_char_token(c1, '=', TokenKind::LessEqual, text_start, start)) { return *t; }
             if(auto t = try_two_char_token(c1, '<', TokenKind::ShiftLeft, text_start, start)) { return *t; }
-            return make_token(TokenKind::Less, current_text(text_start), start);
-
+            token = make_token(TokenKind::Less, current_text(text_start), start);
+            break;
         case '>':
             if(auto t = try_two_char_token(c1, '=', TokenKind::GreaterEqual, text_start, start)) { return *t; }
             if(auto t = try_two_char_token(c1, '>', TokenKind::ShiftRight, text_start, start)) { return *t; }
-            return make_token(TokenKind::Greater, current_text(text_start), start);
-
+            token = make_token(TokenKind::Greater, current_text(text_start), start);
+            break;
         case '|':
             if(auto t = try_two_char_token(c1, '|', TokenKind::OrOr, text_start, start)) { return *t; }
-            return make_token(TokenKind::Or, current_text(text_start), start);
-
+            token = make_token(TokenKind::Or, current_text(text_start), start);
+            break;
         case '&':
             if(auto t = try_two_char_token(c1, '&', TokenKind::AndAnd, text_start, start)) { return *t; }
-            return make_token(TokenKind::And, current_text(text_start), start);
-
+            token = make_token(TokenKind::And, current_text(text_start), start);
+            break;
         case '%':
             if(auto t = try_two_char_token(c1, '=', TokenKind::PercentEqual, text_start, start)) { return *t; }
-            return make_token(TokenKind::Percent, current_text(text_start), start);
-
+            token = make_token(TokenKind::Percent, current_text(text_start), start);
+            break;
         case '^':
             if(auto t = try_two_char_token(c1, '=', TokenKind::XorEqual, text_start, start)) { return *t; }
-            return make_token(TokenKind::Xor, current_text(text_start), start);
-
+            token = make_token(TokenKind::Xor, current_text(text_start), start);
+            break;
         case '*':
-            return make_token(TokenKind::Star, current_text(text_start), start);
+            token = make_token(TokenKind::Star, current_text(text_start), start);
+            break;
         case '/':
-            return make_token(TokenKind::Slash, current_text(text_start), start);
+            token = make_token(TokenKind::Slash, current_text(text_start), start);
+            break;
         case ':':
-            return make_token(TokenKind::Colon, current_text(text_start), start);
+            token = make_token(TokenKind::Colon, current_text(text_start), start);
+            break;
         case ',':
-            return make_token(TokenKind::Comma, current_text(text_start), start);
+            token = make_token(TokenKind::Comma, current_text(text_start), start);
+            break;
         case '.':
-            return make_token(TokenKind::Dot, current_text(text_start), start);
+            token = make_token(TokenKind::Dot, current_text(text_start), start);
+            break;
         case ';':
-            return make_token(TokenKind::Semicolon, current_text(text_start), start);
+            token = make_token(TokenKind::Semicolon, current_text(text_start), start);
+            break;
         case '(':
-            return make_token(TokenKind::OpenParen, current_text(text_start), start);
+            token = make_token(TokenKind::OpenParen, current_text(text_start), start);
+            break;
         case ')':
-            return make_token(TokenKind::CloseParen, current_text(text_start), start);
+            token = make_token(TokenKind::CloseParen, current_text(text_start), start);
+            break;
         case '[':
-            return make_token(TokenKind::OpenBracket, current_text(text_start), start);
+            token = make_token(TokenKind::OpenBracket, current_text(text_start), start);
+            break;
         case ']':
-            return make_token(TokenKind::CloseBracket, current_text(text_start), start);
+            token = make_token(TokenKind::CloseBracket, current_text(text_start), start);
+            break;
         case '{':
-            return make_token(TokenKind::OpenBrace, current_text(text_start), start);
+            token = make_token(TokenKind::OpenBrace, current_text(text_start), start);
+            break;
         case '}':
-            return make_token(TokenKind::CloseBrace, current_text(text_start), start);
-
+            token = make_token(TokenKind::CloseBrace, current_text(text_start), start);
+            break;
         default:
             // Gracefully consume unknown UTF-8 sequences (first byte already advanced).
             if(C_UC(c0) > 0x7F) {
                 const auto seq = unicode::decode_utf8(m_source, text_start);
                 for(std::size_t i = 1; i < seq.byte_length && !is_at_end(); ++i) { advance_byte(); }
             }
-            return error_token(current_text(text_start), start);
+            make_error("Unknown character", start);
+            break;
         }
+        return token;
     }
     // NOLINTEND(readability-function-cognitive-complexity)
 
