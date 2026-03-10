@@ -177,13 +177,13 @@ namespace jsv {
     /// and IDE integration.
     // ---------------------------------------------------------------------------
     struct ErrorInfo {
-        const char *code;                       ///< Error code string (e.g., "E0001")
-        uint16_t numeric_code;                  ///< Numeric part of error code (e.g., 1)
-        Severity severity;                      ///< Severity level of the error
-        CompilerPhase phase;                    ///< Compiler phase where error occurred
-        const char *message;                    ///< Brief user-facing error message
-        const char *explanation;                ///< Detailed explanation of the error
-        std::vector<const char *> suggestions;  ///< Actionable suggestions to fix the error
+        const char *code;                          ///< Error code string (e.g., "E0001")
+        uint16_t numeric_code;                     ///< Numeric part of error code (e.g., 1)
+        Severity severity;                         ///< Severity level of the error
+        CompilerPhase phase;                       ///< Compiler phase where error occurred
+        const char *message;                       ///< Brief user-facing error message
+        const char *explanation;                   ///< Detailed explanation of the error
+        std::span<const char *const> suggestions;  ///< Actionable suggestions to fix the error
     };
 
     /// @brief Retrieves complete error information for the given error code
@@ -195,12 +195,12 @@ namespace jsv {
     /// @brief Returns the error code string (e.g., "E0001")
     /// @param error_code The error code enum value
     /// @return The error code string
-    std::string code(ErrorCode error_code);
+    [[nodiscard]] std::string_view code(ErrorCode error_code) noexcept;
 
     /// @brief Returns the numeric part of the error code
     /// @param error_code The error code enum value
     /// @return The numeric code (e.g., 1 for E0001)
-    uint16_t numeric_code(ErrorCode error_code);
+    uint16_t numeric_code(ErrorCode error_code) noexcept;
 
     /// @brief Returns the severity level for the given error code
     /// @param error_code The error code enum value
@@ -215,7 +215,7 @@ namespace jsv {
     /// @brief Returns a brief error message for the given error code
     /// @param error_code The error code enum value
     /// @return The error message string
-    std::string message(ErrorCode error_code);
+    [[nodiscard]] std::string_view message(ErrorCode error_code) noexcept;
 
     /// @brief Returns a detailed explanation for the given error code
     /// @param error_code The error code enum value
@@ -225,7 +225,7 @@ namespace jsv {
     /// @brief Returns actionable suggestions to fix the given error
     /// @param error_code The error code enum value
     /// @return A vector of suggestion strings
-    std::vector<const char *> suggestions(ErrorCode error_code);
+    [[nodiscard]] std::span<const char *const> suggestions(ErrorCode error_code) noexcept;
 
     /// @brief Converts an error code to a formatted string
     /// @param error_code The error code enum value

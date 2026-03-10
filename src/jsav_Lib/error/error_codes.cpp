@@ -61,14 +61,12 @@ namespace jsv {
         default:
             return "sconosciuto";
         }
-    }  // namespace jsvstd::string
-
+    }
     // ---------------------------------------------------------------------------
     /// \brief Converts a CompilerPhase enum to its string representation
     /// \param phase The compiler phase enum value to convert
     /// \return The string representation ("lexer")
     // ---------------------------------------------------------------------------
-
     std::string to_string(CompilerPhase phase) {
         switch(phase) {
         case CompilerPhase::Lexer:
@@ -92,7 +90,7 @@ namespace jsv {
     ///          four digits (E0001 through E5005).
     // ---------------------------------------------------------------------------
 
-    std::string code(ErrorCode error_code) {
+    std::string_view code(ErrorCode error_code) noexcept {
         switch(error_code) {
         case ErrorCode::E0001:
             return "E0001";
@@ -257,8 +255,7 @@ namespace jsv {
     ///          For E0001-E0010 returns 1-10, for E1001-E1015 returns 1001-1015,
     ///          and so on for all error code ranges.
     // ---------------------------------------------------------------------------
-
-    uint16_t numeric_code(ErrorCode error_code) {
+    uint16_t numeric_code(ErrorCode error_code) noexcept {
         switch(error_code) {
         case ErrorCode::E0001:
             return 1;
@@ -414,7 +411,6 @@ namespace jsv {
             return 0;
         }
     }
-
     // ---------------------------------------------------------------------------
     /// \brief Returns the severity level for the given error code
     /// \param error_code The error code enum value
@@ -423,7 +419,6 @@ namespace jsv {
     /// \details Currently only E1013 returns Warning severity; all other
     ///         error codes return Error severity.
     // ---------------------------------------------------------------------------
-
     Severity severity(ErrorCode error_code) {
         switch(error_code) {
         case ErrorCode::E1013:
@@ -463,7 +458,7 @@ namespace jsv {
     /// \note Messages are in Italian for end-user display
     // ---------------------------------------------------------------------------
 
-    std::string message(ErrorCode error_code) {
+    std::string_view message(ErrorCode error_code) noexcept {
         switch(error_code) {
         case ErrorCode::E0001:
             return "token non valido o non riconosciuto";
@@ -630,7 +625,6 @@ namespace jsv {
     ///          Each explanation covers the specific error pattern and provides
     ///          concrete examples where applicable.
     // ---------------------------------------------------------------------------
-
     const char *explanation(ErrorCode error_code) {
         switch(error_code) {
         case ErrorCode::E0001:
@@ -703,27 +697,45 @@ namespace jsv {
     ///          is returned.
     // ---------------------------------------------------------------------------
 
-    std::vector<const char *> suggestions(ErrorCode error_code) {
+    std::span<const char *const> suggestions(ErrorCode error_code) noexcept {
+        // PERF: Each suggestion list is a static constexpr array of string literal
+        // pointers. std::span wraps the array by pointer + extent — zero allocation,
+        // zero copy. The static storage guarantees the span outlives any caller.
+        // std::span has NO initializer_list constructor, so named arrays are required.
+
+        static constexpr const char *kE0002[] = {"Aggiungere cifre binarie dopo #b: #b1010",
+                                                 "Verificare cifre non valide (solo 0 e 1 ammessi)"};
+        static constexpr const char *kE0003[] = {"Aggiungere cifre ottali dopo #o: #o755",
+                                                 "Verificare cifre non valide (solo 0-7 ammessi)"};
+        static constexpr const char *kE0004[] = {"Aggiungere cifre esadecimali dopo #x: #xDEAD",
+                                                 "Verificare cifre non valide (solo 0-9, a-f, A-F ammessi)"};
+        static constexpr const char *kE0005[] = {"Aggiungere virgolette doppie di chiusura: \"ciao\"",
+                                                 R"(Usare sequenza di escape per virgolette incorporate: "dire \"ciao\"")"};
+        static constexpr const char *kE2009_10[] = {"Spostare lo statement all'interno di un ciclo while o for",
+                                                    "Usare return per uscire da una funzione invece"};
+        static constexpr const char *kE2023[] = {"Dichiarare la variabile: var x: i32 = 0",
+                                                 "Verificare errori di battitura nel nome della variabile",
+                                                 "Assicurarsi che la variabile sia nello scope"};
+        static constexpr const char *kE2024[] = {"Usare 'var' invece di 'const' per variabili mutabili", "Rimuovere la riassegnazione"};
+
         switch(error_code) {
         case ErrorCode::E0002:
-            return {"Aggiungere cifre binarie dopo #b: #b1010", "Verificare cifre non valide (solo 0 e 1 ammessi)"};
+            return kE0002;
         case ErrorCode::E0003:
-            return {"Aggiungere cifre ottali dopo #o: #o755", "Verificare cifre non valide (solo 0-7 ammessi)"};
+            return kE0003;
         case ErrorCode::E0004:
-            return {"Aggiungere cifre esadecimali dopo #x: #xDEAD", "Verificare cifre non valide (solo 0-9, a-f, A-F ammessi)"};
+            return kE0004;
         case ErrorCode::E0005:
-            return {"Aggiungere virgolette doppie di chiusura: \"ciao\"",
-                    R"(Usare sequenza di escape per virgolette incorporate: "dire \"ciao\"")"};
-        case ErrorCode::E2023:
-            return {"Dichiarare la variabile: var x: i32 = 0", "Verificare errori di battitura nel nome della variabile",
-                    "Assicurarsi che la variabile sia nello scope"};
-        case ErrorCode::E2024:
-            return {"Usare 'var' invece di 'const' per variabili mutabili", "Rimuovere la riassegnazione"};
+            return kE0005;
         case ErrorCode::E2009:
         case ErrorCode::E2010:
-            return {"Spostare lo statement all'interno di un ciclo while o for", "Usare return per uscire da una funzione invece"};
+            return kE2009_10;
+        case ErrorCode::E2023:
+            return kE2023;
+        case ErrorCode::E2024:
+            return kE2024;
         default:
-            return {};
+            return {};  // default-constructed span: data=null, size=0
         }
     }
 
@@ -734,7 +746,6 @@ namespace jsv {
     /// \details This function combines the error code string with its brief message
     ///          for use in diagnostic output.
     // ---------------------------------------------------------------------------
-
     std::string to_string(ErrorCode error_code) { return FORMAT("{}: {}", code(error_code), message(error_code)); }
 }  // namespace jsv
 

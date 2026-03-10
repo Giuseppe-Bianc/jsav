@@ -38,45 +38,29 @@ namespace jsv {
     // what
     // ---------------------------------------------------------------------------
 
+    // PERF: ostringstream requires heap allocation + sequential operator<< calls.
+    //       std::format allocates exactly once into the result string.
+    //       Before: 3+ allocations (oss internal buffer, optional code string, result).
+    //       After:  1 allocation (the returned std::string).
     std::string CompileError::what() const {
-        std::ostringstream oss;
-
+        // LexerError is currently the only Kind; structured for future extension.
         switch(kind_) {
         case Kind::LexerError:
-            if(code_.has_value()) { oss << FORMAT("[{}]", jsv::code(code_.value())); }
-            oss << FORMAT("Syntax error: {} at {}", message_, span_);
-            if(help_) { oss << "\nhelp: " << *help_; }
-            break;
-
-            /*case Kind::SyntaxError:
-                if (code_) oss << "[" << code_->code() << "] ";
-                oss << "Syntax error: " << message_ << " at " << span_.to_string();
-                if (help_) oss << "\nhelp: " << *help_;
-                break;
-
-            case Kind::TypeError:
-                if (code_) oss << "[" << code_->code() << "] ";
-                oss << "Type error: " << message_ << " at " << span_.to_string();
-                if (help_) oss << "\nhelp: " << *help_;
-                break;
-
-            case Kind::IrGeneratorError:
-                if (code_) oss << "[" << code_->code() << "] ";
-                oss << "IR generator error: " << message_ << " at " << span_.to_string();
-                if (help_) oss << "\nhelp: " << *help_;
-                break;
-
-            case Kind::AsmGeneratorError:
-                if (code_) oss << "[" << code_->code() << "] ";
-                oss << "Assembly generation error: " << message_;
-                break;
-
-            case Kind::IoError:
-                oss << "I/O error: " << io_error_.message();
-                break;*/
+            {
+                std::string result;
+                if(code_.has_value()) {
+                    result = FORMAT("[{}] Syntax error: {} at {}", jsv::code(code_.value()), message_, span_);
+                } else {
+                    result = FORMAT("Syntax error: {} at {}", message_, span_);
+                }
+                if(help_) {
+                    result += "\nhelp: ";
+                    result += *help_;
+                }
+                return result;
+            }
         }
-
-        return oss.str();
+        return {};
     }
 
     // ---------------------------------------------------------------------------
