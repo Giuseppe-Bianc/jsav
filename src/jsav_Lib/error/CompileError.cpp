@@ -48,9 +48,7 @@ namespace jsv {
                 } else {
                     result = FORMAT("Syntax error: {} at {}", message_, span_);
                 }
-                if(help_.has_value()) {
-                    result += FORMAT("\nhelp: {}", help_.value());
-                }
+                if(help_.has_value()) { result += FORMAT("\nhelp: {}", help_.value()); }
                 return result;
             }
         }
