@@ -37,11 +37,6 @@ namespace jsv {
     // ---------------------------------------------------------------------------
     // what
     // ---------------------------------------------------------------------------
-
-    // PERF: ostringstream requires heap allocation + sequential operator<< calls.
-    //       std::format allocates exactly once into the result string.
-    //       Before: 3+ allocations (oss internal buffer, optional code string, result).
-    //       After:  1 allocation (the returned std::string).
     std::string CompileError::what() const {
         // LexerError is currently the only Kind; structured for future extension.
         switch(kind_) {
@@ -53,9 +48,8 @@ namespace jsv {
                 } else {
                     result = FORMAT("Syntax error: {} at {}", message_, span_);
                 }
-                if(help_) {
-                    result += "\nhelp: ";
-                    result += *help_;
+                if(help_.has_value()) {
+                    result += FORMAT("\nhelp: {}", help_.value());
                 }
                 return result;
             }

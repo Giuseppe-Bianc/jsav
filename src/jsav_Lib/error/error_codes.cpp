@@ -698,25 +698,21 @@ namespace jsv {
     // ---------------------------------------------------------------------------
 
     std::span<const char *const> suggestions(ErrorCode error_code) noexcept {
-        // PERF: Each suggestion list is a static constexpr array of string literal
-        // pointers. std::span wraps the array by pointer + extent — zero allocation,
-        // zero copy. The static storage guarantees the span outlives any caller.
-        // std::span has NO initializer_list constructor, so named arrays are required.
-
-        static constexpr const char *kE0002[] = {"Aggiungere cifre binarie dopo #b: #b1010",
-                                                 "Verificare cifre non valide (solo 0 e 1 ammessi)"};
-        static constexpr const char *kE0003[] = {"Aggiungere cifre ottali dopo #o: #o755",
-                                                 "Verificare cifre non valide (solo 0-7 ammessi)"};
-        static constexpr const char *kE0004[] = {"Aggiungere cifre esadecimali dopo #x: #xDEAD",
-                                                 "Verificare cifre non valide (solo 0-9, a-f, A-F ammessi)"};
-        static constexpr const char *kE0005[] = {"Aggiungere virgolette doppie di chiusura: \"ciao\"",
-                                                 R"(Usare sequenza di escape per virgolette incorporate: "dire \"ciao\"")"};
-        static constexpr const char *kE2009_10[] = {"Spostare lo statement all'interno di un ciclo while o for",
-                                                    "Usare return per uscire da una funzione invece"};
-        static constexpr const char *kE2023[] = {"Dichiarare la variabile: var x: i32 = 0",
-                                                 "Verificare errori di battitura nel nome della variabile",
-                                                 "Assicurarsi che la variabile sia nello scope"};
-        static constexpr const char *kE2024[] = {"Usare 'var' invece di 'const' per variabili mutabili", "Rimuovere la riassegnazione"};
+        static constexpr std::array<const char *, 2> kE0002 = {"Aggiungere cifre binarie dopo #b: #b1010",
+                                                               "Verificare cifre non valide (solo 0 e 1 ammessi)"};
+        static constexpr std::array<const char *, 2> kE0003 = {"Aggiungere cifre ottali dopo #o: #o755",
+                                                               "Verificare cifre non valide (solo 0-7 ammessi)"};
+        static constexpr std::array<const char *, 2> kE0004 = {"Aggiungere cifre esadecimali dopo #x: #xDEAD",
+                                                               "Verificare cifre non valide (solo 0-9, a-f, A-F ammessi)"};
+        static constexpr std::array<const char *, 2> kE0005 = {R"(Aggiungere virgolette doppie di chiusura: "ciao")",
+                                                               R"(Usare sequenza di escape per virgolette incorporate: "dire \"ciao\"")"};
+        static constexpr std::array<const char *, 2> kE2009_10 = {"Spostare lo statement all'interno di un ciclo while o for",
+                                                                  "Usare return per uscire da una funzione invece"};
+        static constexpr std::array<const char *, 3> kE2023 = {"Dichiarare la variabile: var x: i32 = 0",
+                                                               "Verificare errori di battitura nel nome della variabile",
+                                                               "Assicurarsi che la variabile sia nello scope"};
+        static constexpr std::array<const char *, 2> kE2024 = {"Usare 'var' invece di 'const' per variabili mutabili",
+                                                               "Rimuovere la riassegnazione"};
 
         switch(error_code) {
         case ErrorCode::E0002:
