@@ -12,26 +12,26 @@ namespace jsv {
 
     CompileError CompileError::LexerError(std::optional<ErrorCode> code, std::string_view message, SourceSpan span,
                                           std::optional<std::string> help) {
-        return CompileError(Kind::LexerError, vnd_move(code), message, vnd_move(span), vnd_move(help));
+        return {Kind::LexerError, vnd_move(code), message, vnd_move(span), vnd_move(help)};
     }
 
     /*CompileError CompileError::SyntaxError(std::optional<jsv::ErrorCode> code, std::string_view message, SourceSpan span,
                                            std::optional<std::string> help) {
-        return CompileError(Kind::SyntaxError, vnd_move(code), message, vnd_move(span), vnd_move(help));
+        return {Kind::SyntaxError, vnd_move(code), message, vnd_move(span), vnd_move(help)};
     }
 
     CompileError CompileError::TypeError(std::optional<jsv::ErrorCode> code, std::string_view message, SourceSpan span,
                                          std::optional<std::string> help) {
-        return CompileError(Kind::TypeError, vnd_move(code), message, vnd_move(span), vnd_move(help));
+        return {Kind::TypeError, vnd_move(code), message, vnd_move(span), vnd_move(help)};
     }
 
     CompileError CompileError::IrGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message, SourceSpan span,
                                                 std::optional<std::string> help) {
-        return CompileError(Kind::IrGeneratorError, vnd_move(code), message, vnd_move(span), vnd_move(help));
+        return {Kind::IrGeneratorError, vnd_move(code), message, vnd_move(span), vnd_move(help)};
     }
 
     CompileError CompileError::AsmGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message) {
-        return CompileError(Kind::AsmGeneratorError, vnd_move(code), message, SourceSpan{}, std::nullopt);
+        return {Kind::AsmGeneratorError, vnd_move(code), message, SourceSpan{}, std::nullopt};
     }*/
 
     // ---------------------------------------------------------------------------

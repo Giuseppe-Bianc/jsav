@@ -447,8 +447,8 @@ namespace jsv {
     // ---------------------------------------------------------------------------
 
     CompilerPhase phase(ErrorCode error_code) {
-        uint16_t num = numeric_code(error_code);
-        if(num >= 1 && num <= 999) return CompilerPhase::Lexer;
+        const uint16_t num = numeric_code(error_code);
+        if(num >= 1 && num <= 999) { return CompilerPhase::Lexer; }
         /*if (num >= 1001 && num <= 1999) return CompilerPhase::Parser;
         if (num >= 2001 && num <= 2999) return CompilerPhase::Semantic;
         if (num >= 3001 && num <= 3999) return CompilerPhase::IrGeneration;
@@ -713,7 +713,7 @@ namespace jsv {
             return {"Aggiungere cifre esadecimali dopo #x: #xDEAD", "Verificare cifre non valide (solo 0-9, a-f, A-F ammessi)"};
         case ErrorCode::E0005:
             return {"Aggiungere virgolette doppie di chiusura: \"ciao\"",
-                    "Usare sequenza di escape per virgolette incorporate: \"dire \\\"ciao\\\"\""};
+                    R"(Usare sequenza di escape per virgolette incorporate: "dire \"ciao\"")"};
         case ErrorCode::E2023:
             return {"Dichiarare la variabile: var x: i32 = 0", "Verificare errori di battitura nel nome della variabile",
                     "Assicurarsi che la variabile sia nello scope"};
@@ -735,7 +735,7 @@ namespace jsv {
     ///          for use in diagnostic output.
     // ---------------------------------------------------------------------------
 
-    std::string to_string(ErrorCode error_code) { return std::string(code(error_code)) + ": " + message(error_code); }
+    std::string to_string(ErrorCode error_code) { return FORMAT("{}: {}", code(error_code), message(error_code)); }
 }  // namespace jsv
 
 // NOLINTEND(*-include-cleaner,*-avoid-magic-numbers,*-magic-numbers)
