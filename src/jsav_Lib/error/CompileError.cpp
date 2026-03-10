@@ -2,7 +2,7 @@
  * Created by gbian on 09/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/error/CompileError.hpp"
 
 namespace jsv {
@@ -174,3 +174,5 @@ namespace jsv {
         }
     }
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)
