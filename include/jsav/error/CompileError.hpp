@@ -24,7 +24,7 @@ namespace jsv {
 
         // --- Factory methods ---
 
-        static CompileError LexerError(std::optional<ErrorCode> code, std::string_view message, SourceSpan span,
+        static CompileError LexerError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
                                        std::optional<std::string> help);
 
         /*static CompileError SyntaxError(
