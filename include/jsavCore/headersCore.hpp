@@ -67,14 +67,6 @@ DISABLE_WARNINGS_POP()
 #include "FileSize.hpp"
 
 /**
- * @namespace fs
- * @brief Namespace alias for std::filesystem.
- *
- * Provides convenient access to filesystem operations without the std:: prefix.
- */
-namespace fs = std::filesystem;  // NOLINT(*-unused-alias-decls)
-
-/**
  * @namespace ch
  * @brief Namespace alias for std::chrono.
  *
@@ -431,7 +423,7 @@ template <std::integral T> [[nodiscard]] auto find_divisors(const T num) noexcep
  * constexpr auto result = extractTabs(input);  // "Hello"
  * @endcode
  */
-[[nodiscard]] static constexpr std::string_view extractTabs(const std::string_view &input) noexcept {
+[[nodiscard]] static constexpr std::string_view extractTabs(std::string_view input) noexcept {
     const auto pos = input.find_first_not_of(CTAB);
     return pos == std::string_view::npos ? std::string_view{} : input.substr(pos);
 }
