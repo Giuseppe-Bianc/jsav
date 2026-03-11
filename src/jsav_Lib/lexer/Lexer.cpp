@@ -369,7 +369,7 @@ namespace jsv {
 
         if(is_at_end()) {
             // No tag after # - report E0001 (unrecognized token)
-            make_error(ErrorCode::E0001, "Token non valido o non riconosciuto", start);
+            make_error(ErrorCode::E0001, "Invalid or unrecognized token", start);
         }
 
         const char tag = peek_byte();
@@ -390,7 +390,7 @@ namespace jsv {
             break;
         default:
             // Unknown base tag - report E0001 (unrecognized token)
-            make_error(ErrorCode::E0001, "Token non valido o non riconosciuto", start);
+            make_error(ErrorCode::E0001, "Invalid or unrecognized token", start);
             break;
         }
         return token;
@@ -404,7 +404,7 @@ namespace jsv {
 
     void Lexer::skip_escape(const SourceLocation &start) {
         if(is_at_end()) {
-            make_error(ErrorCode::E0007, "Sequenza di escape non valida", start);
+            make_error(ErrorCode::E0007, "Invalid escape sequence", start);
             return;
         }
         // Unicode escapes consume additional hex digits
@@ -418,7 +418,7 @@ namespace jsv {
                     break;
                 }
             }
-            if(!has_hex) { make_error(ErrorCode::E0007, "Sequenza di escape unicode non valida: \\u richiede 4 cifre esadecimali", start); }
+            if(!has_hex) { make_error(ErrorCode::E0007, "Invalid unicode escape sequence: \\u requires 4 hexadecimal digits", start); }
         } else if(c == 'U') {
             bool has_hex = false;
             for(int i = 0; i < 8 && !is_at_end(); ++i) {
@@ -429,7 +429,7 @@ namespace jsv {
                     break;
                 }
             }
-            if(!has_hex) { make_error(ErrorCode::E0007, "Sequenza di escape unicode non valida: \\U richiede 8 cifre esadecimali", start); }
+            if(!has_hex) { make_error(ErrorCode::E0007, "Invalid unicode escape sequence: \\U requires 8 hexadecimal digits", start); }
         }
         /*else if(c == 'x') {
             // \x escape requires at least one hex digit
@@ -439,12 +439,12 @@ namespace jsv {
                 has_hex = true;
             }
             if(!has_hex) {
-                make_error(ErrorCode::E0007, "Sequenza di escape esadecimale non valida: \\x richiede almeno una cifra esadecimale", start);
+                make_error(ErrorCode::E0007, "Invalid hexadecimal escape sequence: \\x requires at least one hexadecimal digit", start);
             }
         } */
         else {
             // Invalid escape sequence
-            make_error(ErrorCode::E0007, "Sequenza di escape non valida", start);
+            make_error(ErrorCode::E0007, "Invalid escape sequence", start);
         }
         // All other escapes (\\, \n, \t, \r, \", \', \0) fully consumed above.
     }
@@ -482,7 +482,7 @@ namespace jsv {
             make_error(ErrorCode::E0005, "Unterminated string literal", start);
         } else if(has_malformed) {
             // String is terminated but contains malformed UTF-8 - report E0007
-            make_error(ErrorCode::E0007, "Sequenza UTF-8 non valida nella stringa", start);
+            make_error(ErrorCode::E0007, "Invalid UTF-8 sequence in string", start);
         }
 
         return make_token(TokenKind::StringLiteral, text, start);
@@ -520,7 +520,7 @@ namespace jsv {
             make_error(ErrorCode::E0006, "Unterminated character literal", start);
         } else if(has_malformed) {
             // Char literal is terminated but contains malformed UTF-8 - report E0007
-            make_error(ErrorCode::E0007, "Sequenza UTF-8 non valida nel carattere", start);
+            make_error(ErrorCode::E0007, "Invalid UTF-8 sequence in character", start);
         }
 
         return make_token(TokenKind::CharLiteral, text, start);
