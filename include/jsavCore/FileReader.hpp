@@ -20,11 +20,11 @@ namespace vnd {
      *
      * @throws FileReadError If the file cannot be opened.
      *
-     * @pre filePath must point to a valid, accessible file.
+     * @pre  filePath must point to a valid, accessible file.
      * @post The returned ifstream is open, positioned at byte 0, with
      *       exception mask set to failbit | badbit.
      */
-    inline auto openFile(const fs::path &filePath) -> std::ifstream {
+    [[nodiscard]] inline auto openFile(const fs::path &filePath) -> std::ifstream {
         std::ifstream fileStream(filePath, std::ios::in | std::ios::binary);
         if(!fileStream.is_open()) { throw FILEREADEREERRORF("Unable to open file: {}", filePath.string()); }
         fileStream.exceptions(std::ios::failbit | std::ios::badbit);
@@ -56,7 +56,7 @@ namespace vnd {
      *
      * @see openFile
      */
-    inline auto readFromFile(const std::string_view filename) -> std::string {
+    [[nodiscard]] inline auto readFromFile(const std::string_view filename) -> std::string {
         static std::mutex fileReadMutex;
         const std::scoped_lock lock(fileReadMutex);  // Ensure thread safety
         const fs::path filePath(filename);
@@ -97,20 +97,15 @@ namespace vnd {
 
 // ─── Strutture di supporto ───────────────────────────────────────────────────
 
-struct SizePrefix {
-    const char *suffix;
-    long double threshold;
-};
-
 struct SizeSystem {
-    const char *name;
+    std::string_view name;
     long double base;
-    std::array<SizePrefix, 6> prefixes;
+    std::array<std::string_view, 6> prefixes;
 };
 
 struct FormattedSize {
     long double value;
-    const char *suffix;
+    std::string_view suffix;
 };
 
 struct FileSizeInfo {
@@ -125,7 +120,7 @@ struct FileSizeInfo {
             ++i;
         }
 
-        return {.value = v, .suffix = sys.prefixes[i].suffix};
+        return {.value = v, .suffix = sys.prefixes[i]};
     }
 };
 
@@ -149,22 +144,22 @@ struct FileSizeReport {
 
 // ─── std::formatter ──────────────────────────────────────────────────────────
 
-template <> struct std::formatter<FormattedSize> : std::formatter<std::string> {
+template <> struct std::formatter<FormattedSize> : std::formatter<std::string_view> {
     template <typename FormatContext> auto format(const FormattedSize &fs, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "{:.2Lf} {}", fs.value, fs.suffix);
     }
 };
 
-template <> struct std::formatter<FormattedSizePair> : std::formatter<std::string> {
+template <> struct std::formatter<FormattedSizePair> : std::formatter<std::string_view> {
     template <typename FormatContext> auto format(const FormattedSizePair &p, FormatContext &ctx) const {
         return std::format_to(ctx.out(), "{:<20} {:<20}", std::format("{}", p.si), std::format("{}", p.iec));
     }
 };
 
-template <> struct std::formatter<FileSizeReport> : std::formatter<std::string> {
+template <> struct std::formatter<FileSizeReport> : std::formatter<std::string_view> {
     template <typename FormatContext> auto format(const FileSizeReport &r, FormatContext &ctx) const {
         auto out = ctx.out();
-        auto pair = r.make_pair();
+        const auto pair = r.make_pair();
         out = std::format_to(out, "Bytes : {}\n", r.info.bytes);
         out = std::format_to(out, "{:-<41}\n", "");
         out = std::format_to(out, "{:<20} {:<20}\n", "SI", "IEC");
@@ -176,22 +171,22 @@ template <> struct std::formatter<FileSizeReport> : std::formatter<std::string> 
 
 // ─── fmt::formatter ──────────────────────────────────────────────────────────
 
-template <> struct fmt::formatter<FormattedSize> : fmt::formatter<std::string> {
+template <> struct fmt::formatter<FormattedSize> : fmt::formatter<std::string_view> {
     template <typename FormatContext> auto format(const FormattedSize &fs, FormatContext &ctx) const {
         return fmt::format_to(ctx.out(), "{:.2Lf} {}", fs.value, fs.suffix);
     }
 };
 
-template <> struct fmt::formatter<FormattedSizePair> : fmt::formatter<std::string> {
+template <> struct fmt::formatter<FormattedSizePair> : fmt::formatter<std::string_view> {
     template <typename FormatContext> auto format(const FormattedSizePair &p, FormatContext &ctx) const {
         return fmt::format_to(ctx.out(), "{:<20} {:<20}", fmt::format("{}", p.si), fmt::format("{}", p.iec));
     }
 };
 
-template <> struct fmt::formatter<FileSizeReport> : fmt::formatter<std::string> {
+template <> struct fmt::formatter<FileSizeReport> : fmt::formatter<std::string_view> {
     template <typename FormatContext> auto format(const FileSizeReport &r, FormatContext &ctx) const {
         auto out = ctx.out();
-        auto pair = r.make_pair();
+        const auto pair = r.make_pair();
         out = fmt::format_to(out, "Bytes : {}\n", r.info.bytes);
         out = fmt::format_to(out, "{:-<41}\n", "");
         out = fmt::format_to(out, "{:<20} {:<20}\n", "SI", "IEC");
@@ -205,25 +200,13 @@ template <> struct fmt::formatter<FileSizeReport> : fmt::formatter<std::string> 
 
 constexpr SizeSystem kSI = {.name = "SI",
                             .base = 1000.0L,
-                            .prefixes = {{
-                                {"B", 1.0L},
-                                {"KB", 1e3L},
-                                {"MB", 1e6L},
-                                {"GB", 1e9L},
-                                {"TB", 1e12L},
-                                {"PB", 1e15L},
-                            }}};
+                            .prefixes = {"B","KB","MB","GB","TB","PB"}
+};
 
 constexpr SizeSystem kIEC = {.name = "IEC",
                              .base = 1024.0L,
-                             .prefixes = {{
-                                 {"B", 1.0L},
-                                 {"KiB", 1024.0L},
-                                 {"MiB", 1048576.0L},
-                                 {"GiB", 1073741824.0L},
-                                 {"TiB", 1125899906842624.0L},
-                                 {"PiB", 1152921504606846976.0L},
-                             }}};
+                             .prefixes = {"B","KiB","MiB","GiB","TiB","PiB"}
+};
 
 // clang-format off
 // NOLINTEND(*-include-cleaner, hicpp-signed-bitwise, *-diagnostic-double-promotion, *-pro-bounds-constant-array-index, *-identifier-length)
