@@ -351,8 +351,9 @@ namespace jsv {
     // Hash-prefixed numeric scanner  (#b, #o, #x)
     // =========================================================================
     template <typename IsDigit>
-    Token Lexer::scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit) {
-        if(is_at_end() || !is_digit(peek_byte())) { make_error("Malformed base literal", start); }
+    Token Lexer::scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit,
+                                    std::string_view texterror) {
+        if(is_at_end() || !is_digit(peek_byte())) { make_error(texterror, start); }
         while(!is_at_end() && (is_digit(peek_byte()) || peek_byte() == '_')) { advance_byte(); }
         if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
         return make_token(kind, m_source.substr(text_start, m_pos - text_start), start);
@@ -367,16 +368,16 @@ namespace jsv {
 
         const char tag = peek_byte();
         advance_byte();  // consume tag
-        jsv::Token token;
+        Token token;
         switch(tag) {
         case 'b':
-            token = scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit);
+            token = scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit, "Malformed binary number: \"#b\"");
             break;
         case 'o':
-            token = scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit);
+            token = scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit, "Malformed octal number: \"#o\"");
             break;
         case 'x':
-            token = scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit);
+            token = scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit, "Malformed hexadecimal number: \"#x\"");
             break;
         default:
             make_error("Unknown base literal ", start);

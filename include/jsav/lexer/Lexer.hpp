@@ -105,7 +105,9 @@ namespace jsv {
         Token scan_identifier_or_keyword(const SourceLocation &start, bool seen_unicode);
         Token scan_numeric_literal(const SourceLocation &start);
         template <typename IsDigit>
-        Token scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit);
+        Token scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit,
+                                 std::string_view texterror);
+
         Token scan_hash_numeric(const SourceLocation &start);
         Token scan_string_literal(const SourceLocation &start);
         Token scan_char_literal(const SourceLocation &start);
