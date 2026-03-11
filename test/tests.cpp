@@ -10,7 +10,6 @@
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <future>
-#include <set>
 
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::EndsWith;

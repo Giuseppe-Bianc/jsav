@@ -104,9 +104,14 @@ auto main(int argc, const char *const argv[]) -> int {
         const auto processing_time = timer.to_string();
         LINFO(processing_time);
 
-        [[maybe_unused]] const std::string_view code(str);
-        const auto from_fs = FileSizeReport::from_path(porfilename, kSI, kIEC);
-        LINFO("\n{}", from_fs);
+        const std::string_view code(str);
+        const auto size_bytes = str.size();
+        const FileSizeReport report{
+            .info = {.bytes = size_bytes},
+            .si_sys = kSI,
+            .iec_sys = kIEC,
+        };
+        LINFO("File: {}\n{}", porfilename, report);
         jsv::Lexer lexer{code, porfilename};
         const vnd::Timer tokenizationTimer("Tokenization");
         const auto [tokens, errors] = lexer.tokenize();

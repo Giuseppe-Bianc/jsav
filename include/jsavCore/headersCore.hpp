@@ -41,7 +41,7 @@ DISABLE_WARNINGS_PUSH(
 #include <optional>
 #include <random>
 #include <ranges>
-//#include <set>
+#include <set>
 #include <source_location>
 #include <sstream>
 //#include <stack>
@@ -64,7 +64,13 @@ DISABLE_WARNINGS_PUSH(
 #include <internal_use_only/config.hpp>
 // Restore warning levels.
 DISABLE_WARNINGS_POP()
-#include "FileSize.hpp"
+/**
+ * @namespace fs
+ * @brief Namespace alias for std::filesystem.
+ *
+ * Provides convenient access to filesystem operations without the std:: prefix.
+ */
+namespace fs = std::filesystem;  // NOLINT(*-unused-alias-decls)
 
 /**
  * @namespace ch
