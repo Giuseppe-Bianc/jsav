@@ -114,9 +114,9 @@ namespace jsv {
         return Token{kind, text, make_span(start)};
     }
 
-    void Lexer::make_error(const std::string_view text, const SourceLocation &start) {
+    void Lexer::make_error(std::optional<ErrorCode> error_code, const std::string_view text, const SourceLocation &start) {
         const auto span = make_span(start);
-        m_errors.emplace_back(CompileError::LexerError(std::nullopt, text, span, std::nullopt));
+        m_errors.emplace_back(CompileError::LexerError(error_code, text, span, std::nullopt));
     }
 
     std::string_view Lexer::current_text(const std::size_t text_start) const noexcept {
@@ -163,16 +163,19 @@ namespace jsv {
     }
 
     void Lexer::skip_block_comment() {
-        advance_byte();  // /
-        advance_byte();  // *
+        const auto comment_start = current_location();  // Save start location for error reporting
+        advance_byte();                                 // /
+        advance_byte();                                 // *
         while(!is_at_end()) {
             if(peek_byte() == '*' && peek_byte(1) == '/') {
                 advance_byte();  // *
                 advance_byte();  // /
-                break;
+                return;          // Successfully terminated
             }
             advance_codepoint();
         }
+        // Report E0008 if comment was not terminated (reached EOF without closing */)
+        make_error(ErrorCode::E0008, "Unterminated block comment", comment_start);
     }
 
     void Lexer::skip_whitespace_and_comments() {
@@ -352,8 +355,8 @@ namespace jsv {
     // =========================================================================
     template <typename IsDigit>
     Token Lexer::scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit,
-                                    std::string_view texterror) {
-        if(is_at_end() || !is_digit(peek_byte())) { make_error(texterror, start); }
+                                    std::optional<ErrorCode> error_code, std::string_view texterror) {
+        if(is_at_end() || !is_digit(peek_byte())) { make_error(error_code, texterror, start); }
         while(!is_at_end() && (is_digit(peek_byte()) || peek_byte() == '_')) { advance_byte(); }
         if(!is_at_end() && (peek_byte() == 'u' || peek_byte() == 'U') && (std::isalnum(C_UC(peek_byte(1))) == 0)) { advance_byte(); }
         return make_token(kind, m_source.substr(text_start, m_pos - text_start), start);
@@ -364,23 +367,30 @@ namespace jsv {
         const auto text_start = m_pos;
         advance_byte();  // consume '#'
 
-        if(is_at_end()) { make_error("Malformed base literal", start); }
+        if(is_at_end()) {
+            // No tag after # - report E0001 (unrecognized token)
+            make_error(ErrorCode::E0001, "Token non valido o non riconosciuto", start);
+        }
 
         const char tag = peek_byte();
         advance_byte();  // consume tag
         Token token;
         switch(tag) {
         case 'b':
-            token = scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit, "Malformed binary number: \"#b\"");
+            token = scan_based_literal(text_start, start, TokenKind::Binary, is_binary_digit, ErrorCode::E0002,
+                                       "Malformed binary number: \"#b\"");
             break;
         case 'o':
-            token = scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit, "Malformed octal number: \"#o\"");
+            token = scan_based_literal(text_start, start, TokenKind::Octal, is_octal_digit, ErrorCode::E0003,
+                                       "Malformed octal number: \"#o\"");
             break;
         case 'x':
-            token = scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit, "Malformed hexadecimal number: \"#x\"");
+            token = scan_based_literal(text_start, start, TokenKind::Hexadecimal, is_hex_digit, ErrorCode::E0004,
+                                       "Malformed hexadecimal number: \"#x\"");
             break;
         default:
-            make_error("Unknown base literal ", start);
+            // Unknown base tag - report E0001 (unrecognized token)
+            make_error(ErrorCode::E0001, "Token non valido o non riconosciuto", start);
             break;
         }
         return token;
@@ -392,13 +402,49 @@ namespace jsv {
     // String / char literal scanners
     // =========================================================================
 
-    void Lexer::skip_escape() {
-        if(is_at_end()) { return; }
+    void Lexer::skip_escape(const SourceLocation &start) {
+        if(is_at_end()) {
+            make_error(ErrorCode::E0007, "Sequenza di escape non valida", start);
+            return;
+        }
         // Unicode escapes consume additional hex digits
         if(const char c = advance_byte(); c == 'u') {
-            for(int i = 0; i < 4 && !is_at_end() && (std::isxdigit(C_UC(peek_byte())) != 0); ++i) { advance_byte(); }
+            bool has_hex = false;
+            for(int i = 0; i < 4 && !is_at_end(); ++i) {
+                if(std::isxdigit(C_UC(peek_byte())) != 0) {
+                    advance_byte();
+                    has_hex = true;
+                } else {
+                    break;
+                }
+            }
+            if(!has_hex) { make_error(ErrorCode::E0007, "Sequenza di escape unicode non valida: \\u richiede 4 cifre esadecimali", start); }
         } else if(c == 'U') {
-            for(int i = 0; i < 8 && !is_at_end() && (std::isxdigit(C_UC(peek_byte())) != 0); ++i) { advance_byte(); }
+            bool has_hex = false;
+            for(int i = 0; i < 8 && !is_at_end(); ++i) {
+                if(std::isxdigit(C_UC(peek_byte())) != 0) {
+                    advance_byte();
+                    has_hex = true;
+                } else {
+                    break;
+                }
+            }
+            if(!has_hex) { make_error(ErrorCode::E0007, "Sequenza di escape unicode non valida: \\U richiede 8 cifre esadecimali", start); }
+        }
+        /*else if(c == 'x') {
+            // \x escape requires at least one hex digit
+            bool has_hex = false;
+            while(!is_at_end() && std::isxdigit(C_UC(peek_byte())) != 0) {
+                advance_byte();
+                has_hex = true;
+            }
+            if(!has_hex) {
+                make_error(ErrorCode::E0007, "Sequenza di escape esadecimale non valida: \\x richiede almeno una cifra esadecimale", start);
+            }
+        } */
+        else {
+            // Invalid escape sequence
+            make_error(ErrorCode::E0007, "Sequenza di escape non valida", start);
         }
         // All other escapes (\\, \n, \t, \r, \", \', \0) fully consumed above.
     }
@@ -407,16 +453,18 @@ namespace jsv {
         const auto text_start = m_pos;
         advance_byte();  // opening '"'
         bool has_malformed = false;
+        bool terminated = false;
 
         while(!is_at_end()) {
             const char c = peek_byte();
             if(c == '"') {
                 advance_byte();  // closing '"'
+                terminated = true;
                 break;
             }
             if(c == '\\') {
                 advance_byte();  // '\'
-                skip_escape();
+                skip_escape(start);
                 continue;
             }
             // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
@@ -428,7 +476,15 @@ namespace jsv {
         }
 
         const auto text = m_source.substr(text_start, m_pos - text_start);
-        if(has_malformed) { make_error("Malformed UTF-8 sequence in string literal", start); }
+
+        // Check for unterminated string (E0005) - takes precedence over malformed UTF-8
+        if(!terminated) {
+            make_error(ErrorCode::E0005, "Unterminated string literal", start);
+        } else if(has_malformed) {
+            // String is terminated but contains malformed UTF-8 - report E0007
+            make_error(ErrorCode::E0007, "Sequenza UTF-8 non valida nella stringa", start);
+        }
+
         return make_token(TokenKind::StringLiteral, text, start);
     }
 
@@ -436,26 +492,37 @@ namespace jsv {
         const auto text_start = m_pos;
         advance_byte();  // opening '\''
         bool has_malformed = false;
+        bool terminated = false;
 
-        if(!is_at_end()) {
-            if(peek_byte() == '\\') {
+        while(!is_at_end()) {
+            const char c = peek_byte();
+            if(c == '\'') {
+                advance_byte();  // closing '\''
+                terminated = true;
+                break;
+            }
+            if(c == '\\') {
                 advance_byte();  // '\'
-                skip_escape();
+                skip_escape(start);
+                continue;
+            }
+            // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
+            if(C_UC(c) > 0x7F) {
+                advance_with_utf8_check(has_malformed);
             } else {
-                // For non-ASCII bytes, validate the UTF-8 sequence (FR-021)
-                const char c = peek_byte();
-                if(C_UC(c) > 0x7F) {
-                    advance_with_utf8_check(has_malformed);
-                } else {
-                    advance_byte();
-                }
+                advance_byte();
             }
         }
 
-        if(!is_at_end() && peek_byte() == '\'') { advance_byte(); }  // closing '\''
-
         const auto text = m_source.substr(text_start, m_pos - text_start);
-        if(has_malformed) { make_error("Malformed UTF-8 sequence in char literal", start); }
+
+        if(!terminated) {
+            make_error(ErrorCode::E0006, "Unterminated character literal", start);
+        } else if(has_malformed) {
+            // Char literal is terminated but contains malformed UTF-8 - report E0007
+            make_error(ErrorCode::E0007, "Sequenza UTF-8 non valida nel carattere", start);
+        }
+
         return make_token(TokenKind::CharLiteral, text, start);
     }
 
@@ -557,7 +624,8 @@ namespace jsv {
                 const auto seq = unicode::decode_utf8(m_source, text_start);
                 for(std::size_t i = 1; i < seq.byte_length && !is_at_end(); ++i) { advance_byte(); }
             }
-            make_error("Unknown character", start);
+            // Report E0001 for unrecognized/invalid tokens
+            make_error(ErrorCode::E0001, "Token non valido o non riconosciuto", start);
             break;
         }
         return token;

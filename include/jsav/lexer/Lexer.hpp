@@ -79,6 +79,7 @@ namespace jsv {
         char32_t advance_codepoint() noexcept;
 
         /// Advance m_pos and m_column by one UTF-8 sequence, marking has_malformed if invalid.
+        /// Does NOT generate errors immediately; caller is responsible for error reporting.
         /// Used in string/char literal scanning to handle non-ASCII bytes.
         void advance_with_utf8_check(bool &has_malformed) noexcept;
 
@@ -86,7 +87,7 @@ namespace jsv {
         [[nodiscard]] SourceLocation current_location() const noexcept;
         [[nodiscard]] SourceSpan make_span(const SourceLocation &start) const;
         [[nodiscard]] Token make_token(TokenKind kind, std::string_view text, const SourceLocation &start) const;
-        void make_error(const std::string_view text, const SourceLocation &start);
+        void make_error(std::optional<ErrorCode> error_code, const std::string_view text, const SourceLocation &start);
         /// Return the source slice [text_start, m_pos) as a string_view.
         /// Extracted from the `text` lambda in scan_operator_or_punctuation.
         [[nodiscard]] std::string_view current_text(std::size_t text_start) const noexcept;
@@ -106,15 +107,15 @@ namespace jsv {
         Token scan_numeric_literal(const SourceLocation &start);
         template <typename IsDigit>
         Token scan_based_literal(const std::size_t text_start, const SourceLocation &start, const TokenKind kind, IsDigit is_digit,
-                                 std::string_view texterror);
-
+                                 std::optional<ErrorCode> error_code, std::string_view texterror);
         Token scan_hash_numeric(const SourceLocation &start);
         Token scan_string_literal(const SourceLocation &start);
         Token scan_char_literal(const SourceLocation &start);
         Token scan_operator_or_punctuation(const SourceLocation &start);
 
         /// Advance past a single escape sequence (after the leading backslash).
-        void skip_escape();
+        /// Reports E0007 if the escape sequence is invalid.
+        void skip_escape(const SourceLocation &start);
 
         // ── Numeric literal helpers ───────────────────────────────────────
         /// Attempt to consume an exponent group [eE][+-]?\d+.

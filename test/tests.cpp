@@ -2766,16 +2766,29 @@ TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed
 
 TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
     // String literal containing overlong sequence → entire literal is Error per FR-021
-    // Source: "  + 0xC0 + 0xAF + "
+    // Source: " + 0xC0 0xAF (no closing quote)
     const std::string src = "\"\xC0\xAF\"";
     jsv::Lexer lex{src, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 2);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
     REQUIRE(errors.size() == 1);
+    REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0007);  // Overlong UTF-8 0xC0 0xAF
 }
 
-TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_UnclosedStringLiteral", "[lexer][utf8][malformed][phase4]") {
+    // String literal containing overlong sequence → entire literal is Error per FR-021
+    // Source: " + 0xC0 0xAF (no closing quote)
+    const std::string src = "\"aaaaaaa";
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto [tokens, errors] = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
+    REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0005);  // Overlong UTF-8 0xC0 0xAF
+}
+
+TEST_CASE("Lexer_MalformedInsideCharLiteral", "[lexer][utf8][malformed][phase4]") {
     // Char literal containing orphaned continuation → entire literal is Error per FR-021
     // Source: '  + 0x80 + '
     const std::string src = "\'\x80\'";
@@ -2784,6 +2797,19 @@ TEST_CASE("Lexer_MalformedInsideCharLiteral_EntireLiteralBecomesError", "[lexer]
     REQUIRE(tokens.size() == 2);
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
     REQUIRE(errors.size() == 1);
+    REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0007);
+}
+
+TEST_CASE("Lexer_UnclosedCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
+    // Char literal containing orphaned continuation → entire literal is Error per FR-021
+    // Source: '  + 0x80 + '
+    const std::string src = "'\x80";
+    jsv::Lexer lex{src, "test.jsav"};
+    const auto [tokens, errors] = lex.tokenize();
+    REQUIRE(tokens.size() == 2);
+    REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
+    REQUIRE(errors.size() == 1);
+    REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0006);
 }
 
 // ==========================================================================
