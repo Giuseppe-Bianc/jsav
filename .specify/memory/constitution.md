@@ -1,22 +1,17 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.2.0 → 1.3.0 (MINOR: Enhanced C++ Core Guidelines with explicit patterns/anti-patterns, 
-strengthened TDD guidance with test-first patterns, added Dependency Management patterns)
+Version change: 1.3.0 → 1.4.0 (MINOR: Added Algorithmic Design Excellence principle,
+enhanced Documentation Standards with explicit structural requirements)
 
 Modified Principles:
-- III. C++ Core Guidelines Compliance: Enhanced with explicit patterns (Ownership Semantics, Const 
-  Correctness, Move Semantics, Error Handling) and anti-patterns (Raw Pointer Ownership, Const-Avoidance, 
-  Exception Swallowing, Undefined Behavior Tolerance)
-- IV. Test-Driven Development (Red-Green): Enhanced with explicit patterns (Test as Executable 
-  Specification, Minimal Intentional Implementation, Refactoring Under Test Protection, Strategic 
-  Edge Case Coverage) and anti-patterns (Test-After Development, Premature Gold Plating, 
-  Refactoring Without Net, Fragile Tests)
-- V. Dependency Management: Enhanced with explicit patterns (Explicit Versioning, Dependency Header 
-  Isolation) and anti-patterns (Floating Dependencies, Header Leak)
+- VI. Documentation Standards & markdownlint Compliance: Enhanced with explicit structural
+  requirements (heading hierarchy, single H1 per document, table of contents for long documents)
 
 Added Principles:
-- None
+- VII. Algorithmic Design Excellence: New principle mandating advanced algorithmic techniques
+  (dynamic programming, greedy algorithms, divide and conquer, backtracking, branch and bound)
+  with formal analysis requirements, complexity analysis, and systematic verification
 
 Removed Principles:
 - None
@@ -36,27 +31,27 @@ Follow-up TODOs: None
 
 ### I. Platform Independence
 
-The jsav compiler MUST be implemented as an OS-independent system. All code MUST be portable across 
-different platforms without depending on specific OS functionalities. The implementation MUST leverage 
-C++23 standard library features exclusively, avoiding platform-specific APIs unless absolutely 
+The jsav compiler MUST be implemented as an OS-independent system. All code MUST be portable across
+different platforms without depending on specific OS functionalities. The implementation MUST leverage
+C++23 standard library features exclusively, avoiding platform-specific APIs unless absolutely
 necessary and properly abstracted behind portable interfaces.
 
-**Rationale**: Ensures the compiler can be built and run on Windows, Linux, and macOS without 
+**Rationale**: Ensures the compiler can be built and run on Windows, Linux, and macOS without
 modification, maximizing accessibility and maintainability.
 
 ### II. Visual Studio 2026 Compatibility
 
-All code MUST be fully compatible with Visual Studio 2026 and later versions. C++23 features used 
-MUST be verified as fully supported by MSVC. Any feature with incomplete MSVC support MUST be 
+All code MUST be fully compatible with Visual Studio 2026 and later versions. C++23 features used
+MUST be verified as fully supported by MSVC. Any feature with incomplete MSVC support MUST be
 avoided or conditionally compiled with appropriate fallbacks.
 
-**Rationale**: Guarantees a consistent development experience for Windows developers and ensures 
+**Rationale**: Guarantees a consistent development experience for Windows developers and ensures
 the primary IDE target can build the entire codebase without issues.
 
 ### III. C++ Core Guidelines Compliance
 
-The codebase MUST rigorously adhere to established C++ community guidelines and style conventions, 
-including ISO C++ standards and C++ Core Guidelines. Compliance MUST be enforced through measurable 
+The codebase MUST rigorously adhere to established C++ community guidelines and style conventions,
+including ISO C++ standards and C++ Core Guidelines. Compliance MUST be enforced through measurable
 criteria and explicit patterns.
 
 #### Mandatory Patterns
@@ -95,7 +90,7 @@ criteria and explicit patterns.
 **Anti-Pattern: Raw Pointer Ownership**
 - NEVER use raw pointers (`T*`) to represent ownership of dynamically allocated resources
 - NEVER delegate manual `delete` responsibility to programmers
-- Rationale: Manual memory management is fragile; every execution path (including exception branches) 
+- Rationale: Manual memory management is fragile; every execution path (including exception branches)
   must guarantee resource release
 
 **Anti-Pattern: Const-Avoidance**
@@ -109,7 +104,7 @@ criteria and explicit patterns.
 - Rationale: Swallowing exceptions masks failures, allowing program to continue in inconsistent state
 
 **Anti-Pattern: Undefined Behavior Tolerance**
-- NEVER accept code that may invoke undefined behavior (null dereference, signed integer overflow, 
+- NEVER accept code that may invoke undefined behavior (null dereference, signed integer overflow,
   out-of-bounds access)
 - NEVER justify UB with "it works in practice" or "compiler doesn't complain"
 - Rationale: UB authorizes compiler to any transformation; different configurations may expose bugs
@@ -124,7 +119,7 @@ criteria and explicit patterns.
   - Cyclomatic complexity: ≤15
   - Parameters: ≤6 per function
 
-**Rationale**: Ensures code consistency, readability, maintainability, and adherence to industry 
+**Rationale**: Ensures code consistency, readability, maintainability, and adherence to industry
 best practices for long-term sustainability. Measurable criteria enable automated compliance validation.
 
 ### IV. Test-Driven Development (Red-Green)
@@ -163,7 +158,7 @@ All code MUST be developed using the Red-Green TDD methodology:
 - Identify and systematically test boundary conditions common in compiler domain
 - Explicitly test: empty inputs, maximum inputs, special characters, invalid sequences, overflow conditions
 - Each edge case MUST be a separate test with descriptive name
-- For lexer: test empty string, single character, token at buffer boundaries, non-ASCII characters, 
+- For lexer: test empty string, single character, token at buffer boundaries, non-ASCII characters,
   malformed escape sequences
 - For parser: test empty expressions, maximum nesting, missing operators, unbalanced parentheses
 - For semantic analysis: test undeclared identifiers, incompatible types, scope overflow
@@ -173,7 +168,7 @@ All code MUST be developed using the Red-Green TDD methodology:
 **Anti-Pattern: Test-After Development**
 - NEVER write implementation first and add tests afterward
 - NEVER write tests to "cover" already-written code
-- Rationale: Tests written after implementation test the code as-written, not as-it-should-behavior; 
+- Rationale: Tests written after implementation test the code as-written, not as-it-should-behavior;
   tests become fragile and coupled to implementation details
 
 **Anti-Pattern: Premature Gold Plating**
@@ -192,20 +187,20 @@ All code MUST be developed using the Red-Green TDD methodology:
 - NEVER verify implementation details instead of observable behaviors
 - NEVER test: internal call order, intermediate data structures, exact log messages
 - NEVER test "how"; test "what"
-- Rationale: Fragile tests create disincentive to refactoring; every structural change requires 
+- Rationale: Fragile tests create disincentive to refactoring; every structural change requires
   test rewrites
 
 #### Test Pyramid Structure
 
 The test pyramid MUST be followed with three distinct test tiers:
 
-- **Compile-time tests** (`constexpr_tests.cpp`): For compile-time verification using `STATIC_REQUIRE`. 
+- **Compile-time tests** (`constexpr_tests.cpp`): For compile-time verification using `STATIC_REQUIRE`.
   If it compiles, tests pass.
-- **Runtime unit tests** (`tests.cpp`): For runtime functionality using Catch2 framework with `REQUIRE` 
+- **Runtime unit tests** (`tests.cpp`): For runtime functionality using Catch2 framework with `REQUIRE`
   assertions
 - **Integration tests**: For component interactions, system-level behavior, and I/O operations
 
-No code MUST be committed without corresponding tests. Tests MUST be written before implementation code. 
+No code MUST be committed without corresponding tests. Tests MUST be written before implementation code.
 The workflow for adding tests MUST be:
 
 1. Add tests to `relaxed_constexpr_tests` first (runtime version)
@@ -213,8 +208,8 @@ The workflow for adding tests MUST be:
 3. Verify they compile in `constexpr_tests` (compile-time version)
 4. For non-constexpr functionality, add to `tests.cpp`
 
-**Rationale**: Guarantees code reliability, enables safe refactoring, provides living documentation, 
-and ensures incremental quality control throughout development. Three-tier structure maximizes 
+**Rationale**: Guarantees code reliability, enables safe refactoring, provides living documentation,
+and ensures incremental quality control throughout development. Three-tier structure maximizes
 compile-time verification while supporting runtime testing.
 
 ### V. Dependency Management
@@ -226,7 +221,7 @@ The project MUST use the following approved dependencies:
 - **CLI11::CLI11**: For command-line interface parsing
 - **Catch2::Catch2WithMain**: For testing framework (test-only dependency)
 
-All dependencies MUST be managed via CPM.cmake (CMake Package Manager). No additional dependencies 
+All dependencies MUST be managed via CPM.cmake (CMake Package Manager). No additional dependencies
 MAY be added without explicit justification and approval.
 
 #### Mandatory Patterns
@@ -251,27 +246,27 @@ MAY be added without explicit justification and approval.
 - NEVER configure dependencies without specifying versions
 - NEVER use "latest" or overly broad ranges
 - NEVER rely implicitly on version available at build time
-- Rationale: Without locked versions, builds at different times produce different results; silent 
+- Rationale: Without locked versions, builds at different times produce different results; silent
   updates introduce incompatibilities
 
 **Anti-Pattern: Header Leak**
 - NEVER include dependency headers in project public headers
 - NEVER expose dependency types and interfaces to consumers
-- Rationale: Exposing dependency headers creates transitive coupling; consumers become dependent 
+- Rationale: Exposing dependency headers creates transitive coupling; consumers become dependent
   on external libraries
 
-**Rationale**: Maintains a minimal, well-curated dependency surface, reducing build complexity, 
+**Rationale**: Maintains a minimal, well-curated dependency surface, reducing build complexity,
 security risks, and maintenance burden.
 
 ### VI. Documentation Standards & markdownlint Compliance
 
 All project documentation MUST adhere to the following standards:
 
-- **markdownlint Compliance**: All Markdown documents MUST conform to the configuration specified 
+- **markdownlint Compliance**: All Markdown documents MUST conform to the configuration specified
   in `.vscode/settings.json` under `markdownlint.config`. No violations MAY be committed.
-- **Precision & Rigor**: Documentation MUST describe systematically every relevant element, paying 
+- **Precision & Rigor**: Documentation MUST describe systematically every relevant element, paying
   attention to both major components and minor details, including their interconnections.
-- **Completeness**: Documentation MUST be coherent, complete, and clearly understandable, ensuring 
+- **Completeness**: Documentation MUST be coherent, complete, and clearly understandable, ensuring
   accurate and structured representation of information.
 - **Consistency**: Terminology, formatting, and structure MUST remain consistent across all documents.
 
@@ -304,24 +299,123 @@ All project documentation MUST adhere to the following standards:
 **Anti-Pattern: Deferred Validation**
 - NEVER postpone markdownlint compliance verification to later phase
 - NEVER accumulate violations for "batch correction"
-- Rationale: Accumulated violations are harder to correct; context is forgotten; time pressure 
+- Rationale: Accumulated violations are harder to correct; context is forgotten; time pressure
   leads to superficial fixes
 
 **Anti-Pattern: Terminological Drift**
 - NEVER use different terms for same concept across or within documents
 - NEVER vary terminology for "stylistic variety"
-- Rationale: Variation creates ambiguity; readers cannot determine if "module", "component", and 
+- Rationale: Variation creates ambiguity; readers cannot determine if "module", "component", and
   "unit" refer to same or distinct concepts
 
 **Anti-Pattern: Wall of Text**
 - NEVER produce documents without hierarchical structure
 - NEVER write long paragraphs without headings, lists, or visual organization
-- Rationale: Technical readers scan for specific information; unstructured text forces integral 
+- Rationale: Technical readers scan for specific information; unstructured text forces integral
   reading
 
-**Rationale**: High-quality documentation is essential for maintainability, onboarding, and 
-long-term project sustainability. Automated linting ensures consistency; rigorous content 
+**Rationale**: High-quality documentation is essential for maintainability, onboarding, and
+long-term project sustainability. Automated linting ensures consistency; rigorous content
 ensures usefulness.
+
+### VII. Algorithmic Design Excellence
+
+When problem characteristics permit, the implementation MUST employ advanced algorithmic design
+techniques to achieve efficient, scalable solutions with optimal computational complexity. The
+choice of algorithmic paradigm MUST be justified through formal analysis.
+
+#### Mandatory Algorithmic Paradigms
+
+The following algorithmic design techniques MUST be considered and applied when appropriate:
+
+**Dynamic Programming**
+- MUST be used when problem exhibits overlapping subproblems and optimal substructure
+- Implementation MUST use memoization or tabulation to avoid recomputation
+- Time and space complexity trade-offs MUST be explicitly documented
+- Example applications: parsing algorithms, optimization problems, sequence analysis
+
+**Greedy Algorithms**
+- MUST be used when problem satisfies greedy choice property
+- Proof or justification of greedy choice validity MUST be documented
+- Local optimality leading to global optimality MUST be demonstrated
+- Example applications: scheduling, Huffman coding, minimum spanning trees
+
+**Divide and Conquer**
+- MUST be used when problem can be decomposed into independent subproblems
+- Recurrence relations MUST be analyzed for time complexity
+- Base cases and combination steps MUST be clearly identified
+- Example applications: sorting, searching, matrix multiplication
+
+**Backtracking**
+- MUST be used for constraint satisfaction and combinatorial search problems
+- Pruning strategies MUST be documented and justified
+- Worst-case complexity MUST be analyzed
+- Example applications: parsing ambiguous grammars, constraint solving
+
+**Branch and Bound**
+- MUST be used for discrete optimization problems when exact solutions required
+- Bounding functions MUST be documented with complexity analysis
+- Pruning criteria MUST be explicitly stated
+- Example applications: combinatorial optimization, integer programming
+
+#### Formal Analysis Requirements
+
+For every algorithm employing advanced techniques, documentation MUST include:
+
+**Problem Analysis**
+- Formal problem statement with clear objectives and constraints
+- Input data structure and size characteristics
+- Required optimality level (exact vs. approximate solutions)
+
+**Structural Property Identification**
+- Presence of overlapping subproblems (for dynamic programming)
+- Greedy choice property validation (for greedy algorithms)
+- Subproblem independence (for divide and conquer)
+- Constraint structure (for backtracking/branch and bound)
+
+**Complexity Analysis**
+- Time complexity using asymptotic notation (O, Θ, Ω)
+- Space complexity including auxiliary data structures
+- Trade-offs between different algorithmic approaches
+- Expected vs. worst-case performance characteristics
+
+**Strategy Comparison**
+- Systematic evaluation of alternative paradigms
+- Justification for selected approach over alternatives
+- Performance bounds and scalability analysis
+
+**Algorithm Construction**
+- Detailed step-by-step construction process
+- Data structures employed with justification
+- Decision-making logic at each computational step
+
+**Verification & Validation**
+- Correctness proof or justification
+- Rigorous complexity analysis
+- Performance evaluation with representative test cases
+- Benchmark results under realistic scenarios
+
+#### Complexity Goals
+
+Algorithmic solutions MUST target the following complexity characteristics:
+
+- **Time Complexity**: Minimize asymptotic time complexity for problem class
+- **Space Complexity**: Balance memory usage against time requirements
+- **Scalability**: Handle large input sizes gracefully (analyze growth rates)
+- **Resource Efficiency**: Optimize for target platform constraints (memory, CPU)
+
+#### Documentation Requirements
+
+All algorithmic implementations MUST include:
+
+- Inline comments explaining non-obvious algorithmic choices
+- References to algorithmic paradigm and justification
+- Complexity analysis in function documentation
+- Edge case handling rationale
+
+**Rationale**: Compiler implementation involves complex parsing, optimization, and code generation
+problems where algorithmic choices directly impact performance, scalability, and correctness.
+Formal analysis ensures informed decisions and maintainable implementations.
 
 ## Development Workflow
 
@@ -350,7 +444,7 @@ Before any code MAY be merged to `main`, the following gates MUST pass:
 
 ## Governance
 
-This constitution supersedes all other development practices and guidelines for the jsav project. 
+This constitution supersedes all other development practices and guidelines for the jsav project.
 Compliance is mandatory and verified through automated tooling in CI/CD pipelines.
 
 **Amendment Procedure**:
@@ -367,7 +461,7 @@ Compliance is mandatory and verified through automated tooling in CI/CD pipeline
 - **MINOR**: New principles, material expansions, new sections
 - **PATCH**: Clarifications, wording improvements, typo fixes
 
-**Compliance Review**: All pull requests MUST be reviewed for constitution compliance. CI/CD 
+**Compliance Review**: All pull requests MUST be reviewed for constitution compliance. CI/CD
 pipelines enforce automated compliance checks.
 
-**Version**: 1.3.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-03-01
+**Version**: 1.4.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-03-11
