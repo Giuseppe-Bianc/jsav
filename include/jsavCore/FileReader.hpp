@@ -118,7 +118,7 @@ struct FileSizeInfo {
 
     [[nodiscard]] constexpr FormattedSize format(const SizeSystem &sys) const noexcept {
         auto v = C_LD(bytes);
-        int i = 0;
+        std::size_t i = 0;
 
         while(i < 5 && v >= sys.base) {
             v /= sys.base;
