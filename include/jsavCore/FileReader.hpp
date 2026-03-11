@@ -226,5 +226,5 @@ constexpr SizeSystem kIEC = {.name = "IEC",
                              }}};
 
 // clang-format off
-// NOLINTBEGIN(*-include-cleaner, hicpp-signed-bitwise, *-diagnostic-double-promotion, *-pro-bounds-constant-array-index, *-identifier-length)
+// NOLINTEND(*-include-cleaner, hicpp-signed-bitwise, *-diagnostic-double-promotion, *-pro-bounds-constant-array-index, *-identifier-length)
 // clang-format on
