@@ -33,8 +33,9 @@ Follow-up TODOs: None
 
 The jsav compiler MUST be implemented as an OS-independent system. All code MUST be portable across
 different platforms without depending on specific OS functionalities. The implementation MUST leverage
-C++23 standard library features exclusively, avoiding platform-specific APIs unless absolutely
-necessary and properly abstracted behind portable interfaces.
+C++23 standard library features exclusively. Platform-specific APIs MUST be avoided; if unavoidable
+due to OS integration requirements, they MUST be isolated behind portable abstraction layers with
+clear documentation justifying their necessity.
 
 **Rationale**: Ensures the compiler can be built and run on Windows, Linux, and macOS without
 modification, maximizing accessibility and maintainability.
@@ -57,6 +58,7 @@ criteria and explicit patterns.
 #### Mandatory Patterns
 
 **Pattern: Ownership Semantics Explicit**
+
 - Every resource MUST have a single, clearly identified owner
 - Use `std::unique_ptr` for exclusive ownership, `std::shared_ptr` only when sharing is strictly necessary
 - Raw pointers MUST be used exclusively as non-owning references of short duration
@@ -65,6 +67,7 @@ criteria and explicit patterns.
 - AddressSanitizer MUST report zero leaks in test suite execution
 
 **Pattern: Pervasive Const Correctness**
+
 - All local variables MUST be declared `const` by default; remove qualifier only if mutation is required
 - All methods that do not modify object state MUST be declared `const`
 - Prefer `std::string_view` over `const std::string&` for read-only string parameters
@@ -72,6 +75,7 @@ criteria and explicit patterns.
 - Static analysis MUST be configured to flag non-const variables that are never modified
 
 **Pattern: Conscious Move Semantics**
+
 - Classes managing resources MUST implement move constructor and move assignment operator per Rule of Five
 - Return local objects by value, relying on copy elision and move semantics
 - Use `std::move` explicitly at call sites when transferring ownership is intended
@@ -79,6 +83,7 @@ criteria and explicit patterns.
 - Profilers MUST verify no unexpected copies of large objects occur
 
 **Pattern: Structured Error Handling**
+
 - Recoverable errors MUST be signaled via `std::expected<T, ErrorType>` (C++23) or equivalent
 - Exceptions MUST be reserved for non-local, unrecoverable exceptional conditions
 - Error codes MUST NOT be ignored; all return values indicating errors MUST be handled
@@ -88,22 +93,26 @@ criteria and explicit patterns.
 #### Prohibited Anti-Patterns
 
 **Anti-Pattern: Raw Pointer Ownership**
+
 - NEVER use raw pointers (`T*`) to represent ownership of dynamically allocated resources
 - NEVER delegate manual `delete` responsibility to programmers
 - Rationale: Manual memory management is fragile; every execution path (including exception branches)
   must guarantee resource release
 
 **Anti-Pattern: Const-Avoidance**
+
 - NEVER omit `const` qualifier for variables, parameters, or methods when mutation is not required
 - NEVER justify absence of `const` with "for simplicity"
 - Rationale: Absence of `const` hides intent, prevents compiler optimizations, and signals ambiguity
 
 **Anti-Pattern: Exception Swallowing**
+
 - NEVER catch exceptions with empty `catch` blocks or log-only handlers that don't propagate or handle
 - NEVER catch generic exceptions (`catch(...)`) except at outermost level for logging and controlled termination
 - Rationale: Swallowing exceptions masks failures, allowing program to continue in inconsistent state
 
 **Anti-Pattern: Undefined Behavior Tolerance**
+
 - NEVER accept code that may invoke undefined behavior (null dereference, signed integer overflow,
   out-of-bounds access)
 - NEVER justify UB with "it works in practice" or "compiler doesn't complain"
@@ -115,9 +124,9 @@ criteria and explicit patterns.
 - Static analysis tools (clang-tidy, cppcheck) MUST report zero warnings
 - Sanitizers (AddressSanitizer, UndefinedBehaviorSanitizer) MUST pass without violations
 - Lizard complexity analysis MUST show all functions within thresholds:
-  - Function length: ≤100 lines
-  - Cyclomatic complexity: ≤15
-  - Parameters: ≤6 per function
+    - Function length: ≤100 lines
+    - Cyclomatic complexity: ≤15
+    - Parameters: ≤6 per function
 
 **Rationale**: Ensures code consistency, readability, maintainability, and adherence to industry
 best practices for long-term sustainability. Measurable criteria enable automated compliance validation.
@@ -133,6 +142,7 @@ All code MUST be developed using the Red-Green TDD methodology:
 #### Mandatory Patterns
 
 **Pattern: Test as Executable Specification**
+
 - Test names MUST describe behavior in domain language, not implementation details
 - Format: `[Unit]_[Scenario]_[ExpectedResult]` (e.g., `Lexer_EmptyInput_ReturnsEOF`)
 - Each test MUST verify a single behavior or scenario
@@ -141,6 +151,7 @@ All code MUST be developed using the Red-Green TDD methodology:
 - Each test MUST be understandable by a new team member reading only the test
 
 **Pattern: Intentional Minimal Implementation**
+
 - During Green phase, implement ONLY the code strictly necessary to pass the current test
 - Resist adding parameters, cases, or abstractions not required by the current test
 - Implementation may be "ugly" or hardcoded; it will be improved in refactoring
@@ -148,6 +159,7 @@ All code MUST be developed using the Red-Green TDD methodology:
 - Time between Red and Green MUST NOT exceed 10-15 minutes; if so, test is too ambitious
 
 **Pattern: Refactoring Under Test Protection**
+
 - Refactoring MUST occur ONLY when entire test suite passes (Green state)
 - Apply one refactoring transformation at a time
 - Run tests after each transformation
@@ -155,6 +167,7 @@ All code MUST be developed using the Red-Green TDD methodology:
 - Conclude refactoring session with separate commit documenting transformations applied
 
 **Pattern: Strategic Edge Case Coverage**
+
 - Identify and systematically test boundary conditions common in compiler domain
 - Explicitly test: empty inputs, maximum inputs, special characters, invalid sequences, overflow conditions
 - Each edge case MUST be a separate test with descriptive name
@@ -166,24 +179,28 @@ All code MUST be developed using the Red-Green TDD methodology:
 #### Prohibited Anti-Patterns
 
 **Anti-Pattern: Test-After Development**
+
 - NEVER write implementation first and add tests afterward
 - NEVER write tests to "cover" already-written code
 - Rationale: Tests written after implementation test the code as-written, not as-it-should-behavior;
   tests become fragile and coupled to implementation details
 
 **Anti-Pattern: Premature Gold Plating**
+
 - NEVER implement more than necessary during Green phase
 - NEVER add optimizations, handle untested cases, or create anticipated abstractions
 - NEVER justify with "we'll need it later" or "it's more elegant"
 - Rationale: Anticipatory implementation violates YAGNI; introduces unverified complexity
 
 **Anti-Pattern: Refactoring Without Net**
+
 - NEVER modify code structure while tests are failing
 - NEVER skip running tests after each refactoring change
 - NEVER confide in ability to "keep track" of changes mentally
 - Rationale: Refactoring is safe only when tests provide immediate feedback
 
 **Anti-Pattern: Fragile Tests**
+
 - NEVER verify implementation details instead of observable behaviors
 - NEVER test: internal call order, intermediate data structures, exact log messages
 - NEVER test "how"; test "what"
@@ -227,6 +244,7 @@ MAY be added without explicit justification and approval.
 #### Mandatory Patterns
 
 **Pattern: Explicit Dependency Versioning**
+
 - Every dependency MUST specify exact versions (e.g., `fmt/10.1.1`) not open ranges
 - Lock files (e.g., `conan.lock`, vcpkg baseline) MUST be committed to repository
 - Document explicit procedure for dependency updates including full test suite execution
@@ -234,6 +252,7 @@ MAY be added without explicit justification and approval.
 - Document minimum supported versions of each dependency in README
 
 **Pattern: Dependency Header Isolation**
+
 - Dependency headers MUST be included ONLY in implementation files (`.cpp`) or dedicated internal headers
 - Project public headers MUST NEVER expose dependency types directly
 - Use forward declarations where possible to avoid inclusions in headers
@@ -243,6 +262,7 @@ MAY be added without explicit justification and approval.
 #### Prohibited Anti-Patterns
 
 **Anti-Pattern: Floating Dependencies**
+
 - NEVER configure dependencies without specifying versions
 - NEVER use "latest" or overly broad ranges
 - NEVER rely implicitly on version available at build time
@@ -250,6 +270,7 @@ MAY be added without explicit justification and approval.
   updates introduce incompatibilities
 
 **Anti-Pattern: Header Leak**
+
 - NEVER include dependency headers in project public headers
 - NEVER expose dependency types and interfaces to consumers
 - Rationale: Exposing dependency headers creates transitive coupling; consumers become dependent
@@ -273,6 +294,7 @@ All project documentation MUST adhere to the following standards:
 #### Mandatory Patterns
 
 **Pattern: Continuous Formatting Validation**
+
 - Editor MUST be configured to show markdownlint violations in real-time
 - Pre-commit hook MUST execute markdownlint and block commits with errors
 - CI MUST include Markdown validation step that fails on violations
@@ -280,6 +302,7 @@ All project documentation MUST adhere to the following standards:
 - Document manual validation procedure in README
 
 **Pattern: Project Terminology Glossary**
+
 - Maintain `GLOSSARY.md` in documentation root defining key terms with precise definitions
 - All documents MUST reference glossary for technical terms
 - Synonyms MUST be explicitly identified; one canonical term chosen
@@ -287,6 +310,7 @@ All project documentation MUST adhere to the following standards:
 - During documentation code review, verify consistent terminology usage
 
 **Pattern: Navigable Hierarchical Structure**
+
 - Every document MUST have single level-1 heading (title)
 - Heading levels MUST descend progressively without skipping
 - Section titles MUST be descriptive and self-explanatory
@@ -297,18 +321,21 @@ All project documentation MUST adhere to the following standards:
 #### Prohibited Anti-Patterns
 
 **Anti-Pattern: Deferred Validation**
+
 - NEVER postpone markdownlint compliance verification to later phase
 - NEVER accumulate violations for "batch correction"
 - Rationale: Accumulated violations are harder to correct; context is forgotten; time pressure
   leads to superficial fixes
 
 **Anti-Pattern: Terminological Drift**
+
 - NEVER use different terms for same concept across or within documents
 - NEVER vary terminology for "stylistic variety"
 - Rationale: Variation creates ambiguity; readers cannot determine if "module", "component", and
   "unit" refer to same or distinct concepts
 
 **Anti-Pattern: Wall of Text**
+
 - NEVER produce documents without hierarchical structure
 - NEVER write long paragraphs without headings, lists, or visual organization
 - Rationale: Technical readers scan for specific information; unstructured text forces integral
@@ -329,30 +356,35 @@ choice of algorithmic paradigm MUST be justified through formal analysis.
 The following algorithmic design techniques MUST be considered and applied when appropriate:
 
 **Dynamic Programming**
+
 - MUST be used when problem exhibits overlapping subproblems and optimal substructure
 - Implementation MUST use memoization or tabulation to avoid recomputation
 - Time and space complexity trade-offs MUST be explicitly documented
 - Example applications: parsing algorithms, optimization problems, sequence analysis
 
 **Greedy Algorithms**
+
 - MUST be used when problem satisfies greedy choice property
 - Proof or justification of greedy choice validity MUST be documented
 - Local optimality leading to global optimality MUST be demonstrated
 - Example applications: scheduling, Huffman coding, minimum spanning trees
 
 **Divide and Conquer**
+
 - MUST be used when problem can be decomposed into independent subproblems
 - Recurrence relations MUST be analyzed for time complexity
 - Base cases and combination steps MUST be clearly identified
 - Example applications: sorting, searching, matrix multiplication
 
 **Backtracking**
+
 - MUST be used for constraint satisfaction and combinatorial search problems
 - Pruning strategies MUST be documented and justified
 - Worst-case complexity MUST be analyzed
 - Example applications: parsing ambiguous grammars, constraint solving
 
 **Branch and Bound**
+
 - MUST be used for discrete optimization problems when exact solutions required
 - Bounding functions MUST be documented with complexity analysis
 - Pruning criteria MUST be explicitly stated
@@ -363,33 +395,39 @@ The following algorithmic design techniques MUST be considered and applied when 
 For every algorithm employing advanced techniques, documentation MUST include:
 
 **Problem Analysis**
+
 - Formal problem statement with clear objectives and constraints
 - Input data structure and size characteristics
 - Required optimality level (exact vs. approximate solutions)
 
 **Structural Property Identification**
+
 - Presence of overlapping subproblems (for dynamic programming)
 - Greedy choice property validation (for greedy algorithms)
 - Subproblem independence (for divide and conquer)
 - Constraint structure (for backtracking/branch and bound)
 
 **Complexity Analysis**
+
 - Time complexity using asymptotic notation (O, Θ, Ω)
 - Space complexity including auxiliary data structures
 - Trade-offs between different algorithmic approaches
 - Expected vs. worst-case performance characteristics
 
 **Strategy Comparison**
+
 - Systematic evaluation of alternative paradigms
 - Justification for selected approach over alternatives
 - Performance bounds and scalability analysis
 
 **Algorithm Construction**
+
 - Detailed step-by-step construction process
 - Data structures employed with justification
 - Decision-making logic at each computational step
 
 **Verification & Validation**
+
 - Correctness proof or justification
 - Rigorous complexity analysis
 - Performance evaluation with representative test cases
