@@ -4689,6 +4689,11 @@ TEST_CASE("Severity to_string tests", "[error][severity]") {
     REQUIRE(jsv::to_string(jsv::Severity::Warning) == "avviso");
     REQUIRE(jsv::to_string(jsv::Severity::Error) == "errore");
     REQUIRE(jsv::to_string(jsv::Severity::Fatal) == "fatale");
+    
+    SECTION("to_string(Severity) default case - invalid severity value") {
+        // Test the default case by casting an invalid value to Severity
+        REQUIRE(jsv::to_string(static_cast<jsv::Severity>(99)) == "sconosciuto");
+    }
 }
 
 TEST_CASE("Severity std::format integration", "[error][severity][format]") {
@@ -4736,6 +4741,11 @@ TEST_CASE("ErrorCode severity() tests", "[error][severity_func]") {
     REQUIRE(jsv::severity(jsv::ErrorCode::E1013) == jsv::Severity::Warning);
     REQUIRE(jsv::severity(jsv::ErrorCode::E0001) == jsv::Severity::Error);
     REQUIRE(jsv::severity(jsv::ErrorCode::E2023) == jsv::Severity::Error);
+    
+    SECTION("severity() default case - invalid error code") {
+        // Test the default case: all error codes except E1013 return Error severity
+        REQUIRE(jsv::severity(static_cast<jsv::ErrorCode>(9999)) == jsv::Severity::Error);
+    }
 }
 
 TEST_CASE("ErrorCode phase() tests", "[error][phase_func]") {
@@ -4774,6 +4784,11 @@ TEST_CASE("to_string(CompilerPhase) default case", "[error][phase][to_string]") 
     // Currently only Lexer is defined, so default returns "sconosciuto"
     // The switch falls through to default for any value other than CompilerPhase::Lexer
     REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer");
+    
+    SECTION("to_string(CompilerPhase) default - invalid phase value") {
+        // Test the default case by casting an invalid value to CompilerPhase
+        REQUIRE(jsv::to_string(static_cast<jsv::CompilerPhase>(99)) == "sconosciuto");
+    }
 }
 
 TEST_CASE("code() function comprehensive coverage", "[error][code]") {
@@ -4809,10 +4824,39 @@ TEST_CASE("code() function comprehensive coverage", "[error][code]") {
         REQUIRE(jsv::code(jsv::ErrorCode::E1015) == "E1015");
     }
 
-    SECTION("Semantic error codes E2001-E2032") {
+    SECTION("Semantic error codes E2001-E2016") {
         REQUIRE(jsv::code(jsv::ErrorCode::E2001) == "E2001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2002) == "E2002");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2003) == "E2003");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2004) == "E2004");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2005) == "E2005");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2006) == "E2006");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2007) == "E2007");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2008) == "E2008");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2009) == "E2009");
         REQUIRE(jsv::code(jsv::ErrorCode::E2010) == "E2010");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2011) == "E2011");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2012) == "E2012");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2013) == "E2013");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2014) == "E2014");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2015) == "E2015");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2016) == "E2016");
+    }
+
+    SECTION("Semantic error codes E2017-E2032") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E2017) == "E2017");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2018) == "E2018");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2019) == "E2019");
         REQUIRE(jsv::code(jsv::ErrorCode::E2020) == "E2020");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2021) == "E2021");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2022) == "E2022");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2023) == "E2023");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2024) == "E2024");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2025) == "E2025");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2026) == "E2026");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2027) == "E2027");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2028) == "E2028");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2029) == "E2029");
         REQUIRE(jsv::code(jsv::ErrorCode::E2030) == "E2030");
         REQUIRE(jsv::code(jsv::ErrorCode::E2031) == "E2031");
         REQUIRE(jsv::code(jsv::ErrorCode::E2032) == "E2032");
@@ -4843,6 +4887,12 @@ TEST_CASE("code() function comprehensive coverage", "[error][code]") {
         REQUIRE(jsv::code(jsv::ErrorCode::E5003) == "E5003");
         REQUIRE(jsv::code(jsv::ErrorCode::E5004) == "E5004");
         REQUIRE(jsv::code(jsv::ErrorCode::E5005) == "E5005");
+    }
+
+    SECTION("code() default case - invalid error code") {
+        // Test the default case by casting an invalid value to ErrorCode
+        // This tests line 244: default: return "SCONOSCIUTO";
+        REQUIRE(jsv::code(static_cast<jsv::ErrorCode>(9999)) == "SCONOSCIUTO");
     }
 }
 
@@ -4938,6 +4988,12 @@ TEST_CASE("numeric_code() function comprehensive coverage", "[error][numeric_cod
         REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5003) == 5003);
         REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5004) == 5004);
         REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5005) == 5005);
+    }
+
+    SECTION("numeric_code() default case - invalid error code") {
+        // Test the default case by casting an invalid value to ErrorCode
+        // This tests line 244: default: return 0;
+        REQUIRE(jsv::numeric_code(static_cast<jsv::ErrorCode>(9999)) == 0);
     }
 }
 
@@ -5072,6 +5128,12 @@ TEST_CASE("message() function comprehensive coverage", "[error][message]") {
         REQUIRE(jsv::message(jsv::ErrorCode::E5004) == "errore di scrittura");
         REQUIRE(jsv::message(jsv::ErrorCode::E5005) == "errore di lettura");
     }
+
+    SECTION("message() default case - invalid error code") {
+        // Test the default case by casting an invalid value to ErrorCode
+        // This tests the default: return "errore sconosciuto";
+        REQUIRE(jsv::message(static_cast<jsv::ErrorCode>(9999)) == "errore sconosciuto");
+    }
 }
 
 TEST_CASE("explanation() function coverage", "[error][explanation]") {
@@ -5120,6 +5182,12 @@ TEST_CASE("explanation() function coverage", "[error][explanation]") {
 
     SECTION("E2028 explanation contains argomenti") {
         REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2028), ContainsSubstring("argomenti"));
+    }
+
+    SECTION("explanation() default case - invalid error code") {
+        // Test the default case by casting an invalid value to ErrorCode
+        // This tests the default: return "Vedere il messaggio di errore per i dettagli.";
+        REQUIRE_THAT(jsv::explanation(static_cast<jsv::ErrorCode>(9999)), ContainsSubstring("Vedere il messaggio"));
     }
 }
 
