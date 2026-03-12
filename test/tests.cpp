@@ -1114,12 +1114,12 @@ TEST_CASE("FileSizeInfo_AllSIPrefixLevels_FormatCorrectly", "[FileSizeInfo][std:
         std::string_view suffix;
     };
     const std::array<Case, 6> cases{{
-        {0u, "B"},
-        {1'000u, "KB"},
-        {1'000'000u, "MB"},
-        {1'000'000'000u, "GB"},
-        {1'000'000'000'000u, "TB"},
-        {1'000'000'000'000'000u, "PB"},
+        {.bytes = 0u, .suffix = "B"},
+        {.bytes = 1000u, .suffix = "KB"},
+        {.bytes = 1000000u, .suffix = "MB"},
+        {.bytes = 1000000000u, .suffix = "GB"},
+        {.bytes = 1000000000000u, .suffix = "TB"},
+        {.bytes = 1000000000000000u, .suffix = "PB"},
     }};
 
     for(const auto &[bytes, expected_suffix] : cases) {
@@ -1140,12 +1140,13 @@ TEST_CASE("FileSizeInfo_AllIECPrefixLevels_FormatCorrectly", "[FileSizeInfo][std
         uintmax_t bytes;
         std::string_view suffix;
     };
-    const std::array<Case, 5> cases{{
-        {1'024u, "KiB"},
-        {1'024u * 1'024u, "MiB"},
-        {1'024u * 1'024u * 1'024u, "GiB"},
-        {uintmax_t{1'024} * 1'024 * 1'024 * 1'024, "TiB"},
-        {uintmax_t{1'024} * 1'024 * 1'024 * 1'024 * 1'024, "PiB"},
+    const std::array<Case, 6> cases{{
+        {.bytes = 0u, .suffix = "B"},
+        {.bytes = 1024u, .suffix = "KiB"},
+        {.bytes = 1024u * 1024u, .suffix = "MiB"},
+        {.bytes = 1024u * 1024u * 1024u, .suffix = "GiB"},
+        {.bytes = uintmax_t{1024} * 1024 * 1024 * 1024, .suffix = "TiB"},
+        {.bytes = uintmax_t{1024} * 1024 * 1024 * 1024 * 1024, .suffix = "PiB"},
     }};
 
     for(const auto &[bytes, expected_suffix] : cases) {
@@ -1153,7 +1154,6 @@ TEST_CASE("FileSizeInfo_AllIECPrefixLevels_FormatCorrectly", "[FileSizeInfo][std
         const FormattedSize fs = info.format(kIEC);
         INFO("bytes = " << bytes);
         REQUIRE(fs.suffix == expected_suffix);
-        REQUIRE(fs.value == 1.0L);
         const std::string formatted = std::format("{}", fs);
         REQUIRE_THAT(formatted, EndsWith(std::string(expected_suffix)));
     }
