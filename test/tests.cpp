@@ -4689,7 +4689,7 @@ TEST_CASE("Severity to_string tests", "[error][severity]") {
     REQUIRE(jsv::to_string(jsv::Severity::Warning) == "avviso");
     REQUIRE(jsv::to_string(jsv::Severity::Error) == "errore");
     REQUIRE(jsv::to_string(jsv::Severity::Fatal) == "fatale");
-    
+
     SECTION("to_string(Severity) default case - invalid severity value") {
         // Test the default case by casting an invalid value to Severity
         REQUIRE(jsv::to_string(static_cast<jsv::Severity>(99)) == "sconosciuto");
@@ -4741,7 +4741,7 @@ TEST_CASE("ErrorCode severity() tests", "[error][severity_func]") {
     REQUIRE(jsv::severity(jsv::ErrorCode::E1013) == jsv::Severity::Warning);
     REQUIRE(jsv::severity(jsv::ErrorCode::E0001) == jsv::Severity::Error);
     REQUIRE(jsv::severity(jsv::ErrorCode::E2023) == jsv::Severity::Error);
-    
+
     SECTION("severity() default case - invalid error code") {
         // Test the default case: all error codes except E1013 return Error severity
         REQUIRE(jsv::severity(static_cast<jsv::ErrorCode>(9999)) == jsv::Severity::Error);
@@ -4784,7 +4784,7 @@ TEST_CASE("to_string(CompilerPhase) default case", "[error][phase][to_string]") 
     // Currently only Lexer is defined, so default returns "sconosciuto"
     // The switch falls through to default for any value other than CompilerPhase::Lexer
     REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer");
-    
+
     SECTION("to_string(CompilerPhase) default - invalid phase value") {
         // Test the default case by casting an invalid value to CompilerPhase
         REQUIRE(jsv::to_string(static_cast<jsv::CompilerPhase>(99)) == "sconosciuto");
