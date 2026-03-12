@@ -216,6 +216,22 @@
 #define BC_UI64T(x) std::bit_cast<std::uint64_t>(x)
 
 /**
+ * @brief Macro to cast a value to uintmax_t using std::bit_cast.
+ *
+ * @param x The value to be casted.
+ * @return The value casted to uintmax_t.
+ *
+ * @see std::bit_cast
+ *
+ * @par Example:
+ * @code{.cpp}
+ * std::int64_t i64 = -1;
+ * uintmax_t u64 = BC_UI64T(i64);  // 0xFFFFFFFFFFFFFFFF
+ * @endcode
+ */
+#define BC_UIMT(x) std::bit_cast<uintmax_t>(x)
+
+/**
  * @brief Macro to cast a value to std::ptrdiff_t using std::bit_cast.
  *
  * @param x The value to be casted.

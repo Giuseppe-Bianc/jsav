@@ -657,28 +657,28 @@ TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneKilobyte_ReturnsKBSuffix", "[FileSize
 }
 
 TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneMegabyte_ReturnsMBSuffix", "[FileSizeInfo][SI][T-FSI-005]") {
-    constexpr FileSizeInfo info{1'000'000u};
+    constexpr FileSizeInfo info{1000000u};
     constexpr auto result = info.format(kSI);
     STATIC_REQUIRE(result.suffix == "MB");
     STATIC_REQUIRE(result.value == 1.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneGigabyte_ReturnsGBSuffix", "[FileSizeInfo][SI][T-FSI-006]") {
-    constexpr FileSizeInfo info{1'000'000'000u};
+    constexpr FileSizeInfo info{1000000000u};
     constexpr auto result = info.format(kSI);
     STATIC_REQUIRE(result.suffix == "GB");
     STATIC_REQUIRE(result.value == 1.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneTerabyte_ReturnsTBSuffix", "[FileSizeInfo][SI][T-FSI-007]") {
-    constexpr FileSizeInfo info{1'000'000'000'000u};
+    constexpr FileSizeInfo info{1000000000000u};
     constexpr auto result = info.format(kSI);
     STATIC_REQUIRE(result.suffix == "TB");
     STATIC_REQUIRE(result.value == 1.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatSI_ExactlyOnePetabyte_ReturnsPBSuffix", "[FileSizeInfo][SI][T-FSI-008]") {
-    constexpr FileSizeInfo info{1'000'000'000'000'000u};
+    constexpr FileSizeInfo info{1000000000000000u};
     constexpr auto result = info.format(kSI);
     STATIC_REQUIRE(result.suffix == "PB");
     STATIC_REQUIRE(result.value == 1.0L);
@@ -687,7 +687,7 @@ TEST_CASE("FileSizeInfo_FormatSI_ExactlyOnePetabyte_ReturnsPBSuffix", "[FileSize
 TEST_CASE("FileSizeInfo_FormatSI_ValueExceedingPB_ClampsToPBSuffix", "[FileSizeInfo][SI][T-FSI-009]") {
     // Loop stops at i == 5 (PB) regardless of remaining magnitude:
     // value should be >= 1.0 but suffix must still be "PB"
-    constexpr FileSizeInfo info{1'000'000'000'000'000'000u};
+    constexpr FileSizeInfo info{1000000000000000000u};
     constexpr auto result = info.format(kSI);
     STATIC_REQUIRE(result.suffix == "PB");
     STATIC_REQUIRE(result.value >= 1.0L);
@@ -711,32 +711,32 @@ TEST_CASE("FileSizeInfo_FormatIEC_1023Bytes_RemainsByteSuffix", "[FileSizeInfo][
     constexpr FileSizeInfo info{1'023u};
     constexpr auto result = info.format(kIEC);
     STATIC_REQUIRE(result.suffix == "B");
-    STATIC_REQUIRE(result.value == 1'023.0L);
+    STATIC_REQUIRE(result.value == 1023.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneKibibyte_ReturnsKiBSuffix", "[FileSizeInfo][IEC][T-FSI-013]") {
-    constexpr FileSizeInfo info{1'024u};
+    constexpr FileSizeInfo info{1024u};
     constexpr auto result = info.format(kIEC);
     STATIC_REQUIRE(result.suffix == "KiB");
     STATIC_REQUIRE(result.value == 1.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneMebibyte_ReturnsMiBSuffix", "[FileSizeInfo][IEC][T-FSI-014]") {
-    constexpr FileSizeInfo info{1'024u * 1'024u};
+    constexpr FileSizeInfo info{C_UIMT(1024u * 1024u)};
     constexpr auto result = info.format(kIEC);
     STATIC_REQUIRE(result.suffix == "MiB");
     STATIC_REQUIRE(result.value == 1.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneGibibyte_ReturnsGiBSuffix", "[FileSizeInfo][IEC][T-FSI-015]") {
-    constexpr FileSizeInfo info{1'024u * 1'024u * 1'024u};
+    constexpr FileSizeInfo info{C_UIMT(1024u * 1024u * 1024u)};
     constexpr auto result = info.format(kIEC);
     STATIC_REQUIRE(result.suffix == "GiB");
     STATIC_REQUIRE(result.value == 1.0L);
 }
 
 TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneTebibyte_ReturnsTiBSuffix", "[FileSizeInfo][IEC][T-FSI-016]") {
-    constexpr uintmax_t one_tib = uintmax_t{1'024} * 1'024 * 1'024 * 1'024;
+    constexpr uintmax_t one_tib = uintmax_t{1024} * 1024 * 1024 * 1024;
     constexpr FileSizeInfo info{one_tib};
     constexpr auto result = info.format(kIEC);
     STATIC_REQUIRE(result.suffix == "TiB");
@@ -744,7 +744,7 @@ TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneTebibyte_ReturnsTiBSuffix", "[FileSi
 }
 
 TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOnePebibyte_ReturnsPiBSuffix", "[FileSizeInfo][IEC][T-FSI-017]") {
-    constexpr uintmax_t one_pib = uintmax_t{1'024} * 1'024 * 1'024 * 1'024 * 1'024;
+    constexpr uintmax_t one_pib = uintmax_t{1024} * 1024 * 1024 * 1024 * 1024;
     constexpr FileSizeInfo info{one_pib};
     constexpr auto result = info.format(kIEC);
     STATIC_REQUIRE(result.suffix == "PiB");
@@ -759,7 +759,7 @@ TEST_CASE("FileSizeInfo_FormatIEC_BelowKilobyteBoundary_RemainsBytes", "[FileSiz
 
 TEST_CASE("FileSizeInfo_Format_1024Bytes_SIisKB_IECisKiB", "[FileSizeInfo][SI][IEC][T-FSI-019]") {
     // 1024 bytes: SI rounds up to 1.024 KB while IEC is exactly 1 KiB
-    constexpr FileSizeInfo info{1'024u};
+    constexpr FileSizeInfo info{1024u};
 
     constexpr auto si_result = info.format(kSI);
     constexpr auto iec_result = info.format(kIEC);
@@ -782,7 +782,7 @@ TEST_CASE("FileSizeInfo_Format_1000Bytes_SIisKB_IECisBytes", "[FileSizeInfo][SI]
     STATIC_REQUIRE(si_result.suffix == "KB");
     STATIC_REQUIRE(si_result.value == 1.0L);
     STATIC_REQUIRE(iec_result.suffix == "B");
-    STATIC_REQUIRE(iec_result.value == 1'000.0L);
+    STATIC_REQUIRE(iec_result.value == 1000.0L);
 }
 
 TEST_CASE("FileSizeReport_MakePair_ZeroBytes_BothSuffixesAreB", "[FileSizeReport][T-FSR-001]") {
@@ -797,18 +797,18 @@ TEST_CASE("FileSizeReport_MakePair_ZeroBytes_BothSuffixesAreB", "[FileSizeReport
 }
 
 TEST_CASE("FileSizeReport_MakePair_ExactlyOneKilobyte_SIisKB_IECisB", "[FileSizeReport][T-FSR-002]") {
-    constexpr FileSizeInfo info{1'000u};
+    constexpr FileSizeInfo info{1000u};
     constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     constexpr auto pair = report.make_pair();
 
     STATIC_REQUIRE(pair.si.suffix == "KB");
     STATIC_REQUIRE(pair.si.value == 1.0L);
     STATIC_REQUIRE(pair.iec.suffix == "B");
-    STATIC_REQUIRE(pair.iec.value == 1'000.0L);
+    STATIC_REQUIRE(pair.iec.value == 1000.0L);
 }
 
 TEST_CASE("FileSizeReport_MakePair_ExactlyOneKibibyte_SIisKB_IECisKiB", "[FileSizeReport][T-FSR-003]") {
-    constexpr FileSizeInfo info{1'024u};
+    constexpr FileSizeInfo info{1024u};
     constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     constexpr auto pair = report.make_pair();
 
@@ -818,10 +818,10 @@ TEST_CASE("FileSizeReport_MakePair_ExactlyOneKibibyte_SIisKB_IECisKiB", "[FileSi
 }
 
 TEST_CASE("FileSizeReport_MakePair_1000000Bytes_SIisMB_IECisKiB", "[FileSizeReport][T-FSR-004a]") {
-    // 1'000'000 bytes:
-    //   SI : 1'000'000 / 1000 / 1000 = 1.0  → MB
-    //   IEC: 1'000'000 / 1024         = 976.5625  → KiB  (< 1024, loop stops here)
-    constexpr FileSizeInfo info{1'000'000u};
+    // 1000000 bytes:
+    //   SI : 1000000 / 1000 / 1000 = 1.0  → MB
+    //   IEC: 1000000 / 1024         = 976.5625  → KiB  (< 1024, loop stops here)
+    constexpr FileSizeInfo info{1000000u};
     constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     constexpr auto pair = report.make_pair();
 
@@ -862,13 +862,13 @@ TEST_CASE("FileSizeReport_MakePair_ReturnsCorrectPairType", "[FileSizeReport][T-
 // ==========================================================================
 
 TEST_CASE("FileSizeInfo_Format_IsNoexcept", "[FileSizeInfo][noexcept][T-NX-001]") {
-    const FileSizeInfo info{1'024u};
+    const FileSizeInfo info{1024u};
     REQUIRE_NOTHROW(std::ignore = info.format(kSI));
     REQUIRE_NOTHROW(std::ignore = info.format(kIEC));
 }
 
 TEST_CASE("FileSizeReport_MakePair_IsNoexcept", "[FileSizeReport][noexcept][T-NX-002]") {
-    const FileSizeInfo info{1'048'576u};
+    const FileSizeInfo info{1048576u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     REQUIRE_NOTHROW(std::ignore = report.make_pair());
 }

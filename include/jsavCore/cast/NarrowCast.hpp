@@ -235,6 +235,21 @@ template <class T, class U> constexpr T narrow_cast(U &&nci) noexcept { return s
 #define NC_UI64T(x) narrow_cast<std::uint64_t>(x)
 
 /**
+ * @brief Macro to cast a value to uintmax_t using narrow_cast.
+ *
+ * @param x The value to be casted.
+ * @return The value casted to uintmax_t.
+ *
+ * @par Example:
+ * @code{.cpp}
+ * uintmax_t value = NC_UIMT(42);
+ * @endcode
+ *
+ * @see narrow_cast
+ */
+#define NC_UIMT(x) narrow_cast<uintmax_t>(x)
+
+/**
  * @brief Macro to cast a value to std::ptrdiff_t using narrow_cast.
  *
  * @param x The value to be casted.

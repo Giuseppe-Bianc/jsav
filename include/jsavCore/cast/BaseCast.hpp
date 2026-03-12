@@ -173,6 +173,19 @@
 #define C_UI64T(x) static_cast<std::uint64_t>(x)
 
 /**
+ * @brief Macro to cast a value to uintmax_t
+ *
+ * @param x The value to cast.
+ * @return The value casted to uintmax_t.
+ *
+ * @par Example:
+ * @code{.cpp}
+ * std::uint64_t u64 = C_UIMT(42);
+ * @endcode
+ */
+#define C_UIMT(x) static_cast<uintmax_t>(x)
+
+/**
  * @brief Macro to cast a value to std::ptrdiff_t (pointer difference type).
  *
  * @param x The value to cast.
