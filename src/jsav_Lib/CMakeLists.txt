@@ -5,6 +5,8 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/location/SourceLocation.hpp
         location/SourceSpan.cpp
         ../../include/jsav/location/SourceSpan.hpp
+        location/LineTracker.cpp
+        ../../include/jsav/location/LineTracker.hpp
         lexer/Token.cpp
         ../../include/jsav/lexer/Token.hpp
         lexer/Lexer.cpp
@@ -15,6 +17,8 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/error/error_codes.hpp
         error/CompileError.cpp
         ../../include/jsav/error/CompileError.hpp
+        error/ErrorReporter.cpp
+        ../../include/jsav/error/ErrorReporter.hpp
         #[[lexer/Token.cpp
                 lexer/Tokenizer.cpp
                 lexer/TokenizerUtility.cpp
