@@ -14,4 +14,6 @@
 #include "error/CompileError.hpp"
 #include "lexer/Token.hpp"
 #include "lexer/Lexer.hpp"
+#include "lexer/unicode/UnicodeData.hpp"
+#include "lexer/unicode/Utf8.hpp"
 // clang-format on
