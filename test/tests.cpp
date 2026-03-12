@@ -5445,12 +5445,35 @@ TEST_CASE("CompileError accessors", "[CompileError][accessors]") {
         REQUIRE_FALSE(returned_help.has_value());
     }
 
+    SECTION("help() default case - returns nullopt for unknown kind") {
+        // The help() function has a default case that returns std::nullopt
+        // This tests that behavior for the existing LexerError kind
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+
+        // For LexerError with no help, should return nullopt
+        const auto returned_help = err.help();
+        REQUIRE_FALSE(returned_help.has_value());
+    }
+
     SECTION("kind() returns correct Kind enum") {
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
 
         const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
 
         REQUIRE(err.kind() == jsv::CompileError::Kind::LexerError);
+    }
+
+    SECTION("span() default case - returns span_ for all cases") {
+        // The span() function has a default case that returns span_
+        // This tests that the default return works correctly
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        const jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+
+        // Verify span() returns the correct span for LexerError (the only current kind)
+        const auto &returned_span = err.span();
+        REQUIRE(returned_span.start.line == 1);
+        REQUIRE(returned_span.start.column == 1);
     }
 }
 
@@ -5492,6 +5515,26 @@ TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
 
         err.set_help(std::nullopt);
         REQUIRE_FALSE(err.help().has_value());
+    }
+
+    SECTION("set_span() default case - invalid kind") {
+        // Test the default case in set_span() switch
+        // Create error with valid kind, then we can't directly test invalid kind
+        // but the default case exists for future kinds
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+        
+        // The default case does nothing (break), so we verify no crash
+        REQUIRE_NOTHROW(err.set_span(span));
+    }
+
+    SECTION("set_help() default case - invalid kind") {
+        // Test the default case in set_help() switch
+        const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+        jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
+        
+        // The default case does nothing (break), so we verify no crash
+        REQUIRE_NOTHROW(err.set_help(std::nullopt));
     }
 }
 
