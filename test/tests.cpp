@@ -1045,7 +1045,7 @@ TEST_CASE("FileSizeReport_StdFormat_OutputHasFourLines", "[FileSizeReport][std::
     const FileSizeInfo info{42u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
-    const auto newline_count = std::count(result.begin(), result.end(), '\n');
+    const auto newline_count = std::ranges::count(result, '\n');
     REQUIRE(newline_count == 4);
 }
 
@@ -1143,10 +1143,10 @@ TEST_CASE("FileSizeInfo_AllIECPrefixLevels_FormatCorrectly", "[FileSizeInfo][std
     const std::array<Case, 6> cases{{
         {.bytes = 0u, .suffix = "B"},
         {.bytes = 1024u, .suffix = "KiB"},
-        {.bytes = 1024u * 1024u, .suffix = "MiB"},
-        {.bytes = 1024u * 1024u * 1024u, .suffix = "GiB"},
-        {.bytes = uintmax_t{1024} * 1024 * 1024 * 1024, .suffix = "TiB"},
-        {.bytes = uintmax_t{1024} * 1024 * 1024 * 1024 * 1024, .suffix = "PiB"},
+        {.bytes = C_UIMT(1024) * 1024u, .suffix = "MiB"},
+        {.bytes = C_UIMT(1024) * 1024u * 1024u, .suffix = "GiB"},
+        {.bytes = C_UIMT(1024) * 1024u * 1024u * 1024u, .suffix = "TiB"},
+        {.bytes = C_UIMT(1024) * 1024u * 1024u * 1024u * 1024u, .suffix = "PiB"},
     }};
 
     for(const auto &[bytes, expected_suffix] : cases) {
