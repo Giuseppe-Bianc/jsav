@@ -5523,7 +5523,7 @@ TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
         // but the default case exists for future kinds
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
         jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
-        
+
         // The default case does nothing (break), so we verify no crash
         REQUIRE_NOTHROW(err.set_span(span));
     }
@@ -5532,7 +5532,7 @@ TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
         // Test the default case in set_help() switch
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
         jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "msg"sv, span, std::nullopt);
-        
+
         // The default case does nothing (break), so we verify no crash
         REQUIRE_NOTHROW(err.set_help(std::nullopt));
     }
