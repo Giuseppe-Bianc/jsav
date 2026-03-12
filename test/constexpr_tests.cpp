@@ -604,6 +604,285 @@ TEST_CASE("Lexer_IsAsciiHorizontalSpace_OtherPunctuationReturnsFalse", "[Lexer]"
     STATIC_REQUIRE(!is_ascii_horizontal_space(';'));
 }
 
+TEST_CASE("SizeSystem_kSI_HasCorrectNameBaseAndPrefixes", "[SizeSystem][kSI][T-SS-001]") {
+    STATIC_REQUIRE(kSI.name == "SI");
+    STATIC_REQUIRE(kSI.base == 1000.0L);
+    STATIC_REQUIRE(kSI.prefixes[0] == "B");
+    STATIC_REQUIRE(kSI.prefixes[1] == "KB");
+    STATIC_REQUIRE(kSI.prefixes[2] == "MB");
+    STATIC_REQUIRE(kSI.prefixes[3] == "GB");
+    STATIC_REQUIRE(kSI.prefixes[4] == "TB");
+    STATIC_REQUIRE(kSI.prefixes[5] == "PB");
+}
+
+TEST_CASE("SizeSystem_kIEC_HasCorrectNameBaseAndPrefixes", "[SizeSystem][kIEC][T-SS-002]") {
+    STATIC_REQUIRE(kIEC.name == "IEC");
+    STATIC_REQUIRE(kIEC.base == 1024.0L);
+    STATIC_REQUIRE(kIEC.prefixes[0] == "B");
+    STATIC_REQUIRE(kIEC.prefixes[1] == "KiB");
+    STATIC_REQUIRE(kIEC.prefixes[2] == "MiB");
+    STATIC_REQUIRE(kIEC.prefixes[3] == "GiB");
+    STATIC_REQUIRE(kIEC.prefixes[4] == "TiB");
+    STATIC_REQUIRE(kIEC.prefixes[5] == "PiB");
+}
+
+TEST_CASE("SizeSystem_kSI_PrefixCount_IsSix", "[SizeSystem][kSI][T-SS-003]") { STATIC_REQUIRE(kSI.prefixes.size() == 6u); }
+
+TEST_CASE("SizeSystem_kIEC_PrefixCount_IsSix", "[SizeSystem][kIEC][T-SS-004]") { STATIC_REQUIRE(kIEC.prefixes.size() == 6u); }
+
+TEST_CASE("FileSizeInfo_FormatSI_ZeroBytes_ReturnsByteSuffix", "[FileSizeInfo][SI][T-FSI-001]") {
+    constexpr FileSizeInfo info{0u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "B");
+    STATIC_REQUIRE(result.value == 0.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_OneByte_ReturnsByteSuffix", "[FileSizeInfo][SI][T-FSI-002]") {
+    constexpr FileSizeInfo info{1u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "B");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_999Bytes_RemainsByteSuffix", "[FileSizeInfo][SI][T-FSI-003]") {
+    constexpr FileSizeInfo info{999u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "B");
+    STATIC_REQUIRE(result.value == 999.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneKilobyte_ReturnsKBSuffix", "[FileSizeInfo][SI][T-FSI-004]") {
+    constexpr FileSizeInfo info{1'000u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "KB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneMegabyte_ReturnsMBSuffix", "[FileSizeInfo][SI][T-FSI-005]") {
+    constexpr FileSizeInfo info{1'000'000u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "MB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneGigabyte_ReturnsGBSuffix", "[FileSizeInfo][SI][T-FSI-006]") {
+    constexpr FileSizeInfo info{1'000'000'000u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "GB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_ExactlyOneTerabyte_ReturnsTBSuffix", "[FileSizeInfo][SI][T-FSI-007]") {
+    constexpr FileSizeInfo info{1'000'000'000'000u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "TB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_ExactlyOnePetabyte_ReturnsPBSuffix", "[FileSizeInfo][SI][T-FSI-008]") {
+    constexpr FileSizeInfo info{1'000'000'000'000'000u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "PB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_ValueExceedingPB_ClampsToPBSuffix", "[FileSizeInfo][SI][T-FSI-009]") {
+    // Loop stops at i == 5 (PB) regardless of remaining magnitude:
+    // value should be >= 1.0 but suffix must still be "PB"
+    constexpr FileSizeInfo info{1'000'000'000'000'000'000u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "PB");
+    STATIC_REQUIRE(result.value >= 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatSI_BelowKilobyteBoundary_RemainsBytes", "[FileSizeInfo][SI][T-FSI-010]") {
+    // 999 is the largest value that must NOT be promoted to KB
+    constexpr FileSizeInfo info{999u};
+    constexpr auto result = info.format(kSI);
+    STATIC_REQUIRE(result.suffix == "B");
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_ZeroBytes_ReturnsByteSuffix", "[FileSizeInfo][IEC][T-FSI-011]") {
+    constexpr FileSizeInfo info{0u};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "B");
+    STATIC_REQUIRE(result.value == 0.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_1023Bytes_RemainsByteSuffix", "[FileSizeInfo][IEC][T-FSI-012]") {
+    constexpr FileSizeInfo info{1'023u};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "B");
+    STATIC_REQUIRE(result.value == 1'023.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneKibibyte_ReturnsKiBSuffix", "[FileSizeInfo][IEC][T-FSI-013]") {
+    constexpr FileSizeInfo info{1'024u};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "KiB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneMebibyte_ReturnsMiBSuffix", "[FileSizeInfo][IEC][T-FSI-014]") {
+    constexpr FileSizeInfo info{1'024u * 1'024u};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "MiB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneGibibyte_ReturnsGiBSuffix", "[FileSizeInfo][IEC][T-FSI-015]") {
+    constexpr FileSizeInfo info{1'024u * 1'024u * 1'024u};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "GiB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOneTebibyte_ReturnsTiBSuffix", "[FileSizeInfo][IEC][T-FSI-016]") {
+    constexpr uintmax_t one_tib = uintmax_t{1'024} * 1'024 * 1'024 * 1'024;
+    constexpr FileSizeInfo info{one_tib};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "TiB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_ExactlyOnePebibyte_ReturnsPiBSuffix", "[FileSizeInfo][IEC][T-FSI-017]") {
+    constexpr uintmax_t one_pib = uintmax_t{1'024} * 1'024 * 1'024 * 1'024 * 1'024;
+    constexpr FileSizeInfo info{one_pib};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "PiB");
+    STATIC_REQUIRE(result.value == 1.0L);
+}
+
+TEST_CASE("FileSizeInfo_FormatIEC_BelowKilobyteBoundary_RemainsBytes", "[FileSizeInfo][IEC][T-FSI-018]") {
+    constexpr FileSizeInfo info{1'023u};
+    constexpr auto result = info.format(kIEC);
+    STATIC_REQUIRE(result.suffix == "B");
+}
+
+TEST_CASE("FileSizeInfo_Format_1024Bytes_SIisKB_IECisKiB", "[FileSizeInfo][SI][IEC][T-FSI-019]") {
+    // 1024 bytes: SI rounds up to 1.024 KB while IEC is exactly 1 KiB
+    constexpr FileSizeInfo info{1'024u};
+
+    constexpr auto si_result = info.format(kSI);
+    constexpr auto iec_result = info.format(kIEC);
+
+    STATIC_REQUIRE(si_result.suffix == "KB");
+    STATIC_REQUIRE(iec_result.suffix == "KiB");
+    STATIC_REQUIRE(iec_result.value == 1.0L);
+    // 1024 / 1000 = 1.024
+    STATIC_REQUIRE(si_result.value > 1.0L);
+    STATIC_REQUIRE(si_result.value < 2.0L);
+}
+
+TEST_CASE("FileSizeInfo_Format_1000Bytes_SIisKB_IECisBytes", "[FileSizeInfo][SI][IEC][T-FSI-020]") {
+    // 1000 bytes: exactly 1 KB in SI, but still bytes in IEC
+    constexpr FileSizeInfo info{1'000u};
+
+    constexpr auto si_result = info.format(kSI);
+    constexpr auto iec_result = info.format(kIEC);
+
+    STATIC_REQUIRE(si_result.suffix == "KB");
+    STATIC_REQUIRE(si_result.value == 1.0L);
+    STATIC_REQUIRE(iec_result.suffix == "B");
+    STATIC_REQUIRE(iec_result.value == 1'000.0L);
+}
+
+TEST_CASE("FileSizeReport_MakePair_ZeroBytes_BothSuffixesAreB", "[FileSizeReport][T-FSR-001]") {
+    constexpr FileSizeInfo info{0u};
+    constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    constexpr auto pair = report.make_pair();
+
+    STATIC_REQUIRE(pair.si.suffix == "B");
+    STATIC_REQUIRE(pair.iec.suffix == "B");
+    STATIC_REQUIRE(pair.si.value == 0.0L);
+    STATIC_REQUIRE(pair.iec.value == 0.0L);
+}
+
+TEST_CASE("FileSizeReport_MakePair_ExactlyOneKilobyte_SIisKB_IECisB", "[FileSizeReport][T-FSR-002]") {
+    constexpr FileSizeInfo info{1'000u};
+    constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    constexpr auto pair = report.make_pair();
+
+    STATIC_REQUIRE(pair.si.suffix == "KB");
+    STATIC_REQUIRE(pair.si.value == 1.0L);
+    STATIC_REQUIRE(pair.iec.suffix == "B");
+    STATIC_REQUIRE(pair.iec.value == 1'000.0L);
+}
+
+TEST_CASE("FileSizeReport_MakePair_ExactlyOneKibibyte_SIisKB_IECisKiB", "[FileSizeReport][T-FSR-003]") {
+    constexpr FileSizeInfo info{1'024u};
+    constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    constexpr auto pair = report.make_pair();
+
+    STATIC_REQUIRE(pair.si.suffix == "KB");
+    STATIC_REQUIRE(pair.iec.suffix == "KiB");
+    STATIC_REQUIRE(pair.iec.value == 1.0L);
+}
+
+TEST_CASE("FileSizeReport_MakePair_1000000Bytes_SIisMB_IECisKiB", "[FileSizeReport][T-FSR-004a]") {
+    // 1'000'000 bytes:
+    //   SI : 1'000'000 / 1000 / 1000 = 1.0  → MB
+    //   IEC: 1'000'000 / 1024         = 976.5625  → KiB  (< 1024, loop stops here)
+    constexpr FileSizeInfo info{1'000'000u};
+    constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    constexpr auto pair = report.make_pair();
+
+    STATIC_REQUIRE(pair.si.suffix == "MB");
+    STATIC_REQUIRE(pair.si.value == 1.0L);
+    STATIC_REQUIRE(pair.iec.suffix == "KiB");
+    STATIC_REQUIRE(pair.iec.value > 976.0L);
+    STATIC_REQUIRE(pair.iec.value < 977.0L);
+}
+
+TEST_CASE("FileSizeReport_MakePair_OneMebibyte_SIisMB_IECisMiB", "[FileSizeReport][T-FSR-004b]") {
+    // 1'048'576 bytes (= 1 MiB exactly):
+    //   SI : 1'048'576 / 1000 / 1000 ≈ 1.048576  → MB  (value > 1.0)
+    //   IEC: 1'048'576 / 1024 / 1024 = 1.0        → MiB
+    constexpr FileSizeInfo info{1'048'576u};
+    constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    constexpr auto pair = report.make_pair();
+
+    STATIC_REQUIRE(pair.si.suffix == "MB");
+    STATIC_REQUIRE(pair.si.value > 1.0L);
+    STATIC_REQUIRE(pair.si.value < 2.0L);
+    STATIC_REQUIRE(pair.iec.suffix == "MiB");
+    STATIC_REQUIRE(pair.iec.value == 1.0L);
+}
+
+TEST_CASE("FileSizeReport_MakePair_ReturnsCorrectPairType", "[FileSizeReport][T-FSR-005]") {
+    constexpr FileSizeInfo info{42u};
+    constexpr FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    constexpr auto pair = report.make_pair();
+
+    // Both sub-members have non-empty suffixes
+    STATIC_REQUIRE(!pair.si.suffix.empty());
+    STATIC_REQUIRE(!pair.iec.suffix.empty());
+}
+
+// ==========================================================================
+// Phase 6 – noexcept contracts
+// ==========================================================================
+
+TEST_CASE("FileSizeInfo_Format_IsNoexcept", "[FileSizeInfo][noexcept][T-NX-001]") {
+    const FileSizeInfo info{1'024u};
+    REQUIRE_NOTHROW(std::ignore = info.format(kSI));
+    REQUIRE_NOTHROW(std::ignore = info.format(kIEC));
+}
+
+TEST_CASE("FileSizeReport_MakePair_IsNoexcept", "[FileSizeReport][noexcept][T-NX-002]") {
+    const FileSizeInfo info{1'048'576u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    REQUIRE_NOTHROW(std::ignore = report.make_pair());
+}
+
+TEST_CASE("SizeSystem_kSI_kIEC_AreConstexprConstructed", "[SizeSystem][constexpr][T-NX-003]") {
+    // Verifies both constants are usable in a constexpr context with no UB
+    constexpr SizeSystem si_copy = kSI;
+    constexpr SizeSystem iec_copy = kIEC;
+    STATIC_REQUIRE(si_copy.base == 1000.0L);
+    STATIC_REQUIRE(iec_copy.base == 1024.0L);
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization)
 // clang-format on

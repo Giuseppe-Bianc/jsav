@@ -862,6 +862,363 @@ TEST_CASE("GetBuildFolder - Edge Cases") {
     }
 }
 
+TEST_CASE("FormattedSize_StdFormat_ByteSuffix_FormatsTwoDecimalPlaces",
+          "[FormattedSize][std::format][T-FMT-001]") {
+    const FormattedSize fs{.value = 0.0L, .suffix = "B"};
+    REQUIRE(std::format("{}", fs) == "0.00 B");
+}
+
+TEST_CASE("FormattedSize_StdFormat_OneByte_FormatsCorrectly",
+          "[FormattedSize][std::format][T-FMT-002]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "B"};
+    REQUIRE(std::format("{}", fs) == "1.00 B");
+}
+
+TEST_CASE("FormattedSize_StdFormat_KBSuffix_FormatsCorrectly",
+          "[FormattedSize][std::format][T-FMT-003]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "KB"};
+    REQUIRE(std::format("{}", fs) == "1.00 KB");
+}
+
+TEST_CASE("FormattedSize_StdFormat_MBSuffix_FormatsCorrectly",
+          "[FormattedSize][std::format][T-FMT-004]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "MB"};
+    REQUIRE(std::format("{}", fs) == "1.00 MB");
+}
+
+TEST_CASE("FormattedSize_StdFormat_KiBSuffix_FormatsCorrectly",
+          "[FormattedSize][std::format][T-FMT-005]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "KiB"};
+    REQUIRE(std::format("{}", fs) == "1.00 KiB");
+}
+
+TEST_CASE("FormattedSize_StdFormat_FractionalValue_FormatsWithTwoDecimals",
+          "[FormattedSize][std::format][T-FMT-006]") {
+    // 1.5 MB  → "1.50 MB"
+    const FormattedSize fs{.value = 1.5L, .suffix = "MB"};
+    REQUIRE(std::format("{}", fs) == "1.50 MB");
+}
+
+TEST_CASE("FormattedSize_StdFormat_LargeValue_FormatsCorrectly",
+          "[FormattedSize][std::format][T-FMT-007]") {
+    // 999.99 B
+    const FormattedSize fs{.value = 999.99L, .suffix = "B"};
+    REQUIRE(std::format("{}", fs) == "999.99 B");
+}
+
+TEST_CASE("FormattedSize_StdFormat_PBSuffix_FormatsCorrectly",
+          "[FormattedSize][std::format][T-FMT-008]") {
+    const FormattedSize fs{.value = 2.25L, .suffix = "PB"};
+    REQUIRE(std::format("{}", fs) == "2.25 PB");
+}
+
+TEST_CASE("FormattedSize_StdFormat_InLargerString_EmbedsProperly",
+          "[FormattedSize][std::format][T-FMT-009]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "GB"};
+    REQUIRE(std::format("Size: {}", fs) == "Size: 1.00 GB");
+}
+
+
+TEST_CASE("FormattedSize_FmtFormat_ByteSuffix_FormatsTwoDecimalPlaces",
+          "[FormattedSize][fmt::format][T-FMT-010]") {
+    const FormattedSize fs{.value = 0.0L, .suffix = "B"};
+    REQUIRE(fmt::format("{}", fs) == "0.00 B");
+}
+
+TEST_CASE("FormattedSize_FmtFormat_KBSuffix_FormatsCorrectly",
+          "[FormattedSize][fmt::format][T-FMT-011]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "KB"};
+    REQUIRE(fmt::format("{}", fs) == "1.00 KB");
+}
+
+TEST_CASE("FormattedSize_FmtFormat_KiBSuffix_FormatsCorrectly",
+          "[FormattedSize][fmt::format][T-FMT-012]") {
+    const FormattedSize fs{.value = 1.0L, .suffix = "KiB"};
+    REQUIRE(fmt::format("{}", fs) == "1.00 KiB");
+}
+
+TEST_CASE("FormattedSize_FmtFormat_FractionalValue_FormatsWithTwoDecimals",
+          "[FormattedSize][fmt::format][T-FMT-013]") {
+    const FormattedSize fs{.value = 3.75L, .suffix = "GiB"};
+    REQUIRE(fmt::format("{}", fs) == "3.75 GiB");
+}
+
+TEST_CASE("FormattedSize_FmtFormat_MatchesStdFormat_SameOutput",
+          "[FormattedSize][fmt::format][T-FMT-014]") {
+    const FormattedSize fs{.value = 512.0L, .suffix = "MiB"};
+    REQUIRE(fmt::format("{}", fs) == std::format("{}", fs));
+}
+
+TEST_CASE("FormattedSizePair_StdFormat_ContainsSIAndIECValues",
+          "[FormattedSizePair][std::format][T-FMT-015]") {
+    const FormattedSizePair pair{
+        .si  = {.value = 1.0L, .suffix = "KB"},
+        .iec = {.value = 1.0L, .suffix = "KiB"}
+    };
+    const std::string result = std::format("{}", pair);
+    REQUIRE_THAT(result, ContainsSubstring("1.00 KB"));
+    REQUIRE_THAT(result, ContainsSubstring("1.00 KiB"));
+}
+
+TEST_CASE("FormattedSizePair_StdFormat_SIColumnIsLeftPaddedTo20",
+          "[FormattedSizePair][std::format][T-FMT-016]") {
+    const FormattedSizePair pair{
+        .si  = {.value = 1.0L, .suffix = "KB"},
+        .iec = {.value = 1.0L, .suffix = "KiB"}
+    };
+    const std::string result = std::format("{}", pair);
+    // The entire string must be at least 41 chars (20 + 1 space + 20)
+    REQUIRE(result.size() >= 41u);
+    // The first 20 characters represent the SI column
+    REQUIRE(result.substr(0, 7) == "1.00 KB");
+}
+
+TEST_CASE("FormattedSizePair_StdFormat_ZeroBytes_BothColumnsShowZeroB",
+          "[FormattedSizePair][std::format][T-FMT-017]") {
+    const FormattedSizePair pair{
+        .si  = {.value = 0.0L, .suffix = "B"},
+        .iec = {.value = 0.0L, .suffix = "B"}
+    };
+    const std::string result = std::format("{}", pair);
+    REQUIRE_THAT(result, ContainsSubstring("0.00 B"));
+}
+
+TEST_CASE("FormattedSizePair_StdFormat_InLargerString_EmbedsProperly",
+          "[FormattedSizePair][std::format][T-FMT-018]") {
+    const FormattedSizePair pair{
+        .si  = {.value = 1.0L, .suffix = "MB"},
+        .iec = {.value = 1.0L, .suffix = "MiB"}
+    };
+    const std::string result = std::format("Pair: {}", pair);
+    REQUIRE_THAT(result, StartsWith("Pair: "));
+    REQUIRE_THAT(result, ContainsSubstring("1.00 MB"));
+    REQUIRE_THAT(result, ContainsSubstring("1.00 MiB"));
+}
+
+TEST_CASE("FormattedSizePair_FmtFormat_ContainsSIAndIECValues",
+          "[FormattedSizePair][fmt::format][T-FMT-019]") {
+    const FormattedSizePair pair{
+        .si  = {.value = 1.0L, .suffix = "GB"},
+        .iec = {.value = 1.0L, .suffix = "GiB"}
+    };
+    const std::string result = fmt::format("{}", pair);
+    REQUIRE_THAT(result, ContainsSubstring("1.00 GB"));
+    REQUIRE_THAT(result, ContainsSubstring("1.00 GiB"));
+}
+
+TEST_CASE("FormattedSizePair_FmtFormat_MatchesStdFormat_SameOutput",
+          "[FormattedSizePair][fmt::format][T-FMT-020]") {
+    const FormattedSizePair pair{
+        .si  = {.value = 2.5L, .suffix = "TB"},
+        .iec = {.value = 2.27L, .suffix = "TiB"}
+    };
+    REQUIRE(fmt::format("{}", pair) == std::format("{}", pair));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_ContainsByteCount",
+          "[FileSizeReport][std::format][T-FMT-021]") {
+    const FileSizeInfo info{1'000u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("Bytes : 1000"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_ContainsSIHeader",
+          "[FileSizeReport][std::format][T-FMT-022]") {
+    const FileSizeInfo info{1'024u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("SI"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_ContainsIECHeader",
+          "[FileSizeReport][std::format][T-FMT-023]") {
+    const FileSizeInfo info{1'024u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("IEC"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_ContainsDashedSeparators",
+          "[FileSizeReport][std::format][T-FMT-024]") {
+    const FileSizeInfo info{0u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    // Two separator rows of 41 dashes each
+    REQUIRE_THAT(result, ContainsSubstring("-----------------------------------------"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_ZeroBytes_ContainsZeroB",
+          "[FileSizeReport][std::format][T-FMT-025]") {
+    const FileSizeInfo info{0u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("Bytes : 0"));
+    REQUIRE_THAT(result, ContainsSubstring("0.00 B"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_1000Bytes_SIshowsKB",
+          "[FileSizeReport][std::format][T-FMT-026]") {
+    const FileSizeInfo info{1'000u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("1.00 KB"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_1000Bytes_IECshowsBytes",
+          "[FileSizeReport][std::format][T-FMT-027]") {
+    const FileSizeInfo info{1'000u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    // IEC keeps bytes: 1000.00 B
+    REQUIRE_THAT(result, ContainsSubstring("1000.00 B"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_1024Bytes_IECshowsKiB",
+          "[FileSizeReport][std::format][T-FMT-028]") {
+    const FileSizeInfo info{1'024u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("1.00 KiB"));
+}
+
+TEST_CASE("FileSizeReport_StdFormat_OutputHasFourLines",
+          "[FileSizeReport][std::format][T-FMT-029]") {
+    // Expected line count:
+    //   1. "Bytes : N\n"
+    //   2. "-...-\n"
+    //   3. "SI   IEC\n"
+    //   4. "-...-\n"
+    //   5. values row (no trailing \n per format string)
+    const FileSizeInfo info{42u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    const auto newline_count = std::count(result.begin(), result.end(), '\n');
+    REQUIRE(newline_count == 4);
+}
+
+TEST_CASE("FileSizeReport_StdFormat_BytesLineIsFirst",
+          "[FileSizeReport][std::format][T-FMT-030]") {
+    const FileSizeInfo info{512u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = std::format("{}", report);
+    REQUIRE_THAT(result, StartsWith("Bytes : 512"));
+}
+
+TEST_CASE("FileSizeReport_FmtFormat_ContainsByteCount",
+          "[FileSizeReport][fmt::format][T-FMT-031]") {
+    const FileSizeInfo info{2'048u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = fmt::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("Bytes : 2048"));
+}
+
+TEST_CASE("FileSizeReport_FmtFormat_ContainsSIAndIECHeaders",
+          "[FileSizeReport][fmt::format][T-FMT-032]") {
+    const FileSizeInfo info{1'048'576u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = fmt::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("SI"));
+    REQUIRE_THAT(result, ContainsSubstring("IEC"));
+}
+
+TEST_CASE("FileSizeReport_FmtFormat_1MiB_ShowsCorrectSIandIEC",
+          "[FileSizeReport][fmt::format][T-FMT-033]") {
+    // 1 MiB = 1'048'576 bytes:  1.05 MB (SI)  |  1.00 MiB (IEC)
+    const FileSizeInfo info{1'048'576u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const std::string result = fmt::format("{}", report);
+    REQUIRE_THAT(result, ContainsSubstring("1.00 MiB"));
+    REQUIRE_THAT(result, ContainsSubstring("MB"));
+}
+
+TEST_CASE("FileSizeReport_FmtFormat_MatchesStdFormat_SameOutput",
+          "[FileSizeReport][fmt::format][T-FMT-034]") {
+    const FileSizeInfo info{99'999u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    REQUIRE(fmt::format("{}", report) == std::format("{}", report));
+}
+
+TEST_CASE("FileSizeInfo_FormatThenStdFormat_EndToEndSI",
+          "[FileSizeInfo][std::format][integration][T-INT-001]") {
+    constexpr FileSizeInfo info{1'000'000u};
+    const FormattedSize fs = info.format(kSI);
+    REQUIRE(std::format("{}", fs) == "1.00 MB");
+}
+
+TEST_CASE("FileSizeInfo_FormatThenStdFormat_EndToEndIEC",
+          "[FileSizeInfo][std::format][integration][T-INT-002]") {
+    constexpr FileSizeInfo info{1'048'576u};
+    const FormattedSize fs = info.format(kIEC);
+    REQUIRE(std::format("{}", fs) == "1.00 MiB");
+}
+
+TEST_CASE("FileSizeReport_MakePairThenStdFormat_EndToEndPair",
+          "[FileSizeReport][std::format][integration][T-INT-003]") {
+    const FileSizeInfo info{1'000'000u};
+    const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
+    const FormattedSizePair pair = report.make_pair();
+    const std::string result = std::format("{}", pair);
+    REQUIRE_THAT(result, ContainsSubstring("1.00 MB"));
+}
+
+TEST_CASE("FileSizeInfo_AllSIPrefixLevels_FormatCorrectly",
+          "[FileSizeInfo][std::format][integration][T-INT-004]") {
+    // Validates that every SI prefix level formats without crash and includes
+    // the expected suffix.
+    struct Case { uintmax_t bytes; std::string_view suffix; };
+    const std::array<Case, 6> cases{{
+        {0u,                      "B"},
+        {1'000u,                  "KB"},
+        {1'000'000u,              "MB"},
+        {1'000'000'000u,          "GB"},
+        {1'000'000'000'000u,      "TB"},
+        {1'000'000'000'000'000u,  "PB"},
+    }};
+
+    for(const auto &[bytes, expected_suffix] : cases) {
+        const FileSizeInfo info{bytes};
+        const FormattedSize fs = info.format(kSI);
+        INFO("bytes = " << bytes);
+        REQUIRE(fs.suffix == expected_suffix);
+        const std::string formatted = std::format("{}", fs);
+        REQUIRE_THAT(formatted, EndsWith(std::string(expected_suffix)));
+    }
+}
+
+TEST_CASE("FileSizeInfo_AllIECPrefixLevels_FormatCorrectly",
+          "[FileSizeInfo][std::format][integration][T-INT-005]") {
+    // 0u is intentionally excluded from the loop: 0 / 1024 == 0.0, never 1.0.
+    // Zero-byte behaviour is already covered by T-FSI-011 (constexpr tests).
+    // Every entry here is an exact power-of-1024 boundary so value == 1.0L.
+    struct Case { uintmax_t bytes; std::string_view suffix; };
+    const std::array<Case, 5> cases{{
+        {1'024u,                                             "KiB"},
+        {1'024u * 1'024u,                                    "MiB"},
+        {1'024u * 1'024u * 1'024u,                           "GiB"},
+        {uintmax_t{1'024} * 1'024 * 1'024 * 1'024,          "TiB"},
+        {uintmax_t{1'024} * 1'024 * 1'024 * 1'024 * 1'024,  "PiB"},
+    }};
+
+    for(const auto &[bytes, expected_suffix] : cases) {
+        const FileSizeInfo info{bytes};
+        const FormattedSize fs = info.format(kIEC);
+        INFO("bytes = " << bytes);
+        REQUIRE(fs.suffix == expected_suffix);
+        REQUIRE(fs.value  == 1.0L);
+        const std::string formatted = std::format("{}", fs);
+        REQUIRE_THAT(formatted, EndsWith(std::string(expected_suffix)));
+    }
+
+    // Zero bytes: stays at "B" with value 0.0, not 1.0
+    SECTION("ZeroBytes_SuffixIsBAndValueIsZero") {
+        const FileSizeInfo info{0u};
+        const FormattedSize fs = info.format(kIEC);
+        REQUIRE(fs.suffix == "B");
+        REQUIRE(fs.value  == 0.0L);
+        REQUIRE(std::format("{}", fs) == "0.00 B");
+    }
+}
 // ============================================================================
 // SourceLocation Tests (Non-constexpr)
 // ============================================================================
