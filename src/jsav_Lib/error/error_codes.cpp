@@ -34,20 +34,19 @@
 // NOLINTBEGIN(*-include-cleaner,*-avoid-magic-numbers,*-magic-numbers)
 #include "jsav/error/error_codes.hpp"
 
-// ---------------------------------------------------------------------------
-/// \namespace jsv
-/// \brief The main namespace for the jsav compiler project
-/// \details This namespace contains all compiler components including
-///          lexer, parser, semantic analyzer, IR generator, code generator,
-///          and error handling subsystems.
-// ---------------------------------------------------------------------------
+/**
+ * @namespace jsv
+ * @brief The main namespace for the jsav compiler project
+ * @details This namespace contains all compiler components including
+ *          lexer, parser, semantic analyzer, IR generator, code generator,
+ *          and error handling subsystems.
+ */
 namespace jsv {
-    // ---------------------------------------------------------------------------
-    /// \brief Converts a Severity enum to its string representation
-    /// \param severity The severity enum value to convert
-    /// \return The string representation ("nota", "avviso", "errore", or "fatale")
-    // ---------------------------------------------------------------------------
-
+    /**
+     * @brief Converts a Severity enum to its string representation
+     * @param severity The severity enum value to convert
+     * @return The string representation ("nota", "avviso", "errore", or "fatale")
+     */
     std::string to_string(Severity severity) {
         switch(severity) {
         case Severity::Note:
@@ -62,11 +61,11 @@ namespace jsv {
             return "sconosciuto";
         }
     }
-    // ---------------------------------------------------------------------------
-    /// \brief Converts a CompilerPhase enum to its string representation
-    /// \param phase The compiler phase enum value to convert
-    /// \return The string representation ("lexer")
-    // ---------------------------------------------------------------------------
+    /**
+     * @brief Converts a CompilerPhase enum to its string representation
+     * @param phase The compiler phase enum value to convert
+     * @return The string representation ("lexer")
+     */
     std::string to_string(CompilerPhase phase) {
         switch(phase) {
         case CompilerPhase::Lexer:
@@ -81,15 +80,14 @@ namespace jsv {
         }
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Returns the error code string for the given error code enum
-    /// \param error_code The error code enum value
-    /// \return The error code string (e.g., "E0001")
-    /// \details This function maps all error code enum values to their
-    ///          string representation following the format "E" followed by
-    ///          four digits (E0001 through E5005).
-    // ---------------------------------------------------------------------------
-
+    /**
+     * @brief Returns the error code string for the given error code enum
+     * @param error_code The error code enum value
+     * @return The error code string (e.g., "E0001")
+     * @details This function maps all error code enum values to their
+     *          string representation following the format "E" followed by
+     *          four digits (E0001 through E5005).
+     */
     std::string_view code(ErrorCode error_code) noexcept {
         switch(error_code) {
         case ErrorCode::E0001:
@@ -247,14 +245,14 @@ namespace jsv {
         }
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Returns the numeric part of the error code
-    /// \param error_code The error code enum value
-    /// \return The numeric code (e.g., 1 for E0001, 1001 for E1001)
-    /// \details Extracts the numeric portion by removing the "E" prefix.
-    ///          For E0001-E0010 returns 1-10, for E1001-E1015 returns 1001-1015,
-    ///          and so on for all error code ranges.
-    // ---------------------------------------------------------------------------
+    /**
+     * @brief Returns the numeric part of the error code
+     * @param error_code The error code enum value
+     * @return The numeric code (e.g., 1 for E0001, 1001 for E1001)
+     * @details Extracts the numeric portion by removing the "E" prefix.
+     *          For E0001-E0010 returns 1-10, for E1001-E1015 returns 1001-1015,
+     *          and so on for all error code ranges.
+     */
     uint16_t numeric_code(ErrorCode error_code) noexcept {
         switch(error_code) {
         case ErrorCode::E0001:
@@ -411,14 +409,14 @@ namespace jsv {
             return 0;
         }
     }
-    // ---------------------------------------------------------------------------
-    /// \brief Returns the severity level for the given error code
-    /// \param error_code The error code enum value
-    /// \return The severity (Warning for E1013, Error for most errors)
-    /// \note E1013 (missing semicolon) is treated as a warning
-    /// \details Currently only E1013 returns Warning severity; all other
-    ///         error codes return Error severity.
-    // ---------------------------------------------------------------------------
+    /**
+     * @brief Returns the severity level for the given error code
+     * @param error_code The error code enum value
+     * @return The severity (Warning for E1013, Error for most errors)
+     * @note E1013 (missing semicolon) is treated as a warning
+     * @details Currently only E1013 returns Warning severity; all other
+     *          error codes return Error severity.
+     */
     Severity severity(ErrorCode error_code) {
         switch(error_code) {
         case ErrorCode::E1013:
@@ -428,19 +426,18 @@ namespace jsv {
         }
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Returns the compiler phase for the given error code
-    /// \param error_code The error code enum value
-    /// \return The compiler phase (Lexer, Parser, Semantic, etc.)
-    /// \details Determines the phase by parsing the numeric code range:
-    ///          - 1-999: Lexer
-    ///          - 1001-1999: Parser
-    ///          - 2001-2999: Semantic
-    ///          - 3001-3999: IR Generation
-    ///          - 4001-4999: Code Generation
-    ///          - 5001-5999: System
-    // ---------------------------------------------------------------------------
-
+    /**
+     * @brief Returns the compiler phase for the given error code
+     * @param error_code The error code enum value
+     * @return The compiler phase (Lexer, Parser, Semantic, etc.)
+     * @details Determines the phase by parsing the numeric code range:
+     *          - 1-999: Lexer
+     *          - 1001-1999: Parser
+     *          - 2001-2999: Semantic
+     *          - 3001-3999: IR Generation
+     *          - 4001-4999: Code Generation
+     *          - 5001-5999: System
+     */
     CompilerPhase phase(ErrorCode error_code) {
         const uint16_t num = numeric_code(error_code);
         if(num >= 1 && num <= 999) { return CompilerPhase::Lexer; }
@@ -451,13 +448,12 @@ namespace jsv {
         return CompilerPhase::Lexer;  // fallback (System non ancora abilitato)
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Returns a brief error message for the given error code
-    /// \param error_code The error code to get the message for
-    /// \return A string containing the error message
-    /// \note Messages are in Italian for end-user display
-    // ---------------------------------------------------------------------------
-
+    /**
+     * @brief Returns a brief error message for the given error code
+     * @param error_code The error code to get the message for
+     * @return A string containing the error message
+     * @note Messages are in Italian for end-user display
+     */
     std::string_view message(ErrorCode error_code) noexcept {
         switch(error_code) {
         case ErrorCode::E0001:
@@ -615,16 +611,16 @@ namespace jsv {
         }
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Returns a detailed explanation for the given error code
-    /// \param error_code The error code to get the explanation for
-    /// \return A C-string containing the detailed explanation
-    /// \note Explanations are in Italian and provide context-aware guidance
-    /// \details This function returns verbose explanations that help users
-    ///          understand why an error occurred and how to fix it.
-    ///          Each explanation covers the specific error pattern and provides
-    ///          concrete examples where applicable.
-    // ---------------------------------------------------------------------------
+    /**
+     * @brief Returns a detailed explanation for the given error code
+     * @param error_code The error code to get the explanation for
+     * @return A C-string containing the detailed explanation
+     * @note Explanations are in Italian and provide context-aware guidance
+     * @details This function returns verbose explanations that help users
+     *          understand why an error occurred and how to fix it.
+     *          Each explanation covers the specific error pattern and provides
+     *          concrete examples where applicable.
+     */
     const char *explanation(ErrorCode error_code) {
         switch(error_code) {
         case ErrorCode::E0001:
@@ -686,17 +682,16 @@ namespace jsv {
         }
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Returns a list of actionable suggestions to resolve the given error
-    /// \param error_code The error code to get suggestions for
-    /// \return A vector of C-string suggestions that users can follow
-    /// \note Suggestions are in Italian and provide specific code examples
-    /// \details This function returns practical fixes for common errors.
-    ///          Each suggestion is a concrete action the user can take to resolve
-    ///          the issue. For errors without specific suggestions, an empty vector
-    ///          is returned.
-    // ---------------------------------------------------------------------------
-
+    /**
+     * @brief Returns a list of actionable suggestions to resolve the given error
+     * @param error_code The error code to get suggestions for
+     * @return A vector of C-string suggestions that users can follow
+     * @note Suggestions are in Italian and provide specific code examples
+     * @details This function returns practical fixes for common errors.
+     *          Each suggestion is a concrete action the user can take to resolve
+     *          the issue. For errors without specific suggestions, an empty vector
+     *          is returned.
+     */
     std::span<const char *const> suggestions(ErrorCode error_code) noexcept {
         static constexpr std::array<const char *, 2> kE0002 = {"Aggiungere cifre binarie dopo #b: #b1010",
                                                                "Verificare cifre non valide (solo 0 e 1 ammessi)"};
@@ -735,13 +730,13 @@ namespace jsv {
         }
     }
 
-    // ---------------------------------------------------------------------------
-    /// \brief Converts an error code to a formatted diagnostic string
-    /// \param error_code The error code enum value
-    /// \return A string in the format "CODE: message" (e.g., "E0001: token non valido o non riconosciuto")
-    /// \details This function combines the error code string with its brief message
-    ///          for use in diagnostic output.
-    // ---------------------------------------------------------------------------
+    /**
+     * @brief Converts an error code to a formatted diagnostic string
+     * @param error_code The error code enum value
+     * @return A string in the format "CODE: message" (e.g., "E0001: token non valido o non riconosciuto")
+     * @details This function combines the error code string with its brief message
+     *          for use in diagnostic output.
+     */
     std::string to_string(ErrorCode error_code) { return FORMAT("{}: {}", code(error_code), message(error_code)); }
 }  // namespace jsv
 
