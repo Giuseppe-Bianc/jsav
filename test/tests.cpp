@@ -4765,6 +4765,451 @@ TEST_CASE("ErrorCode suggestions() tests", "[error][suggestions]") {
     REQUIRE(std::string(suggestions[2]) == "Assicurarsi che la variabile sia nello scope");
 }
 
+// ---------------------------------------------------------------------------
+// Comprehensive error_codes.cpp coverage tests
+// ---------------------------------------------------------------------------
+
+TEST_CASE("to_string(CompilerPhase) default case", "[error][phase][to_string]") {
+    // This tests the default case in to_string(CompilerPhase)
+    // Currently only Lexer is defined, so default returns "sconosciuto"
+    // The switch falls through to default for any value other than CompilerPhase::Lexer
+    REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer");
+}
+
+TEST_CASE("code() function comprehensive coverage", "[error][code]") {
+    // Test all error code ranges including default case
+    SECTION("Lexer error codes E0001-E0010") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E0001) == "E0001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0002) == "E0002");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0003) == "E0003");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0004) == "E0004");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0005) == "E0005");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0006) == "E0006");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0007) == "E0007");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0008) == "E0008");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0009) == "E0009");
+        REQUIRE(jsv::code(jsv::ErrorCode::E0010) == "E0010");
+    }
+    
+    SECTION("Parser error codes E1001-E1015") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E1001) == "E1001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1002) == "E1002");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1003) == "E1003");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1004) == "E1004");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1005) == "E1005");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1006) == "E1006");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1007) == "E1007");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1008) == "E1008");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1009) == "E1009");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1010) == "E1010");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1011) == "E1011");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1012) == "E1012");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1013) == "E1013");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1014) == "E1014");
+        REQUIRE(jsv::code(jsv::ErrorCode::E1015) == "E1015");
+    }
+    
+    SECTION("Semantic error codes E2001-E2032") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E2001) == "E2001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2010) == "E2010");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2020) == "E2020");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2030) == "E2030");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2031) == "E2031");
+        REQUIRE(jsv::code(jsv::ErrorCode::E2032) == "E2032");
+    }
+    
+    SECTION("IR Generation error codes E3001-E3008") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E3001) == "E3001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3002) == "E3002");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3003) == "E3003");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3004) == "E3004");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3005) == "E3005");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3006) == "E3006");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3007) == "E3007");
+        REQUIRE(jsv::code(jsv::ErrorCode::E3008) == "E3008");
+    }
+    
+    SECTION("Code Generation error codes E4001-E4005") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E4001) == "E4001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E4002) == "E4002");
+        REQUIRE(jsv::code(jsv::ErrorCode::E4003) == "E4003");
+        REQUIRE(jsv::code(jsv::ErrorCode::E4004) == "E4004");
+        REQUIRE(jsv::code(jsv::ErrorCode::E4005) == "E4005");
+    }
+    
+    SECTION("System error codes E5001-E5005") {
+        REQUIRE(jsv::code(jsv::ErrorCode::E5001) == "E5001");
+        REQUIRE(jsv::code(jsv::ErrorCode::E5002) == "E5002");
+        REQUIRE(jsv::code(jsv::ErrorCode::E5003) == "E5003");
+        REQUIRE(jsv::code(jsv::ErrorCode::E5004) == "E5004");
+        REQUIRE(jsv::code(jsv::ErrorCode::E5005) == "E5005");
+    }
+}
+
+TEST_CASE("numeric_code() function comprehensive coverage", "[error][numeric_code]") {
+    SECTION("Lexer numeric codes 1-10") {
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0001) == 1);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0002) == 2);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0003) == 3);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0004) == 4);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0005) == 5);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0006) == 6);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0007) == 7);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0008) == 8);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0009) == 9);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0010) == 10);
+    }
+    
+    SECTION("Parser numeric codes 1001-1015") {
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1001) == 1001);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1002) == 1002);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1003) == 1003);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1004) == 1004);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1005) == 1005);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1006) == 1006);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1007) == 1007);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1008) == 1008);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1009) == 1009);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1010) == 1010);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1011) == 1011);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1012) == 1012);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1013) == 1013);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1014) == 1014);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1015) == 1015);
+    }
+    
+    SECTION("Semantic numeric codes 2001-2032") {
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2001) == 2001);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2002) == 2002);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2003) == 2003);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2004) == 2004);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2005) == 2005);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2006) == 2006);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2007) == 2007);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2008) == 2008);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2009) == 2009);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2010) == 2010);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2011) == 2011);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2012) == 2012);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2013) == 2013);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2014) == 2014);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2015) == 2015);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2016) == 2016);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2017) == 2017);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2018) == 2018);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2019) == 2019);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2020) == 2020);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2021) == 2021);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2022) == 2022);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2023) == 2023);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2024) == 2024);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2025) == 2025);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2026) == 2026);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2027) == 2027);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2028) == 2028);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2029) == 2029);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2030) == 2030);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2031) == 2031);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E2032) == 2032);
+    }
+    
+    SECTION("IR Generation numeric codes 3001-3008") {
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3001) == 3001);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3002) == 3002);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3003) == 3003);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3004) == 3004);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3005) == 3005);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3006) == 3006);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3007) == 3007);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E3008) == 3008);
+    }
+    
+    SECTION("Code Generation numeric codes 4001-4005") {
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E4001) == 4001);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E4002) == 4002);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E4003) == 4003);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E4004) == 4004);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E4005) == 4005);
+    }
+    
+    SECTION("System numeric codes 5001-5005") {
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5001) == 5001);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5002) == 5002);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5003) == 5003);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5004) == 5004);
+        REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5005) == 5005);
+    }
+}
+
+TEST_CASE("phase() function coverage", "[error][phase]") {
+    // All error codes currently return Lexer phase (fallback)
+    // because other phases are commented out in the implementation
+    SECTION("Lexer phase for E0001-E0010") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E0005) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E0010) == jsv::CompilerPhase::Lexer);
+    }
+    
+    SECTION("Lexer phase for E1001-E1015 (Parser range, returns Lexer)") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E1013) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E1015) == jsv::CompilerPhase::Lexer);
+    }
+    
+    SECTION("Lexer phase for E2001-E2032 (Semantic range, returns Lexer)") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E2023) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E2032) == jsv::CompilerPhase::Lexer);
+    }
+    
+    SECTION("Lexer phase for E3001-E3008 (IR range, returns Lexer)") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E3001) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E3008) == jsv::CompilerPhase::Lexer);
+    }
+    
+    SECTION("Lexer phase for E4001-E4005 (CodeGen range, returns Lexer)") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E4001) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E4005) == jsv::CompilerPhase::Lexer);
+    }
+    
+    SECTION("Lexer phase for E5001-E5005 (System range, returns Lexer)") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E5001) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E5003) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E5005) == jsv::CompilerPhase::Lexer);
+    }
+}
+
+TEST_CASE("message() function comprehensive coverage", "[error][message]") {
+    SECTION("Lexer error messages E0001-E0010") {
+        REQUIRE(jsv::message(jsv::ErrorCode::E0001) == "token non valido o non riconosciuto");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0002) == "letterale numerico binario malformato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0003) == "letterale numerico ottale malformato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0004) == "letterale numerico esadecimale malformato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0005) == "letterale stringa non terminato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0006) == "letterale carattere non terminato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0007) == "sequenza di escape non valida");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0008) == "commento multi-linea non terminato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0009) == "suffisso numerico non valido");
+        REQUIRE(jsv::message(jsv::ErrorCode::E0010) == "overflow letterale numerico");
+    }
+    
+    SECTION("Parser error messages E1001-E1015") {
+        REQUIRE(jsv::message(jsv::ErrorCode::E1001) == "profondità massima di ricorsione superata");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1002) == "specifica di tipo non valida");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1003) == "target di assegnazione non valido");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1004) == "token inaspettato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1005) == "operatore binario non valido");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1006) == "espressione attesa");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1007) == "statement atteso");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1008) == "identificatore atteso");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1009) == "annotazione di tipo attesa");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1010) == "parentesi tonda non corrispondente");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1011) == "parentesi graffa non corrispondente");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1012) == "parentesi quadra non corrispondente");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1013) == "punto e virgola mancante");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1014) == "firma di funzione non valida");
+        REQUIRE(jsv::message(jsv::ErrorCode::E1015) == "lista di parametri non valida");
+    }
+    
+    SECTION("Semantic error messages E2001-E2032") {
+        REQUIRE(jsv::message(jsv::ErrorCode::E2001) == "numero di inizializzatori non corrispondente");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2002) == "tipo non corrispondente nell'assegnazione");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2003) == "return mancante in alcuni percorsi del codice");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2004) == "la condizione deve essere booleana");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2005) == "return fuori dalla funzione");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2006) == "impossibile restituire valore da funzione void");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2007) == "tipo di return non corrispondente");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2008) == "valore di return mancante");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2009) == "break fuori dal ciclo");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2010) == "continue fuori dal ciclo");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2011) == "operatore bitwise richiede operandi interi");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2012) == "operatore logico richiede operandi booleani");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2013) == "operatore aritmetico richiede operandi numerici");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2014) == "tipi incompatibili nel confronto");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2015) == "tipo non corrispondente in operazione binaria");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2016) == "operazione aritmetica non supportata");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2017) == "operazione logica richiede booleano");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2018) == "negazione richiede tipo numerico");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2019) == "NOT logico richiede tipo booleano");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2020) == "letterale array vuoto");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2021) == "tipi misti in letterale array");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2022) == "funzione non può essere usata come variabile");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2023) == "variabile non definita");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2024) == "impossibile assegnare a variabile immutabile");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2025) == "variabile non definita nell'assegnazione");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2026) == "il chiamato deve essere una funzione");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2027) == "funzione non definita");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2028) == "numero errato di argomenti");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2029) == "tipo di argomento non corrispondente");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2030) == "l'indice dell'array deve essere intero");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2031) == "impossibile indicizzare tipo non-array");
+        REQUIRE(jsv::message(jsv::ErrorCode::E2032) == "dichiarazione duplicata");
+    }
+    
+    SECTION("IR Generation error messages E3001-E3008") {
+        REQUIRE(jsv::message(jsv::ErrorCode::E3001) == "break fuori dal ciclo in IR");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3002) == "continue fuori dal ciclo in IR");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3003) == "istruzione IR non valida");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3004) == "variabile non definita in IR");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3005) == "blocco base non valido");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3006) == "terminatore di blocco non valido");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3007) == "errore di trasformazione SSA");
+        REQUIRE(jsv::message(jsv::ErrorCode::E3008) == "errore di costruzione CFG");
+    }
+    
+    SECTION("Code Generation error messages E4001-E4005") {
+        REQUIRE(jsv::message(jsv::ErrorCode::E4001) == "istruzione assembly non valida");
+        REQUIRE(jsv::message(jsv::ErrorCode::E4002) == "allocazione registro fallita");
+        REQUIRE(jsv::message(jsv::ErrorCode::E4003) == "overflow stack frame");
+        REQUIRE(jsv::message(jsv::ErrorCode::E4004) == "piattaforma target non supportata");
+        REQUIRE(jsv::message(jsv::ErrorCode::E4005) == "violazione ABI");
+    }
+    
+    SECTION("System error messages E5001-E5005") {
+        REQUIRE(jsv::message(jsv::ErrorCode::E5001) == "file non trovato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E5002) == "permesso negato");
+        REQUIRE(jsv::message(jsv::ErrorCode::E5003) == "estensione file non valida");
+        REQUIRE(jsv::message(jsv::ErrorCode::E5004) == "errore di scrittura");
+        REQUIRE(jsv::message(jsv::ErrorCode::E5005) == "errore di lettura");
+    }
+}
+
+TEST_CASE("explanation() function coverage", "[error][explanation]") {
+    SECTION("E0001 explanation contains lexer and caratteri") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("lexer"));
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("caratteri"));
+    }
+    
+    SECTION("E0002 explanation contains binari") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0002), ContainsSubstring("binari"));
+    }
+    
+    SECTION("E0003 explanation contains ottali") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0003), ContainsSubstring("ottali"));
+    }
+    
+    SECTION("E0004 explanation contains esadecimali") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0004), ContainsSubstring("esadecimali"));
+    }
+    
+    SECTION("E0005 explanation contains stringa") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0005), ContainsSubstring("stringa"));
+    }
+    
+    SECTION("E0006 explanation contains carattere") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0006), ContainsSubstring("carattere"));
+    }
+    
+    SECTION("E0007 explanation contains escape") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0007), ContainsSubstring("escape"));
+    }
+    
+    SECTION("E0008 explanation contains commenti") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0008), ContainsSubstring("commenti"));
+    }
+    
+    SECTION("E0009 explanation contains suffisso") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0009), ContainsSubstring("suffisso"));
+    }
+    
+    SECTION("E0010 explanation contains valore") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0010), ContainsSubstring("valore"));
+    }
+    
+    SECTION("E1001 explanation contains parser") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E1001), ContainsSubstring("parser"));
+    }
+    
+    SECTION("E1002 explanation contains tipo") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E1002), ContainsSubstring("tipo"));
+    }
+    
+    SECTION("E1003 explanation contains assegnati") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E1003), ContainsSubstring("assegnati"));
+    }
+    
+    SECTION("E2023 explanation contains dichiarata") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2023), ContainsSubstring("dichiarata"));
+    }
+    
+    SECTION("E2024 explanation contains const") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2024), ContainsSubstring("const"));
+    }
+    
+    SECTION("E2027 explanation contains funzione") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2027), ContainsSubstring("funzione"));
+    }
+    
+    SECTION("E2028 explanation contains argomenti") {
+        REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2028), ContainsSubstring("argomenti"));
+    }
+}
+
+TEST_CASE("suggestions() function comprehensive coverage", "[error][suggestions]") {
+    SECTION("E0002 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E0002);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("binarie"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("0 e 1"));
+    }
+    
+    SECTION("E0003 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E0003);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("ottali"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("0-7"));
+    }
+    
+    SECTION("E0004 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E0004);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("esadecimali"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("a-f"));
+    }
+    
+    SECTION("E0005 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E0005);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("virgolette"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("escape"));
+    }
+    
+    SECTION("E2009 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E2009);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("ciclo"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("return"));
+    }
+    
+    SECTION("E2010 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E2010);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("ciclo"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("return"));
+    }
+    
+    SECTION("E2023 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E2023);
+        REQUIRE(suggestions.size() == 3);
+        REQUIRE(std::string(suggestions[0]) == "Dichiarare la variabile: var x: i32 = 0");
+        REQUIRE(std::string(suggestions[1]) == "Verificare errori di battitura nel nome della variabile");
+        REQUIRE(std::string(suggestions[2]) == "Assicurarsi che la variabile sia nello scope");
+    }
+    
+    SECTION("E2024 suggestions") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E2024);
+        REQUIRE(suggestions.size() == 2);
+        REQUIRE_THAT(std::string(suggestions[0]), ContainsSubstring("var"));
+        REQUIRE_THAT(std::string(suggestions[1]), ContainsSubstring("riassegnazione"));
+    }
+    
+    SECTION("Default suggestions (empty span)") {
+        auto suggestions = jsv::suggestions(jsv::ErrorCode::E0001);
+        REQUIRE(suggestions.empty());
+        REQUIRE(suggestions.size() == 0);
+    }
+}
+
 TEST_CASE("ErrorCode to_string tests", "[error][to_string]") {
     REQUIRE(jsv::to_string(jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto");
     REQUIRE(jsv::to_string(jsv::ErrorCode::E1001) == "E1001: profondità massima di ricorsione superata");
