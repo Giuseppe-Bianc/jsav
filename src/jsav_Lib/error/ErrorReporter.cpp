@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
 #include "jsav/error/ErrorReporter.hpp"
 
 namespace jsv {
@@ -187,4 +187,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
