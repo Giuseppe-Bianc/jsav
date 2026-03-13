@@ -1,4 +1,4 @@
-// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers,*-magic-numbers)
+// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers)
 #include "jsav/location/LineTracker.hpp"
 
 namespace jsv {
@@ -14,23 +14,21 @@ namespace jsv {
     // -------------------------------------------------------------------------
 
     void LineTracker::index_lines() {
-        lines_.clear();
-        // Reserve a rough estimate to avoid repeated reallocations.
-        // Average line length heuristic: 40 chars.
-        if(!source_.empty()) { lines_.reserve((source_.size() / 40) + 1); }
+        if(source_.empty()) { return; }
 
-        std::size_t pos = 0;
-        while(pos <= source_.size()) {
-            // Find the next newline (or end-of-string).
+        lines_.clear();
+        const auto newline_count = C_ST(std::ranges::count(source_, '\n'));
+        lines_.reserve(newline_count + 1);
+
+        // Single forward scan: find each '\n', strip optional '\r', push view.
+        for(std::size_t pos = 0; pos <= source_.size();) {
             const std::size_t newline = source_.find('\n', pos);
-            const std::size_t end = (newline == std::string_view::npos) ? source_.size() : newline;
+            const std::size_t end = (newline != std::string_view::npos) ? newline : source_.size();
 
             // Strip a trailing '\r' so Windows CRLF files work transparently.
-            std::size_t line_end = end;
-            if(line_end > pos && source_[line_end - 1] == '\r') { --line_end; }
+            const std::size_t line_end = (end > pos && source_[end - 1] == '\r') ? end - 1 : end;
 
-            // Push a view directly into the caller-owned buffer — zero copy.
-            lines_.push_back(source_.substr(pos, line_end - pos));
+            lines_.emplace_back(source_.data() + pos, line_end - pos);
 
             if(newline == std::string_view::npos) { break; }
             pos = newline + 1;
@@ -51,4 +49,4 @@ namespace jsv {
     bool LineTracker::empty() const noexcept { return lines_.empty(); }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers,*-magic-numbers)
+// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers)

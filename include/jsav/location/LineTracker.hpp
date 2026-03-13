@@ -21,8 +21,6 @@
  * of the full source and never copies it.
  */
 
-#pragma once
-
 #include "../headers.hpp"
 
 namespace jsv {
@@ -48,6 +46,18 @@ namespace jsv {
         ///                The pointed-to memory must outlive this object.
         explicit LineTracker(std::string_view source);
 
+        // Rule of 5: all defaulted.
+        // SAFETY: move is noexcept — string_view and vector<string_view> both
+        // guarantee noexcept moves.  Declaring explicitly makes this a
+        // compile-time-checked contract; a future non-noexcept member will
+        // cause an immediate build error here rather than silently degrading
+        // std::vector<LineTracker> reallocation from move to copy.
+        LineTracker(const LineTracker &) = default;
+        LineTracker &operator=(const LineTracker &) = default;
+        LineTracker(LineTracker &&) noexcept = default;
+        LineTracker &operator=(LineTracker &&) noexcept = default;
+        ~LineTracker() = default;
+
         // --- Queries ---------------------------------------------------------
 
         /// @brief Return the text of a single source line (1-based).
@@ -59,7 +69,7 @@ namespace jsv {
         /// @brief Total number of lines in the source.
         [[nodiscard]] std::size_t line_count() const noexcept;
 
-        /// @brief True when no source has been loaded.
+        /// @brief True when no source has been loaded (default-constructed or constructed from an empty string_view).
         [[nodiscard]] bool empty() const noexcept;
 
     private:
