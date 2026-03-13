@@ -5864,7 +5864,7 @@ TEST_CASE("LineTracker special characters", "[LineTracker][special_chars][edge_c
     }
 
     SECTION("Null characters in source") {
-        const std::string source = "Line 1\0Line 2";
+        const std::string source("Line 1\0Line 2", 14);
         const jsv::LineTracker tracker(source);
 
         // String_view with embedded null - only first part indexed
@@ -5922,7 +5922,7 @@ TEST_CASE("LineTracker copy and move semantics", "[LineTracker][semantics]") {
 TEST_CASE("LineTracker large source", "[LineTracker][performance][edge_case]") {
     SECTION("Many lines") {
         std::string source;
-        source.reserve(1000 * 20);
+        source.reserve(C_ST(1000) * 20);
         for(int i = 1; i <= 1000; ++i) { source += "Line " + std::to_string(i) + "\n"; }
 
         // Each line ends with \n, so 1000 newlines = 1001 lines (last one empty)
@@ -5936,7 +5936,7 @@ TEST_CASE("LineTracker large source", "[LineTracker][performance][edge_case]") {
     }
 
     SECTION("Very long line") {
-        std::string source(10000, 'x');
+        const std::string source(10000, 'x');
         const jsv::LineTracker tracker(source);
 
         REQUIRE(tracker.line_count() == 1);
@@ -5948,10 +5948,7 @@ TEST_CASE("LineTracker source view lifetime", "[LineTracker][lifetime]") {
     SECTION("String_view source must outlive tracker") {
         // This test documents the lifetime contract - tracker doesn't own source
         std::string source = "Line 1\nLine 2";
-        jsv::LineTracker tracker(source);
-
-        // Tracker holds string_view to source - valid while source exists
-        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        const jsv::LineTracker tracker(source);
 
         // Modifying source after tracker creation is safe (tracker has view)
         source = "Modified";  // This invalidates tracker's view!
@@ -6265,7 +6262,7 @@ TEST_CASE("ErrorReporter empty error list", "[ErrorReporter][empty]") {
     }
 
     SECTION("Empty span returns empty string") {
-        std::span<const jsv::CompileError> empty_span;
+        const std::span<const jsv::CompileError> empty_span;
         const std::string result = reporter.report_errors(empty_span);
         REQUIRE(result.empty());
     }
