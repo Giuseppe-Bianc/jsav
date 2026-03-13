@@ -1,205 +1,191 @@
+/*
+ * Created by gbian on 09/03/2026.
+ * Copyright (c) 2026 All rights reserved.
+ */
+
 // NOLINTBEGIN(*-include-cleaner)
 #include "jsav/error/ErrorReporter.hpp"
 
 namespace jsv {
 
-    // =========================================================================
-    // ANSI colour codes
-    // =========================================================================
-    namespace ansi {
-        inline constexpr std::string_view kReset = "\033[0m";
-        inline constexpr std::string_view kRedBold = "\033[1;31m";
-        inline constexpr std::string_view kYellow = "\033[33m";
-        inline constexpr std::string_view kBlue = "\033[34m";
-        inline constexpr std::string_view kBlueBold = "\033[1;34m";
-        inline constexpr std::string_view kCyan = "\033[36m";
-        inline constexpr std::string_view kGreen = "\033[32m";
-    }  // namespace ansi
+    // ---------------------------------------------------------------------------
+    // Helpers – local to this translation unit
+    // ---------------------------------------------------------------------------
 
-    // =========================================================================
-    // Construction
-    // =========================================================================
+    namespace details {
 
-    ErrorReporter::ErrorReporter(const LineTracker &line_tracker, bool use_color) noexcept
-      : line_tracker_(line_tracker), use_color_(use_color) {}
-
-    // =========================================================================
-    // Public API
-    // =========================================================================
-
-    std::string ErrorReporter::report_errors(const std::vector<CompileError> &errors) const {
-        std::string output;
-        output.reserve(errors.size() * 512);
-        for(const CompileError &err : errors) { output += report_error(err); }
-        return output;
-    }
-
-    std::string ErrorReporter::report_error(const CompileError &err) const {
-        switch(err.kind()) {
-        case CompileError::Kind::LexerError:
-            return format_spanned_error("LEX", err);
-            // Future kinds -- uncomment as they are added to the enum.
-            // case CompileError::Kind::SyntaxError:      return format_spanned_error("SYNTAX",  err);
-            // case CompileError::Kind::TypeError:        return format_spanned_error("TYPE",    err);
-            // case CompileError::Kind::IrGeneratorError: return format_spanned_error("IR GEN",  err);
-            // case CompileError::Kind::AsmGeneratorError:return format_simple_error ("ASM GEN", err);
-            // case CompileError::Kind::IoError:          return format_simple_error ("I/O",     err);
-        }
-        return {};
-    }
-
-    // =========================================================================
-    // Private — error formatters
-    // =========================================================================
-
-    // -------------------------------------------------------------------------
-    // format_simple_error
-    // Equivalent to the Rust `format_simple_error` free function.
-    //
-    // Output:  ERROR [E4001] ASM GEN: istruzione assembly non valida\n
-    // -------------------------------------------------------------------------
-    std::string ErrorReporter::format_simple_error(std::string_view category, const CompileError &error) const {
-        std::string out;
-        out.reserve(128);
-
-        out += red_bold("ERROR");
-
-        if(error.error_code().has_value()) {
-            out += ' ';
-            out += red_bold(fmt::format("[{}]", jsv::code(*error.error_code())));
-            out += ' ';
-        } else {
-            out += ' ';
+        /// Builds the "[Exxxx] " fragment that optionally prefixes the category.
+        /// Returns a single space when @p code is absent (mirrors the Rust
+        /// `code.map_or_else(|| " ".to_string(), |c| format!(" [{}] ", …))` call).
+        [[nodiscard]] std::string error_code_fragment(std::optional<ErrorCode> code) {
+            if(!code.has_value()) { return " "; }
+            return FORMAT(" [{}] ", ansi::red_bold(std::string{jsv::code(code.value())}));
         }
 
-        out += red_bold(category);
-        out += ": ";
-        out += yellow(error.message());
-        out += '\n';
+    }  // namespace details
 
-        return out;
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::format_simple_error
+    // ---------------------------------------------------------------------------
+    //
+    // Rust equivalent:
+    //   fn format_simple_error(error_type, message, code) -> String {
+    //       format!("{}{}{}: {}\n",
+    //           style("ERROR").red().bold(),
+    //           code.map_or_else(|| " ", |c| format!(" [{}] ", style(c).red().bold())),
+    //           style(error_type).red(),
+    //           style(message).yellow())
+    //   }
+    //
+    // ---------------------------------------------------------------------------
+    std::string ErrorReporter::format_simple_error(std::string_view error_type, std::string_view msg, std::optional<ErrorCode> code) {
+        return FORMAT("{}{}{}: {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(code), ansi::red(error_type),
+                      ansi::yellow(msg));
     }
 
-    // -------------------------------------------------------------------------
-    // format_spanned_error
-    // Equivalent to the Rust `ErrorReporter::format_error` method.
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::format_spanned_error
+    // ---------------------------------------------------------------------------
     //
-    // Output:
-    //   ERROR [E0005] LEX: letterale stringa non terminato
-    //   Location: main.jsv:3:12
-    //      3 │ var s = "hello
-    //        │            ^
-    //   help: Aggiungere virgolette doppie di chiusura
+    // Rust equivalent: `fn format_error(&self, category, message, span, help, code)`
     //
-    // -------------------------------------------------------------------------
+    // Full output (with source line available):
+    //
+    //   ERROR [E0001] LEX: <message>
+    //   Location: <SourceSpan>
+    //      3 │ let x = @bad;
+    //        │         ^
+    //   help: <help>
+    //
+    // Multi-line span:
+    //
+    //     20 │ /* unterminated comment
+    //        │ ^
+    //        │ ... (error spans lines 20-25)
+    //
+    // When the LineTracker returns an empty view for the line (e.g. mock errors
+    // whose line numbers don't correspond to the loaded source) the source-line
+    // block is silently omitted, matching the Rust `unwrap_or_default` behaviour.
+    //
+    // ---------------------------------------------------------------------------
     std::string ErrorReporter::format_spanned_error(std::string_view category, const CompileError &error) const {
+        const std::optional<ErrorCode> code = error.error_code();
+        const std::string_view msg = error.message();
         const SourceSpan &span = error.span();
+
         const std::size_t start_line = span.start.line;
         const std::size_t start_col = span.start.column;
         const std::size_t end_line = span.end.line;
         const std::size_t end_col = span.end.column;
 
+        // Retrieve the offending source line (O(1), zero-copy view).
+        // Mirrors: `self.line_tracker.get_line(start_line).unwrap_or_default()`
         const std::string_view source_line = line_tracker_.get_line(start_line);
 
-        // Estimate capacity.
-        const std::size_t help_len = [&] {
-            auto h = error.help();
-            return h.has_value() ? (*h)->size() + 20 : 0;
-        }();
-        std::string out;
-        out.reserve(100 + error.message().size() + category.size() + source_line.size() + help_len + 50);
+        const std::size_t estimated = 100u + msg.size() + category.size() + (code.has_value() ? 12u : 0u)  // "[Exxxx] "
+                                      + 40u                                                                // location line
+                                      + source_line.size() + 20u                                           // source line row
+                                      + start_col + 10u                                                    // underline row
+                                      + (start_line != end_line ? 40u : 0u)                                // multi-line note
+                                      + (error.help().has_value() ? 20u : 0u);                             // help line
 
-        // ------------------------------------------------------------------
-        // Header:  ERROR [EXXXX] CATEGORY: message
-        // ------------------------------------------------------------------
-        out += red_bold("ERROR");
+        std::string output;
+        output.reserve(estimated);
 
-        if(error.error_code().has_value()) {
-            out += ' ';
-            out += red_bold(fmt::format("[{}]", jsv::code(*error.error_code())));
-            out += ' ';
-        } else {
-            out += ' ';
-        }
+        // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
+        //             Location: <span>
+        output += FORMAT("{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(code), ansi::red(category),
+                         ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
 
-        out += red_bold(category);
-        out += ": ";
-        out += yellow(error.message());
-        out += '\n';
-
-        // ------------------------------------------------------------------
-        // Location:  Location: <span>
-        // ------------------------------------------------------------------
-        out += blue("Location:");
-        out += ' ';
-        out += cyan(fmt::format("{}", span));  // relies on SourceSpan's formatter
-        out += '\n';
-
-        // ------------------------------------------------------------------
-        // Source context (only when we have the line text)
-        // ------------------------------------------------------------------
+        // --- Source-line block (only when the tracker found the line) -----------
         if(!source_line.empty()) {
-            // "   3 │ var s = \"hello"
-            out += fmt::format("{:4} \u2502 {}\n", start_line, source_line);
+            // "{start_line:4} │ {source_line}"
+            // Rust: writeln!(output, "{start_line:4} │ {source_line}");
+            output += FORMAT("{:4} \u2502 {}\n", start_line, source_line);
 
-            // Build the underline ('^' characters).
-            const std::size_t start_offset = (start_col > 0) ? start_col - 1 : 0;
+            // Build the underline string:
+            //   • single-line span  →  <start_offset spaces> + <length × '^'>
+            //   • multi-line span   →  <start_offset spaces> + '^'
+            //
+            // start_offset = start_col.saturating_sub(1)  (columns are 1-based)
+            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
             std::string underline;
 
             if(start_line == end_line) {
-                // Single-line error: pad, then ^^^^…
-                const std::size_t length = std::max(end_col - start_col, std::size_t{1});
-                underline = fmt::format("{:{}}{}", "", start_offset, std::string(length, '^'));
+                // Rust: let length = (end_col - start_col).max(1);
+                const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
+                underline = std::string(start_offset, ' ') + std::string(length, '^');
             } else {
-                // Multi-line: single caret at the start column
-                underline = fmt::format("{:{}}^", "", start_offset);
+                underline = std::string(start_offset, ' ') + '^';
             }
 
-            // "     │ ^^^^"
-            out += fmt::format("     \u2502 {}\n", red_bold(underline));
+            // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
+            output += FORMAT("     \u2502 {}\n", ansi::red_bold(underline));
 
-            // Multi-line annotation
+            // Multi-line note: "     │ ... (error spans lines X-Y)"
             if(start_line != end_line) {
-                out += fmt::format("     \u2502 {} (error spans lines {}-{})\n", blue("..."), start_line, end_line);
+                output += FORMAT("     \u2502 {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line);
             }
         }
 
-        // ------------------------------------------------------------------
-        // Optional help line
-        // ------------------------------------------------------------------
-        auto help_opt = error.help();
-        if(help_opt.has_value()) {
-            out += blue_bold("help:");
-            out += ' ';
-            out += green(**help_opt);
-            out += '\n';
+        // --- Help line (optional) -----------------------------------------------
+        if(const auto help_opt = error.help(); help_opt.has_value()) {
+            output += FORMAT("{} {}\n", ansi::blue_bold("help:"), ansi::green(**help_opt));
         }
 
-        // Blank separator between consecutive errors.
-        out += '\n';
-        return out;
+        return output;
     }
 
-    // =========================================================================
-    // Private — colour helpers
-    // =========================================================================
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::report_errors
+    // ---------------------------------------------------------------------------
+    //
+    // Rust equivalent:
+    //   pub fn report_errors(&self, errors: Vec<CompileError>) -> String { … }
+    //
+    // Iterates over every error, dispatches to the appropriate formatter, and
+    // concatenates the results into a single diagnostic string.
+    //
+    // ---------------------------------------------------------------------------
+    std::string ErrorReporter::report_errors(std::span<const CompileError> errors) const {
+        std::string output;
+        output.reserve(errors.size() * 256u);  // rough per-error budget
 
-    std::string ErrorReporter::colorize(std::string_view text, std::string_view ansi_code) const {
-        if(!use_color_) { return std::string(text); }
-        std::string s;
-        s.reserve(ansi_code.size() + text.size() + ansi::kReset.size());
-        s += ansi_code;
-        s += text;
-        s += ansi::kReset;
-        return s;
+        for(const CompileError &error : errors) {
+            switch(error.kind()) {
+            case CompileError::Kind::LexerError:
+                output += format_spanned_error("LEX", error);
+                break;
+
+                // --- Future kinds (currently commented-out in CompileError.hpp) ---
+                // case CompileError::Kind::SyntaxError:
+                //     output += format_spanned_error("SYNTAX", error);
+                //     break;
+                // case CompileError::Kind::TypeError:
+                //     output += format_spanned_error("TYPE", error);
+                //     break;
+                // case CompileError::Kind::IrGeneratorError:
+                //     output += format_spanned_error("IR GEN", error);
+                //     break;
+                // case CompileError::Kind::AsmGeneratorError:
+                //     output += format_simple_error("ASM GEN", error.message(), error.error_code());
+                //     break;
+                // case CompileError::Kind::IoError:
+                //     output += format_simple_error("I/O", error.message(), std::nullopt);
+                //     break;
+
+            default:
+                // Safety net: treat unknown kinds as simple errors so that new
+                // variants added to the enum are at least reported rather than
+                // silently swallowed.
+                output += format_simple_error("UNKNOWN", error.message(), error.error_code());
+                break;
+            }
+        }
+
+        return output;
     }
-
-    std::string ErrorReporter::red_bold(std::string_view t) const { return colorize(t, ansi::kRedBold); }
-    std::string ErrorReporter::yellow(std::string_view t) const { return colorize(t, ansi::kYellow); }
-    std::string ErrorReporter::blue(std::string_view t) const { return colorize(t, ansi::kBlue); }
-    std::string ErrorReporter::blue_bold(std::string_view t) const { return colorize(t, ansi::kBlueBold); }
-    std::string ErrorReporter::cyan(std::string_view t) const { return colorize(t, ansi::kCyan); }
-    std::string ErrorReporter::green(std::string_view t) const { return colorize(t, ansi::kGreen); }
 
 }  // namespace jsv
+
 // NOLINTEND(*-include-cleaner)

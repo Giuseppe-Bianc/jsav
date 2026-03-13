@@ -1,8 +1,4 @@
-/*
- * Created by gbian on 12/03/2026.
- * Copyright (c) 2026 All rights reserved.
- */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers,*-magic-numbers)
 #include "jsav/location/LineTracker.hpp"
 
 namespace jsv {
@@ -21,7 +17,7 @@ namespace jsv {
         lines_.clear();
         // Reserve a rough estimate to avoid repeated reallocations.
         // Average line length heuristic: 40 chars.
-        if(!source_.empty()) { lines_.reserve(source_.size() / 40 + 1); }
+        if(!source_.empty()) { lines_.reserve((source_.size() / 40) + 1); }
 
         std::size_t pos = 0;
         while(pos <= source_.size()) {
@@ -55,4 +51,4 @@ namespace jsv {
     bool LineTracker::empty() const noexcept { return lines_.empty(); }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers,*-magic-numbers)

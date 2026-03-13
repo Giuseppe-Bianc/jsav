@@ -44,12 +44,15 @@ auto main(int argc, const char *const argv[]) -> int {
     // Set UTF-8 code page for Windows console
     SetConsoleOutputCP(CP_UTF8);
 
-    // Optional: enable virtual terminal processing for better Unicode/emoji support
-    if(HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE); hOut != INVALID_HANDLE_VALUE && hOut != nullptr) {
-        DWORD dwMode = 0;
-        if(GetConsoleMode(hOut, &dwMode) != 0) {
-            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-            SetConsoleMode(hOut, dwMode);  // Failure here is non-fatal for UTF-8 output
+    // Enable virtual terminal processing (ANSI escape codes) on both
+    // stdout and stderr — each handle requires its own SetConsoleMode call.
+    for(DWORD handle_id : {STD_OUTPUT_HANDLE, STD_ERROR_HANDLE}) {
+        if(HANDLE h = GetStdHandle(handle_id); h != INVALID_HANDLE_VALUE && h != nullptr) {
+            DWORD dwMode = 0;
+            if(GetConsoleMode(h, &dwMode) != 0) {
+                dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+                SetConsoleMode(h, dwMode);  // non-fatal if this fails
+            }
         }
     }
 #endif
@@ -105,6 +108,9 @@ auto main(int argc, const char *const argv[]) -> int {
         LINFO(processing_time);
 
         const std::string_view code(str);
+        // LineTracker indexes the source once (O(n)); all get_line calls are O(1).
+        // ErrorReporter takes ownership — source buffer (str) must outlive reporter.
+        const jsv::ErrorReporter reporter{jsv::LineTracker{code}};
         const auto size_bytes = str.size();
         const FileSizeReport report{
             .info = {.bytes = size_bytes},
@@ -119,6 +125,65 @@ auto main(int argc, const char *const argv[]) -> int {
         LINFO("num tokens {}", tokens.size());
 
         for(jsv::Token token : tokens) { LINFO("{}", token); }
+        // -----------------------------------------------------------------
+        // SourceLocation(line, column, absolute_pos)   ← costruttore reale
+        // SourceSpan(file_path, start, end)            ← costruttore reale
+        //
+        // file_path è un string_view: usiamo porfilename che è già in scope
+        // (oppure un letterale se si vuole un mock completamente autonomo).
+        // -----------------------------------------------------------------
+        const std::string_view mock_file = "src/example.jsv";
+
+        // --- Errore 1 ─ token non valido (E0001), span su singola riga -------
+        //   riga 3, col 5, offset 42  →  riga 3, col 6, offset 43
+        const jsv::SourceLocation e1_start{3, 5, 42};
+        const jsv::SourceLocation e1_end{3, 6, 43};
+        const jsv::SourceSpan e1_span{mock_file, e1_start, e1_end};
+
+        // --- Errore 2 ─ stringa non terminata (E0005), con help --------------
+        //   riga 7, col 12, offset 110  →  riga 7, col 13, offset 111
+        const jsv::SourceLocation e2_start{7, 12, 110};
+        const jsv::SourceLocation e2_end{7, 13, 111};
+        const jsv::SourceSpan e2_span{mock_file, e2_start, e2_end};
+
+        // --- Errore 3 ─ sequenza di escape non valida (E0007), con help ------
+        //   riga 15, col 3, offset 280  →  riga 15, col 5, offset 282
+        const jsv::SourceLocation e3_start{15, 3, 280};
+        const jsv::SourceLocation e3_end{15, 5, 282};
+        const jsv::SourceSpan e3_span{mock_file, e3_start, e3_end};
+
+        // --- Errore 4 ─ commento multi-linea non terminato (E0008) -----------
+        //   inizia riga 20 col 1 offset 400 → "finisce" riga 25 col 1 offset 520
+        const jsv::SourceLocation e4_start{20, 1, 400};
+        const jsv::SourceLocation e4_end{25, 1, 520};
+        const jsv::SourceSpan e4_span{mock_file, e4_start, e4_end};
+
+        // -----------------------------------------------------------------
+        // Costruzione dei CompileError tramite factory
+        // -----------------------------------------------------------------
+        std::vector<jsv::CompileError> mock_errors;
+
+        // E0001 – nessun help
+        mock_errors.push_back(
+            jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "carattere '@' non riconosciuto", e1_span, std::nullopt));
+
+        // E0005 – con help
+        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0005, "stringa aperta con '\"' mai chiusa", e2_span,
+                                                            std::string{R"(aggiungere '"' alla fine del letterale: "ciao mondo")"}));
+
+        // E0007 – con help contenente backslash (raw string per sicurezza)
+        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0007, R"(sequenza di escape '\q' non valida)", e3_span,
+                                                            std::string{R"(sequenze valide: \n \t \\ \" \' \0 \u{XXXX})"}));
+
+        // E0008 – span multi-riga, con help
+        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0008, "commento multi-linea '/*' non terminato", e4_span,
+                                                            std::string{"aggiungere '*/' per chiudere il commento"}));
+
+        const std::string diagnostic = reporter.report_errors(mock_errors);
+
+        // Diagnostici colorati su stderr (convenzione compilatori).
+        // Alternativa con il logger del progetto: LERROR("{}", diagnostic);
+        fmt::print(stderr, "{}", diagnostic);
         // LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;
