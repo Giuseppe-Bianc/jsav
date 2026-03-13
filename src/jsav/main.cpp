@@ -40,8 +40,13 @@ DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
 // NOLINTNEXTLINE(*-function-cognitive-complexity, *-exception-escape)
 auto main(int argc, const char *const argv[]) -> int {
+    // NOLINTNEXTLINE
+    INIT_LOG();
+    const vnd::AutoTimer compilationTime("Total Execution");
 #ifdef _WIN32
+    const vnd::Timer winConsoleTimer("Windows console setup");
     // Set UTF-8 code page for Windows console
+    SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
 
     // Enable virtual terminal processing (ANSI escape codes) on both
@@ -55,9 +60,8 @@ auto main(int argc, const char *const argv[]) -> int {
             }
         }
     }
+    LINFO("{}", winConsoleTimer);
 #endif
-    // NOLINTNEXTLINE
-    INIT_LOG();
     try {
         CLI::App app{FORMAT("{} version {}", jsav::cmake::project_name, jsav::cmake::project_version)};  // NOLINT(*-include-cleaner)
         // std::optional<std::string> message;  // NOLINT(*-include-cleaner)
@@ -101,7 +105,6 @@ auto main(int argc, const char *const argv[]) -> int {
         }
         */
 
-        const vnd::AutoTimer compilationTime("Total Execution");
         const vnd::Timer timer(FORMAT("Processing file {}", porfilename));
         const auto str = vnd::readFromFile(porfilename);
         const auto processing_time = timer.to_string();
@@ -183,7 +186,8 @@ auto main(int argc, const char *const argv[]) -> int {
 
         // Diagnostici colorati su stderr (convenzione compilatori).
         // Alternativa con il logger del progetto: LERROR("{}", diagnostic);
-        fmt::print(stderr, "{}", diagnostic);
+        // fmt::print(stderr, "{}", diagnostic);
+        fmt::print("{}", diagnostic);
         // LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;
