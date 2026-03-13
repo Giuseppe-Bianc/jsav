@@ -466,6 +466,13 @@ template <> struct fmt::formatter<vnd::ValueLabel> : fmt::formatter<std::string_
         return fmt::formatter<std::string_view>::format(val.toString(), ctx);
     }
 };
+
+template <> struct std::formatter<vnd::ValueLabel> : std::formatter<std::string_view> {
+    auto format(const vnd::ValueLabel &val, format_context &ctx) const -> format_context::iterator {
+        return std::formatter<std::string_view>::format(val.toString(), ctx);
+    }
+};
+
 /** \endcond */
 
 // NOLINTEND(*-include-cleaner, *-identifier-length, *-special-member-functions, *-convert-member-functions-to-static)

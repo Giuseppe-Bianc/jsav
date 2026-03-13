@@ -35,7 +35,7 @@ DISABLE_GCC_WARNINGS_PUSH("-Wstringop-overflow")
 DISABLE_CLANG_WARNINGS_POP()
 DISABLE_GCC_WARNINGS_POP()
 /**
- * @def FORMAT(...)
+ * @def FFORMAT(...)
  * @brief Macro for formatting strings using the fmt library.
  *
  * This macro wraps the fmt::format function for convenient string formatting.
@@ -50,15 +50,14 @@ DISABLE_GCC_WARNINGS_POP()
  * std::string result = FORMAT("Hello, {}! You have {} messages.", name, count);
  * @endcode
  *
- * @see FORMATST
  * @see FMT_PTR
  * @see FMT_JOIN
  */
-#define FORMAT(...) fmt::format(__VA_ARGS__)
+#define FFORMAT(...) fmt::format(__VA_ARGS__)
 
 #ifdef __cpp_lib_format
 /**
- * @def FORMATST(...)
+ * @def FORMAT(...)
  * @brief Macro for formatting strings using std::format.
  *
  * This macro wraps the std::format function for convenient string formatting
@@ -78,15 +77,15 @@ DISABLE_GCC_WARNINGS_POP()
  *
  * @see FORMAT
  */
-#define FORMATST(...) std::format(__VA_ARGS__)
+#define FORMAT(...) std::format(__VA_ARGS__)
 #else
 /**
- * @def FORMATST(...)
- * @brief Macro for formatting strings using the fmt library instead of std::format.
+ * @def FORMAT(...)
+ * @brief Macro for formatting strings using the fmt library.
  *
- * This macro wraps the FORMAT() function (which uses fmt::format) when
- * std::format is not available. It provides a consistent interface
- * regardless of whether std::format is supported.
+ * This macro wraps the fmt::format function for convenient string formatting.
+ * It provides a type-safe alternative to printf-style formatting with support
+ * for custom types, named arguments, and modern C++ features.
  *
  * @param ... The format string and arguments.
  * @return The formatted std::string.
@@ -96,9 +95,10 @@ DISABLE_GCC_WARNINGS_POP()
  * std::string result = FORMATST("Value: {}", 42);
  * @endcode
  *
- * @see FORMAT
+ * @see FMT_PTR
+ * @see FMT_JOIN
  */
-#define FORMATST(...) FORMAT(__VA_ARGS__)
+#define FORMAT(...) FFORMAT(__VA_ARGS__)
 #endif
 
 /**
@@ -147,4 +147,78 @@ DISABLE_GCC_WARNINGS_POP()
  * @endcode
  */
 #define FMT_JOIN(container, delimiter) fmt::join(container, delimiter)
+
+/**
+ * @def FFORMAT_TO(...)
+ * @brief Macro for formatting strings into an output iterator using the fmt library.
+ *
+ * This macro wraps the fmt::format_to function for convenient formatted output
+ * to an iterator (e.g. a back-insert iterator into a std::string or buffer).
+ * It provides a type-safe alternative to snprintf-style formatting with support
+ * for custom types, named arguments, and modern C++ features.
+ *
+ * @param ... The output iterator, format string, and arguments.
+ * @return An iterator past the end of the output range.
+ *
+ * @par Example:
+ * @code{.cpp}
+ * std::string buf;
+ * FFORMAT_TO(std::back_inserter(buf), "Hello, {}! You have {} messages.", name, count);
+ * @endcode
+ *
+ * @see FFORMAT
+ * @see FORMAT_TO
+ */
+#define FFORMAT_TO(...) fmt::format_to(__VA_ARGS__)
+
+#ifdef __cpp_lib_format
+/**
+ * @def FORMAT_TO(...)
+ * @brief Macro for formatting strings into an output iterator using std::format_to.
+ *
+ * This macro wraps the std::format_to function for convenient formatted output
+ * to an iterator when the C++20 std::format feature is available. It provides
+ * the same functionality as FFORMAT_TO() but uses the standard library
+ * implementation.
+ *
+ * @param ... The output iterator, format string, and arguments.
+ * @return An iterator past the end of the output range.
+ *
+ * @warning Custom fmt::formatter specializations are not compatible with std::format_to.
+ *          Behavior may differ slightly from the fmt library fallback.
+ *
+ * @par Example:
+ * @code{.cpp}
+ * std::string buf;
+ * FORMAT_TO(std::back_inserter(buf), "Value: {}", 42);
+ * @endcode
+ *
+ * @see FFORMAT_TO
+ * @see FORMAT
+ */
+#define FORMAT_TO(...) std::format_to(__VA_ARGS__)
+#else
+/**
+ * @def FORMAT_TO(...)
+ * @brief Macro for formatting strings into an output iterator using the fmt library.
+ *
+ * This macro wraps the fmt::format_to function for convenient formatted output
+ * to an iterator. It provides a type-safe alternative to snprintf-style
+ * formatting with support for custom types, named arguments, and modern C++
+ * features.
+ *
+ * @param ... The output iterator, format string, and arguments.
+ * @return An iterator past the end of the output range.
+ *
+ * @par Example:
+ * @code{.cpp}
+ * std::string buf;
+ * FORMAT_TO(std::back_inserter(buf), "Value: {}", 42);
+ * @endcode
+ *
+ * @see FFORMAT_TO
+ * @see FORMAT
+ */
+#define FORMAT_TO(...) FFORMAT_TO(__VA_ARGS__)
+#endif
 // NOLINTEND(*-include-cleaner, *-macro-usage)

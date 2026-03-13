@@ -91,17 +91,18 @@ namespace jsv {
 
         std::string output;
         output.reserve(estimated);
+        auto out = std::back_inserter(output);
 
         // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
         //             Location: <span>
-        output += FORMAT("{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(code), ansi::red(category),
-                         ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
+        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(code), ansi::red(category),
+                  ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
 
         // --- Source-line block (only when the tracker found the line) -----------
         if(!source_line.empty()) {
             // "{start_line:4} │ {source_line}"
             // Rust: writeln!(output, "{start_line:4} │ {source_line}");
-            output += FORMAT("{:4} \u2502 {}\n", start_line, source_line);
+            FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
 
             // Build the underline string:
             //   • single-line span  →  <start_offset spaces> + <length × '^'>
@@ -114,23 +115,21 @@ namespace jsv {
             if(start_line == end_line) {
                 // Rust: let length = (end_col - start_col).max(1);
                 const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
-                underline = std::string(start_offset, ' ') + std::string(length, '^');
+                underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
             } else {
-                underline = std::string(start_offset, ' ') + '^';
+                underline = FORMAT("{:>{}}^", "", start_offset);
             }
 
             // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
-            output += FORMAT("     \u2502 {}\n", ansi::red_bold(underline));
+            FORMAT_TO(out, "     │ {}\n", ansi::red_bold(underline));
 
             // Multi-line note: "     │ ... (error spans lines X-Y)"
-            if(start_line != end_line) {
-                output += FORMAT("     \u2502 {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line);
-            }
+            if(start_line != end_line) { FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line); }
         }
 
         // --- Help line (optional) -----------------------------------------------
         if(const auto help_opt = error.help(); help_opt.has_value()) {
-            output += FORMAT("{} {}\n", ansi::blue_bold("help:"), ansi::green(**help_opt));
+            FORMAT_TO(out, "{} {}\n", ansi::blue_bold("help:"), ansi::green(**help_opt));
         }
 
         return output;

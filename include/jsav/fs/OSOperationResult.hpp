@@ -127,7 +127,7 @@ namespace vnd {
         friend std::ostream &operator<<(std::ostream &oss, const OSOperationResult &obj) {
             const auto pathValue = obj.path_.value_or("");
             if(pathValue.empty()) { return oss << FORMAT("success_: {}, path_: None", obj.success_); }
-            return oss << FORMAT("success_: {}, path_: {}", obj.success_, pathValue);
+            return oss << FFORMAT("success_: {}, path_: {}", obj.success_, pathValue);
         }
 
     protected:
