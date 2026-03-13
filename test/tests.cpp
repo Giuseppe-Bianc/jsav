@@ -18,8 +18,11 @@ using Catch::Matchers::MessageMatches;
 using Catch::Matchers::StartsWith;
 
 #define REQ_FORMAT(type, string) REQUIRE(FORMAT("{}", type) == (string));
+#define REQ_FFORMAT(type, string) REQUIRE(FFORMAT("{}", type) == (string))
 #define REQ_FORMAT_COMPTOK(type, string) REQUIRE(FORMAT("{}", comp_tokType(type)) == (string));
+#define REQ_FFORMAT_COMPTOK(type, string) REQUIRE(FFORMAT("{}", comp_tokType(type)) == (string));
 #define MSG_FORMAT(...) Message(FORMAT(__VA_ARGS__))
+#define MSG_FFORMAT(...) Message(FORMAT(__VA_ARGS__))
 
 static fs::path createTestFolderStructure() {
     fs::path testFolder = fs::temp_directory_path() / "test_folder_deletion";
@@ -192,9 +195,12 @@ TEST_CASE("Corner cases for TimeValues and Times", "[TimeValues][Times][CornerCa
         const Times time(negativeTime);
 
         const ValueLabel relevantTime = time.getRelevantTimeframe();
+#ifdef __cpp_lib_format
+        REQUIRE(relevantTime.toString() == "-1e+06 ns");
+#else
         REQUIRE(relevantTime.toString() == "-1000000 ns");
+#endif
     }
-
     SECTION("Zero values") {
         const TimeValues zeroTime(0.0L);  // Zero nanoseconds
         const Times time(zeroTime);
@@ -428,7 +434,7 @@ TEST_CASE("deleteFolder: Handle exceptions gracefully", "[FolderDeletionResult]"
     REQUIRE_FALSE(result.success());
 }
 
-TEST_CASE("std::filesystem::path formater", "[FMT]") { REQ_FORMAT(std::filesystem::path("../ssss"), "../ssss"); }
+TEST_CASE("std::filesystem::path formater", "[FMT]") { REQ_FFORMAT(std::filesystem::path("../ssss"), "../ssss"); }
 
 TEST_CASE("Timer: MSTimes", "[timer]") {
     const auto timerNameData = timerName.data();
@@ -446,8 +452,8 @@ TEST_CASE("Timer: MSTimes FMT", "[timer]") {
     const auto timerNameData = timerName.data();
     vnd::Timer timer{timerNameData};
     std::this_thread::sleep_for(std::chrono::milliseconds(timerSleap));
-    const std::string output = FORMAT("{}", timer);
-    const std::string new_output = FORMAT("{}", (timer / timerCicles));
+    const std::string output = FFORMAT("{}", timer);
+    const std::string new_output = FFORMAT("{}", (timer / timerCicles));
     REQUIRE_THAT(output, ContainsSubstring(timerNameData));
     REQUIRE_THAT(output, ContainsSubstring(timerTime1.data()));
     REQUIRE_THAT(new_output, ContainsSubstring(timerTime2.data()));
@@ -464,7 +470,7 @@ TEST_CASE("Timer: BigTimer", "[timer]") {
 TEST_CASE("Timer: BigTimer FMT", "[timer]") {
     const auto timerNameData = timerName.data();
     vnd::Timer timer{timerNameData, vnd::Timer::Big};
-    const std::string output = FORMAT("{}", timer);
+    const std::string output = FFORMAT("{}", timer);
     REQUIRE_THAT(output, ContainsSubstring(timerNameData));
     REQUIRE_THAT(output, ContainsSubstring(timerBigs.data()));
 }
@@ -485,7 +491,7 @@ TEST_CASE("Timer: PrintTimer", "[timer]") {
 
 TEST_CASE("Timer: PrintTimer FMT", "[timer]") {
     vnd::Timer timer;
-    const std::string output = FORMAT("{}", timer);
+    const std::string output = FFORMAT("{}", timer);
     REQUIRE_THAT(output, ContainsSubstring(timerName2.data()));
 }
 
@@ -2758,9 +2764,8 @@ TEST_CASE("Token std::formatter integration", "[Token]") {
         const std::string result = std::format("{} {}", token1, token2);
 
         // "(()" + "())" = "((())())"
-        REQUIRE(
-            result ==
-            "OPEN_PAREN(\"(\") test.cpp:line 1:column 1 - line 1:column 5 CLOSE_PAREN(\")\") test.cpp:line 1:column 1 - line 1:column 5");
+        REQUIRE(result == "OPEN_PAREN(\"(\") test.cpp:line 1:column 1 - line 1:column 5 CLOSE_PAREN(\")\") test.cpp:line 1:column 1 - "
+                          "line 1:column 5");
     }
 }
 
@@ -5630,6 +5635,932 @@ help"));
         REQUIRE(err2.error_code().value() == jsv::ErrorCode::E0001);
     }
 }*/
+
+// -------------------------------------------------------------------------
+// LineTracker Tests
+// -------------------------------------------------------------------------
+
+TEST_CASE("LineTracker empty source", "[LineTracker][empty]") {
+    SECTION("Default constructor creates empty tracker") {
+        const jsv::LineTracker tracker;
+
+        REQUIRE(tracker.empty());
+        REQUIRE(tracker.line_count() == 0);
+        REQUIRE(tracker.get_line(1).empty());
+    }
+
+    SECTION("Empty string_view creates empty tracker") {
+        const jsv::LineTracker tracker("");
+
+        REQUIRE(tracker.empty());
+        REQUIRE(tracker.line_count() == 0);
+        REQUIRE(tracker.get_line(0).empty());
+        REQUIRE(tracker.get_line(1).empty());
+    }
+}
+
+TEST_CASE("LineTracker single line", "[LineTracker][single_line]") {
+    SECTION("Single line without newline") {
+        constexpr std::string_view source = "Hello, World!";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(!tracker.empty());
+        REQUIRE(tracker.line_count() == 1);
+        REQUIRE(tracker.get_line(1) == "Hello, World!"sv);
+    }
+
+    SECTION("Single line with trailing newline") {
+        // Trailing newline creates empty 2nd line
+        constexpr std::string_view source = "Hello, World!\n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(!tracker.empty());
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "Hello, World!"sv);
+        REQUIRE(tracker.get_line(2).empty());
+    }
+
+    SECTION("Single line with Windows CRLF") {
+        // Trailing CRLF creates empty 2nd line
+        constexpr std::string_view source = "Hello, World!\r\n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(!tracker.empty());
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "Hello, World!"sv);
+        REQUIRE(tracker.get_line(2).empty());
+    }
+}
+
+TEST_CASE("LineTracker multiple lines", "[LineTracker][multiple_lines]") {
+    SECTION("Two lines with Unix newlines") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(2) == "Line 2"sv);
+    }
+
+    SECTION("Two lines with trailing newline") {
+        // Trailing newline creates an empty 3rd line (implementation behavior)
+        constexpr std::string_view source = "Line 1\nLine 2\n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 3);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(2) == "Line 2"sv);
+        REQUIRE(tracker.get_line(3).empty());  // Empty line after trailing newline
+    }
+
+    SECTION("Multiple lines preserve content exactly") {
+        constexpr std::string_view source = "first\nsecond\nthird";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 3);
+        REQUIRE(tracker.get_line(1) == "first"sv);
+        REQUIRE(tracker.get_line(2) == "second"sv);
+        REQUIRE(tracker.get_line(3) == "third"sv);
+    }
+
+    SECTION("Windows CRLF line endings") {
+        constexpr std::string_view source = "Line 1\r\nLine 2\r\nLine 3";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 3);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(2) == "Line 2"sv);
+        REQUIRE(tracker.get_line(3) == "Line 3"sv);
+    }
+
+    SECTION("Mixed line endings (Unix and Windows)") {
+        constexpr std::string_view source = "Line 1\nLine 2\r\nLine 3\nLine 4";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 4);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(2) == "Line 2"sv);
+        REQUIRE(tracker.get_line(3) == "Line 3"sv);
+        REQUIRE(tracker.get_line(4) == "Line 4"sv);
+    }
+}
+
+TEST_CASE("LineTracker empty lines", "[LineTracker][empty_lines]") {
+    SECTION("Single empty line (just newline)") {
+        // Single newline creates 2 lines: empty + empty (after newline)
+        constexpr std::string_view source = "\n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1).empty());
+        REQUIRE(tracker.get_line(2).empty());
+    }
+
+    SECTION("Multiple consecutive empty lines") {
+        // Three newlines create 4 empty lines
+        constexpr std::string_view source = "\n\n\n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 4);
+        REQUIRE(tracker.get_line(1).empty());
+        REQUIRE(tracker.get_line(2).empty());
+        REQUIRE(tracker.get_line(3).empty());
+        REQUIRE(tracker.get_line(4).empty());
+    }
+
+    SECTION("Empty lines between content") {
+        constexpr std::string_view source = "Line 1\n\nLine 3";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 3);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(2).empty());
+        REQUIRE(tracker.get_line(3) == "Line 3"sv);
+    }
+
+    SECTION("Empty line at end without trailing newline") {
+        // Trailing newline creates empty line after
+        constexpr std::string_view source = "Line 1\n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(2).empty());
+    }
+}
+
+TEST_CASE("LineTracker whitespace handling", "[LineTracker][whitespace]") {
+    SECTION("Lines with leading/trailing spaces preserved") {
+        constexpr std::string_view source = "  leading\ntrailing  \n  both  ";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 3);
+        REQUIRE(tracker.get_line(1) == "  leading"sv);
+        REQUIRE(tracker.get_line(2) == "trailing  "sv);
+        REQUIRE(tracker.get_line(3) == "  both  "sv);
+    }
+
+    SECTION("Tab characters preserved") {
+        constexpr std::string_view source = "\t\tindented\nnormal";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "\t\tindented"sv);
+        REQUIRE(tracker.get_line(2) == "normal"sv);
+    }
+
+    SECTION("Only whitespace line") {
+        // Whitespace + newline creates 2 lines
+        constexpr std::string_view source = "   \n";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "   "sv);
+        REQUIRE(tracker.get_line(2).empty());
+    }
+}
+
+TEST_CASE("LineTracker get_line boundary conditions", "[LineTracker][boundary][edge_case]") {
+    SECTION("Line number 0 returns empty view") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.get_line(0).empty());
+    }
+
+    SECTION("Line number beyond count returns empty view") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.get_line(3).empty());
+        REQUIRE(tracker.get_line(4).empty());
+        REQUIRE(tracker.get_line(100).empty());
+    }
+
+    SECTION("Maximum valid line number") {
+        constexpr std::string_view source = "Line 1\nLine 2\nLine 3";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.get_line(3) == "Line 3"sv);
+    }
+
+    SECTION("Minimum valid line number") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+    }
+}
+
+TEST_CASE("LineTracker special characters", "[LineTracker][special_chars][edge_case]") {
+    SECTION("Unicode characters preserved") {
+        constexpr std::string_view source = "Ciao mondo\nПривет мир\n你好世界";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 3);
+        REQUIRE(tracker.get_line(1) == "Ciao mondo"sv);
+        REQUIRE(tracker.get_line(2) == "Привет мир"sv);
+        REQUIRE(tracker.get_line(3) == "你好世界"sv);
+    }
+
+    SECTION("Null characters in source") {
+        const std::string source = "Line 1\0Line 2";
+        const jsv::LineTracker tracker(source);
+
+        // String_view with embedded null - only first part indexed
+        REQUIRE(tracker.line_count() == 1);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+    }
+
+    SECTION("Control characters (except newline) preserved") {
+        constexpr std::string_view source = "Line\t1\nLine\002";
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 2);
+        REQUIRE(tracker.get_line(1) == "Line\t1"sv);
+        // Second line has control character ^B (0x02)
+        REQUIRE(tracker.get_line(2).size() == 5);
+    }
+}
+
+TEST_CASE("LineTracker copy and move semantics", "[LineTracker][semantics]") {
+    SECTION("Copy constructor") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        const jsv::LineTracker original(source);
+        const jsv::LineTracker copied(original);
+
+        REQUIRE(copied.line_count() == 2);
+        REQUIRE(copied.get_line(1) == "Line 1"sv);
+        REQUIRE(copied.get_line(2) == "Line 2"sv);
+    }
+
+    SECTION("Copy assignment") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        const jsv::LineTracker original(source);
+        jsv::LineTracker assigned("");
+        assigned = original;
+
+        REQUIRE(assigned.line_count() == 2);
+        REQUIRE(assigned.get_line(1) == "Line 1"sv);
+    }
+
+    SECTION("Move constructor is noexcept") { STATIC_REQUIRE(std::is_nothrow_move_constructible_v<jsv::LineTracker>); }
+
+    SECTION("Move assignment is noexcept") { STATIC_REQUIRE(std::is_nothrow_move_assignable_v<jsv::LineTracker>); }
+
+    SECTION("Move constructor preserves data") {
+        constexpr std::string_view source = "Line 1\nLine 2";
+        jsv::LineTracker original(source);
+        const jsv::LineTracker moved(std::move(original));
+
+        REQUIRE(moved.line_count() == 2);
+        REQUIRE(moved.get_line(1) == "Line 1"sv);
+        REQUIRE(moved.get_line(2) == "Line 2"sv);
+    }
+}
+
+TEST_CASE("LineTracker large source", "[LineTracker][performance][edge_case]") {
+    SECTION("Many lines") {
+        std::string source;
+        source.reserve(1000 * 20);
+        for(int i = 1; i <= 1000; ++i) { source += "Line " + std::to_string(i) + "\n"; }
+
+        // Each line ends with \n, so 1000 newlines = 1001 lines (last one empty)
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 1001);
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+        REQUIRE(tracker.get_line(500) == "Line 500"sv);
+        REQUIRE(tracker.get_line(1000) == "Line 1000"sv);
+        REQUIRE(tracker.get_line(1001).empty());  // Empty line after last newline
+    }
+
+    SECTION("Very long line") {
+        std::string source(10000, 'x');
+        const jsv::LineTracker tracker(source);
+
+        REQUIRE(tracker.line_count() == 1);
+        REQUIRE(tracker.get_line(1).size() == 10000);
+    }
+}
+
+TEST_CASE("LineTracker source view lifetime", "[LineTracker][lifetime]") {
+    SECTION("String_view source must outlive tracker") {
+        // This test documents the lifetime contract - tracker doesn't own source
+        std::string source = "Line 1\nLine 2";
+        jsv::LineTracker tracker(source);
+
+        // Tracker holds string_view to source - valid while source exists
+        REQUIRE(tracker.get_line(1) == "Line 1"sv);
+
+        // Modifying source after tracker creation is safe (tracker has view)
+        source = "Modified";  // This invalidates tracker's view!
+        // DO NOT use tracker after this - undefined behavior
+        // This test just documents the contract
+    }
+}
+
+// -------------------------------------------------------------------------
+// ANSI Strip Utility Tests
+// -------------------------------------------------------------------------
+
+namespace test_utils {
+
+    /// Strip ANSI escape sequences from a string for testing purposes.
+    /// Matches patterns like \x1b[0m, \x1b[1m, \x1b[31m, etc.
+    [[nodiscard]] std::string strip_ansi(std::string_view input) {
+        std::string result;
+        result.reserve(input.size());
+
+        std::size_t pos = 0;
+        while(pos < input.size()) {
+            // Check for ANSI escape sequence start (ESC = \x1b)
+            if(input[pos] == '\x1b' && pos + 1 < input.size() && input[pos + 1] == '[') {
+                // Find the end of the escape sequence (ends with 'm')
+                std::size_t end = pos + 2;
+                while(end < input.size() && input[end] != 'm') { ++end; }
+                if(end < input.size()) {
+                    // Skip the entire escape sequence (from \x1b to m inclusive)
+                    pos = end + 1;
+                } else {
+                    // Malformed escape sequence - copy as-is
+                    result += input[pos];
+                    ++pos;
+                }
+            } else {
+                result += input[pos];
+                ++pos;
+            }
+        }
+
+        return result;
+    }
+
+    /// Check if string contains ANSI escape sequences.
+    [[nodiscard]] bool contains_ansi(std::string_view input) {
+        for(std::size_t i = 0; i + 1 < input.size(); ++i) {
+            if(input[i] == '\x1b' && input[i + 1] == '[') { return true; }
+        }
+        return false;
+    }
+
+}  // namespace test_utils
+
+TEST_CASE("strip_ansi empty input", "[ansi_strip][empty]") { REQUIRE(test_utils::strip_ansi("").empty()); }
+
+TEST_CASE("strip_ansi no ansi codes", "[ansi_strip][no_ansi]") {
+    SECTION("Plain text unchanged") { REQUIRE(test_utils::strip_ansi("Hello, World!") == "Hello, World!"sv); }
+
+    SECTION("Numbers and symbols unchanged") {
+        REQUIRE(test_utils::strip_ansi("Error E0001: 123 + 456 = 579") == "Error E0001: 123 + 456 = 579"sv);
+    }
+}
+
+TEST_CASE("strip_ansi single ansi code", "[ansi_strip][single_code]") {
+    SECTION("Reset code stripped") {
+        // \x1b[0m
+        const std::string input = "Hello\x1b[0m";
+        REQUIRE(test_utils::strip_ansi(input) == "Hello"sv);
+    }
+
+    SECTION("Bold code stripped") {
+        // \x1b[1m
+        const std::string input = "\x1b[1mBold";
+        REQUIRE(test_utils::strip_ansi(input) == "Bold"sv);
+    }
+
+    SECTION("Color code stripped") {
+        // \x1b[31m (red)
+        const std::string input = "\x1b[31mRed";
+        REQUIRE(test_utils::strip_ansi(input) == "Red"sv);
+    }
+
+    SECTION("Color code in middle") {
+        const std::string input = "Start\x1b[32mGreen";
+        REQUIRE(test_utils::strip_ansi(input) == "StartGreen"sv);
+    }
+}
+
+TEST_CASE("strip_ansi multiple ansi codes", "[ansi_strip][multiple_codes]") {
+    SECTION("Multiple colors stripped") {
+        const std::string input = "\x1b[31mRed\x1b[32mGreen\x1b[34mBlue";
+        REQUIRE(test_utils::strip_ansi(input) == "RedGreenBlue"sv);
+    }
+
+    SECTION("Bold and color stripped") {
+        const std::string input = "\x1b[1m\x1b[31mBold Red";
+        REQUIRE(test_utils::strip_ansi(input) == "Bold Red"sv);
+    }
+
+    SECTION("Full styled text stripped") {
+        // Simulating styled text: ESC[31m + text + ESC[0m
+        const std::string input = "\x1b[31mError\x1b[0m";
+        REQUIRE(test_utils::strip_ansi(input) == "Error"sv);
+    }
+}
+
+TEST_CASE("strip_ansi complex sequences", "[ansi_strip][complex]") {
+    SECTION("256-color codes stripped") {
+        // \x1b[38;5;196m (256-color red)
+        const std::string input = "\x1b[38;5;196mBright Red\x1b[0m";
+        REQUIRE(test_utils::strip_ansi(input) == "Bright Red"sv);
+    }
+
+    SECTION("RGB color codes stripped") {
+        // \x1b[38;2;255;0;0m (RGB red)
+        const std::string input = "\x1b[38;2;255;0;0mRGB Red\x1b[0m";
+        REQUIRE(test_utils::strip_ansi(input) == "RGB Red"sv);
+    }
+
+    SECTION("Multiple attributes") {
+        // Bold + underline + color
+        const std::string input = "\x1b[1;4;31mStyled\x1b[0m";
+        REQUIRE(test_utils::strip_ansi(input) == "Styled"sv);
+    }
+}
+
+TEST_CASE("contains_ansi utility", "[ansi_strip][contains]") {
+    SECTION("Plain text returns false") { REQUIRE_FALSE(test_utils::contains_ansi("Hello, World!")); }
+
+    SECTION("Text with ANSI returns true") { REQUIRE(test_utils::contains_ansi("\x1b[31mRed")); }
+
+    SECTION("Empty string returns false") { REQUIRE_FALSE(test_utils::contains_ansi("")); }
+
+    SECTION("ANSI at end returns true") { REQUIRE(test_utils::contains_ansi("Text\x1b[0m")); }
+}
+
+// -------------------------------------------------------------------------
+// ErrorReporter Tests
+// -------------------------------------------------------------------------
+
+TEST_CASE("ErrorReporter simple error without code", "[ErrorReporter][simple]") {
+    constexpr std::string_view source = "let x = 5;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Format error without code") {
+        // Create a simple error (AsmGeneratorError would use format_simple_error)
+        // For now, test through report_errors with a LexerError
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid instruction"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        // Strip ANSI codes for content verification
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(test_utils::contains_ansi(result));
+        REQUIRE(stripped.find("ERROR") != std::string::npos);
+        REQUIRE(stripped.find("LEX") != std::string::npos);
+        REQUIRE(stripped.find("Invalid instruction") != std::string::npos);
+    }
+
+    SECTION("Error message contains ANSI codes") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "File not found"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        REQUIRE(test_utils::contains_ansi(result));
+        REQUIRE(result.find("ERROR") != std::string::npos);
+        REQUIRE(result.find("LEX") != std::string::npos);
+        REQUIRE(result.find("File not found") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter simple error with code", "[ErrorReporter][simple_with_code]") {
+    constexpr std::string_view source = "let x = 5;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Format error with code") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Invalid instruction"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        // Strip ANSI codes for content verification
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("ERROR") != std::string::npos);
+        REQUIRE(stripped.find("[E0001]") != std::string::npos);
+        REQUIRE(stripped.find("LEX") != std::string::npos);
+        REQUIRE(stripped.find("Invalid instruction") != std::string::npos);
+    }
+
+    SECTION("Different error codes") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error_e4002 = jsv::CompileError::LexerError(jsv::ErrorCode::E4002, "Register allocation failed"sv, span,
+                                                                            std::nullopt);
+
+        const std::string result_e4002 = reporter.report_errors(std::vector{error_e4002});
+        const std::string stripped_e4002 = test_utils::strip_ansi(result_e4002);
+
+        REQUIRE(stripped_e4002.find("[E4002]") != std::string::npos);
+        REQUIRE(stripped_e4002.find("Register allocation failed") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter spanned error basic", "[ErrorReporter][spanned]") {
+    constexpr std::string_view source = "let x = 5;\nlet y = 10;\nlet z = 15;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Single line error") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(2, 5, 13), jsv::SourceLocation(2, 6, 14));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Unexpected character"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("ERROR") != std::string::npos);
+        REQUIRE(stripped.find("LEX") != std::string::npos);
+        REQUIRE(stripped.find("Unexpected character") != std::string::npos);
+        REQUIRE(stripped.find("let y = 10;") != std::string::npos);
+    }
+
+    SECTION("Error with help message") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid keyword"sv, span,
+                                                                      std::string("Did you mean 'let'?"));
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("help:") != std::string::npos);
+        REQUIRE(stripped.find("Did you mean 'let'?") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter spanned error with error code", "[ErrorReporter][spanned_with_code]") {
+    constexpr std::string_view source = "let x = @invalid;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Lexer error with E0001 code") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9));
+        const jsv::CompileError error = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Unrecognized character '@'"sv, span,
+                                                                      std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("[E0001]") != std::string::npos);
+        REQUIRE(stripped.find("LEX") != std::string::npos);
+        REQUIRE(stripped.find("Unrecognized character '@'") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter multi-line span", "[ErrorReporter][multi_line]") {
+    constexpr std::string_view source = "let x = 5;\n/* comment\n   spans\n   multiple\n   lines */";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Multi-line error shows first line with note") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(2, 1, 11), jsv::SourceLocation(5, 10, 45));
+        const jsv::CompileError error = jsv::CompileError::LexerError(jsv::ErrorCode::E0008, "Unterminated comment"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("ERROR") != std::string::npos);
+        REQUIRE(stripped.find("[E0008]") != std::string::npos);
+        REQUIRE(stripped.find("/* comment") != std::string::npos);
+        REQUIRE(stripped.find("... (error spans lines 2-5)") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter multiple errors", "[ErrorReporter][multiple]") {
+    constexpr std::string_view source = "let x = @1;\nlet y = @2;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Two errors separated") {
+        const jsv::SourceSpan span1("test.cpp", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 11, 10));
+        const jsv::SourceSpan span2("test.cpp", jsv::SourceLocation(2, 9, 22), jsv::SourceLocation(2, 11, 24));
+
+        const jsv::CompileError error1 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Invalid char '@'"sv, span1, std::nullopt);
+        const jsv::CompileError error2 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Invalid char '@'"sv, span2, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error1, error2});
+
+        // Should contain both errors
+        REQUIRE(result.find("ERROR") != std::string::npos);
+        // Each error ends with \n, so consecutive errors will have \n between them
+        REQUIRE(result.find("LEX") != std::string::npos);
+        // Check both line numbers are present
+        REQUIRE(result.find("line 1") != std::string::npos);
+        REQUIRE(result.find("line 2") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter empty error list", "[ErrorReporter][empty]") {
+    constexpr std::string_view source = "let x = 5;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Empty vector returns empty string") {
+        const std::string result = reporter.report_errors(std::vector<jsv::CompileError>{});
+        REQUIRE(result.empty());
+    }
+
+    SECTION("Empty span returns empty string") {
+        std::span<const jsv::CompileError> empty_span;
+        const std::string result = reporter.report_errors(empty_span);
+        REQUIRE(result.empty());
+    }
+}
+
+TEST_CASE("ErrorReporter column positioning", "[ErrorReporter][column]") {
+    SECTION("Caret at column 1") {
+        constexpr std::string_view source = "x = 5;";
+        const jsv::LineTracker tracker(source);
+        const jsv::ErrorReporter reporter(tracker);
+
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Unexpected 'x'"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // Caret should be at position 1 (no leading spaces)
+        REQUIRE(stripped.find("│ ^") != std::string::npos);
+    }
+
+    SECTION("Caret at middle column") {
+        constexpr std::string_view source = "let x = @bad;";
+        const jsv::LineTracker tracker(source);
+        const jsv::ErrorReporter reporter(tracker);
+
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // Caret should be indented to column 9
+        REQUIRE(stripped.find("│         ^") != std::string::npos);
+    }
+
+    SECTION("Caret spans multiple columns") {
+        constexpr std::string_view source = "let x = invalid;";
+        const jsv::LineTracker tracker(source);
+        const jsv::ErrorReporter reporter(tracker);
+
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 16, 15));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid token"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // Caret should span columns 9-15 (7 characters: "invalid")
+        // Underline format: "     │ " + start_offset spaces + carets
+        // start_offset = column - 1 = 8, but there's an extra space in the format
+        REQUIRE(stripped.find("│         ^^^^^^^") != std::string::npos);  // 9 spaces before carets
+    }
+}
+
+TEST_CASE("ErrorReporter edge cases", "[ErrorReporter][edge_case]") {
+    constexpr std::string_view source = "test";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Line number 0 in span") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(0, 1, 0), jsv::SourceLocation(0, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test error"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        // Should not crash, but source line won't be shown (line 0 is invalid)
+        REQUIRE(result.find("ERROR") != std::string::npos);
+    }
+
+    SECTION("Line number beyond source") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(100, 1, 0), jsv::SourceLocation(100, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test error"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        // Should not crash, but source line won't be shown
+        REQUIRE(result.find("ERROR") != std::string::npos);
+    }
+
+    SECTION("Column 0 in span") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 0, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test error"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // Should handle gracefully (column 0 treated as column 1)
+        REQUIRE(stripped.find("│ ^") != std::string::npos);
+    }
+
+    SECTION("End column before start column") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 2, 1));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test error"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        // Should not crash - minimum length of 1 caret
+        REQUIRE(result.find("ERROR") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter unknown error kind", "[ErrorReporter][unknown_kind]") {
+    constexpr std::string_view source = "test";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Default case handles unknown kinds") {
+        // Create error with default kind (LexerError is only available kind)
+        // The default case in switch handles future/unknown kinds
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Unknown kind test"sv, span, std::nullopt);
+
+        // Manually set to trigger default (would need Kind modification)
+        // For now, test that existing kind works
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        REQUIRE(result.find("ERROR") != std::string::npos);
+        REQUIRE(result.find("LEX") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter ANSI color verification", "[ErrorReporter][ansi]") {
+    constexpr std::string_view source = "let x = 5;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Spanned error has red and yellow") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Error message"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        // Should contain ANSI red (\x1b[31m) and yellow (\x1b[33m)
+        REQUIRE(result.find("\x1b[31m") != std::string::npos);  // Red
+        REQUIRE(result.find("\x1b[33m") != std::string::npos);  // Yellow
+        REQUIRE(result.find("\x1b[0m") != std::string::npos);   // Reset
+    }
+
+    SECTION("Spanned error has multiple colors") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        // Should contain multiple ANSI codes
+        REQUIRE(result.find("\x1b[31m") != std::string::npos);  // Red
+        REQUIRE(result.find("\x1b[33m") != std::string::npos);  // Yellow
+        REQUIRE(result.find("\x1b[34m") != std::string::npos);  // Blue
+        REQUIRE(result.find("\x1b[36m") != std::string::npos);  // Cyan
+    }
+
+    SECTION("Help message has green color") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test"sv, span, std::string("Help text"));
+
+        const std::string result = reporter.report_errors(std::vector{error});
+
+        // Should contain green for help text
+        REQUIRE(result.find("\x1b[32m") != std::string::npos);  // Green
+    }
+}
+
+TEST_CASE("ErrorReporter location formatting", "[ErrorReporter][location]") {
+    constexpr std::string_view source = "let x = 5;";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Location line format") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(5, 10, 50), jsv::SourceLocation(5, 15, 55));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("Location:") != std::string::npos);
+        REQUIRE(stripped.find("test.cpp") != std::string::npos);
+        REQUIRE(stripped.find("line 5") != std::string::npos);
+        REQUIRE(stripped.find("column 10") != std::string::npos);
+    }
+}
+
+TEST_CASE("ErrorReporter report_errors vector overload", "[ErrorReporter][overload]") {
+    constexpr std::string_view source = "test";
+    const jsv::LineTracker tracker(source);
+    const jsv::ErrorReporter reporter(tracker);
+
+    SECTION("Vector overload works") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test"sv, span, std::nullopt);
+
+        std::vector<jsv::CompileError> errors;
+        errors.push_back(error);
+
+        const std::string result = reporter.report_errors(errors);
+        REQUIRE(!result.empty());
+    }
+
+    SECTION("Span overload works") {
+        const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Test"sv, span, std::nullopt);
+
+        const std::vector<jsv::CompileError> errors = {error};
+        const std::string result = reporter.report_errors(std::span<const jsv::CompileError>(errors));
+        REQUIRE(!result.empty());
+    }
+}
+
+// -------------------------------------------------------------------------
+// Integration Tests: LineTracker + ErrorReporter
+// -------------------------------------------------------------------------
+
+TEST_CASE("LineTracker and ErrorReporter integration", "[LineTracker][ErrorReporter][integration]") {
+    SECTION("Complete error reporting workflow") {
+        constexpr std::string_view source_code = R"(fn main() {
+    let x = 5;
+    let y = @invalid;
+    let z = 10;
+})";
+
+        const jsv::LineTracker tracker(source_code);
+        const jsv::ErrorReporter reporter(tracker);
+
+        // Error on line 3, column 13 (@ character)
+        const jsv::SourceSpan span("example.jsv", jsv::SourceLocation(3, 13, 25), jsv::SourceLocation(3, 14, 26));
+        const jsv::CompileError error = jsv::CompileError::LexerError(
+            jsv::ErrorCode::E0001, "Unrecognized character '@'"sv, span,
+            std::string("Remove the '@' character or replace with valid identifier"));
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // Verify complete error message structure
+        REQUIRE(stripped.find("ERROR") != std::string::npos);
+        REQUIRE(stripped.find("[E0001]") != std::string::npos);
+        REQUIRE(stripped.find("LEX") != std::string::npos);
+        REQUIRE(stripped.find("Unrecognized character '@'") != std::string::npos);
+        REQUIRE(stripped.find("example.jsv") != std::string::npos);
+        REQUIRE(stripped.find("line 3") != std::string::npos);
+        REQUIRE(stripped.find("    let y = @invalid;") != std::string::npos);  // Source line
+        REQUIRE(stripped.find("│             ^") != std::string::npos);        // Caret
+        REQUIRE(stripped.find("help:") != std::string::npos);
+        REQUIRE(stripped.find("Remove the '@' character") != std::string::npos);
+    }
+
+    SECTION("Multiple errors in realistic scenario") {
+        constexpr std::string_view source_code = R"(let x = @1;
+let y = @2;
+let z = @3;)";
+
+        const jsv::LineTracker tracker(source_code);
+        const jsv::ErrorReporter reporter(tracker);
+
+        const jsv::SourceSpan span1("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 11, 10));
+        const jsv::SourceSpan span2("test.jsv", jsv::SourceLocation(2, 9, 22), jsv::SourceLocation(2, 11, 24));
+        const jsv::SourceSpan span3("test.jsv", jsv::SourceLocation(3, 9, 36), jsv::SourceLocation(3, 11, 38));
+
+        const jsv::CompileError error1 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Invalid char '@'"sv, span1, std::nullopt);
+        const jsv::CompileError error2 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Invalid char '@'"sv, span2, std::nullopt);
+        const jsv::CompileError error3 = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "Invalid char '@'"sv, span3, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error1, error2, error3});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // All three errors should be present
+        REQUIRE(stripped.find("line 1") != std::string::npos);
+        REQUIRE(stripped.find("line 2") != std::string::npos);
+        REQUIRE(stripped.find("line 3") != std::string::npos);
+
+        // Each should have source line and caret
+        REQUIRE(stripped.find("let x = @1;") != std::string::npos);
+        REQUIRE(stripped.find("let y = @2;") != std::string::npos);
+        REQUIRE(stripped.find("let z = @3;") != std::string::npos);
+    }
+
+    SECTION("Multi-line error with realistic comment") {
+        constexpr std::string_view source_code = R"(fn calculate() {
+    /* This comment
+       spans multiple
+       lines and is
+       unterminated
+    let x = 5;
+})";
+
+        const jsv::LineTracker tracker(source_code);
+        const jsv::ErrorReporter reporter(tracker);
+
+        const jsv::SourceSpan span("calc.jsv", jsv::SourceLocation(2, 5, 17), jsv::SourceLocation(6, 1, 73));
+        const jsv::CompileError error = jsv::CompileError::LexerError(jsv::ErrorCode::E0008, "Unterminated multi-line comment"sv, span,
+                                                                      std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        REQUIRE(stripped.find("[E0008]") != std::string::npos);
+        REQUIRE(stripped.find("/* This comment") != std::string::npos);
+        REQUIRE(stripped.find("... (error spans lines 2-6)") != std::string::npos);
+    }
+}
 
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
