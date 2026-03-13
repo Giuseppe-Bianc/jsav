@@ -184,7 +184,8 @@ TEST_CASE("ErrorReporter multiple errors benchmark", "[!benchmark][ErrorReporter
         std::vector<jsv::CompileError> errors;
         errors.reserve(100);
         for(int i = 0; i < 100; ++i) {
-            const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1 + (i / 10), 1, 0), jsv::SourceLocation(1 + (i / 10), 5, 4));
+            const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1 + (C_ST(i) / 10), 1, 0),
+                                       jsv::SourceLocation(1 + (C_ST(i) / 10), 5, 4));
             errors.emplace_back(jsv::CompileError::LexerError(std::nullopt, "Error"sv, span, std::nullopt));
         }
 
