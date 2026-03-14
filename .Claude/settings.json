@@ -3,5 +3,8 @@
     "type": "command",
     "command": "bash .claude/statusline.sh",
     "padding": 0
+  },
+  "enabledPlugins": {
+    "context-mode@context-mode": true
   }
 }
