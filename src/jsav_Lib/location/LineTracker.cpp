@@ -1,5 +1,7 @@
 // NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers)
 #include "jsav/location/LineTracker.hpp"
+#include "jsav/lexer/unicode/UnicodeData.hpp"
+#include "jsav/lexer/unicode/Utf8.hpp"
 
 namespace jsv {
 
@@ -13,27 +15,44 @@ namespace jsv {
     // Private helpers
     // -------------------------------------------------------------------------
 
-    void LineTracker::index_lines() {
-        if(source_.empty()) { return; }
+void LineTracker::index_lines() {
+    if(source_.empty()) { return; }
+    lines_.clear();
 
-        lines_.clear();
-        const auto newline_count = C_ST(std::ranges::count(source_, '\n'));
-        lines_.reserve(newline_count + 1);
+    // '\n' count is a lower bound; Unicode terminators (NEL, LS, PS) may add more lines.
+    lines_.reserve(C_ST(std::ranges::count(source_, '\n')) + 1);
 
-        // Single forward scan: find each '\n', strip optional '\r', push view.
-        for(std::size_t pos = 0; pos <= source_.size();) {
-            const std::size_t newline = source_.find('\n', pos);
-            const std::size_t end = (newline != std::string_view::npos) ? newline : source_.size();
+    for(std::size_t pos = 0; pos <= source_.size();) {
+        // Scan forward, decoding one codepoint at a time, until a line terminator is found.
+        std::size_t scan = pos;
+        jsv::unicode::Utf8DecodeResult term{};
+        bool found = false;
 
-            // Strip a trailing '\r' so Windows CRLF files work transparently.
-            const std::size_t line_end = (end > pos && source_[end - 1] == '\r') ? end - 1 : end;
-
-            lines_.emplace_back(source_.data() + pos, line_end - pos);
-
-            if(newline == std::string_view::npos) { break; }
-            pos = newline + 1;
+        while(scan < source_.size()) {
+            const auto res = jsv::unicode::decode_utf8(source_, scan);
+            if(res.codepoint == U'\n'|| jsv::unicode::is_unicode_line_terminator(res.codepoint)) {
+                term = res;
+                found = true;
+                break;
+            }
+            scan += res.byte_length;
         }
+
+        if(!found) {
+            // No terminator remains — push the final (possibly empty) line and stop.
+            lines_.emplace_back(source_.data() + pos, source_.size() - pos);
+            break;
+        }
+
+        // Strip a trailing '\r' for CRLF; only applicable immediately before '\n'.
+        const std::size_t line_end =
+            (term.codepoint == U'\n' && scan > pos && source_[scan - 1] == '\r')
+            ? scan - 1 : scan;
+
+        lines_.emplace_back(source_.data() + pos, line_end - pos);
+        pos = scan + term.byte_length;
     }
+}
 
     // -------------------------------------------------------------------------
     // Public interface

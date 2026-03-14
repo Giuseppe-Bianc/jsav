@@ -147,8 +147,9 @@ namespace jsv {
     //
     // ---------------------------------------------------------------------------
     std::string ErrorReporter::report_errors(std::span<const CompileError> errors) const {
+        static constexpr std::size_t k_per_error_budget = 256u;
         std::string output;
-        output.reserve(errors.size() * 256u);  // rough per-error budget
+        output.reserve(errors.size() * k_per_error_budget);  // rough per-error budget
 
         for(const CompileError &error : errors) {
             switch(error.kind()) {

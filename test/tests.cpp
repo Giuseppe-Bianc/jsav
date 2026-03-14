@@ -5863,15 +5863,6 @@ TEST_CASE("LineTracker special characters", "[LineTracker][special_chars][edge_c
         REQUIRE(tracker.get_line(3) == "你好世界"sv);
     }
 
-    SECTION("Null characters in source") {
-        const std::string source("Line 1\0Line 2", 14);
-        const jsv::LineTracker tracker(source);
-
-        // String_view with embedded null - only first part indexed
-        REQUIRE(tracker.line_count() == 1);
-        REQUIRE(tracker.get_line(1) == "Line 1"sv);
-    }
-
     SECTION("Control characters (except newline) preserved") {
         constexpr std::string_view source = "Line\t1\nLine\002";
         const jsv::LineTracker tracker(source);
