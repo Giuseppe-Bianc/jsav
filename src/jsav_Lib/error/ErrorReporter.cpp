@@ -69,7 +69,7 @@ namespace jsv {
     //
     // ---------------------------------------------------------------------------
     std::string ErrorReporter::format_spanned_error(std::string_view category, const CompileError &error) const {
-        const std::optional<ErrorCode> code = error.error_code();
+        const std::optional<ErrorCode> error_code = error.error_code();
         const std::string_view msg = error.message();
         const SourceSpan &span = error.span();
 
@@ -82,12 +82,12 @@ namespace jsv {
         // Mirrors: `self.line_tracker.get_line(start_line).unwrap_or_default()`
         const std::string_view source_line = line_tracker_.get_line(start_line);
 
-        const std::size_t estimated = 100u + msg.size() + category.size() + (code.has_value() ? 12u : 0u)  // "[Exxxx] "
-                                      + 40u                                                                // location line
-                                      + source_line.size() + 20u                                           // source line row
-                                      + start_col + 10u                                                    // underline row
-                                      + (start_line != end_line ? 40u : 0u)                                // multi-line note
-                                      + (error.help().has_value() ? 20u : 0u);                             // help line
+        const std::size_t estimated = 100u + msg.size() + category.size() + (error_code.has_value() ? 12u : 0u)  // "[Exxxx] "
+                                      + 40u                                                                      // location line
+                                      + source_line.size() + 20u                                                 // source line row
+                                      + start_col + 10u                                                          // underline row
+                                      + (start_line != end_line ? 40u : 0u)                                      // multi-line note
+                                      + (error.help().has_value() ? 20u : 0u);                                   // help line
 
         std::string output;
         output.reserve(estimated);
@@ -95,7 +95,7 @@ namespace jsv {
 
         // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
         //             Location: <span>
-        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(code), ansi::red(category),
+        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(error_code), ansi::red(category),
                   ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
 
         // --- Source-line block (only when the tracker found the line) -----------
