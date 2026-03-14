@@ -56,9 +56,11 @@ As a developer who may accidentally open a file with incorrect encoding or encou
 
 **Acceptance Scenarios**:
 
-1. **Given** a source file containing an invalid UTF-8 byte sequence at byte offset 42 on line 5, **When** the ErrorReporter processes the file, **Then** it reports a specific encoding error stating "Invalid UTF-8 sequence at byte offset 42, line 5" rather than displaying garbled characters or incorrect column positions.
+1. **Given** a source file containing an invalid UTF-8 byte sequence at byte offset 42 on line 5, **When** the ErrorReporter processes the file, **Then** it reports a specific encoding error stating "Invalid UTF-8 sequence at byte offset 42, line 5" rather than displaying garbled characters or incorrect column positions. The visual marker row MUST use byte-based column calculation to position caret(s) under the invalid byte(s) for that specific line only.
 
-2. **Given** a source file with valid UTF-8 on most lines but an invalid sequence on one line, **When** an error is reported on a different line with valid UTF-8, **Then** the marker alignment is correct on the valid line (no fallback to byte-based calculation).
+2. **Given** a source file with valid UTF-8 on most lines but an invalid sequence on one line, **When** an error is reported on a different line with valid UTF-8, **Then** the marker alignment is correct on the valid line using code point-based calculation (no fallback to byte-based calculation).
+
+3. **Given** a source file containing an invalid UTF-8 sequence on line 3 and a syntax error on line 7 (valid UTF-8), **When** the syntax error is reported, **Then** line 7's marker uses code point-based calculation and line 3's encoding error marker uses byte-based calculation for the invalid bytes only.
 
 ---
 
@@ -101,7 +103,7 @@ The following items are explicitly excluded from this feature:
 
 - What happens when a source line contains a mix of single-byte ASCII and multi-byte Unicode code points before the error position? The marker should count all code points as one column unit each, regardless of byte length.
 
-- How does the system handle a file that is entirely valid UTF-8 except for one invalid byte sequence? The invalid sequence should be reported as an encoding error, and errors on valid lines should still use code point-based calculation (no fallback).
+- How does the system handle a file that is entirely valid UTF-8 except for one invalid byte sequence? The invalid sequence MUST be reported as an encoding error with byte offset and line number. For the line containing invalid UTF-8, the marker row MUST use byte-based column calculation to position caret(s) under the invalid byte(s). All other lines with valid UTF-8 MUST use code point-based calculation (no fallback).
 
 - What happens when an error position falls in the middle of a multi-byte UTF-8 sequence (due to byte-based position input)? The ErrorReporter must handle this gracefully by identifying the start of the code point and reporting the position correctly.
 
@@ -151,9 +153,9 @@ The following items are explicitly excluded from this feature:
 
 - **FR-015**: All behavior on files containing only ASCII code points (byte values 0 through 127) MUST remain identical to the current behavior, ensuring full backward compatibility.
 
-- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found. The error message MUST follow the existing ErrorReporter format as defined in **FR-001**, consisting of: (1) a header line with `ERROR [Exxxx] LEX: <message>`, (2) a location line, (3) the source line with line number prefix, (4) a visual marker row with caret(s) beneath the problematic code point(s), and optionally (5) a help line.
+- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found. The error message MUST follow the existing ErrorReporter format as defined in **FR-001**, consisting of: (1) a header line with `ERROR [Exxxx] LEX: <message>`, (2) a location line, (3) the source line with line number prefix, (4) a visual marker row with caret(s) beneath the problematic byte(s) using byte-based column calculation for the invalid sequence only, and optionally (5) a help line.
 
-- **FR-017**: ErrorReporter MUST never fall back to byte-based column calculation under any circumstance, including when invalid UTF-8 is detected in other parts of the file beyond the error line.
+- **FR-017**: ErrorReporter MUST never fall back to byte-based column calculation for valid UTF-8 lines. For lines containing invalid UTF-8 sequences, byte-based column calculation MAY be used solely for positioning the marker under the invalid bytes, but all other lines in the same file MUST use code point-based calculation regardless of invalid UTF-8 elsewhere in the file.
 
 - **FR-018**: ErrorReporter MUST accept a configurable tab stop width parameter (default: 8 columns). Tab expansion MUST calculate visual column position as: `visualColumn = ((currentColumn - 1) / tabStopWidth + 1) * tabStopWidth + 1`.
 
