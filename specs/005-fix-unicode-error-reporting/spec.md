@@ -1,0 +1,166 @@
+# Feature Specification: Unicode-Aware Error Reporter
+
+**Feature Branch**: `005-fix-unicode-error-reporting`
+**Created**: 2026-03-14
+**Status**: Draft
+**Input**: Update the ErrorReporter class so that it correctly handles source files containing UTF-8 encoded Unicode characters, ensuring perfect visual alignment between error markers and the actual characters that caused the error.
+
+## Clarifications
+
+### Session 2026-03-14
+
+- Q: What performance constraints should the Unicode error reporting meet? → A: Zero overhead required - Unicode handling must be as fast as current byte-based calculation (microsecond-level)
+- Q: What is the maximum line length the ErrorReporter must handle correctly? → A: Practical limit - 10,000 code points per line
+- Q: Should error markers use color for enhanced visibility in terminals that support it? → A: Optional color with fallback - use colored carets when terminal supports ANSI colors, fall back to '^' otherwise
+- Q: Should the spec terminology be standardized to use "code point" consistently instead of "character"? → A: Use "code point" exclusively - replace all instances of "character" with "Unicode code point" or "code point"
+- Q: Should error positioning use grapheme clusters (user-perceived characters) instead of code points for languages with combining characters? → A: Code points only - "é" (e + combining accent) counts as 2 positions, simpler implementation
+
+## User Scenarios & Testing
+
+### User Story 1 - Unicode Source File Error Positioning (Priority: P1)
+
+As a developer writing source code with Unicode characters (such as international identifiers, string literals with emojis, or non-ASCII comments), when the compiler encounters an error in my code, I need the error marker to point to the exact character position visually, so that I can immediately identify the problematic code without manually counting characters.
+
+**Why this priority**: This is the core functionality that delivers immediate value. Without correct Unicode handling, error messages are misleading and waste developer time debugging the wrong positions. This is the minimum viable improvement over the current byte-based system.
+
+**Independent Test**: Can be fully tested by compiling a source file containing multi-byte Unicode characters with a deliberate syntax error and verifying the caret marker aligns visually under the correct character in the displayed source line.
+
+**Acceptance Scenarios**:
+
+1. **Given** a source file containing multi-byte Unicode characters (e.g., "let x = 你好;") with a syntax error at a specific character, **When** the compiler reports the error, **Then** the visual marker row displays the caret (^) directly beneath the correct Unicode character, not offset by byte count.
+
+2. **Given** a source file where an error spans multiple Unicode characters (e.g., an invalid identifier "αβγδ"), **When** the compiler reports the error, **Then** the marker row displays one caret for each Unicode code point in the span, aligned precisely under each corresponding character.
+
+3. **Given** a source file containing only ASCII characters with a syntax error, **When** the compiler reports the error, **Then** the behavior is identical to the current implementation (backward compatibility).
+
+---
+
+### User Story 2 - Invalid UTF-8 Detection and Reporting (Priority: P2)
+
+As a developer who may accidentally open a file with incorrect encoding or encounter corrupted source files, when the ErrorReporter encounters invalid UTF-8 byte sequences, I need a clear error message that identifies the exact byte offset and line number, so that I can locate and fix the encoding issue.
+
+**Why this priority**: Invalid UTF-8 handling is critical for robustness but is secondary to correct handling of valid UTF-8. Without this, the compiler may produce misleading errors or crash on malformed input. However, valid UTF-8 handling (P1) is more frequently encountered.
+
+**Independent Test**: Can be fully tested by providing a source file with intentionally invalid UTF-8 byte sequences and verifying the compiler reports a specific encoding error with byte offset and line number, rather than misinterpreting the bytes or producing misaligned markers.
+
+**Acceptance Scenarios**:
+
+1. **Given** a source file containing an invalid UTF-8 byte sequence at byte offset 42 on line 5, **When** the ErrorReporter processes the file, **Then** it reports a specific encoding error stating "Invalid UTF-8 sequence at byte offset 42, line 5" rather than displaying garbled characters or incorrect column positions.
+
+2. **Given** a source file with valid UTF-8 on most lines but an invalid sequence on one line, **When** an error is reported on a different line with valid UTF-8, **Then** the marker alignment is correct on the valid line (no fallback to byte-based calculation).
+
+---
+
+### User Story 3 - Edge Case Handling for Unicode Display (Priority: P3)
+
+As a developer working with source code containing unusual Unicode constructs (combining characters, zero-width characters, or errors at line boundaries), I need the error reporter to handle these edge cases correctly, so that error messages remain accurate and readable regardless of the Unicode content.
+
+**Why this priority**: Edge cases affect a smaller subset of users but are critical for correctness when they occur. This can be delivered after core functionality (P1) and invalid UTF-8 handling (P2) are complete.
+
+**Independent Test**: Can be fully tested by providing source files with specific edge case Unicode constructs and verifying the error marker positioning matches the expected behavior for each case.
+
+**Acceptance Scenarios**:
+
+1. **Given** a source file where an error occurs at the first character of a line (column 1), **When** the error is reported, **Then** the marker row begins with a caret and has no leading spaces.
+
+2. **Given** a source file where an error occurs at the last character of a line, **When** the error is reported, **Then** the marker appears beneath that final character with no trailing content.
+
+3. **Given** a source file containing combining Unicode code points (e.g., "e" followed by combining acute accent), **When** an error involves these code points, **Then** each code point in the sequence counts as one column unit independently for marker positioning (e.g., "é" = 2 column positions).
+
+4. **Given** a source file with tab characters before an error position, **When** the error is reported, **Then** each tab character is treated as a single column unit for marker alignment purposes.
+
+5. **Given** an empty line with an error pointing to it, **When** the error is reported, **Then** the marker row displays a single caret at column 1.
+
+---
+
+### Edge Cases
+
+- What happens when a source line contains only whitespace (spaces and tabs) and an error points to it? The marker should align with the correct column position, treating each whitespace code point as one column unit.
+
+- What happens when a source line contains a mix of single-byte ASCII and multi-byte Unicode code points before the error position? The marker should count all code points as one column unit each, regardless of byte length.
+
+- How does the system handle a file that is entirely valid UTF-8 except for one invalid byte sequence? The invalid sequence should be reported as an encoding error, and errors on valid lines should still use code point-based calculation (no fallback).
+
+- What happens when an error position falls in the middle of a multi-byte UTF-8 sequence (due to byte-based position input)? The ErrorReporter must handle this gracefully by identifying the start of the code point and reporting the position correctly.
+
+- How are combining character sequences (grapheme clusters) handled? Each code point in the sequence counts as one column unit independently; "é" (e + combining acute) = 2 column positions, not 1.
+
+## Requirements
+
+### Functional Requirements
+
+- **FR-001**: ErrorReporter MUST generate error messages containing three elements: a human-readable error description, the full text of the source line where the error was detected, and a visual marker row placed beneath the source line.
+
+- **FR-002**: The visual marker row MUST consist of leading spaces followed by one or more caret symbols ('^') indicating the span of the problematic token or code point.
+
+- **FR-003**: Column positions for placing carets in the marker row MUST be calculated by counting logical Unicode code points from the beginning of the line, starting at column 1.
+
+- **FR-004**: Each Unicode code point MUST be counted as exactly one column unit for positioning purposes, regardless of whether it is encoded as one, two, three, or four bytes in UTF-8.
+
+- **FR-005**: When an error position is preceded by multi-byte Unicode code points, the number of leading spaces in the marker row MUST equal the number of Unicode code points before the error position, not the number of bytes.
+
+- **FR-006**: When an error spans multiple code points, the marker row MUST display one caret for each code point in the span, aligned precisely under each corresponding code point.
+
+- **FR-007**: The source line displayed in the error message MUST reproduce the original file content byte-for-byte without any transformation, substitution, or truncation.
+
+- **FR-008**: Line boundaries MUST be determined by newline delimiters (line feed, carriage return, or carriage return followed by line feed).
+
+- **FR-009**: Line numbering MUST count lines sequentially starting at 1, unaffected by the presence of multi-byte code points.
+
+- **FR-010**: Tab code points within the source line MUST each be treated as a single column unit for marker alignment purposes.
+
+- **FR-011**: If a source line contains combining Unicode code points (such as a base letter followed by a combining accent), each code point in the sequence MUST count as one column unit independently (e.g., "é" as e + combining acute = 2 column positions, not 1).
+
+- **FR-012**: If an error occurs at the first code point of a line, the marker row MUST begin with a caret and no leading spaces.
+
+- **FR-013**: If an error occurs at the last code point of a line, the marker MUST appear beneath that final code point.
+
+- **FR-014**: If a line is empty and an error points to it, the marker row MUST display a single caret at column 1.
+
+- **FR-015**: All behavior on files containing only ASCII code points (byte values 0 through 127) MUST remain identical to the current behavior, ensuring full backward compatibility.
+
+- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found.
+
+- **FR-017**: ErrorReporter MUST never fall back to byte-based column calculation under any circumstance, including when invalid UTF-8 is detected in other parts of the file beyond the error line.
+
+### Key Entities
+
+- **ErrorReporter**: The component responsible for generating human-readable error messages with visual positioning markers. It receives error position information and source file content, and produces formatted error output.
+
+- **Source Line**: A single line of text from the source file, bounded by newline delimiters (LF, CR, or CRLF), preserved byte-for-byte in error output.
+
+- **Visual Marker Row**: A formatting element consisting of leading spaces and caret symbols ('^') that visually indicates the exact code point position(s) where an error occurs.
+
+- **Unicode Code Point**: The fundamental unit of Unicode text, representing a single character regardless of its UTF-8 byte encoding length (1-4 bytes). **Terminology note**: This spec uses "code point" exclusively; the term "character" in user stories refers to "Unicode code point" unless otherwise noted. **Grapheme cluster note**: Combining character sequences (e.g., "e" + combining acute accent = "é") are treated as multiple code points for positioning purposes, not as a single grapheme cluster.
+
+- **Column Position**: A 1-based index representing the logical position of a code point within a source line, counted as Unicode code points from the line start.
+
+## Non-Functional Requirements
+
+### Performance
+
+- **NFR-001**: Unicode code point counting for error marker positioning MUST introduce zero measurable overhead compared to byte-based calculation. Error message formatting latency for Unicode-containing source files MUST be identical to ASCII-only files (microsecond-level, sub-millisecond).
+
+### Scale
+
+- **NFR-002**: ErrorReporter MUST correctly handle source lines containing up to 10,000 Unicode code points. Lines exceeding this limit have undefined behavior.
+
+### User Experience
+
+- **NFR-003**: Error markers MUST support optional ANSI color output for enhanced visibility in terminals that support it. When color is unavailable or disabled, the marker row MUST fall back to monochrome caret characters ('^') without loss of positioning information.
+
+## Success Criteria
+
+### Measurable Outcomes
+
+- **SC-001**: For any source file containing valid UTF-8, the visual marker caret appears directly beneath the correct Unicode code point in 100% of test cases, verified by visual inspection or automated code point-position matching.
+
+- **SC-002**: For source files containing only ASCII code points, error message output is byte-for-byte identical to the current implementation (zero regression).
+
+- **SC-003**: Invalid UTF-8 byte sequences are reported as encoding errors with correct byte offset and line number in 100% of test cases.
+
+- **SC-004**: Error marker alignment is correct for all edge cases defined in User Story 3 (first code point, last code point, empty line, combining code points, tab code points) in 100% of test cases.
+
+- **SC-005**: No fallback to byte-based column calculation occurs under any circumstance, verified by testing files with mixed valid and invalid UTF-8 sequences.
+
+- **SC-006**: Users can identify the error position in Unicode-containing source files within 5 seconds of reading the error message (compared to potentially minutes with incorrect byte-based positioning).
