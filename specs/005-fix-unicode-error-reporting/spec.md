@@ -20,10 +20,11 @@
 - Q: What format should invalid UTF-8 error messages follow? → A: Existing ErrorReporter format - reuse current error message structure
 - Q: How does ErrorReporter receive error position information? → A: SourceSpan - token-based positioning with source span metadata
 - Q: What Unicode edge cases should be handled (BOM, null bytes, bidirectional text, emoji sequences, normalization forms)? → A: Full coverage - skip BOM at file start, reject null bytes (U+0000), display bidirectional text as-is, treat emoji ZWJ sequences as separate code points, accept all normalization forms
-- Q: How should ErrorReporter integrate with the compiler pipeline for line tracking? → A: Integrazione via LineTracker
+- Q: How should ErrorReporter integrate with the compiler pipeline for line tracking? → A: Integration via LineTracker
 - Q: What security measures should be in place for malicious UTF-8 input (overlong encodings, surrogate halves, DoS attempts)? → A: Defensive validation - reject overlong encodings and surrogate halves, limit line length to prevent DoS, report all encoding errors with byte offsets
 - Q: What logging/observability should ErrorReporter provide for debugging and operational monitoring? → A: Minimal logging - only log critical errors (invalid UTF-8); no operational metrics
 - Q: What explicit exclusions should be documented to prevent scope creep during implementation? → A: Explicit exclusions - no IDE integration, no auto-fix suggestions, no multi-line error highlighting, no syntax-aware error messages
+- Q: How should FR-016 reference the ErrorReporter format? → A: Cross-reference FR-001 explicitly - enumerate the five format components (header, location, source line, marker row, optional help)
 
 ## User Scenarios & Testing
 
@@ -150,7 +151,7 @@ The following items are explicitly excluded from this feature:
 
 - **FR-015**: All behavior on files containing only ASCII code points (byte values 0 through 127) MUST remain identical to the current behavior, ensuring full backward compatibility.
 
-- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found. The error message MUST follow the existing ErrorReporter format (description, source line, visual marker).
+- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found. The error message MUST follow the existing ErrorReporter format as defined in **FR-001**, consisting of: (1) a header line with `ERROR [Exxxx] LEX: <message>`, (2) a location line, (3) the source line with line number prefix, (4) a visual marker row with caret(s) beneath the problematic code point(s), and optionally (5) a help line.
 
 - **FR-017**: ErrorReporter MUST never fall back to byte-based column calculation under any circumstance, including when invalid UTF-8 is detected in other parts of the file beyond the error line.
 
