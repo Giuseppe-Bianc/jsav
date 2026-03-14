@@ -51,7 +51,7 @@ auto main(int argc, const char *const argv[]) -> int {
 
     // Enable virtual terminal processing (ANSI escape codes) on both
     // stdout and stderr — each handle requires its own SetConsoleMode call.
-    for(DWORD handle_id : {STD_OUTPUT_HANDLE, STD_ERROR_HANDLE}) {
+    for(const DWORD handle_id : {STD_OUTPUT_HANDLE, STD_ERROR_HANDLE}) {
         if(HANDLE h = GetStdHandle(handle_id); h != INVALID_HANDLE_VALUE && h != nullptr) {
             DWORD dwMode = 0;
             if(GetConsoleMode(h, &dwMode) != 0) {
