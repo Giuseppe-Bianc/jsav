@@ -41,6 +41,7 @@
 - [ ] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/core/LineTracker.hpp` (one-liner inline function returning `std::string_view`)
 - [ ] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
 - [ ] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
+- [ ] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
 - [ ] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
 - [ ] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig`
 
@@ -61,6 +62,7 @@
 - [ ] T009 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Chinese` in `test/tests.cpp` (source: `"let x = 你好;"`, verify 8 leading spaces + 2 carets for Chinese characters)
 - [ ] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
 - [ ] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
+- [ ] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
 - [ ] T012 [US1] Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`)
 
 ### Implementation for User Story 1
@@ -70,7 +72,8 @@
 - [ ] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
 - [ ] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
 - [ ] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
-- [ ] T018 [US1] Add ANSI color support in `format_spanned_error()` (use red carets when `config_.ansi_color` is true, plain `^` otherwise)
+- [ ] T018 [US1] Modify `make_display_config()` in `src/jsav_Lib/error/UnicodeColumn.cpp` to call `detect_ansi_color()` and populate `ErrorDisplayConfig.ansi_color` field
+- [ ] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
 - [ ] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - Unicode error markers align correctly
@@ -275,26 +278,26 @@ With multiple developers:
 | Phase | Task Count | Description |
 |-------|------------|-------------|
 | **Phase 1: Setup** | 3 tasks | Project structure and build system |
-| **Phase 2: Foundational** | 5 tasks | Core UnicodeColumn module and ErrorReporter extensions |
-| **Phase 3: US1** | 11 tasks | Unicode marker alignment (MVP) |
+| **Phase 2: Foundational** | 6 tasks | Core UnicodeColumn module and ErrorReporter extensions (includes NFR-003 ANSI color detection) |
+| **Phase 3: US1** | 13 tasks | Unicode marker alignment (MVP) |
 | **Phase 4: US2** | 13 tasks | Invalid UTF-8 detection and reporting |
 | **Phase 5: US3** | 17 tasks | Edge case handling |
 | **Phase 6: Polish** | 12 tasks | Testing, coverage, documentation, static analysis |
-| **TOTAL** | **61 tasks** | Complete feature implementation |
+| **TOTAL** | **64 tasks** | Complete feature implementation |
 
 ### Task Count per User Story
 
-- **User Story 1 (P1)**: 11 tasks (T009–T019)
+- **User Story 1 (P1)**: 13 tasks (T009–T019, T011a, T018, T018a) — **includes NFR-003 ANSI color support**
 - **User Story 2 (P2)**: 13 tasks (T020–T032)
 - **User Story 3 (P3)**: 17 tasks (T033–T048, T049–T052 in Polish)
-- **Setup + Foundational**: 8 tasks (T001–T008)
+- **Setup + Foundational**: 9 tasks (T001–T008, T006a)
 - **Polish**: 12 tasks (T049–T060)
 
 ### Parallel Opportunities Identified
 
 - **Phase 1**: T003 can run in parallel with T001, T002
-- **Phase 2**: T004, T005, T007, T008 can all run in parallel (different files)
-- **Phase 3**: T009, T010, T011 (tests) can run in parallel; T013, T014 (implementations) can run in parallel
+- **Phase 2**: T004, T005, T006a, T007, T008 can all run in parallel (different files)
+- **Phase 3**: T009, T010, T011, T011a (tests) can run in parallel; T013, T014 (implementations) can run in parallel; T018, T018a can run in parallel
 - **Phase 4**: T020–T024 (tests) can run in parallel
 - **Phase 5**: T033–T040 (tests) can run in parallel
 - **Phase 6**: T049, T050, T051, T052 (coverage tests) can run in parallel; T056–T060 (static analysis) can run in parallel
