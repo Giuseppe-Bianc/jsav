@@ -1,6 +1,6 @@
 ---
 description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
-handoffs: 
+handoffs:
   - label: Analyze For Consistency
     agent: speckit.analyze
     prompt: Run a project analysis for consistency
@@ -19,9 +19,48 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## Pre-Execution Checks
+
+**Check for extension hooks (before tasks generation)**:
+
+- Check if `.specify/extensions.yml` exists in the project root.
+- If it exists, read it and look for entries under the `hooks.before_tasks` key
+- If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
+- Filter to only hooks where `enabled: true`
+- For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
+    - If the hook has no `condition` field, or it is null/empty, treat the hook as executable
+    - If the hook defines a non-empty `condition`, skip the hook and leave condition evaluation to the HookExecutor implementation
+- For each executable hook, output the following based on its `optional` flag:
+    - **Optional hook** (`optional: true`):
+
+    ```text
+    ## Extension Hooks
+
+    **Optional Pre-Hook**: {extension}
+    Command: `/{command}`
+    Description: {description}
+
+    Prompt: {prompt}
+    To execute: `/{command}`
+    ```
+
+    - **Mandatory hook** (`optional: false`):
+
+    ```text
+    ## Extension Hooks
+
+    **Automatic Pre-Hook**: {extension}
+    Executing: `/{command}`
+    EXECUTE_COMMAND: {command}
+    
+    Wait for the result of the hook command before proceeding to the Outline.
+    ```
+
+- If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
+
 ## Outline
 
-1. **Setup**: Run `pwsh -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Setup**: Run `.specify/scripts/powershell/check-prerequisites.ps1 -Json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load design documents**: Read from FEATURE_DIR:
    - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
@@ -60,9 +99,87 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Suggested MVP scope (typically just User Story 1)
    - Format validation: Confirm ALL tasks follow the checklist format (checkbox, ID, labels, file paths)
 
+6. **Check for extension hooks**: After tasks.md is generated, check if `.specify/extensions.yml` exists in the project root.
+   - If it exists, read it and look for entries under the `hooks.after_tasks` key
+   - If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
+   - Filter to only hooks where `enabled: true`
+   - For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
+     - If the hook has no `condition` field, or it is null/empty, treat the hook as executable
+     - If the hook defines a non-empty `condition`, skip the hook and leave condition evaluation to the HookExecutor implementation
+   - For each executable hook, output the following based on its `optional` flag:
+     - **Optional hook** (`optional: true`):
+
+       ```text
+       ## Extension Hooks
+
+       **Optional Hook**: {extension}
+       Command: `/{command}`
+       Description: {description}
+
+       Prompt: {prompt}
+       To execute: `/{command}`
+       ```
+
+     - **Mandatory hook** (`optional: false`):
+
+       ```text
+       ## Extension Hooks
+
+       **Automatic Hook**: {extension}
+       Executing: `/{command}`
+       EXECUTE_COMMAND: {command}
+       ```
+
+   - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
+
 Context for task generation: $ARGUMENTS
 
 The tasks.md should be immediately executable - each task must be specific enough that an LLM can complete it without additional context.
+
+The workflow above relies on correct handling of variable inputs and priority-based ordering. The following patterns and anti-patterns provide guidance for executing the generation workflow reliably.
+
+## Patterns for the Task Generation Workflow
+
+### Pattern: Graceful Artifact Absence
+
+- **Objective:** Produce a complete, actionable tasks.md from whatever subset of design documents is available, without failing or generating empty phases when optional documents are missing.
+- **Context of application:** Apply during Step 2 (Load design documents) and Step 3 (Execute task generation workflow) whenever the set of available documents is smaller than the full set (plan.md, spec.md, data-model.md, contracts/, research.md, quickstart.md).
+- **Key characteristics:** The generator treats plan.md and spec.md as the only hard requirements. When optional documents are absent, the generator infers reasonable defaults — entities are derived from user story descriptions, interface boundaries are deduced from plan.md's project structure, and setup decisions fall back to tech stack conventions. No phase is left empty or marked as "pending additional input."
+- **Operational guidance:**
+  1. After running the prerequisites script, inspect the AVAILABLE_DOCS list and explicitly note which optional documents are present and which are absent.
+  2. For each absent optional document, identify what information it would have provided (e.g., data-model.md → entity definitions, contracts/ → interface boundaries).
+  3. Derive substitute information from the required documents: extract implicit entities from user story descriptions in spec.md, infer project structure conventions from plan.md's tech stack.
+  4. Proceed with task generation using the combined set of explicit and inferred information. Do not leave placeholder tasks such as "Define data model (pending data-model.md)."
+  5. In the report (Step 5), note which documents were absent and which inferences were made, so a reviewer can validate the assumptions.
+
+### Pattern: Priority-Driven Sequencing
+
+- **Objective:** Ensure that phase ordering in tasks.md directly reflects the priority levels assigned to user stories in spec.md, so the highest-value functionality is implemented and testable first.
+- **Context of application:** Apply during Step 3 (task organization) and Step 4 (tasks.md generation) when determining the order of Phase 3 and beyond.
+- **Key characteristics:** The generator reads priority labels (P1, P2, P3) from spec.md and maps them one-to-one to phase order. P1 stories become Phase 3, P2 stories become Phase 4, and so on. When multiple stories share the same priority level, they are ordered by dependency — stories that other stories depend on come first. If no dependency exists between same-priority stories, they are presented in the order they appear in spec.md.
+- **Operational guidance:**
+  1. Extract all user stories from spec.md along with their priority labels.
+  2. Sort stories by priority (P1 first, P2 second, etc.).
+  3. Within the same priority level, check for inter-story dependencies (e.g., US2 requires an entity created in US1). Place prerequisite stories earlier.
+  4. If same-priority stories have no dependencies on each other, preserve their original order from spec.md.
+  5. Assign phases sequentially starting from Phase 3 (Phase 1 is Setup, Phase 2 is Foundational).
+  6. Verify that the suggested MVP scope in the report corresponds to the first user story phase (typically Phase 3 / P1).
+
+## Anti-Patterns for the Task Generation Workflow
+
+### Anti-Pattern: Hard Artifact Dependency
+
+- **Description:** The generator treats optional design documents (data-model.md, contracts/, research.md, quickstart.md) as required inputs, and either halts task generation, produces empty phases, or inserts placeholder tasks when any of them are missing.
+- **Reasons to avoid:** Many projects begin task generation before all design documents are finalized. A generator that blocks on optional inputs forces an artificial bottleneck in the workflow, requiring teams to produce documents they may not need (e.g., a contracts/ directory for a single-service application) just to unblock task generation. This often happens because the generator was designed around a "full document set" happy path without accounting for partial inputs.
+- **Negative consequences:** Tasks.md files contain hollow entries like "T005 [US1] Implement entity from data-model.md (TODO: data-model.md not found)" that cannot be executed by an LLM. Phases appear incomplete, undermining confidence in the generated plan. Teams waste time creating stub documents solely to satisfy the generator rather than to inform design.
+- **Correct alternative:** Apply the **Graceful Artifact Absence** pattern to derive necessary information from the required documents and generate fully actionable tasks regardless of which optional documents are present.
+
+### Anti-Pattern: Priority Inversion
+
+- **Description:** The generator orders user story phases by criteria other than the priority levels defined in spec.md — for example, by alphabetical order of story titles, by perceived technical complexity, or by the order in which entities appear in data-model.md.
+- **Reasons to avoid:** Priority labels in spec.md represent deliberate product decisions about what delivers value first. Reordering phases by technical convenience (e.g., "the authentication story touches fewer files, so do it first") substitutes engineering preference for product strategy. This typically occurs when the generator optimizes for minimizing dependencies between phases rather than maximizing early value delivery.
+- **Negative consequences:** The MVP scope shifts away from the highest-value functionality. Stakeholders reviewing tasks.md see a plan that contradicts the agreed priorities in spec.md, eroding trust in the generation workflow. The implementation sequence may deliver technically elegant but low-priority features while high-priority stories are deferred to later phases.
+- **Correct alternative:** Apply the **Priority-Driven Sequencing** pattern to ensure phase ordering is a direct reflection of spec.md priority labels, with dependency analysis used only as a tiebreaker within the same priority level.
 
 ## Task Generation Rules
 
@@ -102,6 +219,49 @@ Every task MUST strictly follow this format:
 - ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
 - ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
 
+Adhering to the checklist syntax above is necessary but not sufficient. The following patterns and anti-patterns address the scoping and clarity of individual task descriptions.
+
+### Patterns for Task Formatting
+
+#### Pattern: Atomic Task Scoping
+
+- **Objective:** Ensure each task targets exactly one file and one concern so that an LLM can execute it in a single pass without requiring multi-file coordination or ambiguity resolution.
+- **Context of application:** Apply when decomposing user story requirements into individual checklist items during Step 3 (Execute task generation workflow).
+- **Key characteristics:** A well-scoped task names one action verb (create, implement, configure, add), one target file path, and one functional concern. If a task description requires the word "and" to connect two distinct actions, it should be split. The task's description provides enough context for an LLM to produce the correct output without consulting other tasks.
+- **Operational guidance:**
+  1. Write the task description. If it contains "and" connecting two actions on different files (e.g., "Create User model in src/models/user.py and add migration in src/db/migrations/001_users.sql"), split it into two tasks.
+  2. Verify that the file path in the description matches exactly one file. Tasks targeting directories (e.g., "Set up src/services/") should be rewritten to target a specific file or split into per-file tasks.
+  3. Include in the description the functional outcome — not just the file to create, but what it should contain (e.g., "Implement UserService with create, read, update, and delete methods in src/services/user_service.py").
+  4. After writing all tasks for a phase, confirm that no two tasks target the same file. If they do, either merge them (if they address the same concern) or clarify the distinct concern each addresses (e.g., one creates the file, a later one adds a specific method after a dependency is met).
+
+#### Pattern: Conservative Parallelism Marking
+
+- **Objective:** Apply the [P] marker only when a task is genuinely safe to execute concurrently with other active tasks, avoiding false parallelism that creates merge conflicts or dependency violations.
+- **Context of application:** Apply when assigning [P] markers during task list finalization in Step 3.
+- **Key characteristics:** A task receives [P] only if it operates on a file that no other concurrently executable task reads or writes, and all of its input dependencies (models it imports, services it calls) are already completed in earlier tasks. When in doubt, the task is left sequential. The cost of missing a parallelism opportunity is a slightly longer execution sequence; the cost of false parallelism is a broken build.
+- **Operational guidance:**
+  1. For each candidate task, list the files it creates or modifies and the files it imports from or depends on.
+  2. Compare this list against all other tasks in the same phase that have not yet been marked as sequential predecessors.
+  3. Mark [P] only if there is zero overlap in written files and all dependency files are produced by tasks in earlier phases or earlier sequential tasks in the current phase.
+  4. For tasks that register routes, update configuration files, or modify shared entry points (e.g., `src/app.py`, `src/routes/index.py`), default to sequential — these files are common conflict points.
+  5. Document parallelism opportunities in the parallel execution examples section of tasks.md so implementers can verify the reasoning.
+
+### Anti-Patterns for Task Formatting
+
+#### Anti-Pattern: Compound Task Bundling
+
+- **Description:** A single checklist item combines multiple distinct actions, files, or concerns into one task — for example, "Create User and Role models in src/models/ and add their service classes in src/services/."
+- **Reasons to avoid:** LLMs executing tasks work best with unambiguous, focused instructions. A compound task forces the executor to determine the correct order of sub-actions, decide how to handle partial failures (what if the User model succeeds but the Role model's service class has an import error?), and produce changes across multiple files in a single response. This typically occurs when the generator groups work by conceptual similarity ("these are both about users") rather than by execution unit.
+- **Negative consequences:** Task completion becomes ambiguous — the checkbox cannot represent partial completion. Parallel execution analysis breaks down because the task touches multiple files. An LLM may produce a response that addresses one sub-action correctly and the other incorrectly, and the reviewer cannot re-run just the failed portion. The checklist loses its value as a progress-tracking tool.
+- **Correct alternative:** Apply the **Atomic Task Scoping** pattern to ensure each task addresses one file and one concern, making it independently executable and verifiable.
+
+#### Anti-Pattern: Over-Serialization
+
+- **Description:** All tasks within a phase are left sequential (no [P] markers) even when many of them operate on independent files with no shared dependencies, typically because the generator defaults to serial ordering and never performs a parallelism analysis.
+- **Reasons to avoid:** Over-serialization artificially constrains implementation speed. When an implementer (human or LLM) could work on the User model and the Product model simultaneously because they share no dependencies, forcing them into sequence wastes time and misrepresents the dependency structure. This often happens when the generator treats task ID ordering as execution ordering without distinguishing between true dependencies and mere sequencing.
+- **Negative consequences:** The tasks.md file implies a rigid execution order that does not reflect actual constraints. Implementers who follow it literally take longer than necessary. The parallel execution examples section is empty or trivial, reducing the document's value. The dependency graph becomes a flat chain rather than an informative DAG.
+- **Correct alternative:** Apply the **Conservative Parallelism Marking** pattern to identify genuine parallelism opportunities through file-level and dependency-level analysis, marking them explicitly while leaving ambiguous cases sequential.
+
 ### Task Organization
 
 1. **From User Stories (spec.md)** - PRIMARY ORGANIZATION:
@@ -136,244 +296,46 @@ Every task MUST strictly follow this format:
     - Each phase should be a complete, independently testable increment
 - **Final Phase**: Polish & Cross-Cutting Concerns
 
-## Patterns: Best Practices for Task Generation
-
-### Pattern 1: User Story-Centric Organization
-
-**Objective**: Enable independent, parallel development and testing of features by organizing tasks around user stories rather than technical layers.
-
-**Context of Application**: When generating tasks.md from design artifacts where multiple user stories exist with different priorities. Apply this pattern whenever spec.md contains P1, P2, P3+ user stories.
-
-**Key Characteristics**:
-
-- Each user story maps to a dedicated phase in the task list
-- All components needed for a story (models, services, endpoints) are grouped within that story's phase
-- Stories can be implemented independently without waiting for unrelated stories to complete
-- Each story phase represents a testable, deliverable increment
-
-**Operational Guidance**:
-
-1. Parse spec.md to extract all user stories with their priority levels
-2. Create one phase per user story, ordered by priority (P1 first, then P2, P3, etc.)
-3. For each story, trace backward through all design artifacts to identify required components
-4. Assign each component (model, service, endpoint) to the story that needs it
-5. If a component serves multiple stories, place it in the earliest story or foundational phase
-6. Ensure each story phase includes an independent test criteria section
-7. Mark dependencies explicitly only when one story genuinely depends on another's completion
-
-### Pattern 2: Strict Format Compliance
-
-**Objective**: Ensure all tasks are machine-parseable and can be tracked, filtered, and analyzed programmatically.
-
-**Context of Application**: Every single task in the generated tasks.md must follow the checklist format without exception. Apply to all phases: Setup, Foundational, User Story, and Polish.
-
-**Key Characteristics**:
-
-- Consistent checkbox prefix for tracking completion state
-- Sequential task IDs enabling dependency references and progress tracking
-- Explicit parallelizability markers for workflow optimization
-- Story labels providing traceability to requirements
-- File paths making tasks immediately actionable
-
-**Operational Guidance**:
-
-1. Always begin each task with `- [ ]` (markdown checkbox with space)
-2. Assign sequential IDs starting from T001, incrementing by 1
-3. Add `[P]` marker only when task can run in parallel with others (different files, no blocking dependencies)
-4. Add story label `[US#]` for all tasks in user story phases (Phase 3+)
-5. Omit story labels for Setup, Foundational, and Polish phases
-6. Include specific file path in task description (e.g., `in src/models/user.py`)
-7. Run format validation before finalizing: check every task has checkbox, ID, appropriate labels, and file path
-
-### Pattern 3: Dependency Layering
-
-**Objective**: Prevent blocking issues by establishing clear layers of dependencies and ensuring foundational tasks complete before dependent work begins.
-
-**Context of Application**: When design artifacts reveal shared infrastructure, common utilities, or cross-cutting concerns that multiple user stories depend on.
-
-**Key Characteristics**:
-
-- Setup phase contains project initialization with no external dependencies
-- Foundational phase contains blocking prerequisites needed by all or most user stories
-- User story phases depend only on Setup/Foundational completion, not on each other (unless explicitly required)
-- Shared resources are identified early and placed in appropriate foundation layers
-
-**Operational Guidance**:
-
-1. Identify truly shared infrastructure from plan.md and research.md (e.g., database setup, authentication framework, logging)
-2. Place project initialization tasks in Phase 1 (Setup)
-3. Place blocking prerequisites in Phase 2 (Foundational) - these MUST complete before any user story work
-4. Keep user story phases (Phase 3+) independent unless there's a genuine business dependency
-5. Generate dependency graph showing which phases must complete before others can start
-6. Validate that foundational tasks are truly foundational - avoid putting story-specific work in this phase
-7. Document parallel execution opportunities within the dependency structure
-
-### Pattern 4: Granular Task Definition
-
-**Objective**: Create tasks specific enough that an LLM or developer can execute them without requiring additional context or clarification.
-
-**Context of Application**: Every task in tasks.md, regardless of complexity. Particularly critical when generating tasks that will be executed by automated agents or distributed teams.
-
-**Key Characteristics**:
-
-- Each task describes a single, concrete action
-- File paths are explicit and complete
-- Expected inputs and outputs are clear from the description
-- No ambiguous verbs like "handle," "manage," or "deal with"
-- Tasks reference specific design artifacts when applicable
-
-**Operational Guidance**:
-
-1. Use specific action verbs: "Create," "Implement," "Define," "Configure," "Connect," "Validate"
-2. Include exact file path in every implementation task
-3. Reference specific sections of design documents when relevant (e.g., "per data-model.md User entity")
-4. Break complex tasks into multiple atomic tasks if a single task would require multiple files or steps
-5. Specify the artifact type (e.g., "Create User model class" not just "Create User")
-6. For configuration tasks, specify what is being configured and where (e.g., "Configure database connection in config/database.py")
-7. Ensure task description alone provides sufficient context - avoid relying on phase headers for critical information
-
-### Pattern 5: Incremental Deliverability
-
-**Objective**: Structure tasks so each phase produces a working, testable increment that delivers value independently.
-
-**Context of Application**: When organizing user story phases and defining what constitutes "done" for each phase. Essential for MVP planning and iterative delivery.
-
-**Key Characteristics**:
-
-- Each user story phase includes all layers needed for that story (model, service, endpoint/UI)
-- Independent test criteria defined per story
-- Earlier phases (lower priority user stories) deliver subset of functionality
-- MVP scope clearly identified (typically User Story 1 only)
-- Each phase can be demonstrated and validated without waiting for subsequent phases
-
-**Operational Guidance**:
-
-1. For each user story phase, include tasks spanning full stack: data layer → business logic → presentation/API
-2. Define independent test criteria showing how to verify the story works in isolation
-3. Order user stories by priority so Phase 3 = P1 story, Phase 4 = P2 story, etc.
-4. Mark MVP scope in the report section (usually just the first user story)
-5. Ensure each story phase is a complete vertical slice, not a horizontal layer
-6. Generate test tasks (if requested) that validate story completion independently
-7. Document what value each phase delivers to enable stakeholder validation
-
-## Anti-Patterns: Common Mistakes to Avoid
-
-### Anti-Pattern 1: Layer-Based Organization
-
-**Description**: Organizing tasks by technical layers (all models together, all services together, all endpoints together) instead of by user stories.
-
-**Reasons to Avoid**: Layer-based organization creates artificial dependencies, prevents parallel development, obscures the relationship between code and business value, and makes it impossible to deliver working increments until all layers are complete.
-
-**Negative Consequences**:
-
-- Cannot deliver any user-facing functionality until all layers are built
-- Teams must wait for each other unnecessarily (frontend blocked on backend, etc.)
-- No incremental value delivery - it's all or nothing
-- Difficult to prioritize work based on business value
-- Testing can only happen at the very end when all layers integrate
-- Higher risk of integration failures discovered late in development
-
-**Correct Alternative**: Use Pattern 1 (User Story-Centric Organization) to group all components needed for each story together in dedicated phases.
-
-### Anti-Pattern 2: Inconsistent Task Format
-
-**Description**: Tasks that mix different formats, omit required components (checkboxes, IDs, file paths), or use custom formatting that breaks parseability.
-
-**Reasons to Avoid**: Inconsistent formatting prevents automated tracking, makes it impossible to programmatically filter or analyze tasks, creates confusion about task status, and reduces the document's utility as a project management tool.
-
-**Negative Consequences**:
-
-- Cannot programmatically track progress or generate reports
-- Tools cannot parse tasks to show completion percentages or identify bottlenecks
-- Difficult to filter tasks by story, parallelizability, or other criteria
-- Team members may interpret task structure differently
-- Integration with project management tools fails
-- Manual effort required to track what's actually complete
-
-**Correct Alternative**: Use Pattern 2 (Strict Format Compliance) and apply format validation to ensure every task follows the required structure.
-
-### Anti-Pattern 3: Missing or Circular Dependencies
-
-**Description**: Failing to identify foundational dependencies, creating circular dependencies between user stories, or marking all tasks as parallelizable without considering actual constraints.
-
-**Reasons to Avoid**: Missing dependencies cause build failures and blocked work. Circular dependencies make the project impossible to execute. Incorrectly marking tasks as parallel creates race conditions and integration issues.
-
-**Negative Consequences**:
-
-- Developers attempt tasks before prerequisites are ready, causing rework
-- Build and runtime failures due to missing infrastructure
-- Wasted effort when parallel tasks conflict or overwrite each other's work
-- Cannot determine a valid execution order
-- Integration issues from assumptions about what exists
-- Team frustration from constantly blocked work
-
-**Correct Alternative**: Use Pattern 3 (Dependency Layering) to establish clear foundational phases and validate that dependencies flow in one direction only.
-
-### Anti-Pattern 4: Vague or Ambiguous Tasks
-
-**Description**: Tasks that lack specific file paths, use unclear verbs, combine multiple unrelated actions, or rely on implicit context that isn't documented.
-
-**Reasons to Avoid**: Vague tasks require constant clarification, lead to inconsistent implementation across the team, cannot be executed by automated agents, and increase the cognitive load on developers who must guess at the intent.
-
-**Negative Consequences**:
-
-- Developers spend time asking for clarification instead of implementing
-- Different interpretations lead to inconsistent architecture
-- LLM-based agents cannot execute tasks autonomously
-- Rework required when assumptions prove incorrect
-- Difficulty reviewing code when expected outcome was unclear
-- Project delays from constant back-and-forth on task intent
-
-**Correct Alternative**: Use Pattern 4 (Granular Task Definition) to create specific, actionable tasks with explicit file paths and clear expected outcomes.
-
-### Anti-Pattern 5: Big-Bang Integration
-
-**Description**: Structuring tasks so nothing can be tested or validated until all work is complete, with no intermediate deliverables or integration points.
-
-**Reasons to Avoid**: Big-bang integration defers risk to the end, prevents early validation with stakeholders, provides no opportunity for course correction, and maximizes the cost of discovering problems.
-
-**Negative Consequences**:
-
-- Integration issues discovered only at project end when fixing is most expensive
-- No stakeholder feedback until everything is built (may build wrong thing)
-- Cannot demonstrate progress or value during development
-- High risk of catastrophic failure at integration time
-- Team morale suffers from lack of visible progress
-- No opportunity to validate assumptions early
-- Impossible to ship incrementally or pivot based on learning
-
-**Correct Alternative**: Use Pattern 5 (Incremental Deliverability) to structure each phase as a complete, testable vertical slice that delivers independent value.
-
-### Anti-Pattern 6: Inappropriate Foundational Tasks
-
-**Description**: Placing story-specific implementation details in the Foundational phase, or conversely, leaving genuinely shared infrastructure in user story phases.
-
-**Reasons to Avoid**: Misclassifying task dependencies creates false blocking relationships, delays user story work unnecessarily, or causes duplication when shared code is implemented multiple times in different stories.
-
-**Negative Consequences**:
-
-- User stories blocked waiting for "foundational" work that's actually story-specific
-- Duplicated effort when shared infrastructure is rebuilt in each story
-- Foundational phase becomes a dumping ground that never completes
-- Parallel execution opportunities missed due to artificial serialization
-- Difficulty maintaining shared code scattered across story phases
-- Confusion about what truly must complete before story work begins
-
-**Correct Alternative**: Apply Pattern 3 (Dependency Layering) criteria: Foundational phase contains only work that blocks multiple user stories. Story-specific setup goes in that story's phase, even if it feels "low-level."
-
-### Anti-Pattern 7: Test-Last Thinking
-
-**Description**: When tests are requested, placing all test tasks at the end of phases or in a separate testing phase, rather than integrating test tasks before or alongside implementation tasks.
-
-**Reasons to Avoid**: Test-last approaches delay defect discovery, reduce test effectiveness as a design tool, create a separate "testing phase" that becomes a bottleneck, and miss the benefits of test-driven development.
-
-**Negative Consequences**:
-
-- Defects discovered late when fixing is expensive
-- Tests written to match implementation rather than validate requirements
-- Testing becomes a gate that blocks delivery rather than enabling it
-- Lost opportunity to use tests as executable specifications
-- Temptation to skip tests when "running out of time"
-- Poor test coverage as tests are rushed at the end
-
-**Correct Alternative**: When tests are requested, generate test tasks within each user story phase, before the implementation tasks they validate. Follow the within-phase order: Tests → Models → Services → Endpoints → Integration.
+The phase structure above defines the skeleton for tasks.md. The following patterns and anti-patterns guide decisions about how to populate and validate that structure effectively.
+
+### Patterns for Phase Design
+
+#### Pattern: Story-Centric Decomposition
+
+- **Objective:** Organize all implementation tasks around user stories rather than technical layers, so that each phase delivers a coherent slice of user-visible functionality rather than a horizontal layer of infrastructure.
+- **Context of application:** Apply during Step 3 when mapping extracted components (models, services, endpoints) to phases, and during Step 4 when structuring the tasks.md output.
+- **Key characteristics:** Each user story phase contains every technical artifact that story requires — its models, services, endpoints, and (if requested) tests — grouped together. A reader scanning a single phase can understand the full scope of work needed to deliver that story. Shared artifacts that serve multiple stories are placed in the Foundational phase (Phase 2) to avoid duplication, but story-specific artifacts always live in their story's phase.
+- **Operational guidance:**
+  1. For each user story from spec.md, list every technical component it needs: models, services, API endpoints or UI components, configuration changes, and (if applicable) tests.
+  2. Check each component against all other stories. If a component is needed exclusively by one story, assign it to that story's phase. If a component is needed by multiple stories, assign it to Phase 2 (Foundational) or to the earliest story that requires it.
+  3. Within each story phase, order tasks by dependency: models before services, services before endpoints, endpoints before integration points.
+  4. Verify that removing any later story phase from the plan would not break the phases that precede it — each phase should be self-contained once its predecessors are complete.
+  5. Do not create phases organized by technical layer (e.g., "Phase 3: All Models," "Phase 4: All Services"). If you find a phase containing components for multiple unrelated stories, restructure it.
+
+#### Pattern: Incremental Testability
+
+- **Objective:** Ensure that each phase, when completed, produces a working increment of the feature that can be independently verified without requiring subsequent phases to be finished.
+- **Context of application:** Apply during Step 3 (validate task completeness) and Step 4 (generating independent test criteria for each phase).
+- **Key characteristics:** Every user story phase includes, at minimum, a clear statement of what "done" looks like and how to verify it. If tests are requested, the phase includes test tasks that exercise the story's functionality in isolation. If tests are not requested, the phase still defines observable verification criteria (e.g., "API endpoint returns 200 with valid payload," "UI renders the user list from mock data"). No phase depends on the Final Phase (Polish) for basic functionality.
+- **Operational guidance:**
+  1. For each user story phase, write one to three independent test criteria that can be evaluated using only the artifacts produced in that phase and its predecessors.
+  2. Verify that the test criteria do not reference functionality delivered in later phases. If they do, the story has an unresolved dependency — move the required component to an earlier phase or to Foundational.
+  3. If tests are requested, include test tasks as the first items in the phase (before implementation tasks) to support a test-first workflow.
+  4. In the report (Step 5), list the independent test criteria for each story so that reviewers can confirm each phase is self-verifying.
+  5. Ensure the Final Phase (Polish) contains only non-functional improvements (logging, error message refinement, performance tuning) — never core functionality that a story's test criteria depend on.
+
+### Anti-Patterns for Phase Design
+
+#### Anti-Pattern: Layer-First Decomposition
+
+- **Description:** Tasks are organized into phases by technical layer — one phase for all models, another for all services, another for all endpoints — rather than by user story. Each phase cuts horizontally across the entire feature.
+- **Reasons to avoid:** Layer-first decomposition produces phases that deliver no user-visible value on their own. A phase containing "all models" is untestable from a user perspective because there are no services or endpoints to exercise them. This approach typically emerges when the generator iterates over the data model or project structure rather than over user stories, treating the technical architecture as the primary organizational axis. It contradicts the core principle that tasks must be "organized by user story to enable independent implementation and testing."
+- **Negative consequences:** No phase is independently testable — verification requires waiting until all layers are complete. Bugs surface late because integration between layers happens only in the final phases. The MVP scope cannot be defined as "complete Phase 3" because Phase 3 contains only models with no way to exercise them. The dependency graph becomes a simple linear chain, eliminating all parallelism opportunities between stories.
+- **Correct alternative:** Apply the **Story-Centric Decomposition** pattern to ensure each phase delivers a vertical slice of functionality that includes all technical layers needed for one user story.
+
+#### Anti-Pattern: Monolithic Phasing
+
+- **Description:** The generator creates too few phases — typically Phase 1 (Setup), Phase 2 (Everything Else), and a Final Phase (Polish) — bundling multiple user stories into a single oversized phase that cannot be tested incrementally.
+- **Reasons to avoid:** Monolithic phases defeat the purpose of phased task generation. They emerge when the generator treats all user stories as a single block of work or when it fails to parse individual story boundaries from spec.md. A phase containing forty tasks across five user stories provides no more structure than an unordered backlog. It removes the ability to define MVP scope, track per-story progress, or identify parallel execution opportunities between stories.
+- **Negative consequences:** The tasks.md file loses its value as a progress-tracking tool — the single large phase is either "not started" or "in progress" for the entire implementation duration. Independent test criteria cannot be defined because the phase mixes concerns from multiple stories. Implementers cannot determine which tasks to prioritize within the monolithic phase without re-reading spec.md to recover the priority information that should have been encoded in the phase structure.
+- **Correct alternative:** Apply the **Story-Centric Decomposition** pattern to create one phase per user story, and apply the **Incremental Testability** pattern to verify that each phase is independently verifiable.

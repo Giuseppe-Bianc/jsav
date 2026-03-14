@@ -1,6 +1,6 @@
 ---
 description: Identify underspecified areas in the current feature spec by asking up to 5 highly targeted clarification questions and encoding answers back into the spec.
-handoffs: 
+handoffs:
   - label: Build Technical Plan
     agent: speckit.plan
     prompt: Create a plan for the spec. I am building with...
@@ -85,8 +85,52 @@ Execution steps:
    - Clarification would not materially change implementation or validation strategy
    - Information is better deferred to planning phase (note internally)
 
+The structured scan above is the foundation for every downstream decision in this workflow. The following best practices and common mistakes govern how the scan should be conducted to maximize its reliability.
+
+### Patterns for Ambiguity Analysis
+
+#### Taxonomy-Exhaustive Evaluation
+
+- **Objective:** Eliminate blind spots by evaluating every taxonomy category against the spec, even categories that appear irrelevant at first glance.
+- **Context of application:** During the structured ambiguity scan in Step 2, before any candidate questions are generated.
+- **Key characteristics:** Every category receives an explicit status mark. No category is skipped or assumed to be clear based on project type alone. Categories that seem inapplicable are still verified against actual spec text and marked with a justification.
+- **Operational guidance:**
+  1. Process categories in the listed order; do not skip or reorder based on perceived relevance.
+  2. For each category, cite at least one spec passage that supports the assigned status, or note the absence of any relevant content.
+  3. If a category appears inapplicable to the project, mark it "Clear — N/A" with a one-line justification (e.g., "No regulatory domain identified in spec scope") rather than omitting it from the coverage map.
+  4. Complete the full taxonomy before generating any candidate questions — premature question drafting biases the remaining evaluation.
+
+#### Materiality-First Filtering
+
+- **Objective:** Distinguish ambiguities that materially affect implementation, testing, or architecture from those that are cosmetic or safely deferrable to planning.
+- **Context of application:** After marking all category statuses, when deciding which Partial or Missing categories warrant a clarification question from the limited budget.
+- **Key characteristics:** Each identified gap is evaluated for downstream impact. A gap is material if resolving it would change task decomposition, data model design, API contracts, test case structure, or operational configuration. Gaps that affect only prose quality or presentation are deprioritized.
+- **Operational guidance:**
+  1. For each Partial or Missing category, ask: "If this remained unresolved, what specific implementation decision would be blocked or incorrect?"
+  2. If the answer is "none" or "only cosmetic," mark the gap as low-priority and do not allocate a question to it.
+  3. If the answer identifies a concrete decision (e.g., "We would not know whether to use polling or webhooks"), mark it as high-priority.
+  4. Document the impact assessment internally to justify question prioritization in Step 3.
+
+### Anti-Patterns for Ambiguity Analysis
+
+#### Familiarity Bias Skipping
+
+- **Description:** The agent skips taxonomy categories it assumes are well-covered based on the project type or domain familiarity (e.g., "web apps always handle auth"), without verifying against the actual spec content.
+- **Reasons to avoid:** Assumptions based on project type are frequently wrong for specific specs. A web application spec may omit authentication entirely because it sits behind an API gateway, or it may define a novel auth scheme that contradicts the agent's default assumption. Skipping categories creates undetected gaps that surface as rework during implementation.
+- **Negative consequences:** Ambiguities in skipped categories remain invisible. The coverage map reports false confidence, and downstream steps (question generation, planning) operate on incomplete data. The clarification step fails to catch the very gaps it exists to find.
+- **Correct alternative:** Apply **Taxonomy-Exhaustive Evaluation** to verify every category against actual spec content before assigning any status.
+
+#### Deferred-by-Default Avoidance
+
+- **Description:** The agent marks ambiguities as "deferred to planning phase" to avoid consuming question budget, even when the ambiguity would materially affect the plan itself.
+- **Reasons to avoid:** Deferring a question that affects architecture, data modeling, or acceptance criteria means the planning agent will build on an unresolved assumption. The planning agent cannot correct what the clarification agent chose not to surface. This typically occurs when the agent conflates "complex to ask" with "better handled later."
+- **Negative consequences:** The plan contains implicit assumptions that may be wrong. Rework cascades when the unresolved assumption surfaces during implementation or review. The clarification step fails its primary purpose of reducing downstream ambiguity.
+- **Correct alternative:** Apply **Materiality-First Filtering** and defer only gaps whose resolution genuinely cannot affect planning decisions — not gaps that are merely uncomfortable to ask about within a constrained question format.
+
+---
+
 3. Generate (internally) a prioritized queue of candidate clarification questions (maximum 5). Do NOT output them all at once. Apply these constraints:
-    - Maximum of 10 total questions across the whole session.
+    - Maximum of 5 total questions across the whole session.
     - Each question must be answerable with EITHER:
        - A short multiple‑choice selection (2–5 distinct, mutually exclusive options), OR
        - A one-word / short‑phrase answer (explicitly constrain: "Answer in <=5 words").
@@ -132,6 +176,50 @@ Execution steps:
     - Never reveal future queued questions in advance.
     - If no valid questions exist at start, immediately report no critical ambiguities.
 
+The question generation and interactive questioning phases are where the limited five-question budget is spent. The following guidance ensures each question maximizes the information gained per question asked, and highlights the most common ways budget is wasted.
+
+### Patterns for Clarification Questioning
+
+#### Single-Decision Scoping
+
+- **Objective:** Ensure each question targets exactly one decision point, producing an answer that maps to a single, unambiguous spec update.
+- **Context of application:** When formulating each candidate question before presenting it to the user, both during initial queue generation in Step 3 and dynamically during the loop in Step 4.
+- **Key characteristics:** The question contains one interrogative clause. The answer space is constrained to mutually exclusive options or a short phrase. The agent can predict exactly which spec section and line will be updated based on any valid answer, before asking the question.
+- **Operational guidance:**
+  1. Before presenting a question, write (internally) a spec update template: "If the user answers X, I will update section Y with statement Z."
+  2. If the template requires conditional branching across multiple sections for a single answer, the question is too broad — split it into two and select the higher-impact half.
+  3. Verify that no two answer options would produce the same spec update; if they would, merge those options into one.
+  4. Confirm the question cannot be interpreted as asking about two separate concerns (e.g., "Should we support OAuth and what are the rate limits?" is two questions, not one).
+
+#### Budget-Aware Category Distribution
+
+- **Objective:** Allocate the five-question budget across distinct high-impact taxonomy categories rather than concentrating multiple questions on a single category.
+- **Context of application:** When ordering the prioritized question queue in Step 3, and when re-evaluating queued questions after each accepted answer in Step 4.
+- **Key characteristics:** The agent tracks how many questions have been allocated to each taxonomy category. No single category receives more than two questions unless all other unresolved categories are demonstrably lower impact. After each accepted answer, the agent re-evaluates whether remaining queued questions are still necessary or whether the resolved ambiguity renders them redundant.
+- **Operational guidance:**
+  1. After generating the candidate queue, tag each question with its primary taxonomy category.
+  2. If two or more questions share the same category, evaluate whether one question could subsume the other or whether the second question's impact justifies the budget cost.
+  3. Prioritize coverage breadth: one question each across five categories is generally more valuable than three questions concentrated in one category.
+  4. After each accepted answer, reassess queued questions — a resolved ambiguity in one category may make a question in a related category unnecessary, freeing budget for a different high-impact area.
+
+### Anti-Patterns for Clarification Questioning
+
+#### Compound Question Bundling
+
+- **Description:** The agent combines multiple ambiguities into a single question (e.g., "What authentication method should we use and what are the rate-limiting thresholds?"), producing answers that partially address several issues but fully resolve none.
+- **Reasons to avoid:** Users tend to answer the most salient part of a compound question and skip or abbreviate the rest. The constrained answer format — multiple choice or five words maximum — physically cannot accommodate multi-part responses. Integration becomes ambiguous because the answer maps to multiple spec sections with unclear boundaries.
+- **Negative consequences:** Partial answers that leave residual ambiguity in one or more of the bundled concerns. A wasted question slot (the compound question counts as one question consumed, but resolved less than one complete issue). Integration errors from attempting to map a partial answer to multiple spec locations simultaneously.
+- **Correct alternative:** Apply **Single-Decision Scoping** to ensure each question isolates exactly one decision point with a predictable spec update target.
+
+#### Scope-Creep Questioning
+
+- **Description:** The agent asks questions that introduce new requirements, features, or considerations not implied by the existing spec, expanding project scope under the guise of clarification.
+- **Reasons to avoid:** The clarification agent's purpose is to resolve ambiguities in the current spec, not to perform requirements elicitation or feature ideation. Scope expansion creates obligations the user did not intend and can invalidate the spec's existing out-of-scope declarations. This typically happens when the agent identifies something the spec *could* address and mistakes that potential for an *obligation* to address it.
+- **Negative consequences:** The spec grows in scope without a deliberate stakeholder decision. New requirements introduced via clarification bypass prioritization and feasibility analysis. The user loses trust in the clarification process because it adds work rather than reducing ambiguity.
+- **Correct alternative:** Apply **Budget-Aware Category Distribution** and constrain every question to ambiguities that already exist within the spec's declared scope. If a potential gap implies an entirely new feature, note it as a recommendation in the Step 8 completion report rather than spending a question on it.
+
+---
+
 5. Integration after EACH accepted answer (incremental update approach):
     - Maintain in-memory representation of the spec (loaded once at start) plus the raw file contents.
     - For the first integrated answer in this session:
@@ -158,6 +246,50 @@ Execution steps:
    - Markdown structure valid; only allowed new headings: `## Clarifications`, `### Session YYYY-MM-DD`.
    - Terminology consistency: same canonical term used across all updated sections.
 
+The integration and validation steps are where clarification answers become permanent spec content. Errors introduced here persist into planning and implementation. The following guidance ensures edits are precise and consistent, and highlights mistakes that silently degrade spec quality.
+
+### Patterns for Spec Integration
+
+#### Minimal-Diff Insertion
+
+- **Objective:** Apply the smallest possible edit to encode a clarification, modifying only the specific statement or section affected, to minimize the risk of unintended side effects.
+- **Context of application:** When writing each clarification answer into the spec file during Step 5, and when replacing ambiguous statements with clarified versions.
+- **Key characteristics:** Each edit is scoped to the exact location of the ambiguity. Surrounding content is not reformatted, reworded, or reordered. The difference between the old and new spec versions shows only the lines directly affected by the clarification.
+- **Operational guidance:**
+  1. Before editing, identify the exact line or bullet that contains the ambiguous content to be resolved.
+  2. Replace or augment only that line. Do not "improve" adjacent content while making the edit.
+  3. If the clarification requires a new bullet, insert it in the logical position within the existing list without moving other bullets.
+  4. After editing, mentally compare the old and new versions; if any change is not directly justified by the clarification answer, revert it.
+
+#### Post-Write Consistency Sweep
+
+- **Objective:** After each spec write, verify that the newly integrated clarification is consistent with all other sections and that no residual contradictions or terminology mismatches remain.
+- **Context of application:** During Step 6 validation, performed after each atomic write operation — not only at the end of the session.
+- **Key characteristics:** The sweep covers terminology consistency, cross-section agreement, and removal of invalidated content. It is brief and targeted, focused on the areas potentially affected by the most recent edit rather than a full document re-read.
+- **Operational guidance:**
+  1. After each write, search the spec for any other occurrence of the term or concept just clarified.
+  2. Verify that all occurrences now agree with the clarified version. Update any that do not.
+  3. Check whether the clarification invalidates any existing out-of-scope declaration, assumption, or edge case description elsewhere in the spec.
+  4. Confirm the Clarifications session log entry matches what was actually written into the body sections — no log entry should exist without a corresponding body update, and no body update should exist without a log entry.
+
+### Anti-Patterns for Spec Integration
+
+#### Additive-Only Editing
+
+- **Description:** The agent appends the clarification as new content without updating or removing the original ambiguous statement, leaving both the old vague text and the new precise text in the spec simultaneously.
+- **Reasons to avoid:** Retaining the original ambiguous text alongside the clarification creates contradictory or redundant statements. Downstream consumers of the spec (planning agents, developers, testers) may reference the original text instead of the clarification, especially if the original text appears first or in a more prominent section. This typically occurs when the agent treats integration as "adding information" rather than "resolving ambiguity."
+- **Negative consequences:** The spec contains conflicting guidance on the same topic. Downstream agents may parse the original statement and ignore the clarification, perpetuating the very ambiguity the process was meant to resolve. The spec grows in size without growing in clarity, making future clarification passes harder because the agent must distinguish between authoritative and obsolete statements.
+- **Correct alternative:** Apply **Minimal-Diff Insertion** and replace the ambiguous statement with the clarified version rather than appending the clarification alongside it.
+
+#### Narrative Drift
+
+- **Description:** The agent over-expands a clarification into explanatory prose, rationale, or implementation commentary that exceeds the scope of the original question, introducing new unvalidated assumptions or vague language into the spec.
+- **Reasons to avoid:** A clarification should encode a decision, not a discussion. Narrative expansion introduces language that has not been validated by the user and may contain the agent's assumptions rather than the user's intent. It also makes the spec harder to maintain because prose paragraphs are more difficult to update atomically than bullet-point decisions. This typically occurs when the agent attempts to be "helpful" by providing context the user did not request.
+- **Negative consequences:** The spec accumulates agent-generated prose that the user never explicitly approved. Vague language re-enters the spec through the back door (e.g., "this should be robust and scalable" appended as contextual framing around a clarification about database choice). Future clarification passes may flag the agent's own additions as new ambiguities, creating a self-reinforcing cycle of unnecessary clarification.
+- **Correct alternative:** Apply **Minimal-Diff Insertion** and keep each clarification to a single declarative statement or constrained bullet point. If contextual framing is needed, limit it to one parenthetical clause that uses only terms the user provided in their answer.
+
+---
+
 7. Write the updated spec back to `FEATURE_SPEC`.
 
 8. Report completion (after questioning loop ends or early termination):
@@ -167,249 +299,6 @@ Execution steps:
    - Coverage summary table listing each taxonomy category with Status: Resolved (was Partial/Missing and addressed), Deferred (exceeds question quota or better suited for planning), Clear (already sufficient), Outstanding (still Partial/Missing but low impact).
    - If any Outstanding or Deferred remain, recommend whether to proceed to `/speckit.plan` or run `/speckit.clarify` again later post-plan.
    - Suggested next command.
-
-## Patterns: Best Practices for Specification Clarification
-
-### Pattern: Incremental Atomic Integration
-
-**Objective:** Minimize data loss and maintain spec consistency by persisting each clarification immediately after acceptance.
-
-**Context of Application:** Any interactive specification refinement workflow where multiple clarifications are gathered sequentially, especially in environments with potential session interruptions or context limitations.
-
-**Key Characteristics:**
-
-- Each accepted answer triggers an immediate write operation to the spec file
-- In-memory representation synchronized with disk after every change
-- Clarifications section grows incrementally rather than batch-updated
-- File system state remains consistent at each interaction boundary
-
-**Operational Guidance:**
-
-1. Load the specification file once at workflow initialization and maintain an in-memory working copy
-2. After each user answer is validated and accepted, immediately append the Q&A pair to the Clarifications section
-3. Apply the semantic integration to relevant spec sections (Functional Requirements, Data Model, etc.) in the same atomic operation
-4. Write the complete updated spec to disk using atomic file replacement (write to temp, then rename)
-5. Verify the write succeeded before proceeding to the next question
-6. In case of write failure, retry once, then abort the session with clear error messaging
-7. Never accumulate multiple unwritten changes in memory across question boundaries
-
-### Pattern: Impact-Weighted Question Prioritization
-
-**Objective:** Maximize specification quality improvement within strict question quota constraints by addressing highest-impact ambiguities first.
-
-**Context of Application:** When scanning a specification reveals more potential ambiguities than the question budget allows, requiring systematic prioritization.
-
-**Key Characteristics:**
-
-- Each candidate question scored on two dimensions: Impact (architectural/testing/validation consequences) and Uncertainty (degree of ambiguity)
-- Priority queue sorted by Impact × Uncertainty heuristic
-- Category balance enforced to prevent over-focusing on single taxonomy area
-- Questions deferred to planning phase explicitly documented with rationale
-
-**Operational Guidance:**
-
-1. During coverage scan (step 2), tag each identified gap with its taxonomy category
-2. Score Impact on scale 1-5 based on: Does this affect architecture (5), data modeling (4), UX flows (3), edge case handling (2), or documentation only (1)?
-3. Score Uncertainty on scale 1-5: Complete absence (5), conflicting hints (4), vague language (3), partial info (2), mostly clear (1)
-4. Calculate composite score: Impact × Uncertainty for each candidate question
-5. Sort candidate questions by composite score descending
-6. Apply category diversity filter: if top 5 questions span fewer than 3 categories, demote lowest-impact duplicates and promote highest-impact questions from underrepresented categories
-7. Queue exactly 5 questions (or fewer if insufficient candidates meet materiality threshold)
-8. Document deferred questions in internal state for completion report
-
-### Pattern: Guided Answer Recommendation
-
-**Objective:** Accelerate decision-making and reduce cognitive load by providing expert-informed default options while preserving user autonomy.
-
-**Context of Application:** All clarification questions, whether multiple-choice or short-answer format, where best practices or common patterns can inform a sensible default.
-
-**Key Characteristics:**
-
-- Agent analyzes all available options against domain best practices, risk factors, and visible project constraints
-- Recommendation presented prominently with concise justification (1-2 sentences)
-- User retains full control: can accept, reject, or override with custom answer
-- Acceptance shortcuts ("yes", "recommended", "suggested") streamline interaction
-
-**Operational Guidance:**
-
-1. For multiple-choice questions, evaluate each option against: security implications, performance characteristics, maintainability burden, industry standards, alignment with any explicit project goals visible in spec
-2. Select the option that optimally balances these factors; if genuinely ambiguous, select the safest/most conservative option
-3. Format recommendation: `**Recommended:** Option [X] - <reasoning>` where reasoning crisply explains the primary advantage
-4. Present complete option table below the recommendation for transparency
-5. For short-answer questions, formulate a suggested answer following the same evaluation approach
-6. Format suggestion: `**Suggested:** <answer> - <reasoning>`
-7. Always include acceptance language: "You can accept by saying 'yes'..." to establish interaction pattern
-8. When user responds with acceptance keyword, use the stated recommendation/suggestion verbatim as the final answer
-
-### Pattern: Dual-Track Clarification Recording
-
-**Objective:** Maintain both audit trail and semantic integration by recording clarifications in dedicated session log AND updating relevant specification sections.
-
-**Context of Application:** All clarification integrations where traceability and discoverability are both valued.
-
-**Key Characteristics:**
-
-- Clarifications section serves as chronological session log with verbatim Q&A pairs
-- Semantic content from answers propagated to appropriate domain sections (Functional Requirements, Data Model, etc.)
-- No duplication of full answer text; session log references only, domain sections contain actionable specifications
-- Outdated or contradictory statements removed during semantic integration
-
-**Operational Guidance:**
-
-1. On first accepted answer in a session, ensure `## Clarifications` section exists (create after overview/context section if absent)
-2. Create `### Session YYYY-MM-DD` subsection using current date
-3. Append bullet: `- Q: <question text> → A: <accepted answer>` to session subsection
-4. Analyze the answer's semantic category (functional, data, non-functional, edge case, terminology)
-5. Navigate to the appropriate specification section(s)
-6. Insert or update content: for functional scope add requirements bullet; for data model add entity/field/constraint; for edge cases add scenario; for terminology normalize all occurrences
-7. If the new clarification contradicts or obsoletes existing text, delete or replace the old statement rather than leaving both
-8. Preserve all other formatting, ordering, and hierarchy in the spec
-9. Validate that the session log entry remains concise (single line) while domain sections contain full actionable detail
-
-### Pattern: Bounded Interactive Clarification
-
-**Objective:** Prevent specification clarification from becoming an unbounded requirements elicitation exercise by enforcing strict question quotas and materiality thresholds.
-
-**Context of Application:** Any specification refinement workflow where scope creep and analysis paralysis are risks, particularly when clarification precedes technical planning phases.
-
-**Key Characteristics:**
-
-- Hard limit of 5 asked questions per clarification session
-- Materiality filter: only include questions whose answers substantively affect implementation, testing, or validation strategies
-- Early termination signals respected ("done", "stop", "proceed")
-- Coverage tracking differentiates Critical vs. Low-Impact gaps
-
-**Operational Guidance:**
-
-1. During question generation (step 3), apply materiality test to each candidate: Would not having this answer cause architectural rework, test case failure, incorrect data modeling, or missed edge cases? If no, exclude the question.
-2. Initialize question counter at 0; increment only when user provides accepted answer (disambiguation retries do not count)
-3. After each accepted answer, re-evaluate remaining queued questions: have dependencies been resolved that make subsequent questions unnecessary? If yes, remove them from queue.
-4. Check question counter against limit (5) before presenting next question; if limit reached, proceed directly to completion report
-5. Monitor user responses for termination signals: "done", "good", "no more", "stop", "proceed" → immediately exit questioning loop
-6. In completion report, categorize unasked questions as Deferred (exceeded quota) or Outstanding (low impact), with explicit rationale
-7. Never exceed the 5-question limit, even if high-impact ambiguities remain; instead flag them clearly and suggest re-running clarification after initial planning if they prove blocking
-
-## Anti-Patterns: Common Mistakes in Specification Clarification
-
-### Anti-Pattern: Batch Integration with Deferred Persistence
-
-**Description:** Accumulating all clarification answers in memory throughout the questioning session and writing the updated specification only once at the end.
-
-**Reasons to Avoid:**
-
-- Session interruption (network failure, timeout, user disconnect) results in complete loss of all gathered clarifications
-- Large context windows increase risk of data corruption or inconsistency between in-memory state and intended file state
-- Debugging integration errors becomes harder when multiple changes applied simultaneously
-- User cannot verify incremental changes for correctness, reducing trust and increasing rework likelihood
-
-**Negative Consequences:**
-
-- Lost work requires complete re-run of clarification session, frustrating users and wasting time
-- Batch errors affect multiple sections simultaneously, making rollback and diagnosis complex
-- Specification file remains in stale state during entire session, creating synchronization issues if user examines file externally
-- Memory pressure in long sessions may cause performance degradation or crashes
-
-**Correct Alternative:** Use the **Incremental Atomic Integration** pattern to persist each clarification immediately after acceptance, maintaining specification consistency at all interaction boundaries.
-
-### Anti-Pattern: Unprioritized Question Flooding
-
-**Description:** Presenting all identified ambiguities as clarification questions without impact assessment or quota management, often overwhelming the user with 10-20+ questions covering trivial and critical gaps indiscriminately.
-
-**Reasons to Avoid:**
-
-- User fatigue leads to degraded answer quality for later questions, particularly for genuinely important decisions
-- Low-impact questions consume limited question budget, preventing coverage of high-impact ambiguities
-- No systematic approach to determine which gaps can be safely deferred to planning phase
-- Creates perception that specification process is bureaucratic and low-value
-
-**Negative Consequences:**
-
-- Critical architectural ambiguities remain unresolved while trivial styling preferences are clarified
-- User abandons clarification session before completion, leaving specification in inconsistent partially-clarified state
-- Downstream planning and implementation phases still require rework due to missed high-impact decisions
-- Reduced user engagement with future clarification workflows due to negative experience
-
-**Correct Alternative:** Apply the **Impact-Weighted Question Prioritization** pattern to systematically rank candidate questions by (Impact × Uncertainty) and enforce strict budget limits, ensuring critical gaps are addressed first.
-
-### Anti-Pattern: Silent Default Assumption
-
-**Description:** When encountering ambiguities, the agent makes implicit assumptions about intended behavior, data models, or constraints without surfacing them to the user for validation, then silently encodes these assumptions into the specification.
-
-**Reasons to Avoid:**
-
-- Assumptions may directly contradict user's actual intent, creating incorrect specification baseline
-- User remains unaware of critical decisions being made on their behalf, preventing informed course correction
-- No audit trail of why certain design choices were made, obscuring decision rationale for future readers
-- Violates principle of user autonomy and informed consent in specification development
-
-**Negative Consequences:**
-
-- Implementation proceeds based on incorrect assumptions, requiring extensive rework when discovered during testing or deployment
-- Specification becomes internally inconsistent as some sections reflect user intent while others reflect agent assumptions
-- Trust erosion: user loses confidence in specification accuracy and must manually audit all content
-- Knowledge gap: team members cannot understand specification evolution or challenge questionable decisions
-
-**Correct Alternative:** Use the **Guided Answer Recommendation** pattern to surface expert-informed defaults explicitly, with reasoning, while preserving user's ability to accept, reject, or override. Always ask rather than assume.
-
-### Anti-Pattern: Append-Only Clarification Logging
-
-**Description:** Recording each clarification answer exclusively in the Clarifications session log without propagating the semantic content to the relevant domain sections of the specification (Functional Requirements, Data Model, etc.).
-
-**Reasons to Avoid:**
-
-- Clarifications remain buried in chronological log format, requiring readers to manually correlate Q&A pairs with relevant spec sections
-- Specification sections retain original ambiguous or contradictory language, making them unreliable as standalone reference
-- Duplicate maintenance burden: same information conceptually exists in two places (session log and reader's mental model) but only one is written
-- Testing, implementation, and validation teams unlikely to discover critical constraints hidden in clarification logs
-
-**Negative Consequences:**
-
-- Developers implement features based on incomplete or ambiguous spec sections, missing critical clarifications
-- Test cases fail to cover edge cases or constraints documented only in session logs
-- Code reviews cannot validate correctness against specification because constraints are not in expected sections
-- Specification becomes progressively less useful over time as clarification log grows while core sections remain static
-
-**Correct Alternative:** Use the **Dual-Track Clarification Recording** pattern to maintain session audit trail while simultaneously updating relevant specification sections with actionable content, removing contradictory outdated statements.
-
-### Anti-Pattern: Unbounded Requirements Elicitation
-
-**Description:** Treating specification clarification as an open-ended requirements gathering exercise, continuously generating new questions without quota limits, materiality filters, or clear completion criteria.
-
-**Reasons to Avoid:**
-
-- Clarification phase bleeds into requirements analysis and design, violating phase boundaries and delaying planning/implementation
-- Diminishing returns: later questions often address marginal concerns with minimal implementation impact
-- User cannot distinguish between "must answer now" versus "can decide during planning" questions
-- No forcing function to accept reasonable uncertainty and proceed with incomplete information
-
-**Negative Consequences:**
-
-- Specification process becomes perceived as bloated and slow, reducing team adoption and engagement
-- Analysis paralysis: team becomes stuck in clarification loops while competitive pressure or deadlines mount
-- Over-specified solutions lose flexibility for implementation-time discoveries and emergent insights
-- Resource waste: hours spent clarifying details that planning/implementation would naturally resolve through technical constraints
-
-**Correct Alternative:** Apply the **Bounded Interactive Clarification** pattern with strict 5-question limit, materiality threshold requiring architectural/testing impact, and explicit categorization of deferred vs. outstanding gaps in completion report.
-
-### Anti-Pattern: Opaque Option Presentation
-
-**Description:** Presenting multiple-choice clarification questions as bare option lists without analysis, recommendation, or reasoning, forcing users to independently evaluate unfamiliar technical tradeoffs.
-
-**Reasons to Avoid:**
-
-- User lacks domain expertise to evaluate security, performance, or maintainability implications of each option
-- Decision paralysis when all options seem equally valid or all seem problematic
-- Suboptimal choices made due to incomplete understanding of consequences
-- Missed opportunity to transfer knowledge and build user's technical judgment
-
-**Negative Consequences:**
-
-- User selects option with hidden drawbacks (security vulnerability, scalability bottleneck, vendor lock-in) due to lack of expert guidance
-- Frustration and reduced trust: user feels abandoned to make critical technical decisions without adequate support
-- Inconsistent decisions across similar questions due to lack of coherent decision framework
-- Increased rework when problematic choice discovered during implementation or security review
-
-**Correct Alternative:** Use the **Guided Answer Recommendation** pattern to analyze options against best practices, present explicit recommendation with reasoning, and provide acceptance shortcuts while preserving user autonomy to override when their context differs.
 
 Behavior rules:
 
