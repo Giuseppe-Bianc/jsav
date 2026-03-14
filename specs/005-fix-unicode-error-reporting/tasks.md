@@ -63,6 +63,9 @@
 - [ ] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
 - [ ] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
 - [ ] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
+- [ ] T011b [P] [US1] Add test case `UnicodeColumn_ansi_color_red_code` in `test/tests.cpp` (verify `format_spanned_error()` outputs `\033[31m^\033[0m` when `config_.ansi_color` is true, per NFR-003)
+- [ ] T011c [P] [US1] Add test case `UnicodeColumn_ansi_color_fallback_monochrome` in `test/tests.cpp` (verify `format_spanned_error()` outputs plain `^` when `config_.ansi_color` is false, with no loss of positioning information)
+- [ ] T011d [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_no_color_variants` in `test/tests.cpp` (verify `NO_COLOR=""` (empty string) is treated as set/disabled, `COLORTERM="truecolor"` enables color, `TERM="dumb"` disables color)
 - [ ] T012 [US1] Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`)
 
 ### Implementation for User Story 1
@@ -202,6 +205,10 @@
 Task: "Add test case UnicodeColumn_marker_alignment_Chinese in test/tests.cpp"
 Task: "Add test case UnicodeColumn_marker_alignment_Greek in test/tests.cpp"
 Task: "Add test case UnicodeColumn_marker_alignment_emoji in test/tests.cpp"
+Task: "Add test case UnicodeColumn_detect_ansi_color_environment in test/tests.cpp"
+Task: "Add test case UnicodeColumn_ansi_color_red_code in test/tests.cpp"
+Task: "Add test case UnicodeColumn_ansi_color_fallback_monochrome in test/tests.cpp"
+Task: "Add test case UnicodeColumn_detect_ansi_color_no_color_variants in test/tests.cpp"
 
 # Launch all UnicodeColumn implementations for User Story 1 together:
 Task: "Implement visual_column() function in src/jsav_Lib/error/UnicodeColumn.cpp"
@@ -279,15 +286,15 @@ With multiple developers:
 |-------|------------|-------------|
 | **Phase 1: Setup** | 3 tasks | Project structure and build system |
 | **Phase 2: Foundational** | 6 tasks | Core UnicodeColumn module and ErrorReporter extensions (includes NFR-003 ANSI color detection) |
-| **Phase 3: US1** | 13 tasks | Unicode marker alignment (MVP) |
+| **Phase 3: US1** | 16 tasks | Unicode marker alignment (MVP) + NFR-003 ANSI color tests |
 | **Phase 4: US2** | 13 tasks | Invalid UTF-8 detection and reporting |
 | **Phase 5: US3** | 17 tasks | Edge case handling |
 | **Phase 6: Polish** | 12 tasks | Testing, coverage, documentation, static analysis |
-| **TOTAL** | **64 tasks** | Complete feature implementation |
+| **TOTAL** | **67 tasks** | Complete feature implementation |
 
 ### Task Count per User Story
 
-- **User Story 1 (P1)**: 13 tasks (T009–T019, T011a, T018, T018a) — **includes NFR-003 ANSI color support**
+- **User Story 1 (P1)**: 16 tasks (T009–T019, T011a–T011d, T018, T018a) — **includes NFR-003 ANSI color support with comprehensive tests**
 - **User Story 2 (P2)**: 13 tasks (T020–T032)
 - **User Story 3 (P3)**: 17 tasks (T033–T048, T049–T052 in Polish)
 - **Setup + Foundational**: 9 tasks (T001–T008, T006a)
@@ -297,7 +304,7 @@ With multiple developers:
 
 - **Phase 1**: T003 can run in parallel with T001, T002
 - **Phase 2**: T004, T005, T006a, T007, T008 can all run in parallel (different files)
-- **Phase 3**: T009, T010, T011, T011a (tests) can run in parallel; T013, T014 (implementations) can run in parallel; T018, T018a can run in parallel
+- **Phase 3**: T009, T010, T011, T011a, T011b, T011c, T011d (tests) can run in parallel; T013, T014 (implementations) can run in parallel; T018, T018a can run in parallel
 - **Phase 4**: T020–T024 (tests) can run in parallel
 - **Phase 5**: T033–T040 (tests) can run in parallel
 - **Phase 6**: T049, T050, T051, T052 (coverage tests) can run in parallel; T056–T060 (static analysis) can run in parallel
