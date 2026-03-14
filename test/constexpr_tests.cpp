@@ -406,6 +406,69 @@ TEST_CASE("Utf8Decoder_TruncatedThreeByte_ReturnsCorrectMaximalSubpart", "[Unico
     STATIC_REQUIRE(res.status == Utf8Status::TruncatedSequence);
 }
 
+TEST_CASE("Utf8Decoder_TruncatedFourByte_NoContinuation_ReturnsTruncatedError", "[Unicode][T042A]") {
+    using namespace jsv::unicode;
+    // 0xF0 alone (should have 3 continuations) → TruncatedSequence, length=1
+    constexpr auto res = decode_utf8("\xF0", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 1);
+    STATIC_REQUIRE(res.status == Utf8Status::TruncatedSequence);
+}
+
+TEST_CASE("Utf8Decoder_TruncatedFourByte_F0_Overlong_OneContinuation", "[Unicode][T042B]") {
+    using namespace jsv::unicode;
+    // 0xF0 0x80 (overlong, missing 3rd byte) → Overlong, length=2
+    constexpr auto res = decode_utf8("\xF0\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 2);
+    STATIC_REQUIRE(res.status == Utf8Status::Overlong);
+}
+
+TEST_CASE("Utf8Decoder_TruncatedFourByte_F0_Overlong_TwoContinuations", "[Unicode][T042C]") {
+    using namespace jsv::unicode;
+    // 0xF0 0x80 0x80 (overlong, missing 4th byte) → Overlong, length=3
+    constexpr auto res = decode_utf8("\xF0\x80\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 3);
+    STATIC_REQUIRE(res.status == Utf8Status::Overlong);
+}
+
+TEST_CASE("Utf8Decoder_TruncatedFourByte_F4_OutOfRange_OneContinuation", "[Unicode][T042D]") {
+    using namespace jsv::unicode;
+    // 0xF4 0x90 (out of range, missing 3rd byte) → OutOfRange, length=2
+    constexpr auto res = decode_utf8("\xF4\x90", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 2);
+    STATIC_REQUIRE(res.status == Utf8Status::OutOfRange);
+}
+
+TEST_CASE("Utf8Decoder_TruncatedFourByte_F4_OutOfRange_TwoContinuations", "[Unicode][T042E]") {
+    using namespace jsv::unicode;
+    // 0xF4 0x90 0x80 (out of range, missing 4th byte) → OutOfRange, length=3
+    constexpr auto res = decode_utf8("\xF4\x90\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 3);
+    STATIC_REQUIRE(res.status == Utf8Status::OutOfRange);
+}
+
+TEST_CASE("Utf8Decoder_TruncatedFourByte_Valid_Start_ReturnsTruncatedError", "[Unicode][T042F]") {
+    using namespace jsv::unicode;
+    // 0xF0 0x90 (valid start, but missing 3rd and 4th bytes) → TruncatedSequence, length=2
+    constexpr auto res = decode_utf8("\xF0\x90", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 2);
+    STATIC_REQUIRE(res.status == Utf8Status::TruncatedSequence);
+}
+
+TEST_CASE("Utf8Decoder_TruncatedFourByte_Valid_TwoContinuations_ReturnsTruncatedError", "[Unicode][T042G]") {
+    using namespace jsv::unicode;
+    // 0xF0 0x90 0x80 (valid start, but missing 4th byte) → TruncatedSequence, length=3
+    constexpr auto res = decode_utf8("\xF0\x90\x80", 0);
+    STATIC_REQUIRE(res.codepoint == char32_t{0xFFFDU});
+    STATIC_REQUIRE(res.byte_length == 3);
+    STATIC_REQUIRE(res.status == Utf8Status::TruncatedSequence);
+}
+
 TEST_CASE("Utf8Decoder_InvalidLeadByte_ReturnsInvalidLeadError", "[Unicode][T043]") {
     using namespace jsv::unicode;
     // 0xFF → InvalidLeadByte
