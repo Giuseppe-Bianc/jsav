@@ -73,6 +73,48 @@ Create internal representations (do not include raw artifacts in output):
 - **Task coverage mapping**: Map each task to one or more requirements or stories (inference by keyword / explicit reference patterns like IDs or key phrases)
 - **Constitution rule set**: Extract principle names and MUST/SHOULD normative statements
 
+The semantic models built in this step are the analytical foundation for all six detection passes. Errors in key derivation, entity normalization, or task-to-requirement mapping propagate silently into false positives, missed coverage gaps, and unreliable metrics downstream. The following guidance ensures model construction is both accurate and reproducible.
+
+#### Patterns for Semantic Model Construction
+
+##### Deterministic Key Derivation
+
+- **Objective:** Produce stable, reproducible requirement keys so that findings remain consistent across reruns and can be tracked over time.
+- **Context of application:** When generating the slug-based stable key for each requirement in the requirements inventory (e.g., "User can upload file" → `user-can-upload-file`).
+- **Key characteristics:** The key derivation algorithm is purely mechanical — based on the requirement's imperative phrase text, not on its position in the document, surrounding context, or the agent's interpretation of intent. Two runs against the same unchanged spec produce identical keys in the same order.
+- **Operational guidance:**
+  1. Extract the imperative phrase verbatim from the requirement text before transforming it.
+  2. Apply a fixed normalization sequence: lowercase → strip leading articles ("a", "an", "the") → replace whitespace and punctuation with hyphens → collapse consecutive hyphens.
+  3. If two requirements produce the same key after normalization, append a numeric suffix (`-2`, `-3`) based on order of appearance — never based on semantic judgment.
+  4. After generating all keys, verify uniqueness: no two requirements share a key. If duplicates exist, flag them as candidate findings for Duplication Detection (Step 4A) rather than silently disambiguating.
+
+##### Inference-Bounded Coverage Mapping
+
+- **Objective:** Map tasks to requirements using observable textual evidence while explicitly marking the confidence level of each mapping, so that coverage metrics reflect actual traceability rather than speculative inference.
+- **Context of application:** When building the task coverage mapping — linking each task in tasks.md to one or more requirements or user stories from spec.md.
+- **Key characteristics:** Each mapping is grounded in a specific textual signal: an explicit requirement ID reference, a shared key phrase, or a named entity match. Mappings based on thematic similarity alone are flagged as low-confidence and excluded from coverage percentage calculations. The agent records what evidence supports each mapping.
+- **Operational guidance:**
+  1. First pass — exact matches: link tasks that explicitly reference requirement IDs, user story identifiers, or quoted requirement phrases.
+  2. Second pass — key phrase matches: link tasks whose descriptions contain distinctive multi-word phrases (≥3 content words) that appear verbatim in a requirement.
+  3. Third pass — entity matches: link tasks that reference the same named data entity, API endpoint, or component as a requirement, where the entity name is sufficiently specific (not generic terms like "user," "data," "system").
+  4. For any remaining unmapped tasks or requirements, record them as unmapped rather than forcing a speculative connection. These feed directly into Coverage Gaps detection (Step 4E).
+
+#### Anti-Patterns for Semantic Model Construction
+
+##### Volatile Key Generation
+
+- **Description:** The agent generates requirement keys using features that vary across runs — such as document position, surrounding context, inferred synonyms, or the agent's paraphrased summary of the requirement rather than its verbatim text.
+- **Reasons to avoid:** Volatile keys violate the operating principle that "rerunning without changes should produce consistent IDs and counts." When keys change between runs, findings from a previous analysis cannot be compared to findings from a current one. Coverage metrics become non-reproducible, and users cannot track whether a previously flagged issue has been resolved. This typically occurs when the agent treats key generation as a semantic task (understanding the requirement) rather than a mechanical task (transforming fixed text).
+- **Negative consequences:** Finding IDs shift between runs, making the report unreliable for tracking remediation. Coverage percentages fluctuate without any actual change to artifacts. Users lose the ability to diff analysis reports across iterations, which is the primary way they verify that fixes addressed the right issues.
+- **Correct alternative:** Apply **Deterministic Key Derivation** to produce keys from a fixed, mechanical transformation of verbatim requirement text.
+
+##### Uncalibrated Coverage Inference
+
+- **Description:** The agent maps tasks to requirements based on broad thematic similarity or domain-level association (e.g., mapping a "set up database" task to a "user can search products" requirement because both involve data), without requiring specific textual evidence for the connection.
+- **Reasons to avoid:** Over-inferred mappings inflate coverage metrics, masking genuine gaps. Under-inferred mappings (the opposite failure — requiring exact ID matches only) deflate coverage and generate false gap findings. Both failures stem from the same root cause: the agent does not calibrate its inference threshold or distinguish between evidence-based and speculative connections. Over-inference is more common because the agent's training biases it toward finding connections rather than reporting absences.
+- **Negative consequences:** Inflated coverage gives false confidence that all requirements are addressed by tasks, allowing gaps to reach implementation undetected. Deflated coverage floods the report with spurious gap findings, causing the user to distrust or ignore legitimate gaps. In both cases, the coverage percentage — a key metric in the report — becomes unreliable.
+- **Correct alternative:** Apply **Inference-Bounded Coverage Mapping** with explicit confidence tiers and exclude low-confidence mappings from coverage percentage calculations.
+
 ### 4. Detection Passes (Token-Efficient Analysis)
 
 Focus on high-signal findings. Limit to 50 findings total; aggregate remainder in overflow summary.
@@ -120,6 +162,48 @@ Focus on high-signal findings. Limit to 50 findings total; aggregate remainder i
 - Task ordering contradictions (e.g., integration tasks before foundational setup tasks without dependency note)
 - Conflicting requirements (e.g., one requires Next.js while other specifies Vue)
 
+The six detection passes above define *what* to look for. The following guidance governs *how* to conduct each pass so that findings are evidence-based, non-redundant, and efficiently allocated within the 50-finding cap.
+
+#### Patterns for Detection Pass Execution
+
+##### Evidence-Cited Findings
+
+- **Objective:** Ensure every reported finding references specific, verifiable text in a specific artifact location, so that the user can confirm the finding without re-reading entire documents.
+- **Context of application:** When formulating each individual finding during any of the six detection passes (A through F).
+- **Key characteristics:** Each finding includes the artifact filename, the line range or section heading where the issue occurs, and a direct quotation or precise paraphrase of the problematic text. No finding relies on the agent's general impression of the artifact. If a finding cannot cite specific text, it is discarded.
+- **Operational guidance:**
+  1. For each candidate finding, record the exact source location (file and line range or section identifier) before drafting the summary.
+  2. Include a brief quotation (≤15 words) of the specific text that triggers the finding — for ambiguity findings, quote the vague term in context; for inconsistency findings, quote both conflicting statements.
+  3. If a finding involves an absence (e.g., a coverage gap), cite the section where the content would be expected and confirm its absence explicitly (e.g., "spec.md §Non-Functional Requirements contains no performance targets").
+  4. Before finalizing the findings list, discard any finding whose "Location(s)" cell would require "general" or "throughout" rather than a specific reference.
+
+##### Cross-Pass Deduplication
+
+- **Objective:** After completing all six detection passes, merge findings that describe the same underlying issue from different analytical angles, and surface compound issues that span multiple passes.
+- **Context of application:** As a consolidation step after all individual passes (A through F) have generated their candidate findings, before applying the 50-finding cap.
+- **Key characteristics:** Findings from different passes that reference the same artifact location or the same requirement key are compared. If they describe the same root issue (e.g., an ambiguous requirement flagged by both Ambiguity Detection and Underspecification), they are merged into a single finding with the higher severity and references to both detection categories. Compound issues that only become visible through cross-pass correlation (e.g., a terminology drift that causes a false coverage gap) are surfaced as new findings.
+- **Operational guidance:**
+  1. After all passes complete, sort all candidate findings by artifact location.
+  2. For adjacent findings referencing the same location or requirement key, determine whether they describe the same root issue. If yes, merge into one finding and list both detection categories in the "Category" column (e.g., "Ambiguity / Underspecification").
+  3. Scan for correlation patterns: does a terminology drift finding (F) explain a coverage gap finding (E)? Does a duplication finding (A) relate to an inconsistency finding (F)? Promote these correlations to compound findings.
+  4. After deduplication, if remaining findings exceed 50, rank by severity and then by impact breadth (findings affecting multiple artifacts rank higher). Aggregate overflow findings into a summary count by category.
+
+#### Anti-Patterns for Detection Pass Execution
+
+##### Fabricated Finding Insertion
+
+- **Description:** The agent reports issues that do not actually exist in the loaded artifacts — inventing plausible-sounding line references, asserting terminology conflicts between terms that are not used in the documents, or flagging ambiguity in language that is already quantified with specific criteria.
+- **Reasons to avoid:** This is the highest-risk failure mode for an LLM-based analysis agent. The agent's generative capability allows it to produce findings that are structurally well-formed and categorically appropriate but factually wrong. Users initially trust the report format and may act on fabricated findings, introducing unnecessary changes. This typically occurs when the agent has incomplete context (due to progressive disclosure loading) and fills gaps with plausible inference rather than reporting uncertainty.
+- **Negative consequences:** Users modify artifacts to fix non-existent problems, potentially introducing real issues. Trust in the analysis workflow collapses once a fabricated finding is discovered — subsequent legitimate findings are doubted. The read-only safety guarantee is preserved (the agent doesn't modify files), but the remediation actions the user takes based on false findings are effectively agent-induced damage.
+- **Correct alternative:** Apply **Evidence-Cited Findings** and discard any finding that cannot be anchored to a specific, quotable passage in a loaded artifact. When context is insufficient to confirm an issue, report it as a "potential finding — requires manual verification" rather than asserting it as fact.
+
+##### Cap-Blind Enumeration
+
+- **Description:** The agent generates findings without managing the 50-finding budget, producing many low-severity or redundant items that consume cap space and displace higher-impact findings. Alternatively, the agent treats the cap as a target to fill rather than a ceiling, padding the list with marginal findings to reach 50.
+- **Reasons to avoid:** The 50-finding cap exists to keep the report actionable. If the cap is consumed by a flood of LOW-severity wording suggestions or by duplicate findings from overlapping detection passes, CRITICAL and HIGH findings may be pushed into the overflow summary where they receive less attention. This occurs when the agent runs each pass independently without tracking cumulative count, or when it prioritizes completeness over signal quality.
+- **Negative consequences:** The findings table becomes a wall of low-value items that the user must triage manually, defeating the purpose of automated severity assignment. Critical issues may appear only in the overflow summary, which users typically skim. The report feels exhaustive but is not actionable — the user cannot distinguish the three issues that truly matter from the 47 that do not.
+- **Correct alternative:** Apply **Cross-Pass Deduplication** to merge redundant findings before applying the cap, and rank all candidates by severity and impact breadth so that the 50 slots contain the highest-signal findings.
+
 ### 5. Severity Assignment
 
 Use this heuristic to prioritize findings:
@@ -164,6 +248,48 @@ Output a Markdown report (no file writes) with the following structure:
 - Duplication Count
 - Critical Issues Count
 
+The report is the sole deliverable of this workflow. Its utility depends on whether severity assignments accurately reflect the documented heuristic and whether recommendations are specific enough for the user to act on without re-reading the artifacts or re-running the analysis. The following guidance addresses severity calibration and recommendation quality.
+
+#### Patterns for Report Quality
+
+##### Definition-Anchored Severity Classification
+
+- **Objective:** Assign severity to each finding by mechanically matching it against the documented severity definitions in Step 5, rather than relying on intuitive judgment about how "bad" an issue feels.
+- **Context of application:** When assigning the Severity value for each finding row in the analysis report.
+- **Key characteristics:** Each severity assignment can be justified by citing the specific clause in the severity heuristic that applies. The agent does not interpolate between severity levels or create hybrid justifications. If a finding does not clearly match any severity definition, it defaults to the lowest applicable level rather than being rounded up.
+- **Operational guidance:**
+  1. For each finding, compare it against severity definitions starting from CRITICAL and working down.
+  2. Assign the first level whose definition the finding unambiguously matches. Record internally which clause matched (e.g., "CRITICAL — requirement with zero coverage that blocks baseline functionality").
+  3. If the finding partially matches two levels (e.g., it involves terminology drift — MEDIUM — but the drift causes a conflicting requirement — HIGH), assign the higher level and note the compounding factor in the Summary column.
+  4. After assigning all severities, review the distribution. If more than 50% of findings are CRITICAL or HIGH, re-examine each one against the definitions — over-concentration at the top usually indicates the agent is interpreting definitions too broadly.
+
+##### Actionable Recommendation Specificity
+
+- **Objective:** Ensure each recommendation in the report identifies the specific artifact, section, and change needed so the user can act on it directly.
+- **Context of application:** When writing the Recommendation column for each finding row.
+- **Key characteristics:** Every recommendation names the file to edit, the section or line to change, and the nature of the change (add, remove, replace, merge, quantify). The user can evaluate whether a recommendation has been implemented by re-reading only the referenced location, without scanning the full artifact.
+- **Operational guidance:**
+  1. Structure each recommendation as: "[Action verb] in [file]:[section/line] — [specific change]" (e.g., "Replace 'fast' with a latency target in spec.md §NFR-2: specify p95 response time threshold").
+  2. For duplication findings, identify which version to keep and which to remove, citing the criterion (e.g., "Keep spec.md:L45 (includes measurable criteria); remove spec.md:L120 (vague restatement)").
+  3. For gap findings, specify what content to add and where (e.g., "Add performance task to tasks.md Phase 2 covering spec requirement `user-search-returns-results`").
+  4. Avoid open-ended directives: never write "consider improving," "review for clarity," or "ensure alignment" without specifying exactly what to change.
+
+#### Anti-Patterns for Report Quality
+
+##### Severity Inflation
+
+- **Description:** The agent assigns CRITICAL or HIGH severity to the majority of findings, either to signal thoroughness, because it conflates "could cause a problem" with "blocks baseline functionality," or because it defaults to the highest applicable level when a finding sits between two definitions.
+- **Reasons to avoid:** Severity inflation destroys the prioritization signal that is the report's primary value. When everything is critical, nothing is — the user cannot distinguish the three findings that genuinely block implementation from the twelve that are merely suboptimal. This typically occurs when the agent interprets severity definitions expansively (e.g., treating any ambiguous term as "blocking baseline functionality") or when it feels pressure to justify the analysis effort by elevating findings.
+- **Negative consequences:** Users either treat the entire report as alarmist and deprioritize remediation, or they attempt to fix all CRITICAL/HIGH findings before proceeding and waste effort on issues that do not actually block implementation. The severity distribution loses its diagnostic value — a healthy report has a pyramid shape (few CRITICAL, more LOW), not a top-heavy bar.
+- **Correct alternative:** Apply **Definition-Anchored Severity Classification** and assign severity by mechanical matching against the documented heuristic, defaulting to the lower level when a finding does not unambiguously match the higher one.
+
+##### Opaque Recommendation Phrasing
+
+- **Description:** The agent writes recommendations using vague directives such as "improve clarity," "ensure consistency," "consider refining," or "review and update" without specifying which artifact, which section, or what specific change to make.
+- **Reasons to avoid:** Vague recommendations transfer the analytical burden back to the user, who must re-read the artifacts to determine what "improve clarity" means in context. The agent has already performed this analysis during the detection pass — failing to encode the result in the recommendation wastes the analytical work and forces the user to repeat it. This occurs when the agent treats the recommendation column as a summary of the problem rather than a prescription for the solution.
+- **Negative consequences:** Users cannot act on the report without significant additional effort. Remediation becomes a second analysis exercise rather than a targeted editing task. The report functions as a problem list rather than an action plan, reducing its practical value. Users who lack domain expertise may implement incorrect fixes because the recommendation did not specify the correct change.
+- **Correct alternative:** Apply **Actionable Recommendation Specificity** to ensure every recommendation identifies the exact file, location, and change needed.
+
 ### 7. Provide Next Actions
 
 At end of report, output a concise Next Actions block:
@@ -192,260 +318,6 @@ Ask the user: "Would you like me to suggest concrete remediation edits for the t
 - **Prioritize constitution violations** (these are always CRITICAL)
 - **Use examples over exhaustive rules** (cite specific instances, not generic patterns)
 - **Report zero issues gracefully** (emit success report with coverage statistics)
-
-## Patterns: Best Practices for Specification Analysis
-
-### Pattern 1: Progressive Artifact Loading
-
-**Objective**: Minimize token consumption while maximizing analysis signal quality.
-
-**Context of Application**: When analyzing multiple specification artifacts that may contain thousands of lines of documentation.
-
-**Key Characteristics**:
-
-- Extracts only semantically relevant sections from each artifact
-- Builds internal semantic models rather than reprocessing raw text
-- Defers full artifact loading until specific findings require deep inspection
-
-**Operational Guidance**:
-
-1. Parse prerequisite check output first to obtain absolute file paths
-2. Load artifacts in dependency order: constitution → spec → plan → tasks
-3. Extract only named sections (e.g., "Functional Requirements", "Architecture")
-4. Skip boilerplate, examples, and commentary unless directly relevant to validation
-5. Store extracted content in structured objects (requirement inventory, task mapping) rather than preserving original formatting
-
-### Pattern 2: Stable Identifier Generation
-
-**Objective**: Produce deterministic, reproducible analysis results across multiple runs.
-
-**Context of Application**: When tracking findings across multiple analysis iterations or maintaining audit trails.
-
-**Key Characteristics**:
-
-- Finding IDs use category-based prefixes (A for Ambiguity, D for Duplication, etc.)
-- Requirement keys derived from imperative phrases using consistent slug generation
-- Sequential numbering within each category maintains insertion order
-
-**Operational Guidance**:
-
-1. Establish category prefix mapping at analysis initialization (A=Ambiguity, D=Duplication, U=Underspecification, etc.)
-2. Generate requirement slugs by: extracting imperative phrase → lowercasing → replacing spaces with hyphens → removing special characters
-3. Number findings sequentially within category in order of detection
-4. Persist identifier generation rules across analysis runs to ensure reproducibility
-
-### Pattern 3: Constitution-First Validation
-
-**Objective**: Treat constitutional principles as non-negotiable constraints that supersede all other quality criteria.
-
-**Context of Application**: When project governance requires adherence to established principles that must not be diluted or reinterpreted.
-
-**Key Characteristics**:
-
-- Constitution violations automatically receive CRITICAL severity
-- Analysis framework validates spec/plan/tasks against constitution, never the reverse
-- Clear separation between "constitution needs updating" (out of scope) and "artifacts violate constitution" (in scope)
-
-**Operational Guidance**:
-
-1. Load constitution first and parse all MUST/SHOULD normative statements
-2. Build validation rule set from extracted principles before loading other artifacts
-3. Flag any requirement, plan element, or task that contradicts a MUST principle as CRITICAL
-4. Include explicit recommendation to update artifacts, not to "reconsider" the principle
-5. If user questions a principle itself, recommend explicit constitution update process outside analysis scope
-
-### Pattern 4: Coverage-Centric Metrics
-
-**Objective**: Quantify requirement-to-task traceability as the primary health indicator.
-
-**Context of Application**: When assessing specification completeness before implementation begins.
-
-**Key Characteristics**:
-
-- Coverage percentage based on requirements with at least one mapped task
-- Includes both functional and non-functional requirements in denominator
-- Distinguishes between "unmapped requirements" (coverage gap) and "unmapped tasks" (scope creep)
-
-**Operational Guidance**:
-
-1. Build bidirectional mapping: requirements → tasks and tasks → requirements
-2. Calculate coverage as: (count of requirements with ≥1 task) / (total requirements) × 100
-3. Report unmapped requirements separately from unmapped tasks
-4. Include non-functional requirements in coverage calculation (security, performance, etc.)
-5. Flag coverage below 80% as requiring attention before implementation
-
-### Pattern 5: Bounded Finding Reports
-
-**Objective**: Prevent analysis output from overwhelming users with excessive detail.
-
-**Context of Application**: When artifact quality issues exceed reasonable remediation capacity in a single iteration.
-
-**Key Characteristics**:
-
-- Hard limit of 50 findings in primary report table
-- Overflow findings aggregated into summary counts by category/severity
-- Focus on highest-severity, highest-impact findings first
-
-**Operational Guidance**:
-
-1. Collect all findings during detection passes without filtering
-2. Sort by severity (CRITICAL → HIGH → MEDIUM → LOW), then by category
-3. Take top 50 findings for detailed reporting in main table
-4. Count remaining findings by category and severity; append overflow summary
-5. Include statement: "N additional findings suppressed; prioritize top issues first"
-
-## Anti-Patterns: Common Mistakes to Avoid
-
-### Anti-Pattern 1: Exhaustive Artifact Dumping
-
-**Description**: Loading entire specification artifacts into analysis context and iterating over every line, paragraph, or section regardless of relevance.
-
-**Reasons to Avoid**:
-
-- Consumes excessive tokens on boilerplate, examples, and non-normative content
-- Degrades analysis focus by diluting signal with noise
-- May exceed context window limits on large specifications
-
-**Negative Consequences**:
-
-- Slower analysis execution
-- Higher computational cost
-- Risk of incomplete analysis if context limits are hit mid-process
-- Difficulty identifying high-priority issues amid verbose output
-
-**Correct Alternative**: Use Pattern 1 (Progressive Artifact Loading) to extract only semantically relevant sections and build compact semantic models.
-
-### Anti-Pattern 2: Non-Deterministic Finding IDs
-
-**Description**: Generating finding identifiers using timestamps, random UUIDs, or hash-based schemes that change between analysis runs even when artifacts remain unchanged.
-
-**Reasons to Avoid**:
-
-- Makes it impossible to track whether specific findings have been resolved across iterations
-- Prevents automated regression detection (e.g., "Finding X reappeared after remediation")
-- Complicates audit trails and change tracking
-
-**Negative Consequences**:
-
-- Users cannot reliably reference specific findings in discussions or issue tracking
-- Automated tooling cannot correlate findings across runs
-- Increases cognitive load when comparing analysis reports
-
-**Correct Alternative**: Use Pattern 2 (Stable Identifier Generation) with category prefixes and sequential numbering based on detection order.
-
-### Anti-Pattern 3: Constitution Relativism
-
-**Description**: Treating constitutional principles as negotiable guidelines, suggesting spec/plan modifications "could be aligned" with constitution, or recommending "reconsidering" a principle when conflicts arise.
-
-**Reasons to Avoid**:
-
-- Undermines governance framework and project consistency
-- Introduces ambiguity into what should be clear constraints
-- Encourages gradual erosion of established standards
-
-**Negative Consequences**:
-
-- Constitution becomes meaningless as "guidelines" rather than binding rules
-- Different team members interpret principles differently
-- Quality and consistency degrade over time as violations are rationalized
-- Loss of trust in specification process
-
-**Correct Alternative**: Use Pattern 3 (Constitution-First Validation) to treat violations as CRITICAL errors requiring artifact correction, never principle reinterpretation.
-
-### Anti-Pattern 4: Task-Centric Coverage Analysis
-
-**Description**: Calculating coverage as (count of tasks with requirements) / (total tasks) instead of (count of requirements with tasks) / (total requirements).
-
-**Reasons to Avoid**:
-
-- Inverts the purpose of coverage metrics (validating spec completeness, not task justification)
-- Allows 100% coverage even when critical requirements have no implementation tasks
-- Obscures gaps in requirement fulfillment
-
-**Negative Consequences**:
-
-- False confidence that specification is implementation-ready
-- Critical functionality may be omitted from task breakdown
-- Wastes implementation effort on out-of-scope tasks while missing required features
-- Difficult to trace deliverables back to user needs
-
-**Correct Alternative**: Use Pattern 4 (Coverage-Centric Metrics) to measure requirements-to-tasks mapping, flagging unmapped requirements as coverage gaps.
-
-### Anti-Pattern 5: Unbounded Finding Enumeration
-
-**Description**: Reporting every detected issue regardless of quantity, producing reports with hundreds or thousands of findings.
-
-**Reasons to Avoid**:
-
-- Overwhelms users with information, making it unclear where to start
-- Obscures critical issues among minor style suggestions
-- Creates "analysis paralysis" where remediation seems insurmountable
-
-**Negative Consequences**:
-
-- Users ignore the report entirely due to overwhelming volume
-- Critical issues buried among low-priority findings
-- Remediation effort spread thinly across many minor issues instead of focusing on blockers
-- Decreased trust in analysis tool's judgment and prioritization
-
-**Correct Alternative**: Use Pattern 5 (Bounded Finding Reports) to limit detailed findings to top 50 issues by severity, summarizing overflow.
-
-### Anti-Pattern 6: Automated File Modification
-
-**Description**: Automatically applying remediation edits to spec.md, plan.md, or tasks.md based on detected findings without explicit user approval.
-
-**Reasons to Avoid**:
-
-- Violates read-only contract of analysis command
-- May introduce errors or unintended changes
-- Removes user from decision-making loop on critical specification changes
-
-**Negative Consequences**:
-
-- User loses visibility into what changed and why
-- Incorrect automated fixes may require manual rollback
-- Destroys audit trail of specification evolution
-- May overwrite user intent with algorithmic interpretation
-
-**Correct Alternative**: Follow operating constraint to **NEVER modify files** during analysis; offer remediation suggestions only, requiring explicit user approval before any edits.
-
-### Anti-Pattern 7: Ambiguity Tolerance
-
-**Description**: Accepting vague qualitative terms (e.g., "fast", "secure", "user-friendly") in requirements without flagging them for measurable criteria.
-
-**Reasons to Avoid**:
-
-- Prevents objective validation of requirement fulfillment
-- Different stakeholders interpret subjective terms differently
-- Impossible to write meaningful tests or acceptance criteria
-
-**Negative Consequences**:
-
-- Implementation disputes about whether requirements are met
-- Scope creep as "secure enough" keeps shifting
-- Quality gate failures when stakeholders realize expectations were misaligned
-- Rework to establish proper success criteria post-implementation
-
-**Correct Alternative**: Flag all vague adjectives per Detection Pass B (Ambiguity Detection) and require numeric thresholds, SLOs, or testable acceptance criteria.
-
-### Anti-Pattern 8: Missing Artifact Hallucination
-
-**Description**: When a required artifact (spec.md, plan.md, tasks.md) is absent, generating placeholder analysis or assuming default content instead of reporting the missing file accurately.
-
-**Reasons to Avoid**:
-
-- Provides false confidence that analysis is complete
-- Hides prerequisite step failures from user
-- May base subsequent analysis on incorrect assumptions
-
-**Negative Consequences**:
-
-- User proceeds with incomplete specification believing analysis was successful
-- Downstream commands fail due to missing prerequisites
-- Wasted effort debugging problems that should have been caught early
-- Loss of trust in tool's error reporting
-
-**Correct Alternative**: Follow analysis guideline to **NEVER hallucinate missing sections**; abort with clear error message instructing user to run prerequisite commands.
 
 ## Context
 

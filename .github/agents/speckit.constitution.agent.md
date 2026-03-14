@@ -1,6 +1,6 @@
 ---
 description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
-handoffs: 
+handoffs:
   - label: Build Specification
     agent: speckit.specify
     prompt: Implement the feature specification based on the updated constitution. I want to build...
@@ -42,12 +42,119 @@ Follow this execution flow:
    - Ensure each Principle section: succinct name line, paragraph (or bullet list) capturing non‑negotiable rules, explicit rationale if not obvious.
    - Ensure Governance section lists amendment procedure, versioning policy, and compliance review expectations.
 
+Steps 1 through 3 define how the constitution is loaded, populated, and authored. The core challenges are resolving placeholders accurately and producing principles that downstream agents can evaluate unambiguously. The following patterns and anti-patterns guide these authoring decisions.
+
+### Patterns for Constitution Authoring
+
+#### Pattern: Hierarchical Placeholder Resolution
+
+- **Objective:** Resolve every placeholder token through a strict priority cascade so that user-provided values are never overridden by inference, repo-derived values take precedence over guesses, and TODOs are introduced only as a last resort with explicit justification.
+- **Context of application:** Apply during steps 1 and 2 when processing each `[ALL_CAPS_IDENTIFIER]` placeholder in the constitution template.
+- **Key characteristics:** Each placeholder is processed through a four-tier cascade: (1) explicit user input from the conversation or $ARGUMENTS, (2) values derived from existing repository artifacts (README, docs, prior constitution versions), (3) domain-informed inference based on project type and context, (4) a `TODO(<FIELD_NAME>): explanation` marker when all three preceding sources are exhausted. The executor never skips a tier — if user input provides a value, tiers 2–4 are not consulted for that placeholder. If user input is absent, the executor moves to tier 2 before attempting inference.
+- **Operational guidance:**
+  1. For each placeholder, first search the user's input ($ARGUMENTS and conversation context) for an explicit value. If found, use it and move to the next placeholder.
+  2. If user input provides no value, search the repository: README.md for project name and description, existing constitution versions for ratification date and prior principle names, package manifests for technology context.
+  3. If repository context provides no value, infer from the project type and domain. Document the inference in the Sync Impact Report under a "Derived Values" subsection so reviewers can verify it.
+  4. If no reasonable inference is possible, insert `TODO(<FIELD_NAME>): <explanation of what is needed and why it could not be inferred>`. Include this in the Sync Impact Report under deferred items.
+  5. After processing all placeholders, count remaining TODOs. If more than two exist, reconsider whether additional repo context or domain inference could resolve them before finalizing.
+
+#### Pattern: Declarative Principle Formulation
+
+- **Objective:** Write every principle as a testable, enforceable rule that downstream agents — particularly the constitution gate evaluation in speckit.plan — can assess with a binary compliant/violation verdict.
+- **Context of application:** Apply during step 3 when drafting or revising each Principle section in the constitution.
+- **Key characteristics:** Principles use directive language (MUST, MUST NOT, SHALL) rather than advisory language (should, ideally, where possible). Each principle describes an observable property or constraint that can be checked against a concrete artifact — a code file, a configuration, a design document. Principles that cannot be evaluated without subjective judgment are rewritten until they can.
+- **Operational guidance:**
+  1. For each principle, write a one-sentence rule using MUST or MUST NOT. If the sentence requires "when appropriate" or "where possible," identify the specific conditions under which the rule applies and state them explicitly (e.g., "All public API endpoints MUST validate input parameters against the contract schema" rather than "Input should be validated where appropriate").
+  2. Test each principle by asking: "Could an agent reviewing a plan.md or a source file determine compliance without asking a human?" If the answer is no, the principle is too vague.
+  3. Include rationale for non-obvious principles. Rationale explains *why* the rule exists, helping downstream agents assess whether a justified exception is legitimate.
+  4. Avoid compound principles that bundle multiple rules. "All services MUST use structured logging AND MUST include correlation IDs" should be two separate principles so that compliance can be tracked per-rule.
+  5. After drafting all principles, review them as a set. Check for contradictions (one principle requires X, another prohibits it) and redundancies (two principles that express the same constraint differently).
+
+#### Pattern: Semantic Version Justification
+
+- **Objective:** Ensure every version bump is explicitly mapped to the specific changes that justify the chosen tier (MAJOR, MINOR, PATCH), preventing both under-versioning that hides breaking changes and over-versioning that inflates the version number without cause.
+- **Context of application:** Apply during step 2 when determining `CONSTITUTION_VERSION` and during step 5 when documenting the version change in the Sync Impact Report.
+- **Key characteristics:** The executor lists every change made to the constitution and classifies each as MAJOR, MINOR, or PATCH-level. The final version bump corresponds to the highest-tier change in the set. The classification and reasoning are documented in the Sync Impact Report so that reviewers can verify the bump.
+- **Operational guidance:**
+  1. Before deciding the version bump, create a list of all changes: principles added, principles removed, principles renamed, principles whose rules were materially altered, wording clarifications, governance procedure changes.
+  2. Classify each change: removing or fundamentally redefining a principle is MAJOR; adding a new principle or materially expanding an existing one is MINOR; rewording without changing meaning is PATCH.
+  3. The final bump is the highest tier present. If any change is MAJOR, the bump is MAJOR regardless of how many PATCH-level changes also exist.
+  4. Document the classification in the Sync Impact Report: "Version bump: 1.2.0 → 2.0.0 (MAJOR). Reason: Principle 'Observability' removed; Principle 'Testing Discipline' fundamentally redefined from unit-test focus to integration-test mandate."
+  5. If the classification is ambiguous (e.g., a principle's wording changed but it is unclear whether the meaning changed), state the ambiguity explicitly and propose both interpretations before finalizing.
+
+### Anti-Patterns for Constitution Authoring
+
+#### Anti-Pattern: Vague Principle Language
+
+- **Description:** Principles are written with hedge words and untestable qualifiers — "Code should be clean and well-organized," "Security best practices should be followed where appropriate," "The team should strive for comprehensive test coverage."
+- **Reasons to avoid:** The constitution's primary consumer is the gate evaluation in speckit.plan, which must produce a binary compliant/violation verdict for each principle. A principle stating "should be followed where appropriate" cannot be evaluated because it defers the compliance decision to the evaluator's judgment. This mistake occurs when the author writes principles as aspirational values (what the team believes in) rather than as enforceable rules (what the project requires). Conversational phrasing from user input ("we want clean code") is transcribed directly into the constitution without translation into directive language.
+- **Negative consequences:** Gate evaluations in speckit.plan become rubber stamps — every principle passes because no principle can definitively fail. Different agents interpret the same principle differently, producing inconsistent compliance assessments. The constitution loses its authority as a governance document because it expresses preferences rather than requirements. Over time, teams stop consulting the constitution because it provides no actionable constraints.
+- **Correct alternative:** Apply the **Declarative Principle Formulation** pattern to rewrite each principle as a testable rule with MUST/MUST NOT language, explicit conditions, and observable criteria.
+
+#### Anti-Pattern: Context-Free Placeholder Inference
+
+- **Description:** The executor infers placeholder values from general domain knowledge or template defaults rather than from the specific project's repository artifacts — for example, setting `[PROJECT_NAME]` to a generic name based on the feature description instead of reading it from README.md or package.json, or inferring principles from common industry standards without checking whether the project's existing documentation establishes different conventions.
+- **Reasons to avoid:** The constitution must reflect the specific project's governance, not a generic template's assumptions. Inferred values that do not match actual project context create a constitution that the team does not recognize as their own, undermining adoption. This mistake occurs when the executor skips tier 2 (repo context) of the resolution cascade — either because it does not check for repository artifacts or because it treats inference as faster than reading existing files.
+- **Negative consequences:** The constitution contains a project name, description, or principles that conflict with what the repository already documents. Downstream templates that reference constitution values propagate the incorrect information. When team members review the constitution, they must correct values that the executor could have derived from existing artifacts, eroding trust in the workflow. The Sync Impact Report does not flag the values as inferred, so reviewers have no signal to verify them.
+- **Correct alternative:** Apply the **Hierarchical Placeholder Resolution** pattern to exhaust user input and repository context before resorting to inference, and to document all inferred values in the Sync Impact Report.
+
+#### Anti-Pattern: Reflexive Patch Bumping
+
+- **Description:** The executor defaults to a PATCH version bump for every constitution update, regardless of whether principles were added, removed, or fundamentally redefined, typically because PATCH feels "safe" and avoids the perceived overhead of justifying a larger bump.
+- **Reasons to avoid:** Semantic versioning communicates the nature of change to consumers. A PATCH bump signals "no meaningful change to governance" — if a principle was removed or redefined, the PATCH signal is false. Downstream agents and human reviewers that depend on version semantics (e.g., deciding whether to re-evaluate existing plans against the updated constitution) will not trigger the necessary re-evaluation for a PATCH bump. This mistake occurs when the executor treats versioning as a formality rather than as a communication mechanism.
+- **Negative consequences:** Breaking governance changes (principle removals, redefinitions) are shipped under a PATCH label. Existing plans and implementations that were compliant under the old constitution may violate the new constitution, but the PATCH version signal does not prompt re-evaluation. The version history becomes unreliable — a project at version 1.0.47 has undergone 47 "non-semantic" changes, but some of those changes may have been materially significant. Teams cannot use version numbers to understand the evolution of their governance.
+- **Correct alternative:** Apply the **Semantic Version Justification** pattern to classify each change individually and set the bump to the highest tier present.
+
 4. Consistency propagation checklist (convert prior checklist into active validations):
    - Read `.specify/templates/plan-template.md` and ensure any "Constitution Check" or rules align with updated principles.
    - Read `.specify/templates/spec-template.md` for scope/requirements alignment—update if constitution adds/removes mandatory sections or constraints.
    - Read `.specify/templates/tasks-template.md` and ensure task categorization reflects new or removed principle-driven task types (e.g., observability, versioning, testing discipline).
    - Read each command file in `.specify/templates/commands/*.md` (including this one) to verify no outdated references (agent-specific names like CLAUDE only) remain when generic guidance is required.
    - Read any runtime guidance docs (e.g., `README.md`, `docs/quickstart.md`, or agent-specific guidance files if present). Update references to principles changed.
+
+Step 4 propagates constitution changes across all dependent files. The challenge is ensuring that every affected file is updated while avoiding unnecessary modifications to files that are not impacted by the specific changes. The following patterns and anti-patterns guide reliable propagation.
+
+### Patterns for Consistency Propagation
+
+#### Pattern: Change-Scoped Propagation
+
+- **Objective:** Limit propagation updates to files that are actually affected by the specific principles that changed, rather than rewriting all dependent files on every constitution update.
+- **Context of application:** Apply during step 4 when determining which files need modification and what modifications are necessary.
+- **Key characteristics:** The executor compares the old and new constitution content, identifies which principles were added, modified, or removed, and searches each dependent file only for references to those specific principles. Files that reference only unchanged principles are read (to confirm no stale references) but not modified. This precision prevents introducing unintended changes into stable templates while ensuring that every genuinely affected file is updated.
+- **Operational guidance:**
+  1. Before beginning propagation, produce a change diff: list each principle that was added, removed, renamed, or whose rules were materially altered.
+  2. For each file in the propagation checklist, search for references to the changed principles — by name, by concept, or by rule text.
+  3. If a file references a changed principle, update the reference to reflect the new name, rule, or absence. If a principle was removed, remove or replace any gate checks, task categories, or section requirements that depended on it.
+  4. If a file references only unchanged principles, confirm the references are still accurate and move on without modification.
+  5. Record every file that was modified and every file that was checked but not modified in the Sync Impact Report, so reviewers can verify the propagation scope.
+
+#### Pattern: Bidirectional Reference Verification
+
+- **Objective:** Verify not only that dependent files reference the correct constitution principles (forward direction) but also that every constitution principle that is intended to affect downstream behavior has at least one dependent file that references it (reverse direction).
+- **Context of application:** Apply as a validation sub-step at the end of step 4, after all dependent files have been checked and updated.
+- **Key characteristics:** The executor performs two passes. The forward pass (already covered in step 4's checklist) checks that dependent files reference current, valid principles. The reverse pass checks that every principle in the constitution is referenced by at least one template, command, or guidance document. A principle with no downstream references is either newly added (and needs propagation) or is a governance statement that has no operational effect (and should be flagged for review).
+- **Operational guidance:**
+  1. After completing the forward propagation pass, extract the list of all principle names from the updated constitution.
+  2. For each principle, search all files in the propagation checklist for at least one reference.
+  3. If a principle has no downstream references and it was just added, determine which template or command file should enforce it and add the reference.
+  4. If a principle has no downstream references and it has existed since a prior version, flag it in the Sync Impact Report as "unreferenced principle — may have no operational enforcement."
+  5. Include the reverse-pass results in the Sync Impact Report alongside the forward-pass results.
+
+### Anti-Patterns for Consistency Propagation
+
+#### Anti-Pattern: Read-Only Propagation
+
+- **Description:** The executor reads all files listed in the propagation checklist and confirms that changes are needed, but does not actually modify the files — either because it treats propagation as a verification step rather than a synchronization step, or because it defers all modifications to "manual follow-up" without making any updates itself.
+- **Reasons to avoid:** Step 4 is titled "consistency propagation," not "consistency verification." Its purpose is to ensure dependent files are in sync with the updated constitution, which requires writing changes to those files when misalignment is found. Treating it as read-only produces a Sync Impact Report that lists problems without fixing them, pushing the synchronization burden onto the user. This mistake occurs when the executor is uncertain about whether it has permission to modify templates or when it defaults to conservative behavior ("flag, don't fix").
+- **Negative consequences:** Templates and command files retain stale principle references. The next agent to consume plan-template.md or tasks-template.md evaluates compliance against principles that no longer exist or enforces categorizations that have been superseded. The Sync Impact Report lists items as "⚠ pending" indefinitely because no one manually follows up. The constitution update is technically complete, but the project's operational governance is out of sync.
+- **Correct alternative:** Apply the **Change-Scoped Propagation** pattern to identify affected files and update them directly, marking each as "✅ updated" in the Sync Impact Report.
+
+#### Anti-Pattern: Blanket Template Rewriting
+
+- **Description:** Every constitution update — regardless of scope — triggers a full rewrite of all dependent templates and documentation, even when only a single principle's wording was clarified with no change in meaning.
+- **Reasons to avoid:** Blanket rewriting introduces unnecessary diffs into version-controlled files, making it difficult to distinguish meaningful updates from noise. It risks introducing errors into stable templates that were correctly aligned before the update. This mistake typically occurs when the executor does not compare old and new constitution content to identify which principles actually changed, and instead treats "constitution was modified" as a signal to rewrite everything.
+- **Negative consequences:** Version control diffs for dependent files are cluttered with trivial changes, obscuring genuine updates. Reviewers must inspect every modified file to determine whether the change was meaningful or cosmetic. Stable templates may be subtly altered by the rewriting process (different phrasing, reordered sections) without any governance justification. Teams learn to ignore template diffs because most are noise, increasing the risk that a genuine misalignment goes unnoticed.
+- **Correct alternative:** Apply the **Change-Scoped Propagation** pattern to modify only the files affected by the specific principles that changed, leaving all other files untouched.
 
 5. Produce a Sync Impact Report (prepend as an HTML comment at top of the constitution file after update):
    - Version change: old → new
@@ -63,284 +170,56 @@ Follow this execution flow:
    - Dates ISO format YYYY-MM-DD.
    - Principles are declarative, testable, and free of vague language ("should" → replace with MUST/SHOULD rationale where appropriate).
 
+Steps 5 and 6 produce the traceability report and validate the constitution before it is written. The following patterns and anti-patterns guide thorough validation and accurate reporting.
+
+### Patterns for Validation and Reporting
+
+#### Pattern: Cross-Field Consistency Validation
+
+- **Objective:** Verify that all fields within the constitution are mutually consistent — version numbers match the Sync Impact Report, dates are correctly assigned, principle counts match the actual sections, and no field contradicts another.
+- **Context of application:** Apply during step 6 as a structured validation pass before the constitution is written to disk.
+- **Key characteristics:** The validator checks relationships between fields rather than each field in isolation. It is not sufficient that `CONSTITUTION_VERSION` is a valid semver string — it must match the version stated in the Sync Impact Report. It is not sufficient that `LAST_AMENDED_DATE` is a valid ISO date — it must be today's date if changes were made, or the previous date if no changes were made. Each validation check is relational.
+- **Operational guidance:**
+  1. Verify that `CONSTITUTION_VERSION` in the document body matches the "new version" stated in the Sync Impact Report.
+  2. Verify that `LAST_AMENDED_DATE` is today's date (ISO 8601, YYYY-MM-DD) if any content was changed. If no content was changed, verify it matches the previous value.
+  3. Count the principle sections in the document and compare against any principle count stated in the governance section or implied by the template structure. If the user requested a specific number of principles (noted in step 1), verify the count matches.
+  4. Scan the entire document for bracket tokens `[ALL_CAPS_IDENTIFIER]`. For each one found, verify it is either a `TODO(<FIELD_NAME>)` marker with an explanation (justified deferral) or an intentionally retained template slot with explicit justification. Flag any unexplained bracket token as a validation failure.
+  5. Read each principle section and verify it contains both a rule statement (MUST/MUST NOT) and, for non-obvious rules, a rationale. Flag principles that are purely declarative with no rationale when the rule's necessity is not self-evident.
+
+#### Pattern: Actionable Report Generation
+
+- **Objective:** Produce a Sync Impact Report that enables reviewers to verify every change, understand every deferred item, and take action on every pending follow-up — without needing to compare file versions manually.
+- **Context of application:** Apply during step 5 when constructing the Sync Impact Report.
+- **Key characteristics:** The report is structured as a decision record, not a summary. Each entry includes what changed, why it changed, what downstream impact it has, and whether the impact has been addressed. Deferred items include the specific action needed and the reason for deferral. The report is machine-parseable (consistent formatting) and human-readable (clear language).
+- **Operational guidance:**
+  1. For each modified principle, state the old name/rule and the new name/rule side by side. Do not simply list "Principle 3 updated" — state what changed.
+  2. For each added or removed section, state what it contains and why it was added or removed, referencing the user's input or the governance rationale.
+  3. For each template in the propagation checklist, state one of: "✅ updated — [description of change made]" or "⚠ pending — [description of update needed and why it was not performed]" or "✓ no changes needed — no references to modified principles."
+  4. For each deferred TODO, state the field name, why it could not be resolved, and what the user needs to provide to resolve it.
+  5. Include the version bump justification (from the Semantic Version Justification pattern) as a subsection of the report so that reviewers can verify the version decision without searching the document.
+
+### Anti-Patterns for Validation and Reporting
+
+#### Anti-Pattern: Isolated Field Validation
+
+- **Description:** The validator checks each field individually (is the version a valid semver string? is the date in ISO format?) without checking whether fields are consistent with each other or with the Sync Impact Report.
+- **Reasons to avoid:** Individual field validity does not guarantee document consistency. A version of `1.3.0` is a valid semver string, but if the Sync Impact Report states the version changed from `1.2.0` to `2.0.0`, the document is internally contradictory. An amendment date of `2024-01-15` is a valid ISO date, but if today is `2025-07-02` and changes were made, the date is wrong. This mistake occurs when the validator treats validation as a per-field format check rather than as a relational consistency check.
+- **Negative consequences:** The constitution passes validation despite containing contradictions. The Sync Impact Report states one version while the document header states another. Downstream agents that read the version from the document and agents that read it from the report get different values. Dates that do not reflect actual modification times mislead reviewers about when the constitution was last changed.
+- **Correct alternative:** Apply the **Cross-Field Consistency Validation** pattern to verify relational consistency between fields, between the document and its report, and between the document and the user's requested changes.
+
+#### Anti-Pattern: Opaque Impact Reporting
+
+- **Description:** The Sync Impact Report summarizes changes at a high level ("3 principles updated, 2 templates modified") without specifying what changed in each principle, what was modified in each template, or what action is needed for pending items.
+- **Reasons to avoid:** A high-level summary tells reviewers that changes happened but not what the changes are. Reviewers must open each modified file and compare versions manually to understand the impact — which is exactly the work the report is supposed to eliminate. This mistake occurs when the executor treats the report as a changelog entry rather than as a detailed audit trail, or when it prioritizes brevity over completeness.
+- **Negative consequences:** Reviewers cannot verify the version bump without examining every changed file. Pending items are listed without actionable descriptions, so they are never resolved. The report provides a false sense of documentation — it exists, but it does not inform. Over repeated constitution updates, the accumulated reports form an uninformative history that cannot be used to trace governance evolution.
+- **Correct alternative:** Apply the **Actionable Report Generation** pattern to produce a report that specifies every change, its rationale, its downstream impact, and the action taken or needed.
+
 7. Write the completed constitution back to `.specify/memory/constitution.md` (overwrite).
 
 8. Output a final summary to the user with:
    - New version and bump rationale.
    - Any files flagged for manual follow-up.
    - Suggested commit message (e.g., `docs: amend constitution to vX.Y.Z (principle additions + governance update)`).
-
-## Patterns: Best Practices for Constitution Management
-
-### Pattern: Semantic Version-Driven Change Classification
-
-**Objective:** Maintain clear governance evolution history and enable consumers to quickly assess backward compatibility of constitutional changes.
-
-**Context of Application:** Every constitution update, regardless of scope, when incrementing the `CONSTITUTION_VERSION` field.
-
-**Key Characteristics:**
-
-- Version follows semantic versioning (MAJOR.MINOR.PATCH) with governance-specific semantics
-- MAJOR increments signal breaking changes requiring dependent artifact review
-- MINOR increments indicate additive changes expanding governance scope
-- PATCH increments mark non-semantic refinements safe for immediate adoption
-- Version bump rationale explicitly documented in Sync Impact Report
-
-**Operational Guidance:**
-
-1. Before any modification, load the current `CONSTITUTION_VERSION` and parse into components (e.g., "2.3.1" → MAJOR=2, MINOR=3, PATCH=1)
-2. Analyze the nature of all proposed changes against classification criteria:
-   - MAJOR: Principle removal, principle redefinition that invalidates prior interpretations, governance procedure change requiring new approval workflows, constraint removal that was previously mandatory
-   - MINOR: New principle addition, new governance section, material expansion of existing principle guidance that adds enforceable rules, new mandatory template section
-   - PATCH: Typo corrections, wording clarifications preserving original intent, formatting improvements, comment additions, example refinements
-3. If multiple change types present, use highest severity level (MAJOR > MINOR > PATCH)
-4. If classification ambiguous, document the ambiguity and propose reasoning: "Change X could be MINOR (additive constraint) or MAJOR (redefines scope) because Y. Recommending MAJOR for safety."
-5. Increment the appropriate component: MAJOR increments reset MINOR and PATCH to 0; MINOR increments reset PATCH to 0; PATCH increments only rightmost digit
-6. Record version change and rationale in Sync Impact Report header comment: `<!-- Version: 2.3.1 → 3.0.0 (MAJOR: Removed Principle 4, redefined versioning governance) -->`
-7. Update `LAST_AMENDED_DATE` to current date in ISO format (YYYY-MM-DD)
-
-### Pattern: Transitive Dependency Synchronization
-
-**Objective:** Prevent constitution-template inconsistencies by systematically propagating constitutional changes to all dependent artifacts in a single atomic operation.
-
-**Context of Application:** After completing constitution content updates, before finalizing the write operation.
-
-**Key Characteristics:**
-
-- Dependency graph explicitly enumerated: constitution → plan/spec/tasks templates → command files → documentation
-- Each dependent artifact validated against updated principles
-- Synchronization status tracked per artifact (✅ updated / ⚠ pending / ➖ not applicable)
-- Sync Impact Report documents propagation outcomes
-
-**Operational Guidance:**
-
-1. After drafting updated constitution content, identify all dependent artifacts by reading file system: `.specify/templates/plan-template.md`, `.specify/templates/spec-template.md`, `.specify/templates/tasks-template.md`, `.specify/templates/commands/*.md`, `README.md`, `docs/**/*.md`
-2. For each dependent artifact, perform targeted validation:
-   - Plan template: Verify "Constitution Check" or "Compliance Validation" sections reference current principle names and constraints; add new validation steps for new principles; remove validation steps for deleted principles
-   - Spec template: Ensure mandatory sections align with constitutional requirements (e.g., if constitution mandates observability, spec template must include "## Observability" section); update section descriptions if principle rationale changed
-   - Tasks template: Verify task categorization aligns with principle-driven task types (e.g., new security principle requires "Security Tasks" category); update task acceptance criteria templates to reference relevant principles
-   - Command files: Search for hardcoded principle references or outdated governance procedures; replace with current versions; verify no agent-specific names when generic guidance required
-   - Documentation: Update quickstart guides, contribution guidelines, and architecture docs to reference amended principles; ensure examples align with new constraints
-3. For each validation, determine outcome: ✅ (updated in this operation), ⚠ (requires manual follow-up due to complexity/ambiguity), ➖ (not affected by this change)
-4. Write all ✅ artifacts atomically with constitution update (multi-file transaction)
-5. In Sync Impact Report, list all artifacts with status: `Templates requiring updates: ✅ plan-template.md (added Principle 5 validation), ⚠ docs/architecture.md (complex diagram update needed), ➖ tasks-template.md (no affected sections)`
-6. If any ⚠ items exist, add to Follow-up TODOs section with specific action items
-7. Validate sync completeness: no orphaned principle references in dependent files, no missing mandatory sections introduced by new principles
-
-### Pattern: Context-Driven Value Inference
-
-**Objective:** Minimize user interaction burden by intelligently deriving placeholder values from existing repository artifacts while maintaining transparency and user override capability.
-
-**Context of Application:** Step 2 (value collection) when placeholders lack explicit user-provided values.
-
-**Key Characteristics:**
-
-- Multi-source evidence gathering: user input > existing constitution > README > package metadata > git history
-- Inference logic explicitly documented for user verification
-- Ambiguous inferences surfaced as proposals requiring confirmation
-- TODO markers used for genuinely unknowable values rather than guessing
-
-**Operational Guidance:**
-
-1. For each placeholder token identified in step 1, attempt value derivation in priority order:
-   - **User input (highest priority):** Parse conversation history and current `$ARGUMENTS` for explicit values (e.g., "set PROJECT_NAME to SpecKit")
-   - **Existing constitution:** If updating rather than creating, check if placeholder already filled in current version (preserve unless user explicitly overriding)
-   - **README.md:** Extract project name from first heading, description from first paragraph, key principles from "Philosophy" or "Design Principles" sections
-   - **Package metadata:** Read `package.json`, `pyproject.toml`, `Cargo.toml` for project name, description, version
-   - **Git history:** Use `git log --reverse .specify/memory/constitution.md` to find RATIFICATION_DATE from first commit touching constitution
-2. For governance dates, apply special logic:
-   - `RATIFICATION_DATE`: If existing version has date, preserve it (never changes); if new constitution, use today's date or prompt user "When was this governance model originally adopted? Reply with YYYY-MM-DD or 'today'."
-   - `LAST_AMENDED_DATE`: Always set to today's date (YYYY-MM-DD format) when any semantic change occurs; preserve previous date for PATCH-only typo fixes if desired
-3. For `CONSTITUTION_VERSION`, apply Semantic Version-Driven Change Classification pattern (see above)
-4. For principle-specific placeholders (e.g., `[PRINCIPLE_1_NAME]`, `[PRINCIPLE_1_BODY]`):
-   - If user specifies count ("I want 3 principles"), adjust template to match count
-   - If user provides principle content, use verbatim
-   - If inferring from README/docs, extract declarative statements and reformat as principle structure
-5. When inference uncertain, format as proposal: "Based on README heading, inferring PROJECT_NAME='SpecKit Framework'. Confirm or provide alternative?"
-6. When value genuinely unknowable (e.g., future compliance review date not yet scheduled), insert: `TODO(FIELD_NAME): explanation` and document in Sync Impact Report deferred items
-7. Never fabricate values; prefer TODO over guessing
-
-### Pattern: Declarative Principle Encoding
-
-**Objective:** Transform vague aspirational statements into testable, enforceable governance rules that enable automated compliance validation.
-
-**Context of Application:** Step 3 (drafting constitution content) when converting user input or inferred principles into formal principle sections.
-
-**Key Characteristics:**
-
-- Principles use imperative mood (MUST, MUST NOT, SHOULD, SHOULD NOT, MAY) per RFC 2119
-- Each principle includes observable success criteria or violation conditions
-- Rationale explicitly stated when not immediately obvious
-- Vague qualifiers ("robust," "intuitive," "reasonable") eliminated or quantified
-
-**Operational Guidance:**
-
-1. For each principle, structure content as: **Name** (single line, noun phrase), **Rules** (declarative statements), **Rationale** (optional, when non-obvious)
-2. Convert aspirational language to imperative:
-   - "We value security" → "All authentication tokens MUST expire within 24 hours."
-   - "Code should be tested" → "Every public API MUST have corresponding unit test coverage ≥80%."
-   - "Documentation is important" → "User-facing features MUST include usage examples in docs/ before merge."
-3. Replace vague qualifiers with measurable criteria:
-   - "Reasonable performance" → "API response time MUST NOT exceed 200ms at p95 for read operations under normal load."
-   - "Intuitive UX" → "New users MUST complete primary workflow without documentation within 5 minutes (validated via usability testing)."
-   - "Robust error handling" → "All external service calls MUST implement circuit breaker pattern with 3-failure threshold and 30s cooldown."
-4. For each MUST/SHOULD statement, ensure it's verifiable: "Can this be tested in CI/code review/audit?" If no, refine until testable.
-5. Add rationale when principle might seem arbitrary or overly strict: "Principle: All database queries MUST use parameterized statements. Rationale: Prevents SQL injection; non-parameterized queries rejected in code review."
-6. Format as paragraph or concise bullets depending on complexity (single constraint = paragraph; multiple related constraints = bullet list)
-7. Review final principle set for completeness: Do principles cover functional correctness, security, performance, observability, maintainability, and process governance? Fill gaps if constitutional scope demands it.
-
-### Pattern: Atomic Multi-File Transaction
-
-**Objective:** Ensure constitution and dependent templates remain synchronized even in failure scenarios by treating related updates as a single atomic operation.
-
-**Context of Application:** Step 7 (write operation) when constitution changes require propagation to multiple template files.
-
-**Key Characteristics:**
-
-- All affected files updated in single operation or none updated at all
-- Temporary files used for staging before atomic rename
-- Write validation performed before finalizing
-- Rollback capability on partial failure
-
-**Operational Guidance:**
-
-1. Before writing any files, prepare complete content for all artifacts requiring updates: constitution + affected templates
-2. For each file to update, write content to temporary file in same directory: `.specify/memory/constitution.md.tmp`, `.specify/templates/plan-template.md.tmp`, etc.
-3. Validate each temporary file: parse as valid Markdown, verify no unresolved placeholders (except documented TODOs), check file size reasonable (not empty, not unexpectedly large)
-4. If all validations pass, perform atomic rename sequence: `mv constitution.md.tmp constitution.md && mv plan-template.md.tmp plan-template.md ...` (platform-appropriate atomic file replacement)
-5. If any rename fails, immediately rollback all completed renames: restore original files from `.bak` copies created before operation
-6. After successful atomic update, delete temporary files and backup copies
-7. Log operation to `.specify/logs/constitution-updates.log` (append-only): `2024-02-06T14:32:15Z | v2.1.0 → v3.0.0 | Files: 4 | Status: SUCCESS`
-8. If operation fails, preserve temporary files for debugging and log failure details
-9. In user-facing output, report transaction status clearly: "✅ Constitution and 3 templates updated atomically" or "❌ Update failed, no files modified (see constitution.md.tmp for staged changes)"
-
-## Anti-Patterns: Common Mistakes in Constitution Management
-
-### Anti-Pattern: Vague Aspirational Principles
-
-**Description:** Writing constitutional principles as broad, inspirational statements without concrete enforcement mechanisms or measurable success criteria (e.g., "We believe in code quality," "Security is a priority," "Performance matters").
-
-**Reasons to Avoid:**
-
-- Principles become unenforceable guidance rather than governance rules—no objective way to determine compliance or violation
-- Different team members interpret vague principles inconsistently, leading to conflicting implementation decisions
-- Automated validation impossible when criteria are subjective or unmeasurable
-- Code reviews devolve into opinion debates rather than constitutional compliance checks
-
-**Negative Consequences:**
-
-- Constitution perceived as ceremonial documentation with no practical impact on development process
-- Governance becomes dependent on individual judgment rather than shared standards, creating bottlenecks and inconsistency
-- New team members cannot learn project norms from constitution; must rely on tribal knowledge
-- Compliance audits impossible; no way to prove adherence to stated principles
-- Technical debt accumulates in areas with vague principles because violations go undetected
-
-**Correct Alternative:** Use the **Declarative Principle Encoding** pattern to transform aspirations into testable rules with imperative mood (MUST/SHOULD), quantified thresholds, and explicit success/failure criteria.
-
-### Anti-Pattern: Version Increment Without Rationale
-
-**Description:** Bumping the `CONSTITUTION_VERSION` number arbitrarily or following unclear logic (e.g., always incrementing PATCH, using date-based versions, or inconsistent MAJOR/MINOR decisions) without documenting the classification reasoning.
-
-**Reasons to Avoid:**
-
-- Consumers cannot assess breaking change risk by examining version number alone
-- No clear signal for when dependent templates require urgent review vs. optional updates
-- Version history becomes meaningless noise rather than meaningful change tracking
-- Inconsistent versioning erodes trust in governance change management process
-
-**Negative Consequences:**
-
-- Teams miss critical breaking changes because version bump didn't signal MAJOR change appropriately
-- Unnecessary review overhead when MINOR changes incorrectly marked as MAJOR, causing alert fatigue
-- Inability to rollback to "last known good" constitution version because version semantics unreliable
-- Downstream tools cannot automate compatibility checks or dependency updates
-- Governance evolution narrative lost; cannot reconstruct decision timeline from version history
-
-**Correct Alternative:** Apply the **Semantic Version-Driven Change Classification** pattern with explicit MAJOR/MINOR/PATCH criteria and document bump rationale in Sync Impact Report header comment.
-
-### Anti-Pattern: Silent Template Desynchronization
-
-**Description:** Updating the constitution without checking or updating dependent template files (plan, spec, tasks templates, commands, documentation), allowing constitutional requirements and template structures to drift apart over time.
-
-**Reasons to Avoid:**
-
-- Templates generate artifacts that violate constitutional principles, creating compliance gaps from the start
-- Manual reconciliation burden placed on users who must cross-reference constitution and templates independently
-- Confusion when template guidance contradicts constitutional mandates
-- Cascading errors as outdated templates produce non-compliant specs, which produce non-compliant plans, which produce non-compliant code
-
-**Negative Consequences:**
-
-- Feature specifications created from outdated spec template lack mandatory sections introduced by new constitutional principles (e.g., new observability principle but spec template has no "Observability" section)
-- Task templates omit principle-driven task categories, causing those concerns to be overlooked during implementation
-- Command files reference removed or renamed principles, causing runtime errors or confusing guidance
-- Documentation examples demonstrate patterns that violate current constitutional constraints
-- Teams lose confidence in template system, abandoning it in favor of ad-hoc approaches
-
-**Correct Alternative:** Use the **Transitive Dependency Synchronization** pattern to systematically validate and update all dependent artifacts when constitution changes, tracking sync status in Sync Impact Report.
-
-### Anti-Pattern: Hardcoded Value Fabrication
-
-**Description:** When constitution placeholders lack explicit user-provided values, inventing plausible-sounding but inaccurate values rather than inferring from repository context or marking as TODO (e.g., guessing "MyProject" as project name, fabricating ratification dates, inventing principle content).
-
-**Reasons to Avoid:**
-
-- Fabricated values embed inaccuracies into governance foundation, which then propagate to all dependent artifacts
-- User cannot easily detect fabrications, leading to silent acceptance of incorrect information
-- No transparency into inference logic; user cannot validate or correct agent reasoning
-- Fabricated historical dates (ratification, last amended) corrupt governance timeline and audit trail
-
-**Negative Consequences:**
-
-- Project identity misrepresented in official governance document (wrong name, description, principles)
-- Governance history falsified through fabricated dates, undermining compliance audits and legal review
-- Principles that don't reflect actual project values or constraints encoded as canonical governance
-- Time wasted correcting fabrications when discovered, often after they've propagated to multiple dependent files
-- Trust erosion: if constitution contains obvious fabrications, credibility of entire governance system questioned
-
-**Correct Alternative:** Apply the **Context-Driven Value Inference** pattern with explicit priority hierarchy (user input > existing constitution > README > package metadata > git history) and use TODO markers for unknowable values rather than guessing.
-
-### Anti-Pattern: Lossy Partial Updates
-
-**Description:** When user provides partial updates (e.g., "change Principle 2 name to 'Data Privacy'"), processing only the explicitly mentioned change without validating consistency of unmentioned sections, version increments, or dependent artifacts, then writing the partially updated constitution.
-
-**Reasons to Avoid:**
-
-- Version number may remain unchanged despite semantic modifications, breaking version semantics
-- Last amended date not updated, hiding recent governance changes
-- Modified principle may create inconsistencies with other principles or governance sections not reviewed
-- Dependent templates not synchronized with the partial change, creating localized desynchronization
-
-**Negative Consequences:**
-
-- Constitution version number claims "v2.0.0" but content reflects undocumented v2.1.0 changes, causing confusion
-- Governance timeline shows last amendment 6 months ago despite changes made today
-- Principle 2 updated content contradicts Principle 4 constraint, but Principle 4 not reviewed for consistency
-- Spec template still references old Principle 2 name while constitution uses new name, breaking references
-- Incremental corruption: multiple partial updates compound inconsistencies until constitution requires complete rebuild
-
-**Correct Alternative:** Treat every constitution update, even partial, as full validation cycle: analyze all changes for version bump classification, update governance dates, validate principle consistency, and propagate changes to dependent artifacts per **Transitive Dependency Synchronization** pattern.
-
-### Anti-Pattern: Non-Atomic Multi-File Updates
-
-**Description:** Writing constitution and dependent template files sequentially without transaction semantics, allowing partial success where some files update successfully while others fail, leaving the artifact set in inconsistent state.
-
-**Reasons to Avoid:**
-
-- Process interruption (crash, timeout, disk full) leaves half-updated artifact set in undefined state
-- Constitution references principles that spec template hasn't incorporated yet (or vice versa)
-- Debugging partial failures difficult because unclear which files successfully updated
-- No rollback mechanism; manual recovery requires determining which files need reverting
-
-**Negative Consequences:**
-
-- Constitution v3.0.0 written successfully but spec template update failed; template still generates v2.0.0-compliant specs
-- Plan template updated with new principle validation but constitution write failed; template validates against non-existent principle
-- Corruption discovered hours later when user attempts to generate spec, by which time determining correct state requires forensic analysis
-- Recovery requires manually examining each file's content, comparing against intended updates, and selectively reverting/reapplying changes
-- User loses work if they cannot determine which partial state is recoverable vs. requires full re-run
-
-**Correct Alternative:** Use the **Atomic Multi-File Transaction** pattern with temporary file staging, validation before finalization, and rollback capability on any individual file failure.
 
 Formatting & Style Requirements:
 

@@ -10,6 +10,45 @@ $ARGUMENTS
 
 You **MUST** consider the user input before proceeding (if not empty).
 
+## Pre-Execution Checks
+
+**Check for extension hooks (before implementation)**:
+
+- Check if `.specify/extensions.yml` exists in the project root.
+- If it exists, read it and look for entries under the `hooks.before_implement` key
+- If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
+- Filter to only hooks where `enabled: true`
+- For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
+    - If the hook has no `condition` field, or it is null/empty, treat the hook as executable
+    - If the hook defines a non-empty `condition`, skip the hook and leave condition evaluation to the HookExecutor implementation
+- For each executable hook, output the following based on its `optional` flag:
+    - **Optional hook** (`optional: true`):
+
+    ```text
+    ## Extension Hooks
+
+    **Optional Pre-Hook**: {extension}
+    Command: `/{command}`
+    Description: {description}
+
+    Prompt: {prompt}
+    To execute: `/{command}`
+    ```
+
+    - **Mandatory hook** (`optional: false`):
+
+    ```text
+    ## Extension Hooks
+
+    **Automatic Pre-Hook**: {extension}
+    Executing: `/{command}`
+    EXECUTE_COMMAND: {command}
+    
+    Wait for the result of the hook command before proceeding to the Outline.
+    ```
+
+- If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
+
 ## Outline
 
 1. Run `pwsh -ExecutionPolicy Bypass -File .specify/scripts/powershell/check-prerequisites.ps1 -Json -RequireTasks -IncludeTasks` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
@@ -85,7 +124,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Rust**: `target/`, `debug/`, `release/`, `*.rs.bk`, `*.rlib`, `*.prof*`, `.idea/`, `*.log`, `.env*`
    - **Kotlin**: `build/`, `out/`, `.gradle/`, `.idea/`, `*.class`, `*.jar`, `*.iml`, `*.log`, `.env*`
    - **C++**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.so`, `*.a`, `*.exe`, `*.dll`, `.idea/`, `*.log`, `.env*`
-   - **C**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.a`, `*.so`, `*.exe`, `Makefile`, `config.log`, `.idea/`, `*.log`, `.env*`
+   - **C**: `build/`, `bin/`, `obj/`, `out/`, `*.o`, `*.a`, `*.so`, `*.exe`, `*.dll`, `autom4te.cache/`, `config.status`, `config.log`, `.idea/`, `*.log`, `.env*`
    - **Swift**: `.build/`, `DerivedData/`, `*.swiftpm/`, `Packages/`
    - **R**: `.Rproj.user/`, `.Rhistory`, `.RData`, `.Ruserdata`, `*.Rproj`, `packrat/`, `renv/`
    - **Universal**: `.DS_Store`, `Thumbs.db`, `*.tmp`, `*.swp`, `.vscode/`, `.idea/`
@@ -96,6 +135,50 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Prettier**: `node_modules/`, `dist/`, `build/`, `coverage/`, `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml`
    - **Terraform**: `.terraform/`, `*.tfstate*`, `*.tfvars`, `.terraform.lock.hcl`
    - **Kubernetes/k8s**: `*.secret.yaml`, `secrets/`, `.kube/`, `kubeconfig*`, `*.key`, `*.crt`
+
+Steps 1 through 4 establish the pre-implementation foundation — validating prerequisites, enforcing checklist gates, loading design context, and preparing the project environment. The following patterns and anti-patterns guide the reliable execution of these preparatory steps.
+
+### Patterns for Pre-Implementation Setup
+
+#### Pattern: Explicit Checklist Gate Enforcement
+
+- **Objective:** Ensure that incomplete checklists are surfaced to the user as a blocking concern and that implementation proceeds only with conscious, documented user consent — never silently.
+- **Context of application:** Apply during step 2 of the Outline when evaluating checklist status and determining whether to proceed.
+- **Key characteristics:** The executor treats the checklist gate as an interactive checkpoint, not a passive report. When any checklist has incomplete items, the executor displays the full status table, halts execution, and waits for an explicit user response. The executor does not infer intent from silence, from prior conversation context, or from the user's initial $ARGUMENTS. The gate distinguishes between "all pass" (automatic proceed) and "any fail" (require explicit consent) with no intermediate behavior.
+- **Operational guidance:**
+  1. After scanning all checklist files, build the status table with exact counts. Do not round, estimate, or summarize — every checklist file must appear as its own row.
+  2. If any checklist has incomplete items, display the table and the stop prompt exactly as specified. Do not append suggestions, do not recommend proceeding, and do not proceed without a response.
+  3. Accept only unambiguous affirmative responses ("yes," "proceed," "continue") as consent to continue. Treat ambiguous responses ("maybe," "I think so," "let me check") as non-affirmative — ask again.
+  4. If the user consents to proceed despite incomplete checklists, note this consent in the final completion report (step 9) so that reviewers know the gate was bypassed.
+  5. If all checklists pass, display the passing table and proceed without prompting. Do not ask "Would you like to continue?" when no gate condition is triggered.
+
+#### Pattern: Additive Ignore File Management
+
+- **Objective:** Preserve all existing patterns in ignore files while ensuring that technology-appropriate critical patterns are present, preventing both destructive overwrites and incomplete coverage.
+- **Context of application:** Apply during step 4 (Project Setup Verification) when creating or updating ignore files (.gitignore, .dockerignore, .eslintignore, etc.).
+- **Key characteristics:** The executor distinguishes between two scenarios — file exists and file missing — and handles them differently. For existing files, it reads the current content, identifies which critical patterns from the technology-specific list are missing, and appends only those missing patterns in a clearly marked block. For missing files, it creates the file with the full pattern set. It never replaces, reorders, or removes existing patterns.
+- **Operational guidance:**
+  1. For each ignore file to be managed, check whether the file exists before taking any action.
+  2. If the file exists, read its full content. For each critical pattern in the technology-specific list, check whether the pattern (or a functionally equivalent glob) is already present. Only append patterns that are genuinely missing.
+  3. When appending, add a comment marker (e.g., `# Added by speckit.implement`) followed by the missing patterns. This makes the additions identifiable and reversible.
+  4. If the file does not exist, create it with the full technology-appropriate pattern set, including a header comment noting it was generated.
+  5. Do not modify ignore files for technologies not detected in the project. If no Dockerfile exists and Docker is not in plan.md, do not create or modify .dockerignore.
+
+### Anti-Patterns for Pre-Implementation Setup
+
+#### Anti-Pattern: Silent Checklist Bypass
+
+- **Description:** The executor detects incomplete checklists but proceeds with implementation without displaying the status table, without halting, or without waiting for user confirmation — typically because it interprets the user's initial $ARGUMENTS (e.g., "implement everything") as implicit consent to skip the gate.
+- **Reasons to avoid:** Checklists exist as quality gates created by earlier workflow stages (speckit.checklist). Bypassing them silently defeats their purpose and means that the implementation may violate constraints that the checklists were designed to enforce (UX standards, security requirements, test coverage thresholds). This mistake typically occurs when the executor treats $ARGUMENTS as overriding all interactive checkpoints, or when it optimizes for speed by skipping what it perceives as a "formality."
+- **Negative consequences:** Implementation proceeds against incomplete quality criteria. Reviewers and stakeholders discover post-implementation that gates were bypassed, requiring rework or audit. The user loses the opportunity to address checklist items before they become implementation defects. Trust in the checklist workflow erodes because the implementation agent ignores its outputs.
+- **Correct alternative:** Apply the **Explicit Checklist Gate Enforcement** pattern to always display the status table and halt on incomplete checklists, proceeding only with explicit user consent.
+
+#### Anti-Pattern: Destructive Ignore File Overwrite
+
+- **Description:** The executor replaces existing ignore files with newly generated content, discarding patterns that were manually added by developers, inherited from project templates, or produced by other tools.
+- **Reasons to avoid:** Ignore files accumulate project-specific patterns over time — patterns for local tooling, IDE configurations, generated artifacts specific to the project's build system, or temporary exclusions for ongoing migrations. These patterns cannot be inferred from the tech stack alone. Overwriting them forces developers to manually recover lost patterns from version control, and patterns added after the overwrite may be lost again on subsequent runs. This mistake occurs when the executor treats "create/verify" as "create/replace" or when it does not read the existing file before writing.
+- **Negative consequences:** Previously ignored files (secrets, local configuration, build artifacts) are no longer ignored and may be committed to version control. Developers must spend time restoring lost patterns and may not notice the loss until sensitive files are exposed. Repeated overwrites train developers to distrust the implementation agent and manually revert its changes to ignore files, undermining automation.
+- **Correct alternative:** Apply the **Additive Ignore File Management** pattern to read existing content, identify only missing critical patterns, and append them without disturbing existing entries.
 
 5. Parse tasks.md structure and extract:
    - **Task phases**: Setup, Tests, Core, Integration, Polish
@@ -117,6 +200,69 @@ You **MUST** consider the user input before proceeding (if not empty).
    - **Integration work**: Database connections, middleware, logging, external services
    - **Polish and validation**: Unit tests, performance optimization, documentation
 
+Steps 5 through 7 define how tasks are parsed and executed. The core challenge is maintaining correct execution order while maximizing throughput through parallelism. The following patterns and anti-patterns address task execution discipline.
+
+### Patterns for Task Execution
+
+#### Pattern: Artifact-Informed Implementation
+
+- **Objective:** Ensure that every implementation task is executed with full awareness of the design artifacts loaded in step 3, producing code that conforms to the data model, respects interface contracts, and reflects research decisions — not just the task description in tasks.md.
+- **Context of application:** Apply during steps 6 and 7 when executing each individual task. The tasks.md entry provides the action and target file; the design artifacts provide the specification for what that file should contain.
+- **Key characteristics:** The executor treats tasks.md as the execution plan (what to do and in what order) and the design artifacts as the specification (what the output should look like). When implementing a model, it consults data-model.md for entity definitions, field types, and relationships. When implementing an endpoint, it consults contracts/ for request/response schemas. When making technology choices within a task, it consults research.md for resolved decisions. The task description alone is never sufficient — it provides direction, not specification.
+- **Operational guidance:**
+  1. Before executing each task, identify which design artifacts are relevant. A task targeting `src/models/user.py` should reference data-model.md for the User entity definition. A task targeting `src/routes/auth.py` should reference the relevant contract in contracts/.
+  2. If data-model.md defines an entity with specific fields, validation rules, or relationships, the implementation must include all of them — not just the fields mentioned in the task description.
+  3. If contracts/ defines a request/response schema for an endpoint, the implementation must conform to that schema exactly — matching field names, types, status codes, and error formats.
+  4. If research.md documents a technology decision (e.g., "Use bcrypt for password hashing"), the implementation must follow that decision even if the task description does not mention it.
+  5. If a design artifact is absent (data-model.md does not exist), implement based on the task description and plan.md. Do not halt — but note in the progress report that the implementation was derived from task descriptions rather than formal design artifacts.
+
+#### Pattern: Dependency-Aware Parallel Execution
+
+- **Objective:** Execute tasks marked with [P] concurrently only when genuine independence has been verified, while maintaining strict sequential order for unmarked tasks and tasks sharing file targets.
+- **Context of application:** Apply during step 6 when determining execution order for tasks within each phase.
+- **Key characteristics:** The executor respects two ordering constraints simultaneously: the explicit dependency order encoded in task IDs and the [P] marker, and the implicit file-based dependency that tasks writing to the same file cannot run concurrently. A task without [P] is always sequential — it waits for the previous task to complete. A task with [P] may run alongside other [P] tasks in the same phase, but only if they target different files. The executor never introduces parallelism beyond what tasks.md specifies.
+- **Operational guidance:**
+  1. Within each phase, identify all tasks marked [P] and group them into a candidate parallel set.
+  2. Within the parallel set, check for file path overlap. If two [P] tasks target the same file (e.g., both modify `src/app.py`), execute them sequentially in task ID order despite both having [P] markers.
+  3. Execute all sequential (non-[P]) tasks before any [P] tasks in the same phase, unless the [P] tasks appear earlier in the task ID sequence — in which case, follow the ID order.
+  4. When a phase contains a mix of sequential and parallel tasks, process them in task ID order: execute sequential tasks one at a time, and when a contiguous block of [P] tasks is reached, execute that block concurrently (subject to file-overlap checks).
+  5. After all tasks in a phase complete (or fail), verify phase completion before proceeding to the next phase. Do not start the next phase while any task in the current phase is still in progress.
+
+#### Pattern: Incremental Checkpoint Persistence
+
+- **Objective:** Mark each task as complete in tasks.md (`[X]`) immediately after it is successfully executed, maintaining an accurate, real-time record of implementation progress that survives interruptions.
+- **Context of application:** Apply during step 8 (Progress tracking) after each individual task completes successfully.
+- **Key characteristics:** The executor updates tasks.md after every single task completion, not after each phase or at the end of the implementation run. This means that if execution is interrupted at any point, tasks.md accurately reflects which tasks are done and which remain. The update is atomic — the task's `- [ ]` is changed to `- [X]` and the file is saved before the next task begins.
+- **Operational guidance:**
+  1. After a task executes successfully, immediately open tasks.md, locate the task by its ID (e.g., T005), and change `- [ ]` to `- [X]`.
+  2. Save the file before beginning the next task. Do not batch updates.
+  3. For parallel tasks that complete simultaneously, update tasks.md with all completed task checkboxes before starting any new tasks.
+  4. If a task fails, leave its checkbox as `- [ ]`. Do not mark failed tasks.
+  5. If implementation is resumed after an interruption, read tasks.md to determine which tasks are already marked `[X]` and skip them, starting from the first unmarked task.
+
+### Anti-Patterns for Task Execution
+
+#### Anti-Pattern: Context-Blind Implementation
+
+- **Description:** The executor implements each task using only the description in tasks.md without consulting the design artifacts loaded in step 3 — for example, creating a User model with fields guessed from the task description ("Create User model in src/models/user.py") rather than reading the User entity definition from data-model.md.
+- **Reasons to avoid:** Task descriptions in tasks.md are intentionally concise — they specify what to do and where, not the full specification of what the output should contain. The design artifacts (data-model.md, contracts/, research.md) exist precisely to provide that specification. Ignoring them produces implementations that may be internally consistent but diverge from the agreed design. This typically occurs when the executor treats tasks.md as a self-contained specification rather than as an execution plan that references other documents.
+- **Negative consequences:** Models are created with incomplete or incorrect fields. Endpoints do not conform to defined contracts. Technology decisions documented in research.md are ignored, producing implementations that violate resolved architectural choices. Integration between components fails because each task was implemented in isolation without reference to shared design constraints. The consistency analysis agent (speckit.analyze) later flags numerous mismatches between design and implementation.
+- **Correct alternative:** Apply the **Artifact-Informed Implementation** pattern to consult the relevant design artifact for every task, using the artifact as the specification and the task description as the directive.
+
+#### Anti-Pattern: False Parallelism
+
+- **Description:** The executor treats all tasks within a phase as parallelizable, ignoring the distinction between [P]-marked and unmarked tasks, or executes [P] tasks concurrently even when they target the same file.
+- **Reasons to avoid:** The [P] marker in tasks.md represents a deliberate analysis by the task generation agent that a specific task is safe to execute concurrently. Unmarked tasks were left sequential because they depend on the output of preceding tasks or modify shared files. Ignoring this distinction introduces race conditions — two tasks writing to the same file produce unpredictable results, and a task that imports from a model created by a preceding task will fail if both run simultaneously. This typically occurs when the executor optimizes for speed without understanding the dependency semantics encoded in the task list.
+- **Negative consequences:** File write conflicts produce corrupted or incomplete source files. Tasks that depend on the output of earlier tasks fail with import errors or missing references. The executor must backtrack, undo parallel results, and re-execute sequentially — taking longer than a correct sequential execution would have. Failed parallel tasks may be reported as infrastructure errors rather than as dependency violations, misdirecting debugging effort.
+- **Correct alternative:** Apply the **Dependency-Aware Parallel Execution** pattern to execute only [P]-marked tasks concurrently, verify file-target independence within the parallel set, and maintain strict sequential order for all unmarked tasks.
+
+#### Anti-Pattern: Deferred Task Marking
+
+- **Description:** The executor completes multiple tasks or an entire phase before updating tasks.md, batching all checkbox updates into a single write at the end of a phase or at the end of the entire implementation run.
+- **Reasons to avoid:** Deferred marking means that tasks.md does not reflect actual progress during execution. If the implementation is interrupted — by a timeout, an error, a user cancellation, or a session limit — tasks.md still shows all tasks as incomplete, and the next invocation re-executes work that was already successfully completed. This wastes time and risks overwriting correct implementations with potentially different outputs. The mistake typically occurs when the executor treats tasks.md updates as bookkeeping to be done "when convenient" rather than as a critical persistence mechanism.
+- **Negative consequences:** Interrupted implementations must restart from scratch because there is no record of completed work. Users monitoring progress see no movement in tasks.md even as implementation proceeds. In the worst case, a nearly complete implementation is interrupted, and the subsequent re-run produces subtly different code for already-completed tasks (because LLM outputs are not deterministic), introducing inconsistencies. The tasks.md file loses its value as a real-time progress tracker.
+- **Correct alternative:** Apply the **Incremental Checkpoint Persistence** pattern to update tasks.md immediately after each task completes, ensuring that the file always reflects the true state of implementation progress.
+
 8. Progress tracking and error handling:
    - Report progress after each completed task
    - Halt execution if any non-parallel task fails
@@ -132,381 +278,81 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Confirm the implementation follows the technical plan
    - Report final status with summary of completed work
 
-## Patterns: Best Practices for Implementation Execution
-
-### Pattern: Gated Readiness Validation
-
-**Objective:** Prevent implementation of incomplete or under-validated features by requiring explicit checklist completion or informed override before code execution.
-
-**Context of Application:** Before loading implementation context or executing any tasks, when checklists exist in the feature directory.
-
-**Key Characteristics:**
-
-- All checklists scanned and status aggregated into pass/fail table
-- Incomplete checklists trigger blocking prompt requiring user acknowledgment
-- User retains override authority for exploratory or spike work
-- Zero incomplete items required for automatic progression
-
-**Operational Guidance:**
-
-1. After prerequisites check (step 1), immediately scan `FEATURE_DIR/checklists/` directory for all `.md` files
-2. For each checklist file, parse line-by-line using regex patterns:
-   - Total items: count lines matching `- \[ \]` or `- \[X\]` or `- \[x\]`
-   - Completed: count lines matching `- \[X\]` or `- \[x\]`
-   - Incomplete: count lines matching `- \[ \]`
-3. Build status table with columns: Checklist (filename), Total, Completed, Incomplete, Status (✓ PASS / ✗ FAIL)
-4. Calculate overall readiness: PASS if all checklists have 0 incomplete items, otherwise FAIL
-5. If FAIL status:
-   - Display table prominently with incomplete counts highlighted
-   - Output blocking prompt: "Some checklists are incomplete. Do you want to proceed with implementation anyway? (yes/no)"
-   - Await user response; parse for affirmative ("yes", "proceed", "continue") vs. negative ("no", "wait", "stop")
-   - On negative response, halt execution with message: "Implementation halted. Complete checklists or re-run with override when ready."
-   - On affirmative response, log override decision and proceed to step 3
-6. If PASS status:
-   - Display table showing all ✓ PASS statuses
-   - Output confirmation: "All checklists complete. Proceeding to implementation."
-   - Automatically proceed to step 3 without blocking
-7. If no checklists directory exists, skip validation and proceed directly to step 3
-
-### Pattern: Context-Complete Document Loading
-
-**Objective:** Ensure implementation agent has complete architectural and specification context by loading all available planning artifacts before code generation.
-
-**Context of Application:** Step 3 (implementation context analysis), after readiness validation passes.
-
-**Key Characteristics:**
-
-- Required documents (tasks.md, plan.md) loaded unconditionally with failure halting execution
-- Optional documents (data-model.md, contracts/, research.md, quickstart.md) loaded opportunistically when present
-- Document availability checked before read attempts to avoid unnecessary errors
-- Loaded content indexed by concern: tasks (what), plan (how), data-model (entities), contracts (interfaces), research (decisions), quickstart (usage)
-
-**Operational Guidance:**
-
-1. Define required document set: `tasks.md` (task breakdown), `plan.md` (architecture/tech stack)
-2. Attempt to read each required document from `FEATURE_DIR/`:
-   - If read fails, halt execution with error: "Required document {filename} missing or unreadable. Run /speckit.tasks or /speckit.plan to generate."
-   - If read succeeds, parse content and store in context memory indexed by document type
-3. Define optional document set with conditional logic:
-   - `data-model.md`: Check existence; if present, load entity definitions, relationships, constraints
-   - `contracts/`: Check directory existence; if present, enumerate and load all contract files (API specs, schemas, test requirements)
-   - `research.md`: Check existence; if present, load technical decisions, rejected alternatives, constraint rationale
-   - `quickstart.md`: Check existence; if present, load integration patterns, example usage scenarios
-4. For each optional document, attempt read but continue on failure (document absence is valid state)
-5. Build unified implementation context structure containing:
-   - Tasks: phase structure, task list with IDs/descriptions/files/dependencies
-   - Architecture: tech stack, file structure, component relationships
-   - Data: entities, fields, relationships, validation rules (if data-model.md exists)
-   - Contracts: API endpoints, request/response schemas, test coverage requirements (if contracts/ exists)
-   - Decisions: chosen approaches, rejected alternatives, constraint justifications (if research.md exists)
-   - Patterns: integration scenarios, usage examples (if quickstart.md exists)
-6. Validate context completeness: Can tasks be executed with available information? If critical info missing (e.g., tasks reference entities but no data-model.md), warn user before proceeding
-7. Use loaded context throughout implementation to ensure code consistency with specification
-
-### Pattern: Technology-Aware Ignore File Generation
-
-**Objective:** Prevent accidental commits of build artifacts, credentials, and IDE metadata by automatically creating comprehensive ignore files matched to detected project technologies.
-
-**Context of Application:** Step 4 (project setup verification), after context loading, before task execution.
-
-**Key Characteristics:**
-
-- Ignore file requirements detected from actual project state (files present, plan.md tech stack)
-- Technology-specific pattern sets applied (Node.js vs Python vs Java have different artifact patterns)
-- Existing ignore files augmented rather than replaced, preserving user customizations
-- Universal patterns (`.DS_Store`, `.env*`) included in all ignore files
-
-**Operational Guidance:**
-
-1. Detect project technologies and tools by examining:
-   - File system: Check for `package.json` (Node.js), `requirements.txt` (Python), `pom.xml` (Java), `Cargo.toml` (Rust), etc.
-   - Plan document: Parse `plan.md` for tech stack declarations in "Technology Stack" or "Dependencies" sections
-   - Configuration files: Detect `.eslintrc*`, `.prettierrc*`, `Dockerfile*`, `*.tf` (Terraform)
-2. For each detected technology/tool, determine which ignore files are needed:
-   - Git repository (check `git rev-parse --git-dir` success) → `.gitignore` required
-   - Docker present (`Dockerfile*` or plan mentions Docker) → `.dockerignore` required
-   - ESLint config present (`.eslintrc*` or `eslint.config.*`) → `.eslintignore` or config `ignores` field required
-   - Prettier config present (`.prettierrc*`) → `.prettierignore` required
-   - NPM publishing (plan mentions npm publish or `private: false` in package.json) → `.npmignore` required
-   - Terraform files present (`*.tf`) → `.terraformignore` required
-   - Helm charts present (`Chart.yaml`) → `.helmignore` required
-3. For each required ignore file:
-   - **If file exists**: Read current content; extract existing patterns; identify missing critical patterns from technology pattern set; append only missing patterns with comment header `# Added by speckit.implement`
-   - **If file missing**: Create new file with complete pattern set for all detected technologies plus universal patterns
-4. Pattern set construction:
-   - Start with universal patterns: `.DS_Store`, `Thumbs.db`, `*.tmp`, `*.swp`, `.vscode/`, `.idea/`
-   - Add technology-specific patterns from lookup table (see step 4 pattern lists)
-   - Add tool-specific patterns (Docker, ESLint, Prettier, Terraform, Kubernetes)
-   - Include security-critical patterns: `.env*`, `*.key`, `*.pem`, `secrets/`, `*.secret.*`
-5. Write ignore files atomically (temp file, then rename) to prevent corruption
-6. For `eslint.config.*` (flat config), update the `ignores` array rather than separate `.eslintignore` file
-7. Log created/updated ignore files in implementation progress report
-
-### Pattern: Phase-Ordered Task Execution with Dependency Respect
-
-**Objective:** Maximize implementation correctness and debuggability by executing tasks in dependency-respecting order: setup before tests, tests before implementation, core before integration, integration before polish.
-
-**Context of Application:** Steps 5-7 (task parsing and execution), throughout the implementation workflow.
-
-**Key Characteristics:**
-
-- Tasks organized into phases: Setup → Tests → Core → Integration → Polish
-- Within each phase, sequential tasks executed in declared order
-- Parallel tasks (marked `[P]`) can execute concurrently if no file conflicts
-- File-based coordination: tasks touching same files forced into sequential execution
-- Phase completion validated before advancing to next phase
-
-**Operational Guidance:**
-
-1. Parse `tasks.md` to extract task structure (step 5):
-   - Identify phase boundaries by section headings: `## Setup Phase`, `## Tests Phase`, `## Core Phase`, `## Integration Phase`, `## Polish Phase`
-   - For each task, extract: ID (e.g., `S1`, `T2`), description, file paths affected, parallel marker (`[P]`)
-   - Build dependency graph: tasks in same phase with overlapping file paths must be sequential; tasks with `[P]` marker and non-overlapping files can be parallel
-2. Initialize phase execution queue: `[Setup, Tests, Core, Integration, Polish]`
-3. For each phase in queue:
-   - Load all tasks for current phase
-   - Partition tasks into sequential groups based on file conflicts:
-     - Group 1: All tasks affecting `file_a.js` (must run in declared order)
-     - Group 2: All tasks affecting `file_b.py` with no overlap to Group 1 (can run parallel to Group 1 if all marked `[P]`)
-   - Execute groups:
-     - Sequential tasks: run one at a time, halt on failure, report progress after each
-     - Parallel tasks: spawn concurrent executions, collect results, continue with successful tasks, report failed tasks
-   - After all tasks in phase complete, run phase validation:
-     - Setup phase: verify project structure created, dependencies installed, configuration files present
-     - Tests phase: verify test files created, test runner configured
-     - Core phase: verify core logic files exist, basic compilation/import succeeds
-     - Integration phase: verify external connections configured, middleware in place
-     - Polish phase: verify documentation updated, tests pass
-   - If phase validation fails, halt and report specific validation failure
-4. Follow TDD discipline within phases:
-   - Tests phase tasks execute before corresponding Core phase implementation tasks
-   - Test tasks write failing tests based on contracts
-   - Core tasks implement code to make tests pass
-5. Mark completed tasks in `tasks.md` by replacing `- [ ]` with `- [X]` after successful execution (step 8)
-6. Maintain execution log with timestamps: `S1 started 14:32:15`, `S1 completed 14:32:47`, `S2 started 14:32:48`
-
-### Pattern: Incremental Progress Persistence
-
-**Objective:** Prevent work loss and enable resume-after-failure by persisting task completion status immediately after each successful task execution.
-
-**Context of Application:** Step 8 (progress tracking), after each individual task completes successfully.
-
-**Key Characteristics:**
-
-- Task completion marked in `tasks.md` immediately (not batched at end)
-- Checkbox syntax updated: `- [ ] Task description` → `- [X] Task description`
-- File written atomically after each update to prevent corruption
-- Progress log maintained separately from task file for debugging
-
-**Operational Guidance:**
-
-1. After any task executes successfully (code written, tests pass, validation succeeds):
-   - Locate task in loaded `tasks.md` content by matching task ID or exact description
-   - Replace checkbox marker: `- [ ]` → `- [X]` (preserve indentation and whitespace)
-   - Write updated `tasks.md` content to disk using atomic file replacement (write temp, rename)
-2. Verify write succeeded by reading back and confirming checkbox updated
-3. If write fails, retry once; if second attempt fails, log error but continue execution (don't halt implementation for task file update failure)
-4. Maintain separate progress log file `FEATURE_DIR/.implementation-log` with entries: `[2024-02-06 14:32:47] S1 COMPLETE: Created project structure`
-5. Progress log appended (not overwritten) for durability and debugging
-6. On any execution halt (error, user interrupt), final state reflects all successfully completed tasks marked in `tasks.md`
-7. Resume capability: if implementation re-run after failure, skip tasks already marked `[X]`, resume from first `[ ]` task in current phase
-
-### Pattern: Fail-Fast Sequential with Graceful Parallel Degradation
-
-**Objective:** Maximize debuggability for critical sequential tasks while maintaining implementation momentum for independent parallel tasks.
-
-**Context of Application:** Step 8 (error handling), throughout task execution for both sequential and parallel task sets.
-
-**Key Characteristics:**
-
-- Sequential task failure immediately halts execution with detailed error context
-- Parallel task failure isolated; successful parallel tasks continue; failed tasks reported in aggregate
-- Error messages include task ID, description, affected files, error output, and suggested remediation
-- Execution can proceed if some parallel tasks fail but critical path tasks succeed
-
-**Operational Guidance:**
-
-1. For sequential tasks (default execution mode):
-   - Execute task and capture both success/failure status and any error output
-   - On failure: immediately halt execution, do NOT proceed to next task
-   - Report error with structure:
-
-     ```text
-     ❌ Task {ID} FAILED: {description}
-     Files affected: {file_list}
-     Error: {error_message}
-     Suggested action: {remediation_hint}
-     ```
-
-   - Remediation hints based on error type:
-     - Compilation error → "Check syntax in {file}, verify imports"
-     - Test failure → "Review test expectations in {test_file}, validate implementation logic"
-     - File not found → "Verify file structure matches plan.md, check task dependencies"
-     - Permission error → "Check file permissions, ensure write access to {directory}"
-   - Provide next steps: "Fix the error and re-run /speckit.implement to resume from this task."
-2. For parallel tasks (marked `[P]`):
-   - Execute all parallel tasks concurrently (spawn separate execution contexts)
-   - Collect results for each: {task_id: success/failure, output/error}
-   - After all parallel tasks complete, analyze results:
-     - If all succeeded: report success count, proceed to next task/phase
-     - If some failed: report success count + failure count, list failed task IDs with errors
-   - Continue execution unless ALL parallel tasks failed or a failed task is critical path dependency for subsequent tasks
-   - Update `tasks.md` with `[X]` for successful parallel tasks only
-3. Error context enrichment:
-   - Include last 20 lines of error output for debugging
-   - Reference related documents: "This task implements feature described in spec.md section 3.2"
-   - Suggest related tasks: "This failure may affect dependent tasks: T5, T7"
-4. State preservation on failure: ensure all completed tasks marked, progress log written, partial code changes committed to feature branch if possible
-
-## Anti-Patterns: Common Mistakes in Implementation Execution
-
-### Anti-Pattern: Unchecked Implementation Rush
-
-**Description:** Proceeding directly to code generation and task execution without validating that prerequisite checklists (security, UX, testing, etc.) are complete, potentially implementing features that violate unresolved concerns.
-
-**Reasons to Avoid:**
-
-- Security vulnerabilities introduced because security checklist items not addressed before code written
-- UX inconsistencies baked into implementation before UX validation complete
-- Test gaps discovered post-implementation, requiring costly refactoring to accommodate proper test coverage
-- Rework required when checklist completion reveals design flaws that invalidate early implementation
-
-**Negative Consequences:**
-
-- Implementation of authentication system proceeds before security checklist confirms token expiration strategy, requiring rewrite when insecure default discovered
-- UI components built before accessibility checklist complete, necessitating significant DOM restructuring for ARIA compliance
-- Database schema implemented before data validation checklist reviewed, causing migration hell when validation rules require schema changes
-- Code review identifies critical gaps from incomplete checklists, forcing large PRs to be blocked or reverted
-- Time waste: implementing features correctly from start (after checklist completion) faster than implement-discover-refactor cycle
-
-**Correct Alternative:** Use the **Gated Readiness Validation** pattern to scan all checklists, block on incomplete items with explicit user override prompt, and ensure informed decision before proceeding with implementation.
-
-### Anti-Pattern: Context-Starved Implementation
-
-**Description:** Executing tasks from `tasks.md` without loading supporting specification documents (plan.md, data-model.md, contracts/, research.md, quickstart.md), causing implementation to diverge from architectural decisions and data model constraints.
-
-**Reasons to Avoid:**
-
-- Agent lacks architectural context, generating code inconsistent with tech stack or design patterns
-- Data model mismatches: entities implemented with wrong fields, relationships, or validation rules
-- API contract violations: endpoints return different schemas than specified in contracts/
-- Technical decisions ignored: implementing rejected alternatives or violating constraint rationale from research.md
-- Integration pattern gaps: missing reference examples from quickstart.md leads to incorrect usage patterns
-
-**Negative Consequences:**
-
-- REST API implemented using Express when plan.md specifies FastAPI, requiring complete rewrite
-- User entity created without required email validation constraint specified in data-model.md, causing test failures
-- Authentication endpoint returns `{token: string}` when contract specifies `{access_token: string, refresh_token: string}`, breaking client integration
-- Database connection pooling omitted despite research.md documenting pool size constraint rationale, causing production scalability issues
-- Error handling implemented with generic try/catch when quickstart.md demonstrates specific error recovery pattern, creating inconsistent error UX
-
-**Correct Alternative:** Apply the **Context-Complete Document Loading** pattern to load all required and available optional documents before task execution, ensuring implementation aligns with specification.
-
-### Anti-Pattern: Universal Ignore File Templates
-
-**Description:** Copying generic ignore file templates (e.g., GitHub's standard `.gitignore` for Node.js) without customizing to actual project technologies, tools, and specific artifact patterns, leaving project-specific build outputs, credentials, or IDE files unprotected.
-
-**Reasons to Avoid:**
-
-- Generic templates miss project-specific patterns: custom build directories, framework-specific cache files, generated documentation
-- Over-inclusive templates ignore files that should be committed: fixture data, test snapshots, vendored dependencies
-- Under-inclusive templates expose credentials: `.env.local`, `secrets.dev.yaml`, API key files in non-standard locations
-- Multi-technology projects need composite patterns: Node.js + Python + Docker requires merging three pattern sets
-
-**Negative Consequences:**
-
-- `.gitignore` copied from Node.js template but project uses TypeScript; `dist/` ignored but `build/` committed to repo, bloating repository
-- Standard Python template ignores `venv/` but project uses `pipenv`; `Pipfile.lock` committed causing dependency conflicts
-- Docker template missing, resulting in `node_modules/` and `.git/` copied into Docker image, creating 500MB images instead of 50MB
-- `.env.production` not in ignore pattern because template only covers `.env`; production credentials accidentally committed
-- ESLint configuration uses flat config (`eslint.config.js`) but implementation creates `.eslintignore` instead of updating config `ignores` field, causing patterns to be ignored
-
-**Correct Alternative:** Use the **Technology-Aware Ignore File Generation** pattern to detect actual project technologies and tools, apply appropriate pattern sets, augment existing files rather than replacing, and include security-critical universal patterns.
-
-### Anti-Pattern: Dependency-Blind Task Execution
-
-**Description:** Executing tasks in the order they appear in `tasks.md` without analyzing dependencies, parallel opportunities, or phase boundaries, causing test execution before setup, implementation before tests, or sequential execution of parallelizable tasks.
-
-**Reasons to Avoid:**
-
-- Tests fail because dependencies not installed (setup tasks skipped or executed out of order)
-- TDD violated: implementation code written before tests, losing design-through-testing benefits
-- Implementation inefficiency: 10 parallel-safe tasks executed sequentially, multiplying implementation time by 10x
-- Integration failures: database migrations run before database client library installed
-- File conflicts: two tasks modifying same file concurrently, causing race conditions and corruption
-
-**Negative Consequences:**
-
-- Test task `T1: Write user authentication tests` executed before setup task `S3: Install pytest framework`, causing test runner errors
-- Core task `C2: Implement user service` executed before test task `T2: Write user service tests`, missing TDD design feedback that would have improved API design
-- Five parallel-marked tasks creating independent React components executed sequentially, taking 50 minutes instead of 10 minutes
-- Integration task `I1: Run database migrations` executed before setup task `S4: Install database client`, causing connection errors
-- Tasks `C3: Update user.js` and `C5: Refactor user.js` run concurrently, causing file write conflict and lost changes
-
-**Correct Alternative:** Apply the **Phase-Ordered Task Execution with Dependency Respect** pattern to organize tasks into phases, respect sequential dependencies, exploit parallel opportunities, and enforce file-based coordination.
-
-### Anti-Pattern: End-of-Batch Task Status Update
-
-**Description:** Accumulating all task completion status updates in memory throughout implementation and writing them to `tasks.md` only at the very end of execution, risking complete loss of progress tracking on failure or interruption.
-
-**Reasons to Avoid:**
-
-- Process interruption (crash, timeout, user cancel) loses record of all completed tasks
-- Failure mid-implementation leaves `tasks.md` unchanged despite 20 completed tasks
-- Resume impossible: no way to determine which tasks succeeded before failure
-- Debugging hindered: cannot correlate task completion timing with logs or file changes
-
-**Negative Consequences:**
-
-- Implementation runs for 2 hours, completes 45 of 60 tasks, then fails on task 46; `tasks.md` shows 0 tasks complete because batch update never written
-- User cancels execution after 30 minutes; no record of which 15 tasks completed successfully; must manually inspect codebase to determine resume point
-- Execution crash leaves incomplete state: files created but no task marked complete; subsequent re-run attempts to recreate files, causing conflicts
-- Progress reporting to user shows "25 tasks complete" but `tasks.md` still shows all unchecked; user opens file and sees contradiction, loses trust in system
-- Post-mortem debugging after failure cannot determine when task T12 completed because timestamps not recorded incrementally
-
-**Correct Alternative:** Use the **Incremental Progress Persistence** pattern to update `tasks.md` immediately after each successful task completion, ensuring durable progress tracking and resume capability.
-
-### Anti-Pattern: Global Halt on Parallel Task Failure
-
-**Description:** Treating all task failures identically regardless of sequential vs. parallel status, halting entire implementation when a single parallel task fails even though other independent parallel tasks could safely continue.
-
-**Reasons to Avoid:**
-
-- Implementation momentum lost unnecessarily: 9 of 10 parallel tasks could succeed but all halted because 1 failed
-- Reduced implementation efficiency: parallel tasks designed for concurrent execution forced into sequential retry-one-at-a-time pattern
-- Misleading error attribution: user sees "implementation failed" when actually 90% of parallel work succeeded
-- Wasted execution time: successful parallel tasks must re-run on retry despite already completing correctly
-
-**Negative Consequences:**
-
-- Ten parallel tasks creating independent API endpoints; endpoint 7 fails due to typo; endpoints 8-10 never execute despite being completely independent
-- User corrects typo in endpoint 7, re-runs implementation; endpoints 1-6 re-executed redundantly, wasting 15 minutes
-- Parallel test writing tasks for different modules; one test has syntax error; all other test files never created; user must manually identify which tests missing
-- Implementation report shows "❌ FAILED after 5 minutes" when reality is "✅ 9/10 parallel tasks succeeded, 1 fixable error in independent task"
-- Sequential dependency tasks blocked waiting for parallel tasks that already succeeded but weren't marked complete because batch execution halted
-
-**Correct Alternative:** Apply the **Fail-Fast Sequential with Graceful Parallel Degradation** pattern to halt immediately on sequential task failure while allowing parallel tasks to complete, reporting aggregate parallel results.
-
-### Anti-Pattern: Opaque Error Reporting
-
-**Description:** Reporting task failures with minimal context ("Task T5 failed"), omitting critical debugging information like affected files, error messages, stack traces, suggested remediation, or relationship to specification documents.
-
-**Reasons to Avoid:**
-
-- User cannot diagnose failure without manually inspecting all files, logs, and specification documents
-- No actionable remediation guidance forces user into trial-and-error debugging
-- Error reproduction difficult without understanding which files were being modified
-- Learning opportunity lost: user doesn't understand why failure occurred or how to prevent similar issues
-
-**Negative Consequences:**
-
-- Error report "❌ Task C7 failed" requires user to: (1) find task C7 in tasks.md, (2) read description, (3) identify affected files, (4) examine file contents, (5) check logs, (6) search specification for context, (7) guess at fix
-- Compilation error in `services/payment.ts` reported as generic failure; user unaware which file to examine or what syntax error occurred
-- Test failure without showing expected vs. actual values leaves user debugging blindly
-- Suggested remediation missing: user doesn't know if failure requires dependency installation, configuration change, code fix, or specification clarification
-- Relationship to spec unclear: user doesn't know task C7 implements feature from spec.md section 4.3, making it hard to validate if implementation matches intent
-
-**Correct Alternative:** Use the **Fail-Fast Sequential with Graceful Parallel Degradation** pattern's error reporting structure to include task ID, description, affected files, error output, and remediation hints in every failure message.
+Steps 8 and 9 define how the executor reports progress, handles failures, and validates the finished implementation. The following patterns and anti-patterns guide reliable error handling and thorough completion verification.
+
+### Patterns for Progress Tracking and Validation
+
+#### Pattern: Graduated Failure Handling
+
+- **Objective:** Apply different failure responses to sequential and parallel tasks, halting on sequential failures that block downstream work while isolating parallel failures to allow independent tasks to complete.
+- **Context of application:** Apply during step 8 when a task fails during execution.
+- **Key characteristics:** The executor distinguishes between two failure modes. A sequential task failure is a hard stop — execution halts because subsequent tasks depend on the failed task's output. A parallel task failure is an isolated incident — other [P] tasks in the same batch continue because they are independent by definition. In both cases, the failure is reported with full context (task ID, file path, error message, suggested fix). Failed tasks are never silently skipped.
+- **Operational guidance:**
+  1. When a sequential (non-[P]) task fails, immediately halt execution. Do not attempt the next task. Report the failure with: task ID, the file path involved, the error message, and a suggested next step (e.g., "Fix the import error in src/models/user.py and re-run implementation").
+  2. When a parallel [P] task fails, record the failure but continue executing other [P] tasks in the same batch. After the batch completes, report all failures together with individual context for each.
+  3. After reporting parallel failures, assess whether any subsequent phase depends on the failed tasks. If so, halt before that phase and report the dependency. If not, continue with the next phase.
+  4. Never retry a failed task automatically. Report the failure and let the user or a subsequent invocation handle it.
+  5. In the final completion report, list all failed tasks separately from completed tasks, with their error context preserved.
+
+#### Pattern: Spec-Aligned Completion Verification
+
+- **Objective:** Verify that the completed implementation satisfies the original feature specification and technical plan, not just that all tasks in tasks.md were executed.
+- **Context of application:** Apply during step 9 (Completion validation) after all tasks have been executed or after execution has halted due to failures.
+- **Key characteristics:** The executor performs verification at two levels. The first level checks that every task in tasks.md is marked [X] (execution completeness). The second level checks that the implemented code aligns with the design artifacts — models match data-model.md, endpoints conform to contracts/, and technology choices follow research.md decisions (specification alignment). A fully checked-off tasks.md with implementations that diverge from the spec is not a successful completion.
+- **Operational guidance:**
+  1. Count tasks marked [X] versus total tasks. Report the completion ratio (e.g., "42/45 tasks completed").
+  2. For each completed phase, review whether the artifacts produced match the corresponding design document. Spot-check at minimum: one model against data-model.md, one endpoint against contracts/, and one technology usage against research.md.
+  3. If tests were generated and executed, report test results (pass/fail counts, coverage if available).
+  4. If any tasks remain incomplete, list them with their task IDs and the reason they were not completed (failure, dependency on a failed task, or user-initiated halt).
+  5. Produce a final summary that includes: total tasks, completed tasks, failed tasks, checklist gate status (passed or bypassed with consent), and any specification alignment issues detected.
+
+### Anti-Patterns for Progress Tracking and Validation
+
+#### Anti-Pattern: Undifferentiated Failure Response
+
+- **Description:** The executor applies the same failure response to all tasks regardless of their sequential or parallel designation — either halting on every failure (including independent [P] tasks) or continuing past every failure (including sequential tasks that block downstream work).
+- **Reasons to avoid:** Halting on parallel task failures wastes the opportunity to complete independent work that could proceed unaffected. Continuing past sequential task failures produces cascading errors — every subsequent task that depends on the failed task's output will also fail, generating a chain of error reports that obscure the original problem. This mistake occurs when the executor lacks a branching error-handling strategy and defaults to a single behavior for all failures.
+- **Negative consequences:** If the executor halts on all failures: independent tasks that could have completed successfully are left undone, and the next invocation must re-execute them. If the executor continues past all failures: sequential failures cascade into dozens of follow-on errors, the error report becomes unreadable, and tasks.md shows some tasks as [X] even though they depend on a failed predecessor and their output is invalid.
+- **Correct alternative:** Apply the **Graduated Failure Handling** pattern to halt on sequential failures and isolate parallel failures, producing accurate progress reports and minimizing wasted work.
+
+#### Anti-Pattern: Checkbox-Only Validation
+
+- **Description:** The executor considers the implementation complete when all tasks in tasks.md are marked [X], without verifying that the implemented code actually conforms to the design artifacts (data-model.md, contracts/, research.md) or the original feature specification.
+- **Reasons to avoid:** A task being marked complete means it was executed — not that its output is correct. An LLM implementing a model task may produce a syntactically valid file that omits fields defined in data-model.md, uses incorrect types, or ignores validation rules. An endpoint implementation may return different status codes or field names than what contracts/ specifies. If the executor's validation stops at "all checkboxes are checked," these discrepancies propagate to production. This mistake occurs when the executor equates task completion with specification compliance.
+- **Negative consequences:** The completion report declares success while the implementation contains specification violations. The consistency analysis agent (speckit.analyze) later discovers mismatches that could have been caught during implementation. Reviewers trust the completion report and may not perform their own artifact-level verification, allowing defects through. The implementation must be corrected post-completion, which is more expensive than catching issues during execution.
+- **Correct alternative:** Apply the **Spec-Aligned Completion Verification** pattern to perform both execution completeness checks (all tasks marked [X]) and specification alignment checks (implementations match design artifacts).
 
 Note: This command assumes a complete task breakdown exists in tasks.md. If tasks are incomplete or missing, suggest running `/speckit.tasks` first to regenerate the task list.
+
+10. **Check for extension hooks**: After completion validation, check if `.specify/extensions.yml` exists in the project root.
+    - If it exists, read it and look for entries under the `hooks.after_implement` key
+    - If the YAML cannot be parsed or is invalid, skip hook checking silently and continue normally
+    - Filter to only hooks where `enabled: true`
+    - For each remaining hook, do **not** attempt to interpret or evaluate hook `condition` expressions:
+      - If the hook has no `condition` field, or it is null/empty, treat the hook as executable
+      - If the hook defines a non-empty `condition`, skip the hook and leave condition evaluation to the HookExecutor implementation
+    - For each executable hook, output the following based on its `optional` flag:
+      - **Optional hook** (`optional: true`):
+
+        ```text
+        ## Extension Hooks
+
+        **Optional Hook**: {extension}
+        Command: `/{command}`
+        Description: {description}
+
+        Prompt: {prompt}
+        To execute: `/{command}`
+        ```
+
+      - **Mandatory hook** (`optional: false`):
+
+        ```text
+        ## Extension Hooks
+
+        **Automatic Hook**: {extension}
+        Executing: `/{command}`
+        EXECUTE_COMMAND: {command}
+        ```
+
+    - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently

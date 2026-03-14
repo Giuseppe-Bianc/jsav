@@ -1,6 +1,6 @@
 ---
 description: Create or update the feature specification from a natural language feature description.
-handoffs: 
+handoffs:
   - label: Build Technical Plan
     agent: speckit.plan
     prompt: Create a plan for the spec. I am building with...
@@ -36,33 +36,14 @@ Given that feature description, do this:
      - "Create a dashboard for analytics" → "analytics-dashboard"
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. **Check for existing branches before creating new one**:
+2. **Create the feature branch** by running the script with `--short-name` (and `--json`), and do NOT pass `--number` (the script auto-detects the next globally available number across all branches and spec directories):
 
-   a. First, fetch all remote branches to ensure we have the latest information:
-
-      ```bash
-      git fetch --all --prune
-      ```
-
-   b. Find the highest feature number across all sources for the short-name:
-      - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
-      - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
-      - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
-
-   c. Determine the next available number:
-      - Extract all numbers from all three sources
-      - Find the highest number N
-      - Use N+1 for the new branch number
-
-   d. Run the script `pwsh -ExecutionPolicy Bypass -File .specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS"` with the calculated number and short-name:
-      - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-      - Bash example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" --json --number 5 --short-name "user-auth" "Add user authentication"`
-      - PowerShell example: `pwsh -ExecutionPolicy Bypass -File .specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+   - Bash example: `.specify/scripts/powershell/create-new-feature.ps1 "$ARGUMENTS" --json --short-name "user-auth" "Add user authentication"`
+   - PowerShell example: `pwsh -ExecutionPolicy Bypass -File .specify/scripts/powershell/create-new-feature.ps1 "$ARGUMENTS" -Json -ShortName "user-auth" "Add user authentication"`
 
    **IMPORTANT**:
-   - Check all three sources (remote branches, local branches, specs directories) to find the highest number
-   - Only match branches/directories with the exact short-name pattern
-   - If no existing branches/directories found with this short-name, start with number 1
+   - Do NOT pass `--number` — the script determines the correct next number automatically
+   - Always include the JSON flag (`--json` for Bash, `-Json` for PowerShell) so the output can be parsed reliably
    - You must only ever run this script once per feature
    - The JSON is provided in the terminal as output - always refer to it to get the actual content you're looking for
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
@@ -194,281 +175,56 @@ Given that feature description, do this:
 
 **NOTE:** The script creates and checks out the new branch and initializes the spec file before writing.
 
-## Patterns: Best Practices for Specification Creation
-
-### Pattern 1: Informed Inference Over Premature Clarification
-
-**Objective**: Produce complete, actionable specifications efficiently by leveraging domain knowledge and industry standards rather than deferring to users for routine decisions.
-
-**Context of application**: Apply during specification generation (Step 4) when encountering unspecified details that have reasonable defaults or can be inferred from context.
-
-**Key characteristics**:
-
-- Maximum 3 [NEEDS CLARIFICATION] markers per specification
-- Clarifications reserved for scope-critical, security-sensitive, or user-experience-defining decisions
-- Assumptions documented explicitly in Assumptions section
-- Defaults based on industry standards for the domain
-
-**Operational guidance**:
-
-1. When encountering unspecified detail, first check: Does this have an industry-standard default? (e.g., session-based auth, RESTful APIs, standard performance expectations)
-2. If yes, apply the default and document assumption in spec's Assumptions section
-3. If no clear default exists, evaluate impact: Does this significantly affect scope, security, or core UX?
-4. Only if high-impact AND multiple conflicting interpretations exist, add [NEEDS CLARIFICATION] marker
-5. Track clarification count; if approaching 3, convert lower-priority clarifications to documented assumptions
-6. Prioritize by: scope boundaries > security/compliance > user experience > technical preferences
-
-### Pattern 2: Multi-Source Branch Number Reconciliation
-
-**Objective**: Prevent branch number collisions and specification conflicts by checking all sources of truth before assigning new feature numbers.
-
-**Context of application**: Apply during branch creation (Step 2) before running the create-new-feature script.
-
-**Key characteristics**:
-
-- Checks remote branches, local branches, and specs directories
-- Fetches latest remote state before analysis
-- Uses exact pattern matching for short-name
-- Increments from highest found number across all sources
-
-**Operational guidance**:
-
-1. Execute `git fetch --all --prune` to ensure remote branch list is current
-2. Search remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
-3. Search local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
-4. Check filesystem: Look for `specs/[0-9]+-<short-name>` directories
-5. Extract all numbers from all three sources (handle empty results gracefully)
-6. If any matches found, use max(all_numbers) + 1; otherwise use 1
-7. Pass calculated number to script with `-Number` parameter
-8. Verify script output confirms expected branch name before proceeding
-
-### Pattern 3: Technology-Agnostic Success Criteria
-
-**Objective**: Define measurable outcomes that remain valid regardless of implementation approach, enabling architectural flexibility and meaningful progress tracking.
-
-**Context of application**: Apply when defining Success Criteria (Step 4.6) for any feature specification.
-
-**Key characteristics**:
-
-- Criteria describe user-observable outcomes, not system internals
-- Metrics are quantitative (time, percentage, count, rate) or qualitative (satisfaction, completion)
-- No mention of technologies, frameworks, databases, languages, or tools
-- All criteria verifiable through user testing or business metrics
-
-**Operational guidance**:
-
-1. For each success criterion, ask: "Can this be verified without knowing the implementation?"
-2. Replace implementation-focused metrics (API response time, cache hit rate, database TPS) with user-facing equivalents (perceived speed, task completion time, concurrent user capacity)
-3. Use concrete numbers: "Users complete checkout in under 3 minutes" not "Checkout is fast"
-4. Include both performance (quantitative) and quality (qualitative) measures
-5. Test criterion against: Would this remain valid if we completely changed the tech stack?
-6. If criterion mentions specific technology, reformulate from user/business perspective
-
-### Pattern 4: Iterative Validation with Bounded Remediation
-
-**Objective**: Ensure specification quality through systematic validation while preventing infinite refinement loops.
-
-**Context of application**: Apply during specification quality validation (Step 6) after initial spec generation.
-
-**Key characteristics**:
-
-- Separate checklist file in `checklists/requirements.md`, not embedded in spec
-- Automated review against defined quality criteria
-- Maximum 3 validation-remediation iterations
-- Explicit documentation of persistent issues if iterations exhausted
-
-**Operational guidance**:
-
-1. Generate checklist immediately after writing spec (before user review)
-2. Review spec against each checklist item systematically
-3. Document specific failures with quoted spec sections as evidence
-4. If failures found, update spec to address each specific issue
-5. Re-run validation after updates (increment iteration counter)
-6. If still failing after iteration 3, document remaining issues in checklist Notes section
-7. Warn user about persistent quality issues and recommend manual review
-8. Always update checklist file with current pass/fail status after each iteration
-
-### Pattern 5: Structured Clarification with Bounded Options
-
-**Objective**: Resolve specification ambiguities efficiently through guided user choice rather than open-ended questions, while maintaining conversation flow.
-
-**Context of application**: Apply when [NEEDS CLARIFICATION] markers exist in spec (Step 6.c) and user input is required to proceed.
-
-**Key characteristics**:
-
-- Maximum 3 clarification questions per specification
-- Each question presents 3 concrete options plus "Custom"
-- All questions presented together before waiting for response
-- Properly formatted markdown tables for readability
-- Sequential numbering (Q1, Q2, Q3)
-
-**Operational guidance**:
-
-1. Extract all [NEEDS CLARIFICATION] markers from spec
-2. If more than 3 exist, rank by impact (scope > security > UX) and keep only top 3
-3. For dropped clarifications, make informed guess and document in Assumptions
-4. For each remaining clarification, formulate as structured question with context quote
-5. Generate 3 realistic options (A, B, C) with implications for each
-6. Format as markdown table with consistent spacing: `| Option | Answer | Implications |`
-7. Ensure header separator has minimum 3 dashes: `|--------|--------|--------------|`
-8. Present all questions together (Q1, Q2, Q3) in single response
-9. Wait for user response in format "Q1: A, Q2: Custom - [details], Q3: B"
-10. Update spec by replacing markers with selected/provided answers
-11. Re-run validation to ensure clarifications resolved quality issues
-
-### Pattern 6: Separate Checklist File Structure
-
-**Objective**: Maintain clean separation between specification content and validation artifacts, improving readability and preventing checklist clutter in user-facing documents.
-
-**Context of application**: Apply during spec quality validation (Step 6.a) when creating validation checklists.
-
-**Key characteristics**:
-
-- Checklists live in `FEATURE_DIR/checklists/` directory, not in spec.md
-- Each checklist is a standalone markdown file with clear purpose statement
-- Checklist links back to spec.md for traceability
-- Updates to checklist don't require spec.md changes
-
-**Operational guidance**:
-
-1. Never embed checklist items directly in spec.md file
-2. Create `FEATURE_DIR/checklists/requirements.md` as separate file
-3. Include checklist metadata: purpose, creation date, link to spec
-4. Structure checklist with clear section headers matching validation categories
-5. Use standard markdown checkbox syntax: `- [ ]` for incomplete, `- [x]` for complete
-6. Update checklist file independently when validation status changes
-7. Reference checklist path in completion report to user
-8. Keep spec.md focused purely on feature requirements and business value
-
-## Anti-Patterns: Common Mistakes to Avoid
-
-### Anti-Pattern 1: Clarification Overload
-
-**Description**: Marking every unspecified detail with [NEEDS CLARIFICATION] rather than applying domain knowledge and industry standards to fill gaps.
-
-**Reasons to avoid**: Excessive clarification requests burden users with routine decisions they expect the system to handle intelligently. This creates friction in the specification process and signals lack of domain expertise. Users lose confidence when asked to decide obvious defaults like "Should we use user-friendly error messages?" or "Should performance be acceptable?"
-
-**Negative consequences**:
-
-- Specification process becomes tediously interactive rather than efficiently generative
-- Users abandon workflow due to decision fatigue from trivial questions
-- Obvious industry standards are treated as open questions
-- Spec completion time increases dramatically
-- User perceives AI as unable to apply common sense or domain knowledge
-- Critical clarifications get buried among trivial ones
-
-**Correct alternative**: Apply Pattern 1 (Informed Inference Over Premature Clarification) to use industry standards and reasonable defaults for routine decisions, reserving clarifications for genuinely ambiguous, high-impact choices.
-
-### Anti-Pattern 2: Single-Source Branch Numbering
-
-**Description**: Checking only one source (local branches OR remote branches OR specs directories) when determining the next feature number, leading to number collisions.
-
-**Reasons to avoid**: Different sources of truth can diverge. A feature branch may exist remotely but not locally, or a specs directory may exist from incomplete work that never created a branch. Using partial information guarantees eventual conflicts when multiple sources contain the same short-name with different numbers.
-
-**Negative consequences**:
-
-- Feature number collisions create ambiguous branch names (two features with same number)
-- Specs directories get orphaned or overwritten when numbers conflict
-- Merge conflicts arise when parallel features use same numbers
-- Manual reconciliation required to resolve numbering conflicts
-- Team loses trust in automated numbering system
-- Git history becomes confusing with duplicate feature numbers
-
-**Correct alternative**: Apply Pattern 2 (Multi-Source Branch Number Reconciliation) to check remote branches, local branches, AND specs directories before assigning any new feature number.
-
-### Anti-Pattern 3: Implementation-Focused Success Criteria
-
-**Description**: Defining success criteria using technical metrics (API response times, database throughput, cache hit rates, framework-specific performance) rather than user-observable outcomes.
-
-**Reasons to avoid**: Implementation-focused criteria lock specifications to particular technical approaches before design exploration occurs. When architecture changes or different technologies are selected during planning, success criteria become invalid or meaningless. Business stakeholders cannot understand or validate technical metrics.
-
-**Negative consequences**:
-
-- Success criteria become obsolete when implementation approach changes
-- Specifications leak technical constraints into business requirements
-- Non-technical stakeholders cannot evaluate feature success meaningfully
-- Architectural flexibility is artificially constrained by premature technical decisions
-- Testing and validation require knowledge of internal implementation details
-- Metrics focus on system internals rather than user value delivery
-
-**Correct alternative**: Apply Pattern 3 (Technology-Agnostic Success Criteria) to define outcomes from user/business perspective using metrics that remain valid regardless of implementation approach.
-
-### Anti-Pattern 4: Embedded Checklist Pollution
-
-**Description**: Placing validation checklists directly within spec.md file rather than creating separate checklist files in the checklists/ directory.
-
-**Reasons to avoid**: Embedded checklists clutter the specification with meta-content that isn't part of the feature description. Business stakeholders reviewing specs encounter validation artifacts that aren't relevant to understanding feature requirements. Checklist updates require modifying the spec file, creating spurious diffs and version history noise.
-
-**Negative consequences**:
-
-- Spec readability degrades as validation meta-content interrupts feature description
-- Business stakeholders confused by checklist items appearing alongside requirements
-- Version control diffs show checklist updates mixed with actual spec changes
-- Harder to track which spec sections changed vs. which validation items changed
-- Templates become inconsistent when some specs have embedded checklists and others don't
-- Cannot update validation status without touching spec.md file
-
-**Correct alternative**: Apply Pattern 6 (Separate Checklist File Structure) to create standalone checklist files in `FEATURE_DIR/checklists/` that link back to spec.md for traceability.
-
-### Anti-Pattern 5: Unbounded Validation Iteration
-
-**Description**: Continuously re-running validation and updating specifications in an infinite loop when quality issues persist, without limit on remediation attempts.
-
-**Reasons to avoid**: Some specification issues require human judgment or additional context that automated validation cannot provide. Infinitely iterating wastes resources and may introduce new problems while attempting to fix existing ones. Without bounds, the process can become stuck on edge cases or subjective quality judgments.
-
-**Negative consequences**:
-
-- Process hangs indefinitely on specifications with inherent ambiguity
-- Resource exhaustion from repeated validation-update cycles
-- Spec quality may degrade as automated fixes introduce new issues
-- User waits indefinitely without visibility into process state
-- System appears broken or frozen when iteration doesn't converge
-- No escape mechanism when validation criteria are too strict or inappropriate
-
-**Correct alternative**: Apply Pattern 4 (Iterative Validation with Bounded Remediation) to limit validation-remediation cycles to 3 iterations, documenting persistent issues for human review if convergence fails.
-
-### Anti-Pattern 6: Malformed Clarification Tables
-
-**Description**: Presenting clarification questions with improperly formatted markdown tables that fail to render correctly due to missing spaces, insufficient dashes, or misaligned pipes.
-
-**Reasons to avoid**: Malformed tables break rendering in markdown viewers, making clarification questions illegible or confusing. Users cannot parse options clearly when table structure collapses. Professional credibility suffers when basic markdown formatting is incorrect.
-
-**Negative consequences**:
-
-- Clarification questions become unreadable when tables fail to render
-- Users cannot distinguish between options A, B, and C clearly
-- Implications columns merge with answer columns in broken layouts
-- Users respond with wrong option due to parsing confusion
-- Need to regenerate questions with correct formatting, wasting time
-- System appears low-quality when it cannot render basic markdown correctly
-
-**Correct alternative**: Apply Pattern 5 (Structured Clarification with Bounded Options) step 4 guidance to ensure proper table formatting with consistent spacing, minimum 3-dash separators, and aligned pipes.
-
-### Anti-Pattern 7: Script Multi-Execution
-
-**Description**: Running the create-new-feature script multiple times for the same feature, typically due to error handling or retry logic.
-
-**Reasons to avoid**: The script creates branches, initializes directories, and sets up file structure. Multiple executions create duplicate branches with incremented numbers, orphaned spec directories, and confused git state. The script is designed for single execution with idempotent setup operations.
-
-**Negative consequences**:
-
-- Multiple feature branches created for same feature (5-user-auth, 6-user-auth, 7-user-auth)
-- Specs directories proliferate with duplicate content
-- Git checkout state becomes unpredictable (which branch are we on?)
-- Cleanup required to remove duplicate branches and directories
-- Feature numbering sequence becomes polluted with gaps
-- User confusion about which branch/directory contains current work
-
-**Correct alternative**: Execute the create-new-feature script exactly once per feature. If script fails, diagnose and fix the underlying issue rather than retrying. Verify branch and directory creation success from script JSON output before proceeding.
-
-## General Guidelines
-
-### Quick Guidelines
+The specification workflow above involves script execution, document generation, validation, and clarification handling across multiple stages. The following patterns and anti-patterns guide reliable execution of this workflow.
+
+## Patterns for the Specification Workflow
+
+### Pattern: Clarification Triage
+
+- **Objective:** Ensure that [NEEDS CLARIFICATION] markers are reserved for genuinely ambiguous decisions while all other gaps are resolved through informed defaults, keeping the workflow fast and reducing round-trips with the user.
+- **Context of application:** Apply during step 4.3 of the Outline when deciding whether an unclear aspect warrants a [NEEDS CLARIFICATION] marker or should be resolved with a reasonable default.
+- **Key characteristics:** Every potential ambiguity passes through a three-gate filter before receiving a marker: (1) Can the ambiguity be resolved from hints in the user's own description? (2) Does an industry convention or domain norm provide a default? (3) Does the wrong guess significantly impact scope, security, or user experience? Only ambiguities that fail all three gates receive a marker. The generator actively searches for resolution before resorting to a marker.
+- **Operational guidance:**
+  1. When encountering an unclear aspect, re-read the user's feature description for implicit hints. A request for "user authentication" in a web application context implies standard session or token-based auth — this is not a clarification-worthy ambiguity.
+  2. If the description provides no hints, check whether the domain has a dominant convention. Consult the "Examples of reasonable defaults" list in the For AI Generation section.
+  3. If a reasonable default exists, adopt it and record it explicitly in the Assumptions section of the spec.
+  4. If no default exists and the wrong guess would significantly change scope, introduce security risk, or alter user experience, create a [NEEDS CLARIFICATION] marker. Structure it with a specific question and at least three options with implications (as specified in step 6c).
+  5. Before finalizing, count all markers. If the count exceeds 3, rank them by impact (scope > security/privacy > user experience > technical details) and resolve the lowest-impact ones with informed defaults.
+
+### Pattern: Single-Pass Branch Initialization
+
+- **Objective:** Execute the feature branch creation script exactly once per feature, preventing duplicate branches, conflicting spec directories, or feature-number collisions.
+- **Context of application:** Apply during step 2 of the Outline when constructing and executing the `create-new-feature.ps1` command.
+- **Key characteristics:** Branch creation is treated as an irreversible operation. The generator validates the short name and command construction before execution and never retries with modified parameters. The JSON output is parsed immediately and its values (BRANCH_NAME, SPEC_FILE) are stored for use in all subsequent steps. If the script fails, the error is surfaced to the user rather than masked by a second attempt.
+- **Operational guidance:**
+  1. Generate the short name (step 1) and validate it against naming conventions before constructing the command: 2–4 words, lowercase, hyphen-separated, action-noun format where possible.
+  2. Construct the full command with the `--json` and `--short-name` flags. Confirm that `--number` is not included.
+  3. Handle special characters in the feature description (single quotes, double quotes) using the escape syntax documented in step 2.
+  4. Execute the command exactly once. Parse the JSON output and extract BRANCH_NAME and SPEC_FILE.
+  5. If the command returns an error, report the exact error message to the user and stop. Do not re-run the script with a different short name, a manually assigned number, or altered arguments.
+
+## Anti-Patterns for the Specification Workflow
+
+### Anti-Pattern: Over-Clarification
+
+- **Description:** The generator inserts [NEEDS CLARIFICATION] markers for aspects that have obvious defaults or can be reasonably inferred from context — for example, asking about data retention policy for a simple to-do app, querying authentication method when standard web conventions apply, or requesting explicit error-handling preferences when "user-friendly messages with appropriate fallbacks" is the universal norm.
+- **Reasons to avoid:** Each marker triggers a round-trip with the user (step 6c), turning what should be a single-pass spec generation into an extended interview. Over-clarification signals that the generator lacks domain knowledge or is deferring decisions it should be equipped to make. This typically happens when the generator treats every unspecified detail as equally important rather than filtering by impact. Under time pressure, users receiving four or five clarification questions may abandon the workflow or provide rushed, low-quality answers.
+- **Negative consequences:** The 3-marker limit is consumed by low-impact questions, leaving no capacity for genuinely critical ambiguities. The spec generation feels burdensome rather than assistive. Users who encounter excessive questions in their first interaction are less likely to trust or re-use the workflow. The Assumptions section — which should capture the generator's informed defaults — remains empty, making the spec harder to review.
+- **Correct alternative:** Apply the **Clarification Triage** pattern to resolve low-impact ambiguities with informed defaults and reserve markers for decisions where the wrong guess would materially alter scope, security, or user experience.
+
+### Anti-Pattern: Repeated Branch Creation
+
+- **Description:** The generator executes the `create-new-feature.ps1` script more than once — either because it misinterprets a script error as a transient failure, because it wants to change the short name after initial creation, or because it loses track of the BRANCH_NAME and SPEC_FILE values and re-runs the script to re-derive them.
+- **Reasons to avoid:** The script auto-assigns the next available feature number. A second execution creates a second feature directory with a new number, leaving the first as an orphan. If the first execution succeeded and checked out the branch, a second execution may fail in a confusing state — or worse, succeed and create a parallel branch that diverges from the first. This mistake typically occurs when the generator does not store the script's output or when it treats branch creation as an idempotent operation.
+- **Negative consequences:** The repository accumulates orphan branches and spec directories that must be manually cleaned up. The SPEC_FILE path used in subsequent steps may not match the branch that is actually checked out, causing the spec to be written to the wrong location. Feature numbers become non-sequential, confusing teams that use them for ordering or reference.
+- **Correct alternative:** Apply the **Single-Pass Branch Initialization** pattern to execute the script once, parse and store its output immediately, and report errors rather than retrying.
+
+## Quick Guidelines
 
 - Focus on **WHAT** users need and **WHY**.
 - Avoid HOW to implement (no tech stack, APIs, code structure).
 - Written for business stakeholders, not developers.
-- DO NOT embed checklists directly within the spec.md file. Instead, create checklists as separate files in the `checklists/` directory (as specified in step 6.a).
+- DO NOT create any checklists that are embedded in the spec. That will be a separate command.
 
 ### Section Requirements
 
@@ -523,3 +279,66 @@ Success criteria must be:
 - "Database can handle 1000 TPS" (implementation detail, use user-facing metric)
 - "React components render efficiently" (framework-specific)
 - "Redis cache hit rate above 80%" (technology-specific)
+
+The guidelines above establish the standards for specification content. The following patterns and anti-patterns provide deeper guidance on producing requirements and success criteria that meet those standards.
+
+## Patterns for Specification Content Quality
+
+### Pattern: Scope Boundary Enforcement
+
+- **Objective:** Produce a specification that explicitly defines what the feature includes and excludes, preventing scope creep during planning and implementation and satisfying the "Scope is clearly bounded" validation item.
+- **Context of application:** Apply during step 4.2 (Extract key concepts) and step 4.5 (Generate Functional Requirements) when determining the feature's boundaries, and during step 6b (Run Validation Check) when verifying the scope checklist item.
+- **Key characteristics:** The spec contains explicit inclusion and exclusion statements. Exclusions are derived from the feature description — if the user mentions authentication but not authorization, the spec states that role-based access control is out of scope. Boundary statements are specific and testable ("This feature does not include bulk user import") rather than vague ("This feature has limited scope"). Adjacent functionality that a reader might assume is included is called out explicitly.
+- **Operational guidance:**
+  1. After extracting key concepts from the user's description, list all adjacent functionality areas. For a "user registration" feature, adjacent areas include password reset, profile editing, account deletion, and social login.
+  2. For each adjacent area, determine whether the user's description implies it is in scope. If it does, include it. If it does not mention it, declare it out of scope.
+  3. Write boundary statements as testable assertions: "The feature includes [X]" and "The feature does not include [Y]."
+  4. During validation (step 6b), verify that no functional requirement references functionality declared out of scope. If it does, either expand the scope boundary or remove the requirement.
+  5. If the user's description is broad enough that boundaries cannot be set without significant guessing, use a [NEEDS CLARIFICATION] marker — scope ambiguity is one of the highest-impact clarification categories.
+
+### Pattern: Behavioral Requirement Specification
+
+- **Objective:** Write every functional requirement as an observable behavior with a clear trigger, action, and expected outcome, so that each requirement is directly convertible into a test case.
+- **Context of application:** Apply during step 4.5 (Generate Functional Requirements) when translating extracted concepts into individual requirements.
+- **Key characteristics:** Each requirement follows an implicit "When [trigger], the system [action], resulting in [outcome]" structure. Requirements avoid capability language ("supports," "handles," "manages") that describes what the system can do without specifying what happens. Every requirement can be evaluated with a binary pass/fail test by a person who has never seen the implementation.
+- **Operational guidance:**
+  1. For each functional requirement, identify three elements: the trigger (a user action or system event), the expected system behavior, and the observable outcome.
+  2. If you cannot identify all three elements, the requirement is too vague. Refine it until all three are present — for example, replace "The system supports file uploads" with "When a user selects a file and clicks Upload, the system stores the file and displays a confirmation showing the file name and size."
+  3. Eliminate hedge words ("should," "may," "could") from requirements. Each requirement states what the system does, not what it might do.
+  4. Verify each requirement against the testability criterion: could a tester write a pass/fail test from this requirement alone, without asking clarifying questions? If not, add the missing specificity.
+  5. Group related requirements under the user scenario they support, maintaining traceability from scenario to requirement to (eventually) implementation task.
+
+### Pattern: Measurable Outcome Definition
+
+- **Objective:** Ensure every success criterion contains a specific, numeric threshold tied to a user-visible outcome, making it objectively verifiable without reference to implementation details.
+- **Context of application:** Apply during step 4.6 (Define Success Criteria) when translating feature goals into measurable outcomes.
+- **Key characteristics:** Each criterion includes a number — a time limit, a percentage, a count, or a rate. The metric is expressed in user-facing terms (task completion time, error rate seen by users, concurrent user capacity) rather than system internals (API latency, database throughput, cache hit ratio). Criteria are technology-agnostic and stakeholder-readable.
+- **Operational guidance:**
+  1. For each success criterion, identify the user-visible outcome it measures (e.g., "users complete checkout quickly" → time to complete checkout).
+  2. Assign a specific numeric threshold based on domain conventions. If the feature description provides no performance expectations, use industry-standard defaults (e.g., web page loads under 3 seconds, form completion under 2 minutes, system availability above 99.5%) and document these in the Assumptions section.
+  3. Verify the metric is technology-agnostic: if the criterion mentions a framework, database, API, or infrastructure component, rewrite it using the user-facing equivalent (e.g., "API response under 200ms" becomes "Users see results within 1 second of submitting a request").
+  4. Include both quantitative measures (time, count, rate) and qualitative measures expressed in measurable terms (e.g., "task completion rate" rather than "users find it easy").
+  5. Test each criterion by asking: "Could a non-technical stakeholder read this, understand it, and confirm whether the feature meets it?" If the answer is no, rephrase.
+
+## Anti-Patterns for Specification Content Quality
+
+### Anti-Pattern: Unbounded Scope
+
+- **Description:** The specification describes what the feature does but never states what it does not do, leaving the feature's boundaries implicit and open to interpretation by downstream agents and stakeholders.
+- **Reasons to avoid:** Without explicit exclusions, every adjacent piece of functionality is implicitly "maybe in scope." A user registration spec without scope boundaries might be interpreted by the planning agent as including password reset, social login, profile management, and account deletion — quadrupling the implementation effort. This typically occurs when the generator focuses exclusively on what the user asked for without considering what the user did not ask for but might be assumed. The "Scope is clearly bounded" validation item will fail, but the generator may not recognize why if it equates "scope" with "feature description."
+- **Negative consequences:** The planning phase (speckit.plan) produces a technical plan that is far larger than intended, because it accounts for functionality the user never requested. Implementation estimates are inflated. The spec passes internal consistency checks (all described requirements are coherent) but fails scope validation because it never establishes boundaries. Stakeholders reviewing the spec approve it without realizing that adjacent functionality is neither included nor excluded.
+- **Correct alternative:** Apply the **Scope Boundary Enforcement** pattern to explicitly declare what is in scope and what is out of scope, derived from the user's feature description and its adjacent functionality areas.
+
+### Anti-Pattern: Capability Enumeration
+
+- **Description:** Functional requirements are written as a list of system capabilities — "supports file upload," "handles multiple user roles," "manages notifications" — without specifying triggers, behaviors, or expected outcomes.
+- **Reasons to avoid:** Capability language sounds authoritative but is fundamentally untestable. "Supports file upload" does not specify what file types are accepted, what size limits apply, what feedback the user receives on success or failure, or what happens when storage is full. This style emerges naturally because it mirrors how features are discussed in conversation ("we need to support file uploads"), and the generator may reproduce conversational phrasing without translating it into specification-grade precision. The validation item "Requirements are testable and unambiguous" will fail for every capability-style requirement.
+- **Negative consequences:** Downstream agents (speckit.plan, speckit.implement) must independently decide what "supports file upload" means, introducing inconsistencies between the spec, the plan, and the implementation. Testers cannot write test cases because there are no expected outcomes to verify. The spec gives an illusion of completeness — it lists many capabilities — while actually deferring all meaningful decisions to later phases. Review cycles increase because stakeholders request clarification on every vague requirement.
+- **Correct alternative:** Apply the **Behavioral Requirement Specification** pattern to rewrite each requirement with an explicit trigger, system behavior, and observable outcome.
+
+### Anti-Pattern: Metric-Free Success Criteria
+
+- **Description:** Success criteria use qualitative language without measurable thresholds — "the system performs well," "users find the checkout process intuitive," "the feature is reliable and fast."
+- **Reasons to avoid:** Qualitative criteria cannot be objectively verified. "The system performs well" passes or fails based on whoever is evaluating it, not on observable measurement. This mistake occurs when the generator avoids committing to specific numbers — either because the user did not provide performance expectations, or because the generator is uncertain what thresholds are realistic. Vague language feels safe because it is difficult to fail, but that is precisely why it is useless: a criterion that everything passes is a criterion that validates nothing.
+- **Negative consequences:** The validation item "Success criteria are measurable" fails. Planning and implementation agents have no performance targets to design against. Acceptance testing becomes a matter of subjective opinion rather than objective observation. Stakeholders cannot determine whether the delivered feature meets expectations because expectations were never quantified. The specification loses its function as a contract between the product vision and the implementation.
+- **Correct alternative:** Apply the **Measurable Outcome Definition** pattern to replace every qualitative criterion with a specific, numeric, user-facing threshold that can be objectively verified.
