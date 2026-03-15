@@ -201,7 +201,7 @@ The following items are explicitly excluded from this feature:
 
 ### Performance
 
-- **NFR-001**: Unicode code point counting for error marker positioning MUST introduce zero measurable overhead compared to byte-based calculation. Error message formatting latency for Unicode-containing source files MUST be identical to ASCII-only files (microsecond-level, sub-millisecond).
+- **NFR-001**: Unicode code point counting for error marker positioning MUST introduce ≤1% overhead compared to byte-based calculation. Error message formatting latency for Unicode-containing source files MUST be ≤1ms per error message (measured at 95th percentile) and ≤5ms at 99th percentile. Performance MUST be verified via Catch2 `BENCHMARK` macros in `test/benchmark.cpp` with statistics showing mean execution time and standard deviation across 100 iterations.
 
 ### Scale
 

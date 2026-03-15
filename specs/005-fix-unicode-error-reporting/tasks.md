@@ -44,7 +44,7 @@
 - [ ] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
 - [ ] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
 - [ ] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
-- [ ] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig`
+- [ ] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig` (**Note**: No circular include risk — `ErrorReporter.hpp` already includes `LineTracker.hpp`, and `UnicodeColumn.hpp` depends only on standard library, not on `LineTracker.hpp`)`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -154,6 +154,9 @@
 - [ ] T050 [P] Run all existing `ErrorReporter` tests to verify no regressions (`ctest -R "ErrorReporter" --output-on-failure`)
 - [ ] T051 [P] Generate code coverage report for UnicodeColumn module (`gcovr -r .. --filter "src/jsav_Lib/error/*" --filter "include/jsav/error/*"`)
 - [ ] T052 [P] Verify coverage ≥80% for `UnicodeColumn.cpp` and `ErrorReporter.cpp`
+- [ ] T052a [P] Add Catch2 `BENCHMARK` macros to `test/benchmark.cpp` for `visual_column()` performance verification (100 iterations, measure mean/stddev)
+- [ ] T052b [P] Add benchmark test case `UnicodeColumn_performance_unicode_vs_ascii` in `test/benchmark.cpp` (verify ≤1% overhead for Unicode vs ASCII input)
+- [ ] T052c [P] Add benchmark test case `UnicodeColumn_performance_format_spanned_error` in `test/benchmark.cpp` (verify ≤1ms at p95, ≤5ms at p99)
 - [ ] T053 Run full test suite to ensure all tests pass (`ctest --output-on-failure`)
 - [ ] T054 [P] Update quickstart.md with usage examples and troubleshooting guide (verify examples work)
 - [ ] T055 [P] Add Doxygen comments to all public functions in `include/jsav/error/UnicodeColumn.hpp`
@@ -291,8 +294,8 @@ With multiple developers:
 | **Phase 3: US1** | 16 tasks | Unicode marker alignment (MVP) + NFR-003 ANSI color tests |
 | **Phase 4: US2** | 13 tasks | Invalid UTF-8 detection and reporting |
 | **Phase 5: US3** | 17 tasks | Edge case handling |
-| **Phase 6: Polish** | 12 tasks | Testing, coverage, documentation, static analysis |
-| **TOTAL** | **68 tasks** | Complete feature implementation |
+| **Phase 6: Polish** | 15 tasks | Testing, coverage, documentation, static analysis, **performance benchmarks** |
+| **TOTAL** | **71 tasks** | Complete feature implementation |
 
 ### Task Count per User Story
 
