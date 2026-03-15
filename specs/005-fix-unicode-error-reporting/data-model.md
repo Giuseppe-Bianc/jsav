@@ -40,6 +40,31 @@ This document defines the **data model** for the Unicode-Aware Error Reporter fe
 | **Const-Correctness** | All parameters are `const` (read-only via `std::string_view`) |
 | **Error Propagation** | `std::expected` for recoverable errors, `LERROR` for diagnostics |
 | **Backward Compatibility** | Existing APIs preserved, new functionality additive |
+| **Research-Backed Design** | Error message structure follows Ford et al. (FSE 2018) findings |
+
+### Research-Backed Error Message Structure
+
+Per FR-001 and research findings from Ford et al. (FSE 2018), all error messages MUST follow this 5-part structure:
+
+```text
+[Severity]: [Error Type]          ← Header (most prominent)
+ --> [File]:[Line]:[Column]       ← Location (front-loaded for scanning)
+  │
+[Line] │ [Source Text]            ← Source line with context
+       │ [Visual Marker]          ← Precise caret alignment (40% faster fix)
+       │
+       │ help: [Actionable hint]  ← Optional help (85% find helpful)
+```
+
+**Key Research Findings Applied**:
+
+1. **Front-loaded location**: 78% of developers look at location first
+2. **Visual markers**: Reduce time-to-fix by 40%
+3. **Plain language**: Jargon reduces comprehension
+4. **Actionable help**: 85% rate suggestions as helpful
+5. **Consistent structure**: Predictable formatting aids scanning
+
+**Source**: See `research.md` for detailed analysis of P2429R0 and Ford et al. FSE 2018.
 
 ---
 
