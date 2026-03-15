@@ -128,7 +128,9 @@
 - [ ] T036 [P] [US3] Add test case `UnicodeColumn_edge_case_tab_expansion` in `test/tests.cpp` (tab before error, verify 8-column expansion with default tab_stop_width)
 - [ ] T037 [P] [US3] Add test case `UnicodeColumn_edge_case_BOM` in `test/tests.cpp` (BOM at file start, verify BOM skipped in column count but included in byte offset)
 - [ ] T038 [P] [US3] Add test case `UnicodeColumn_edge_case_combining_characters` in `test/tests.cpp` (NFD "é" = e + combining acute, verify 2 column positions)
+- [ ] T038a [P] [US3] Add test case `UnicodeColumn_edge_case_normalization_forms` in `test/tests.cpp` (NFC precomposed vs NFD decomposed é per FR-023, verify both accepted without conversion, column count matches actual code points)
 - [ ] T039 [P] [US3] Add test case `UnicodeColumn_edge_case_ZWJ_emoji` in `test/tests.cpp` (family emoji 👨‍👩‍👧‍👦, verify 7 code points counted)
+- [ ] T039a [P] [US3] Add test case `UnicodeColumn_edge_case_bidirectional_text` in `test/tests.cpp` (Arabic/Hebrew text displayed as-is per FR-021, verify marker alignment by code point position not visual order)
 - [ ] T040 [P] [US3] Add test case `UnicodeColumn_edge_case_line_length_limit` in `test/tests.cpp` (line > 10,000 code points, verify error returned)
 - [ ] T041 [US3] Verify all US3 tests FAIL before implementation (run `ctest -R "US3.*edge" --output-on-failure`)
 
@@ -157,6 +159,7 @@
 - [ ] T052a [P] Add Catch2 `BENCHMARK` macros to `test/benchmark.cpp` for `visual_column()` performance verification (100 iterations, measure mean/stddev)
 - [ ] T052b [P] Add benchmark test case `UnicodeColumn_performance_unicode_vs_ascii` in `test/benchmark.cpp` (verify ≤1% overhead for Unicode vs ASCII input)
 - [ ] T052c [P] Add benchmark test case `UnicodeColumn_performance_format_spanned_error` in `test/benchmark.cpp` (verify ≤1ms at p95, ≤5ms at p99)
+- [ ] T052d [P] Add test case `UnicodeColumn_no_fallback_mixed_valid_invalid` in `test/tests.cpp` (SC-005 verification: valid UTF-8 lines use code point calculation even when file contains invalid UTF-8 on other lines, proves no file-wide byte-based fallback)
 - [ ] T053 Run full test suite to ensure all tests pass (`ctest --output-on-failure`)
 - [ ] T054 [P] Update quickstart.md with usage examples and troubleshooting guide (verify examples work)
 - [ ] T055 [P] Add Doxygen comments to all public functions in `include/jsav/error/UnicodeColumn.hpp`
