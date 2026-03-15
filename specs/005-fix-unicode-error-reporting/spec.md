@@ -107,7 +107,7 @@ The following items are explicitly excluded from this feature:
 
 - What happens when an error position falls in the middle of a multi-byte UTF-8 sequence (due to byte-based position input)? The ErrorReporter must handle this gracefully by identifying the start of the code point and reporting the position correctly.
 
-- How are combining character sequences (grapheme clusters) handled? Each code point in the sequence counts as one column unit independently; "é" (e + combining acute) = 2 column positions, not 1.
+- How should the ErrorReporter handle whitespace-only lines (spaces and tabs only)? The marker should align with the correct column position, treating spaces as one column unit each and tabs expanded per FR-018 formula.
 
 - How should the ErrorReporter handle a Byte Order Mark (BOM, U+FEFF) at the beginning of a file? The BOM MUST be skipped when calculating column positions (it does not count as column 1), but the byte offset in error messages MUST include the BOM bytes.
 
@@ -153,7 +153,7 @@ The following items are explicitly excluded from this feature:
 
 - **FR-015**: All behavior on files containing only ASCII code points (byte values 0 through 127) MUST remain identical to the current behavior, ensuring full backward compatibility.
 
-- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found. The error message MUST follow the existing ErrorReporter format as defined in **FR-001**, consisting of: (1) a header line with `ERROR [Exxxx] LEX: <message>`, (2) a location line, (3) the source line with line number prefix, (4) a visual marker row with caret(s) beneath the problematic byte(s) using byte-based column calculation for the invalid sequence only, and optionally (5) a help line.
+- **FR-016**: When ErrorReporter encounters a byte sequence that does not constitute valid UTF-8, it MUST report a specific encoding error identifying the byte offset and the line number where the invalid sequence was found. The error message MUST follow the existing ErrorReporter format as defined in **FR-001**, consisting of: (1) a header line with `ERROR [Exxxx] LEX: <message>`, (2) a location line, (3) the source line with line number prefix, (4) a visual marker row with caret(s) beneath the problematic byte(s), and optionally (5) a help line. For the invalid byte sequence only, the marker position MUST be calculated using byte-based column calculation: each byte before and within the invalid sequence counts as 1 column unit (regardless of UTF-8 structure), while all valid code points preceding the invalid sequence count as 1 column unit each. The visual marker row formula is: `leading_spaces = count_valid_codepoints_before_invalid_sequence + byte_offset_within_invalid_sequence`, followed by `caret_count = byte_length_of_invalid_sequence`.
 
 - **FR-017**: ErrorReporter MUST never fall back to byte-based column calculation for valid UTF-8 lines. For lines containing invalid UTF-8 sequences, byte-based column calculation MAY be used solely for positioning the marker under the invalid bytes, but all other lines in the same file MUST use code point-based calculation regardless of invalid UTF-8 elsewhere in the file.
 
@@ -209,7 +209,7 @@ The following items are explicitly excluded from this feature:
 
 ### User Experience
 
-- **NFR-003**: Error markers MUST support optional ANSI color output for enhanced visibility in terminals that support it. Color support detection MUST check environment variables (`COLORTERM`, `TERM`) and respect `NO_COLOR` standard. Error markers MUST use red color (ANSI code 31) for caret symbols. When color is unavailable or disabled, the marker row MUST fall back to monochrome caret characters ('^') without loss of positioning information.
+- **NFR-003**: Error markers MUST support optional ANSI color output for improved error detection in terminals that support it. Color support detection MUST check environment variables (`COLORTERM`, `TERM`) and respect `NO_COLOR` standard. Error markers MUST use red color (ANSI escape code `\033[31m`) for caret symbols. When color is unavailable or disabled, the marker row MUST fall back to monochrome caret characters ('^') with identical caret count and column positions as colored output (zero positioning deviation).
 
 ## Success Criteria
 

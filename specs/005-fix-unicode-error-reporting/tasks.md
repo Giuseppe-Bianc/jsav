@@ -38,7 +38,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/core/LineTracker.hpp` (one-liner inline function returning `std::string_view`)
+- [ ] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/location/LineTracker.hpp` (one-liner inline function returning `std::string_view` of full source text for FR-024 integration)
+- [ ] T004a [P] Modify `ErrorReporter::format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to retrieve source text via `line_tracker_.source()` before Unicode column calculation (implements FR-024 requirement: ErrorReporter queries LineTracker for source line content)
 - [ ] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
 - [ ] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
 - [ ] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
@@ -75,7 +76,8 @@
 - [ ] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
 - [ ] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
 - [ ] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
-- [ ] T018 [US1] Modify `make_display_config()` in `src/jsav_Lib/error/UnicodeColumn.cpp` to call `detect_ansi_color()` and populate `ErrorDisplayConfig.ansi_color` field
+- [ ] T018 [US1] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [ ] T018b [US1] Implement `make_display_config()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` to populate `ErrorDisplayConfig` struct with `tab_stop_width` (default: 8) and `ansi_color` (from `detect_ansi_color()` result)
 - [ ] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
 - [ ] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
 
@@ -134,7 +136,7 @@
 
 - [ ] T042 [US3] Add BOM detection in `visual_column()` (skip 0xEF 0xBB 0xBF at file start per FR-019)
 - [ ] T043 [US3] Add line length limit check in `visual_column()` (enforce 10,000 code points per FR-027)
-- [ ] T044 [US3] Ensure tab expansion formula is correct in `visual_column()` (verify `((col - 1) / tab_stop_width + 1) * tab_stop_width + 1`)
+- [ ] T044 [US3] Ensure tab expansion formula is correct in `visual_column()` (verify integer division truncates toward zero per C++23 standard; test with non-integer results from formula `((col - 1) / tab_stop_width + 1) * tab_stop_width + 1`)
 - [ ] T045 [US3] Ensure combining characters are counted individually (no grapheme cluster logic - each code point = 1 column)
 - [ ] T046 [US3] Ensure ZWJ emoji sequences are counted as separate code points (no special handling - each code point including ZWJ = 1 column)
 - [ ] T047 [US3] Add minimum 1 caret guarantee in `marker_extents()` (if `caret_count == 0`, set to 1 per FR-013)
@@ -285,25 +287,25 @@ With multiple developers:
 | Phase | Task Count | Description |
 |-------|------------|-------------|
 | **Phase 1: Setup** | 3 tasks | Project structure and build system |
-| **Phase 2: Foundational** | 6 tasks | Core UnicodeColumn module and ErrorReporter extensions (includes NFR-003 ANSI color detection) |
+| **Phase 2: Foundational** | 7 tasks | Core UnicodeColumn module and ErrorReporter extensions (includes NFR-003 ANSI color detection, FR-024 LineTracker integration) |
 | **Phase 3: US1** | 16 tasks | Unicode marker alignment (MVP) + NFR-003 ANSI color tests |
 | **Phase 4: US2** | 13 tasks | Invalid UTF-8 detection and reporting |
 | **Phase 5: US3** | 17 tasks | Edge case handling |
 | **Phase 6: Polish** | 12 tasks | Testing, coverage, documentation, static analysis |
-| **TOTAL** | **67 tasks** | Complete feature implementation |
+| **TOTAL** | **68 tasks** | Complete feature implementation |
 
 ### Task Count per User Story
 
 - **User Story 1 (P1)**: 16 tasks (T009–T019, T011a–T011d, T018, T018a) — **includes NFR-003 ANSI color support with comprehensive tests**
 - **User Story 2 (P2)**: 13 tasks (T020–T032)
 - **User Story 3 (P3)**: 17 tasks (T033–T048, T049–T052 in Polish)
-- **Setup + Foundational**: 9 tasks (T001–T008, T006a)
+- **Setup + Foundational**: 10 tasks (T001–T008, T004a, T006a)
 - **Polish**: 12 tasks (T049–T060)
 
 ### Parallel Opportunities Identified
 
 - **Phase 1**: T003 can run in parallel with T001, T002
-- **Phase 2**: T004, T005, T006a, T007, T008 can all run in parallel (different files)
+- **Phase 2**: T004, T004a, T005, T006a, T007, T008 can all run in parallel (different files)
 - **Phase 3**: T009, T010, T011, T011a, T011b, T011c, T011d (tests) can run in parallel; T013, T014 (implementations) can run in parallel; T018, T018a can run in parallel
 - **Phase 4**: T020–T024 (tests) can run in parallel
 - **Phase 5**: T033–T040 (tests) can run in parallel
