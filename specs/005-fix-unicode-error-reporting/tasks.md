@@ -172,8 +172,8 @@
 - **Setup (Phase 1)**: No dependencies - can start immediately
 - **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
 - **User Stories (Phase 3+)**: All depend on Foundational phase completion
-  - User stories can then proceed in parallel (if staffed)
-  - Or sequentially in priority order (P1 → P2 → P3)
+    - User stories can then proceed in parallel (if staffed)
+    - Or sequentially in priority order (P1 → P2 → P3)
 - **Polish (Phase 6)**: Depends on all user stories being complete
 
 ### User Story Dependencies
@@ -254,7 +254,7 @@ Task: "Add test case UnicodeColumn_edge_case_line_length_limit in test/tests.cpp
 1. Complete Phase 1: Setup
 2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
 3. Complete Phase 3: User Story 1
-4. **STOP and VALIDATE**: 
+4. **STOP and VALIDATE**:
    - Run US1 tests (`ctest -R "US1" --output-on-failure`)
    - Manually test with Unicode source file (Chinese, Greek, emoji)
    - Verify caret alignment is correct
@@ -328,6 +328,7 @@ With multiple developers:
 - Can be deployed/demoed without waiting for P2/P3
 
 **MVP Test Criteria**:
+
 ```bash
 # Create test file with Unicode
 echo "let x = 你好;" > test_unicode.vn

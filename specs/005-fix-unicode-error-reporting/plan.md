@@ -100,6 +100,7 @@ specs/005-fix-unicode-error-reporting/
 ```
 
 **Document Relationships**:
+
 - `spec.md` → Input (requirements, user scenarios)
 - `research.md` → Technical decisions (how requirements are met)
 - `data-model.md` → Entity definitions (what is implemented)

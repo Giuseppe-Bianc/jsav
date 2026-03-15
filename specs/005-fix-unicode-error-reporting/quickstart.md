@@ -75,6 +75,7 @@ error: unexpected token
 Create a source file `test_unicode.vn` (or your compiler's source format):
 
 **File Content**:
+
 ```text
 let x = 你好;
 let y = αβγ;
@@ -82,6 +83,7 @@ let z = 😀;
 ```
 
 **Explanation**:
+
 - Line 1: Chinese characters (你好 = "hello")
 - Line 2: Greek letters (αβγ = "alpha beta gamma")
 - Line 3: Emoji (😀 = "grinning face")
@@ -89,6 +91,7 @@ let z = 😀;
 **Encoding**: Save as UTF-8 (most editors default to UTF-8).
 
 **Verification**:
+
 ```bash
 file test_unicode.vn
 # Expected: test_unicode.vn: UTF-8 Unicode text
@@ -99,6 +102,7 @@ file test_unicode.vn
 Modify the file to have a syntax error at a Unicode character:
 
 **Modified File**:
+
 ```text
 let x = 你好;
 let y = αβγ
@@ -116,6 +120,7 @@ Run the compiler:
 ```
 
 **Expected Output** (ANSI color enabled):
+
 ```text
 error: missing semicolon
  --> test_unicode.vn:2:9
@@ -182,7 +187,7 @@ Color is auto-detected from environment variables:
 
 **Detection Order**:
 
-```
+```text
 NO_COLOR → COLORTERM → TERM → Default (false)
 ```
 

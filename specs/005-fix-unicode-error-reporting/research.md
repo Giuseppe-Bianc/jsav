@@ -10,6 +10,7 @@
 ### Overview
 
 The feature specification (`spec.md`) and user input provide **comprehensive technical decisions** for this implementation. No unknowns requiring external research were identified. All technical choices are explicitly specified in:
+
 - Feature specification requirements (FR-001 through FR-028)
 - Non-functional requirements (NFR-003)
 - Success criteria (SC-002)
@@ -21,12 +22,14 @@ The feature specification (`spec.md`) and user input provide **comprehensive tec
 **Approach**: Decision consolidation from existing specifications
 
 Since all technical decisions are pre-specified, this document serves to:
+
 1. **Consolidate** decisions from spec.md and user input into a single reference
 2. **Document** rationale and alternatives considered (from spec clarifications)
 3. **Trace** each decision to its source requirement
 4. **Validate** decisions against constitution constraints
 
 **Validation Process**:
+
 - Each decision cross-referenced with spec.md requirements
 - Alternatives considered documented from spec clarifications
 - Constitution compliance verified (see plan.md Constitution Check)
@@ -160,7 +163,7 @@ Since all technical decisions are pre-specified, this document serves to:
 
 **Configurable tab stop width** (default 8 columns) using FR-018 formula:
 
-```
+```text
 visualCol = ((currentCol - 1) / tab_stop_width + 1) * tab_stop_width + 1
 ```
 
@@ -189,11 +192,13 @@ visualCol = ((currentCol - 1) / tab_stop_width + 1) * tab_stop_width + 1
 #### Formula Derivation
 
 **Given**:
+
 - `currentCol` = 1-based visual column before tab
 - `tab_stop_width` = configured tab stop (default 8)
 
 **Calculate**:
-```
+
+```text
 next_tab_stop = ((currentCol - 1) / tab_stop_width + 1) * tab_stop_width + 1
 ```
 
@@ -276,7 +281,7 @@ bool detect_ansi_color() noexcept {
 
 #### Environment Variable Priority
 
-```
+```text
 NO_COLOR (any value) → false (highest priority)
 COLORTERM="truecolor" or "24bit" → true
 TERM contains "color"/"xterm"/"screen"/"tmux" → true
@@ -295,7 +300,7 @@ Otherwise → false (lowest priority)
 
 **Report encoding errors with byte offset and line number**:
 
-```
+```text
 Invalid UTF-8 sequence at byte offset 42, line 5
 ```
 
@@ -329,7 +334,8 @@ FORMAT("Invalid UTF-8 sequence at byte offset {}, line {}", byte_offset, line_nu
 ```
 
 **Example Output**:
-```
+
+```text
 error: encoding error
  --> test.jsav:5:1
   │
@@ -648,6 +654,7 @@ TEST_CASE("ErrorReporter_ASCII_Source_IdenticalOutput", "[error_reporter]") {
 #### API Changes
 
 **New Constructor**:
+
 ```cpp
 ErrorReporter(const LineTracker &line_tracker,
               ErrorDisplayConfig config) noexcept
@@ -655,6 +662,7 @@ ErrorReporter(const LineTracker &line_tracker,
 ```
 
 **Existing Constructor** (preserved):
+
 ```cpp
 explicit ErrorReporter(const LineTracker &line_tracker) noexcept
     : line_tracker_(line_tracker), config_(make_display_config()) {}
@@ -776,6 +784,7 @@ Testing strategy derived from `spec.md` User Scenarios & Testing section. Three 
 | Total per error | O(line_length) | Linear in line length |
 
 **Practical Performance**:
+
 - Typical line (80 characters): <1μs
 - Long line (1,000 characters): <10μs
 - Maximum line (10,000 code points): <100μs
@@ -813,6 +822,7 @@ Testing strategy derived from `spec.md` User Scenarios & Testing section. Three 
 ### Validation Coverage
 
 All UTF-8 sequences validated by `jsv::unicode::decode_utf8`:
+
 - Single-byte (0x00-0x7F): Valid
 - Multi-byte (0xC0-0xFD): Validated for correct continuation bytes
 - Overlong: Rejected
@@ -827,6 +837,7 @@ All UTF-8 sequences validated by `jsv::unicode::decode_utf8`:
 All 13 technical decisions are **resolved from the feature specification**. No external research required. No unknowns remain. Phase 1 design can proceed with confidence.
 
 **Decision Traceability**:
+
 - All decisions trace to spec.md requirements (FR-001 through FR-028, NFR-003, SC-002)
 - All decisions validated against constitution constraints
 - All decisions have clear rationale and documented alternatives

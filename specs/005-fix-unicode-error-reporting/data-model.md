@@ -11,6 +11,7 @@
 ### Purpose
 
 This document defines the **data model** for the Unicode-Aware Error Reporter feature. The data model consists of:
+
 - **Configuration structures** (`ErrorDisplayConfig`)
 - **Function interfaces** (`UnicodeColumn` module)
 - **Integration points** (modifications to existing classes)
@@ -18,12 +19,14 @@ This document defines the **data model** for the Unicode-Aware Error Reporter fe
 ### Scope
 
 **Included**:
+
 - New `UnicodeColumn` module (public API and implementation)
 - `ErrorReporter` extensions (configuration, constructor)
 - `LineTracker` extension (source accessor)
 - Validation rules and constraints
 
 **Excluded**:
+
 - Persistent data storage (not applicable — in-memory processing only)
 - State machines (not applicable — stateless utility functions)
 - Database schemas (not applicable — no database)
@@ -122,12 +125,14 @@ struct ErrorDisplayConfig {
 #### Usage Examples
 
 **Default Configuration**:
+
 ```cpp
 jsv::ErrorDisplayConfig config;  // tab_stop_width=8, ansi_color=false
 jsv::ErrorReporter reporter(line_tracker, config);
 ```
 
 **Custom Tab Width**:
+
 ```cpp
 jsv::ErrorDisplayConfig config;
 config.tab_stop_width = 4;  // 4-column tabs (narrow terminals)
@@ -136,6 +141,7 @@ jsv::ErrorReporter reporter(line_tracker, config);
 ```
 
 **Environment-Aware Configuration**:
+
 ```cpp
 auto config = jsv::make_display_config();  // Auto-detects ansi_color
 jsv::ErrorReporter reporter(line_tracker, config);
@@ -318,7 +324,7 @@ Load default `ErrorDisplayConfig` from environment. Calls `detect_ansi_color()` 
 
 ##### Algorithm
 
-```
+```text
 1. Create ErrorDisplayConfig config with default values
    - config.tab_stop_width = 8 (default)
    - config.ansi_color = false (default)
@@ -395,6 +401,7 @@ Return the **1-based visual column** of `byte_offset` inside `line`. The visual 
 ##### Return Value
 
 **Success Case**:
+
 ```cpp
 std::expected<std::size_t, std::string> result = visual_column(...);
 if (result.has_value()) {
@@ -407,6 +414,7 @@ if (result.has_value()) {
 | `std::size_t` (value) | 1-based visual column (counting code points, with tab expansion) |
 
 **Error Case**:
+
 ```cpp
 std::expected<std::size_t, std::string> result = visual_column(...);
 if (!result.has_value()) {
@@ -423,7 +431,8 @@ if (!result.has_value()) {
 ##### Algorithm
 
 **Pseudocode**:
-```
+
+```text
 col = 1
 pos = 0
 
@@ -487,6 +496,7 @@ return col
 **Logging**: All error paths call `LERROR()` before returning `std::unexpected`.
 
 **Error Message Format**:
+
 ```cpp
 FORMAT("Invalid UTF-8 sequence at byte offset {}", byte_offset)
 FORMAT("Null byte (U+0000) at byte offset {}", byte_offset)
@@ -560,6 +570,7 @@ Return `(leading_spaces, caret_count)` for the marker row in error messages. The
 ##### Return Value
 
 **Success Case**:
+
 ```cpp
 auto result = jsv::marker_extents(line, start, end);
 if (result.has_value()) {
@@ -574,6 +585,7 @@ if (result.has_value()) {
 | `std::pair<std::size_t, std::size_t>` | `first` = leading spaces, `second` = caret count |
 
 **Error Case**:
+
 ```cpp
 auto result = jsv::marker_extents(line, start, end);
 if (!result.has_value()) {
@@ -590,7 +602,8 @@ if (!result.has_value()) {
 ##### Algorithm
 
 **Pseudocode**:
-```
+
+```text
 // Calculate leading spaces
 leading_result = visual_column(line, start_byte, tab_stop_width)
 if leading_result is error:
@@ -698,6 +711,7 @@ Provide access to full source buffer for byte offset calculation in `ErrorReport
 #### Change Specification
 
 **Addition**:
+
 ```cpp
 // In include/jsav/core/LineTracker.hpp, public section:
 
@@ -760,6 +774,7 @@ Integrate `UnicodeColumn` module into error reporting pipeline. Add configuratio
 #### Change Specification
 
 **1. Add Member Variable**:
+
 ```cpp
 // In include/jsav/error/ErrorReporter.hpp, private section:
 
@@ -772,6 +787,7 @@ ErrorDisplayConfig config_;
 ```
 
 **2. Add Two-Argument Constructor**:
+
 ```cpp
 // In include/jsav/error/ErrorReporter.hpp, public section:
 
@@ -791,6 +807,7 @@ ErrorReporter(const LineTracker &line_tracker,
 ```
 
 **3. Modify Existing Constructor**:
+
 ```cpp
 // In src/jsav_Lib/error/ErrorReporter.cpp:
 
@@ -801,6 +818,7 @@ ErrorReporter::ErrorReporter(const LineTracker &line_tracker) noexcept
 **4. Modify format_spanned_error**:
 
 **BEFORE** (byte-based, incorrect for Unicode):
+
 ```cpp
 const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
 const std::string underline = FORMAT("{:>{}}{}", "", start_offset, std::string(span_width, '^'));
@@ -808,6 +826,7 @@ FORMAT_TO(out, "     │ {}\n", underline);
 ```
 
 **AFTER** (code point-based, FR-003 through FR-006):
+
 ```cpp
 // Calculate byte offset of line start
 const std::size_t line_start_byte_offset =
@@ -869,17 +888,20 @@ if (!extents) {
 #### Rationale
 
 **Why not runtime check?**
+
 - Performance consideration (check on every call)
 - Caller can validate once at construction time
 - Documented precondition (caller's responsibility)
 
 **Why critical?**
+
 - Division by zero in formula: `((col - 1) / tab_stop_width + 1) * tab_stop_width + 1`
 - Undefined behavior (crash, incorrect output)
 
 #### Mitigation
 
 **Caller Responsibility**:
+
 ```cpp
 jsv::ErrorDisplayConfig config;
 config.tab_stop_width = 8;  // Caller ensures > 0
@@ -887,6 +909,7 @@ config.tab_stop_width = 8;  // Caller ensures > 0
 ```
 
 **Optional Debug Check** (for development builds only):
+
 ```cpp
 #ifdef DEBUG
 assert(tab_stop_width > 0 && "tab_stop_width must be > 0");
@@ -912,11 +935,13 @@ assert(tab_stop_width > 0 && "tab_stop_width must be > 0");
 #### Rationale
 
 **Why 10,000?**
+
 - Practical limit (typical source lines < 200 code points)
 - DoS prevention (pathological inputs)
 - Performance consideration (O(n) algorithm)
 
 **Why runtime check?**
+
 - Cannot validate at compile time (input-dependent)
 - Security requirement (malicious input)
 
@@ -956,11 +981,13 @@ while (pos < byte_offset) {
 #### Rationale
 
 **Why strict validation?**
+
 - Security (malformed UTF-8 attacks)
 - Correctness (invalid input → incorrect output)
 - Standards compliance (RFC 3629)
 
 **Why reject null bytes?**
+
 - C++ string terminator
 - Security (truncation attacks)
 
@@ -982,7 +1009,7 @@ while (pos < byte_offset) {
 
 ### End-to-End Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────────────┐
 │ User provides source file (UTF-8 encoded)                               │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -1049,7 +1076,7 @@ while (pos < byte_offset) {
 
 ### Component Interactions
 
-```
+```text
 ┌──────────────────┐         ┌──────────────────┐         ┌──────────────────┐
 │   ErrorReporter  │────────▶│  UnicodeColumn   │────────▶│   LineTracker    │
 │                  │  Uses   │                  │  Uses    │                  │
