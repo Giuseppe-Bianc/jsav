@@ -15,11 +15,13 @@ Implement Unicode-aware error reporting in the jsav compiler by adding a `Unicod
 
 ### Technical Approach
 
-All UTF-8 validation, tab expansion, and edge case handling (BOM, null bytes, overlong sequences) are contained in the **display layer**, requiring **no changes** to:
+All UTF-8 validation, tab expansion, and edge case handling (BOM, null bytes, overlong sequences) are contained in the **display layer**, requiring **no structural changes** to:
 
 - The lexer (byte-based `SourceLocation::column` remains ground truth)
 - The `SourceSpan` pipeline (no ABI changes)
 - Serialization formats (byte offsets preserved)
+
+**Minimal accessor addition**: One getter function (`LineTracker::source()`) will be added to expose the full source text for FR-024 integration. This is a non-invasive, one-line inline accessor that does not modify LineTracker's core line-tracking logic or data structures.
 
 ### Key Characteristics
 
