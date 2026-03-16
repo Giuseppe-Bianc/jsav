@@ -13,23 +13,31 @@
 
 namespace jsv {
 
-    // -----------------------------------------------------------------------------
-    // detect_ansi_color
-    // -----------------------------------------------------------------------------
-    [[nodiscard]] bool detect_ansi_color() noexcept {
-        // 1. Check NO_COLOR (overrides all) - per https://no-color.org/
-        if(const char *no_color = std::getenv("NO_COLOR"); no_color != nullptr && no_color[0] != '\0') { return false; }
+// -----------------------------------------------------------------------------
+// detect_ansi_color
+// -----------------------------------------------------------------------------
+[[nodiscard]] bool detect_ansi_color() noexcept {
+    // 1. Check NO_COLOR (overrides all) - per https://no-color.org/
+    if(const char* no_color = std::getenv("NO_COLOR");
+       no_color != nullptr && no_color[0] != '\0') {
+        return false;
+    }
 
-        // 2. Check COLORTERM (truecolor/24bit)
-        if(const char *colorterm = std::getenv("COLORTERM");
-           colorterm != nullptr && std::strcmp(colorterm, "truecolor") == 0 || std::strcmp(colorterm, "24bit") == 0) {
+    // 2. Check COLORTERM (truecolor/24bit)
+    if(const char* colorterm = std::getenv("COLORTERM");
+       colorterm != nullptr) {
+        if(std::strcmp(colorterm, "truecolor") == 0 ||
+           std::strcmp(colorterm, "24bit") == 0) {
             return true;
         }
     }
 
     // 3. Check TERM (contains "color", "xterm", "screen", "tmux")
-    if(const char *term = std::getenv("TERM"); term != nullptr) {
-        if(std::strstr(term, "color") != nullptr || std::strstr(term, "xterm") != nullptr || std::strstr(term, "screen") != nullptr ||
+    if(const char* term = std::getenv("TERM");
+       term != nullptr) {
+        if(std::strstr(term, "color") != nullptr ||
+           std::strstr(term, "xterm") != nullptr ||
+           std::strstr(term, "screen") != nullptr ||
            std::strstr(term, "tmux") != nullptr) {
             return true;
         }
@@ -52,10 +60,13 @@ namespace jsv {
 // -----------------------------------------------------------------------------
 // visual_column
 // -----------------------------------------------------------------------------
-[[nodiscard]] std::expected<std::size_t, std::string> visual_column(std::string_view line, std::size_t byte_offset,
-                                                                    std::size_t tab_stop_width) noexcept {
+[[nodiscard]] std::expected<std::size_t, std::string>
+visual_column(std::string_view line, std::size_t byte_offset,
+              std::size_t tab_stop_width) noexcept {
     // Defensive: clamp byte_offset to line size
-    if(byte_offset > line.size()) { byte_offset = line.size(); }
+    if(byte_offset > line.size()) {
+        byte_offset = line.size();
+    }
 
     // FR-027: Line length limit (10,000 code points maximum)
     constexpr std::size_t k_max_code_points = 10000;
@@ -66,7 +77,9 @@ namespace jsv {
     // FR-019: Skip BOM at file start (only at position 0 of the full source)
     // Note: This function receives a single line, so BOM detection is limited
     // to line 1. The caller (ErrorReporter) knows if this is line 1.
-    if(line.size() >= 3 && pos == 0 && static_cast<unsigned char>(line[0]) == 0xEF && static_cast<unsigned char>(line[1]) == 0xBB &&
+    if(line.size() >= 3 && pos == 0 &&
+       static_cast<unsigned char>(line[0]) == 0xEF &&
+       static_cast<unsigned char>(line[1]) == 0xBB &&
        static_cast<unsigned char>(line[2]) == 0xBF) {
         pos = 3;  // Skip BOM bytes
     }
@@ -115,8 +128,7 @@ namespace jsv {
         ++code_point_count;
         if(code_point_count > k_max_code_points) {
             const std::string error_msg = FORMAT("Line exceeds maximum length of {} code points (actual: {})",
-  max_code_points, c
-                                                 de_point_count);
+                                                  k_max_code_points, code_point_count);
             LERROR("{}", error_msg);
             return std::unexpected(std::move(error_msg));
         }
@@ -144,26 +156,28 @@ namespace jsv {
 // marker_extents
 // -----------------------------------------------------------------------------
 [[nodiscard]] std::expected<std::pair<std::size_t, std::size_t>, std::string>
-m rker_extents(std::string_view line, std::size_t start_byte, s
-                                                                                             d::size_t end_byte,
- 
-                                                                                             d::size_t tab_stop_width) noexcept {
+marker_extents(std::string_view line, std::size_t start_byte, std::size_t end_byte,
+               std::size_t tab_stop_width) noexcept {
     // Defensive: clamp byte offsets to line size
     if(start_byte > line.size()) {
-  art_byte = line.size();
-      if(end_byte > line.size()) {
-  d_byte = line.size();
-  
+        start_byte = line.size();
+    }
+    if(end_byte > line.size()) {
+        end_byte = line.size();
+    }
+
     // Calculate leading spaces (convert 1-based column to 0-based space count)
     auto leading_result = visual_column(line, start_byte, tab_stop_width);
     if(!leading_result.has_value()) {
-  turn std::unexpected(std::move(leading_result.error()));
-      std::size_t leading_spaces = leading_result.value() - 1;
+        return std::unexpected(std::move(leading_result.error()));
+    }
+    std::size_t leading_spaces = leading_result.value() - 1;
 
     // FR-013: Minimum 1 caret guarantee
     if(start_byte >= end_byte) {
-  turn std::make_pair(leading_spaces, 1u);
-  
+        return std::make_pair(leading_spaces, 1u);
+    }
+
     // Calculate caret count by walking from start_byte to end_byte
     std::size_t caret_count = 0;
     std::size_t pos = start_byte;
@@ -209,8 +223,7 @@ m rker_extents(std::string_view line, std::size_t start_byte, s
         ++code_point_count;
         if(code_point_count > k_max_code_points) {
             const std::string error_msg = FORMAT("Line exceeds maximum length of {} code points (actual: {})",
-    x_code_points, cod
-                                                 _point_count);
+                                                  k_max_code_points, code_point_count);
             LERROR("{}", error_msg);
             return std::unexpected(std::move(error_msg));
         }
@@ -230,8 +243,10 @@ m rker_extents(std::string_view line, std::size_t start_byte, s
 
     // FR-013: Minimum 1 caret guarantee (already handled above for empty spans)
     if(caret_count == 0) {
-    t_count = 1;
-       return std::make_pair(leading_spaces, caret_count);
+        caret_count = 1;
+    }
+
+    return std::make_pair(leading_spaces, caret_count);
 }
 
 }  // namespace jsv
