@@ -33,12 +33,9 @@ namespace jsv {
     }
 
     // 3. Check TERM (contains "color", "xterm", "screen", "tmux")
-    if(const char* term = std::getenv("TERM");
-       term != nullptr) {
-        if(std::strstr(term, "color") != nullptr ||
-           std::strstr(term, "xterm") != nullptr ||
-           std::strstr(term, "screen") != nullptr ||
-           std::strstr(term, "tmux") != nullptr) {
+    if(const char *term = std::getenv("TERM"); term != nullptr) {
+        const std::string_view termView{term};
+        if(termView.contains("color") || termView.contains("xterm") || termView.contains("screen") || termView.contains("tmux")) {
             return true;
         }
     }
@@ -114,14 +111,14 @@ visual_column(std::string_view line, std::size_t byte_offset,
 
             // FR-028: Log error at error level
             LERROR("{}", error_msg);
-            return std::unexpected(std::move(error_msg));
+            return std::unexpected(error_msg);
         }
 
         // FR-020: Null byte (U+0000) rejection
         if(res.codepoint == U'\0') {
             const std::string error_msg = FORMAT("Null byte (U+0000) at byte offset {}", pos);
             LERROR("{}", error_msg);
-            return std::unexpected(std::move(error_msg));
+            return std::unexpected(error_msg);
         }
 
         // FR-027: Line length limit check
@@ -130,7 +127,7 @@ visual_column(std::string_view line, std::size_t byte_offset,
             const std::string error_msg = FORMAT("Line exceeds maximum length of {} code points (actual: {})",
                                                   k_max_code_points, code_point_count);
             LERROR("{}", error_msg);
-            return std::unexpected(std::move(error_msg));
+            return std::unexpected(error_msg);
         }
 
         // FR-018: Tab expansion
@@ -216,7 +213,7 @@ marker_extents(std::string_view line, std::size_t start_byte, std::size_t end_by
         if(res.codepoint == U'\0') {
             const std::string error_msg = FORMAT("Null byte (U+0000) at byte offset {}", pos);
             LERROR("{}", error_msg);
-            return std::unexpected(std::move(error_msg));
+            return std::unexpected(error_msg);
         }
 
         // FR-027: Line length limit check
@@ -225,7 +222,7 @@ marker_extents(std::string_view line, std::size_t start_byte, std::size_t end_by
             const std::string error_msg = FORMAT("Line exceeds maximum length of {} code points (actual: {})",
                                                   k_max_code_points, code_point_count);
             LERROR("{}", error_msg);
-            return std::unexpected(std::move(error_msg));
+            return std::unexpected(error_msg);
         }
 
         // FR-010: Tabs contribute expanded width to caret count
