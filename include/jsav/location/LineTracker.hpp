@@ -71,18 +71,6 @@ namespace jsv {
 
         /// @brief True when no source has been loaded (default-constructed or constructed from an empty string_view).
         [[nodiscard]] bool empty() const noexcept;
-
-        /// @brief Returns the full source buffer as a string_view.
-        ///
-        /// This accessor provides read-only access to the complete source buffer
-        /// managed by LineTracker. It is used to calculate byte offsets for
-        /// error reporting.
-        ///
-        /// @return std::string_view spanning the entire source buffer.
-        /// @threadsafe Yes (read-only access to immutable data).
-        /// @since 0.5.0 (feature 005-fix-unicode-error-reporting)
-        [[nodiscard]] std::string_view source() const noexcept { return source_; }
-
     private:
         /// Non-owning view of the full source text.
         std::string_view source_;

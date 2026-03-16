@@ -9,7 +9,6 @@
 #include "../headers.hpp"
 #include "../location/LineTracker.hpp"
 #include "CompileError.hpp"
-#include "UnicodeColumn.hpp"
 
 namespace jsv {
 
@@ -107,24 +106,9 @@ namespace jsv {
         /// The `LineTracker` holds a non-owning `string_view` of the source;
         /// the caller must guarantee the source buffer outlives this object.
         ///
-        /// Uses default display configuration (tab_stop_width=8, ansi_color auto-detected).
-        ///
         /// @param line_tracker  A fully-constructed `LineTracker` for the source
         ///                      being compiled.
-        explicit ErrorReporter(const LineTracker &line_tracker) noexcept
-            : line_tracker_(line_tracker), config_(make_display_config()) {}
-
-        /// @brief Construct a reporter with custom display configuration.
-        ///
-        /// Allows customization of tab stop width and ANSI color output.
-        ///
-        /// @param line_tracker  A fully-constructed `LineTracker` for the source
-        ///                      being compiled.
-        /// @param config        Display configuration for tab expansion and ANSI color.
-        ///
-        /// @see ErrorDisplayConfig, make_display_config()
-        explicit ErrorReporter(const LineTracker &line_tracker, const ErrorDisplayConfig &config) noexcept
-            : line_tracker_(line_tracker), config_(config) {}
+        explicit ErrorReporter(const LineTracker &line_tracker) noexcept : line_tracker_(line_tracker) {}
 
         ErrorReporter() = delete;
         ErrorReporter(const ErrorReporter &) = delete;
@@ -186,9 +170,6 @@ namespace jsv {
         /// The line index built from the source text — used to retrieve the
         /// offending source line for display in `format_spanned_error`.
         LineTracker line_tracker_;
-
-        /// Display configuration for tab expansion and ANSI color output.
-        ErrorDisplayConfig config_;
     };
 
 }  // namespace jsv

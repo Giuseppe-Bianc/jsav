@@ -5,7 +5,6 @@
 
 // NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
 #include "jsav/error/ErrorReporter.hpp"
-#include "jsav/error/UnicodeColumn.hpp"
 
 namespace jsv {
 
@@ -68,11 +67,6 @@ namespace jsv {
     // whose line numbers don't correspond to the loaded source) the source-line
     // block is silently omitted, matching the Rust `unwrap_or_default` behaviour.
     //
-    // Unicode-aware column calculation:
-    // Uses marker_extents() to calculate visual column positions by counting
-    // Unicode code points (not bytes), ensuring correct marker alignment for
-    // multi-byte characters. ANSI color is applied when config_.ansi_color is true.
-    //
     // ---------------------------------------------------------------------------
     std::string ErrorReporter::format_spanned_error(std::string_view category, const CompileError &error) const {
         const std::optional<ErrorCode> error_code = error.error_code();
@@ -80,61 +74,18 @@ namespace jsv {
         const SourceSpan &span = error.span();
 
         const std::size_t start_line = span.start.line;
+        const std::size_t start_col = span.start.column;
         const std::size_t end_line = span.end.line;
+        const std::size_t end_col = span.end.column;
 
         // Retrieve the offending source line (O(1), zero-copy view).
         // Mirrors: `self.line_tracker.get_line(start_line).unwrap_or_default()`
         const std::string_view source_line = line_tracker_.get_line(start_line);
 
-        // Calculate byte offsets within the line for marker_extents()
-        // SourceLocation::absolute_pos is the byte offset from the start of the source file
-        // We need the byte offset from the start of the line
-        // line_start_absolute = source_line.data() - line_tracker_.source().data()
-        // start_byte_in_line = span.start.absolute_pos - line_start_absolute
-        const std::size_t line_start_absolute = line_tracker_.source().data() - source_line.data();
-        const std::size_t start_byte = span.start.absolute_pos - line_start_absolute;
-        const std::size_t end_byte = span.end.absolute_pos - line_start_absolute;
-
-        // Use UnicodeColumn::marker_extents() for Unicode-aware column calculation
-        auto extents_result = marker_extents(source_line, start_byte, end_byte, config_.tab_stop_width);
-
-        // Handle encoding errors (invalid UTF-8, null bytes, etc.)
-        if(!extents_result.has_value()) {
-            // Encoding error - display with byte-based calculation as fallback
-            const std::size_t estimated = 100u + msg.size() + category.size() + (error_code.has_value() ? 12u : 0u)
-                                          + 40u + source_line.size() + 20u + 20u;
-
-            std::string output;
-            output.reserve(estimated);
-            auto out = std::back_inserter(output);
-
-            FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(error_code),
-                      ansi::red(category), ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
-
-            if(!source_line.empty()) {
-                FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
-                // Byte-based fallback for encoding errors
-                const std::size_t start_offset = start_byte;
-                FORMAT_TO(out, "     │ {:>{}}^\n", "", start_offset);
-            }
-
-            // Add encoding error note with byte offset information
-            const std::string error_msg = extents_result.error();
-            FORMAT_TO(out, "{} {} encoding error: {}\n", ansi::blue("note:"), ansi::yellow(category), error_msg);
-
-            if(const auto help_opt = error.help(); help_opt.has_value()) {
-                FORMAT_TO(out, "{} {}\n", ansi::blue_bold("help:"), ansi::green(**help_opt));
-            }
-
-            return output;
-        }
-
-        const auto [leading_spaces, caret_count] = extents_result.value();
-
         const std::size_t estimated = 100u + msg.size() + category.size() + (error_code.has_value() ? 12u : 0u)  // "[Exxxx] "
                                       + 40u                                                                      // location line
                                       + source_line.size() + 20u                                                 // source line row
-                                      + leading_spaces + caret_count + 10u                                       // underline row
+                                      + start_col + 10u                                                          // underline row
                                       + (start_line != end_line ? 40u : 0u)                                      // multi-line note
                                       + (error.help().has_value() ? 20u : 0u);                                   // help line
 
@@ -147,27 +98,30 @@ namespace jsv {
         FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(error_code), ansi::red(category),
                   ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
 
-        // --- Source-line block (FR-012: show marker even for empty lines) -------
-        // Check if line exists (line_number is valid) rather than if it's non-empty
-        // Empty lines should still show the marker row per FR-012
-        if(start_line <= line_tracker_.line_count()) {
+        // --- Source-line block (only when the tracker found the line) -----------
+        if(!source_line.empty()) {
             // "{start_line:4} │ {source_line}"
             // Rust: writeln!(output, "{start_line:4} │ {source_line}");
             FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
 
-            // Build the underline string with Unicode-aware positioning
-            // Create caret string with leading spaces
-            std::string underline(leading_spaces, ' ');
-            underline.append(caret_count, '^');
+            // Build the underline string:
+            //   • single-line span  →  <start_offset spaces> + <length × '^'>
+            //   • multi-line span   →  <start_offset spaces> + '^'
+            //
+            // start_offset = start_col.saturating_sub(1)  (columns are 1-based)
+            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+            std::string underline;
 
-            // Apply ANSI color if enabled (NFR-003)
-            if(config_.ansi_color) {
-                // Red carets: \033[31m<carets>\033[0m
-                FORMAT_TO(out, "     │ {}\n", ansi::red_bold(underline));
+            if(start_line == end_line) {
+                // Rust: let length = (end_col - start_col).max(1);
+                const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
+                underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
             } else {
-                // Plain carets (monochrome fallback)
-                FORMAT_TO(out, "     │ {}\n", ansi::red_bold(underline));
+                underline = FORMAT("{:>{}}^", "", start_offset);
             }
+
+            // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
+            FORMAT_TO(out, "     │ {}\n", ansi::red_bold(underline));
 
             // Multi-line note: "     │ ... (error spans lines X-Y)"
             if(start_line != end_line) { FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line); }

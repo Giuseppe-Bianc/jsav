@@ -19,8 +19,6 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/error/CompileError.hpp
         error/ErrorReporter.cpp
         ../../include/jsav/error/ErrorReporter.hpp
-        error/UnicodeColumn.cpp
-        ../../include/jsav/error/UnicodeColumn.hpp
         #[[lexer/Token.cpp
                 lexer/Tokenizer.cpp
                 lexer/TokenizerUtility.cpp
