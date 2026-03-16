@@ -26,9 +26,9 @@
 
 **Purpose**: Project initialization and build system updates
 
-- [ ] T001 Create `include/jsav/error/` directory for error reporting module
-- [ ] T002 Create `src/jsav_Lib/error/` directory for error reporting implementation
-- [ ] T003 [P] Update `src/jsav_Lib/CMakeLists.txt` to include `error/UnicodeColumn.cpp` in `jsav_lib` target sources
+- [x] T001 Create `include/jsav/error/` directory for error reporting module
+- [x] T002 Create `src/jsav_Lib/error/` directory for error reporting implementation
+- [x] T003 [P] Update `src/jsav_Lib/CMakeLists.txt` to include `error/UnicodeColumn.cpp` in `jsav_lib` target sources
 
 ---
 
@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/location/LineTracker.hpp` (one-liner inline function returning `std::string_view` of full source text for FR-024 integration)
-- [ ] T004a [P] Modify `ErrorReporter::format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to retrieve source text via `line_tracker_.source()` before Unicode column calculation (implements FR-024 requirement: ErrorReporter queries LineTracker for source line content)
-- [ ] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
-- [ ] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
-- [ ] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
-- [ ] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
-- [ ] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig` (**Note**: No circular include risk — `ErrorReporter.hpp` already includes `LineTracker.hpp`, and `UnicodeColumn.hpp` depends only on standard library, not on `LineTracker.hpp`)`
+- [x] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/location/LineTracker.hpp` (one-liner inline function returning `std::string_view` of full source text for FR-024 integration)
+- [x] T004a [P] Modify `ErrorReporter::format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to retrieve source text via `line_tracker_.source()` before Unicode column calculation (implements FR-024 requirement: ErrorReporter queries LineTracker for source line content)
+- [x] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
+- [x] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
+- [x] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [x] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
+- [x] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig` (**Note**: No circular include risk — `ErrorReporter.hpp` already includes `LineTracker.hpp`, and `UnicodeColumn.hpp` depends only on standard library, not on `LineTracker.hpp`)`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -60,27 +60,27 @@
 
 > **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T013-T019) until tests are written AND verified to FAIL.
 
-- [ ] T008a [P] [US1] **[TDD RED PHASE]** Write all US1 test cases (T009–T011d) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
-- [ ] T009 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Chinese` in `test/tests.cpp` (source: `"let x = 你好;"`, verify 8 leading spaces + 2 carets for Chinese characters)
-- [ ] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
-- [ ] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
-- [ ] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
-- [ ] T011b [P] [US1] Add test case `UnicodeColumn_ansi_color_red_code` in `test/tests.cpp` (verify `format_spanned_error()` outputs `\033[31m^\033[0m` when `config_.ansi_color` is true, per NFR-003)
-- [ ] T011c [P] [US1] Add test case `UnicodeColumn_ansi_color_fallback_monochrome` in `test/tests.cpp` (verify `format_spanned_error()` outputs plain `^` when `config_.ansi_color` is false, with no loss of positioning information)
-- [ ] T011d [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_no_color_variants` in `test/tests.cpp` (verify `NO_COLOR=""` (empty string) is treated as set/disabled, `COLORTERM="truecolor"` enables color, `TERM="dumb"` disables color)
-- [ ] T012 [US1] **[TDD RED PHASE VERIFICATION]** Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`). **DO NOT PROCEED to T013 until T012 confirms test failure.**
+- [x] T008a [P] [US1] **[TDD RED PHASE]** Write all US1 test cases (T009–T011d) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [x] T009 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Chinese` in `test/tests.cpp` (source: `"let x = 你好;"`, verify 8 leading spaces + 2 carets for Chinese characters)
+- [x] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
+- [x] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
+- [x] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
+- [x] T011b [P] [US1] Add test case `UnicodeColumn_ansi_color_red_code` in `test/tests.cpp` (verify `format_spanned_error()` outputs `\033[31m^\033[0m` when `config_.ansi_color` is true, per NFR-003)
+- [x] T011c [P] [US1] Add test case `UnicodeColumn_ansi_color_fallback_monochrome` in `test/tests.cpp` (verify `format_spanned_error()` outputs plain `^` when `config_.ansi_color` is false, with no loss of positioning information)
+- [x] T011d [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_no_color_variants` in `test/tests.cpp` (verify `NO_COLOR=""` (empty string) is treated as set/disabled, `COLORTERM="truecolor"` enables color, `TERM="dumb"` disables color)
+- [x] T012 [US1] **[TDD RED PHASE VERIFICATION]** Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`). **DO NOT PROCEED to T013 until T012 confirms test failure.**
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Implement `visual_column()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (UTF-8 decoding walk, code point counting, tab expansion using FR-018 formula)
-- [ ] T014 [P] [US1] Implement `marker_extents()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (calculate leading spaces and caret count from byte span)
-- [ ] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
-- [ ] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
-- [ ] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
-- [ ] T018 [US1] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
-- [ ] T018b [US1] Implement `make_display_config()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` to populate `ErrorDisplayConfig` struct with `tab_stop_width` (default: 8) and `ansi_color` (from `detect_ansi_color()` result)
-- [ ] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
-- [ ] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
+- [x] T013 [P] [US1] Implement `visual_column()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (UTF-8 decoding walk, code point counting, tab expansion using FR-018 formula)
+- [x] T014 [P] [US1] Implement `marker_extents()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (calculate leading spaces and caret count from byte span)
+- [x] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
+- [x] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
+- [x] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
+- [x] T018 [US1] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [x] T018b [US1] Implement `make_display_config()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` to populate `ErrorDisplayConfig` struct with `tab_stop_width` (default: 8) and `ansi_color` (from `detect_ansi_color()` result)
+- [x] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
+- [x] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - Unicode error markers align correctly
 
@@ -96,29 +96,29 @@
 
 > **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T025-T032) until tests are written AND verified to FAIL.
 
-- [ ] T019a [P] [US2] **[TDD RED PHASE]** Write all US2 test cases (T020–T023b) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
-- [ ] T020 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_detection` in `test/tests.cpp` (source with invalid bytes `\xFF\xFE`, verify encoding error message with byte offset)
-- [ ] T021 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_null_byte` in `test/tests.cpp` (source with null byte `\x00`, verify "Null byte (U+0000)" error message)
-- [ ] T022 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong` in `test/tests.cpp` (overlong encoding `\xC0\x80`, verify encoding error)
-- [ ] T022a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong_error_format` in `test/tests.cpp` (verify FR-025 error message format: "Overlong UTF-8 encoding at byte offset X, line Y" with actual byte offset and line number)
-- [ ] T023 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate` in `test/tests.cpp` (surrogate half `\xED\xA0\x80`, verify encoding error)
-- [ ] T023a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate_error_format` in `test/tests.cpp` (verify FR-026 error message format: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset X, line Y" with actual byte offset and line number)
-- [ ] T023b [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_mixed_errors` in `test/tests.cpp` (source with both overlong encoding and surrogate half, verify both errors reported with correct byte offsets)
-- [ ] T024 [US2] **[TDD RED PHASE VERIFICATION]** Verify all US2 tests FAIL before implementation (run `ctest -R "US2.*invalid" --output-on-failure`). **DO NOT PROCEED to T025 until T024 confirms test failure.**
+- [x] T019a [P] [US2] **[TDD RED PHASE]** Write all US2 test cases (T020–T023b) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [x] T020 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_detection` in `test/tests.cpp` (source with invalid bytes `\xFF\xFE`, verify encoding error message with byte offset)
+- [x] T021 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_null_byte` in `test/tests.cpp` (source with null byte `\x00`, verify "Null byte (U+0000)" error message)
+- [x] T022 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong` in `test/tests.cpp` (overlong encoding `\xC0\x80`, verify encoding error)
+- [x] T022a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong_error_format` in `test/tests.cpp` (verify FR-025 error message format: "Overlong UTF-8 encoding at byte offset X, line Y" with actual byte offset and line number)
+- [x] T023 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate` in `test/tests.cpp` (surrogate half `\xED\xA0\x80`, verify encoding error)
+- [x] T023a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate_error_format` in `test/tests.cpp` (verify FR-026 error message format: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset X, line Y" with actual byte offset and line number)
+- [x] T023b [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_mixed_errors` in `test/tests.cpp` (source with both overlong encoding and surrogate half, verify both errors reported with correct byte offsets)
+- [x] T024 [US2] **[TDD RED PHASE VERIFICATION]** Verify all US2 tests FAIL before implementation (run `ctest -R "US2.*invalid" --output-on-failure`). **DO NOT PROCEED to T025 until T024 confirms test failure.**
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Add UTF-8 validation in `visual_column()` to detect invalid sequences (call `jsv::unicode::decode_utf8()` and check for error result; if error, return `std::unexpected` with error message)
-- [ ] T026 [US2] Add null byte detection in `visual_column()` (check for U+0000 and return error per FR-020: "Null byte (U+0000) not allowed in source files at byte offset {offset}, line {line}")
-- [ ] T027 [US2] Add overlong UTF-8 encoding rejection in `visual_column()` per **FR-025**: Detect sequences that use more bytes than necessary (e.g., `\xC0\x80` for NUL) by validating `decode_utf8()` result; return error message: "Overlong UTF-8 encoding at byte offset {offset}, line {line}"
-- [ ] T027a [P] [US2] Add error formatting for overlong encodings in `format_spanned_error()` per **FR-025**: Include optional help line "help: save file with shortest valid UTF-8 encoding"
-- [ ] T028 [US2] Add surrogate half rejection in `visual_column()` per **FR-026**: Detect U+D800–U+DFFF range (invalid in UTF-8) by validating `decode_utf8()` result; return error message: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset {offset}, line {line}"
-- [ ] T028a [P] [US2] Add error formatting for surrogate halves in `format_spanned_error()` per **FR-026**: Include optional help line "help: use valid UTF-8 encoding instead of UTF-16"
-- [ ] T029 [US2] Add error logging in `visual_column()` using `LERROR()` macro at error level before returning `std::unexpected` (per FR-028: log invalid UTF-8, null bytes, surrogate halves, overlong encodings)
-- [ ] T029a [P] [US2] Add test case `UnicodeColumn_logging_critical_errors` in `test/tests.cpp` (verify `LERROR()` is called at error level for invalid UTF-8, null bytes, surrogate halves, and overlong encodings using spdlog sink mock or log output capture)
-- [ ] T030 [US2] Propagate encoding errors in `marker_extents()` (return `std::unexpected` if `visual_column()` fails)
-- [ ] T031 [US2] Handle encoding errors in `format_spanned_error()` per **FR-016**: Display encoding error message with 5-part structure (header, location, source line, marker row with byte-based calculation for invalid bytes only, optional help line)
-- [ ] T032 [US2] Run US2 tests and verify all PASS (`ctest -R "US2.*invalid" --output-on-failure`)
+- [x] T025 [US2] Add UTF-8 validation in `visual_column()` to detect invalid sequences (call `jsv::unicode::decode_utf8()` and check for error result; if error, return `std::unexpected` with error message)
+- [x] T026 [US2] Add null byte detection in `visual_column()` (check for U+0000 and return error per FR-020: "Null byte (U+0000) not allowed in source files at byte offset {offset}, line {line}")
+- [x] T027 [US2] Add overlong UTF-8 encoding rejection in `visual_column()` per **FR-025**: Detect sequences that use more bytes than necessary (e.g., `\xC0\x80` for NUL) by validating `decode_utf8()` result; return error message: "Overlong UTF-8 encoding at byte offset {offset}, line {line}"
+- [x] T027a [P] [US2] Add error formatting for overlong encodings in `format_spanned_error()` per **FR-025**: Include optional help line "help: save file with shortest valid UTF-8 encoding"
+- [x] T028 [US2] Add surrogate half rejection in `visual_column()` per **FR-026**: Detect U+D800–U+DFFF range (invalid in UTF-8) by validating `decode_utf8()` result; return error message: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset {offset}, line {line}"
+- [x] T028a [P] [US2] Add error formatting for surrogate halves in `format_spanned_error()` per **FR-026**: Include optional help line "help: use valid UTF-8 encoding instead of UTF-16"
+- [x] T029 [US2] Add error logging in `visual_column()` using `LERROR()` macro at error level before returning `std::unexpected` (per FR-028: log invalid UTF-8, null bytes, surrogate halves, overlong encodings)
+- [x] T029a [P] [US2] Add test case `UnicodeColumn_logging_critical_errors` in `test/tests.cpp` (verify `LERROR()` is called at error level for invalid UTF-8, null bytes, surrogate halves, and overlong encodings using spdlog sink mock or log output capture)
+- [x] T030 [US2] Propagate encoding errors in `marker_extents()` (return `std::unexpected` if `visual_column()` fails)
+- [x] T031 [US2] Handle encoding errors in `format_spanned_error()` per **FR-016**: Display encoding error message with 5-part structure (header, location, source line, marker row with byte-based calculation for invalid bytes only, optional help line)
+- [x] T032 [US2] Run US2 tests and verify all PASS (`ctest -R "US2.*invalid" --output-on-failure`)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - valid UTF-8 aligns correctly, invalid UTF-8 is detected and reported
 

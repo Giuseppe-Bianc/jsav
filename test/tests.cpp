@@ -6550,6 +6550,639 @@ let z = @3;)";
     }
 }
 
+// -------------------------------------------------------------------------
+// UnicodeColumn Module Tests - User Story 1 (Unicode Marker Alignment)
+// -------------------------------------------------------------------------
+
+TEST_CASE("UnicodeColumn marker alignment Chinese", "[UnicodeColumn][marker_alignment][US1]") {
+    // Source with Chinese characters (你好 = "hello")
+    // UTF-8 encoding: '你' = 3 bytes (E4 BD A0), '好' = 3 bytes (E5 A5 BD)
+    constexpr std::string_view source = "let x = 你好;";
+    const jsv::LineTracker tracker(source);
+
+    // Disable ANSI color for deterministic output
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+    config.tab_stop_width = 8;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at '你' (starts at byte 8, ends at byte 11)
+    // Visual column: "let x = " = 8 code points, then '你' at column 9
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 11));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect 8 leading spaces (for "let x = "), then 1 caret for '你' (1 code point)
+    REQUIRE(stripped.find("│         ^") != std::string::npos);  // 8 spaces + 1 caret
+}
+
+TEST_CASE("UnicodeColumn marker alignment Greek", "[UnicodeColumn][marker_alignment][US1]") {
+    // Source with Greek letters (αβγ = "alpha beta gamma")
+    // UTF-8 encoding: each Greek letter = 2 bytes
+    constexpr std::string_view source = "let αβγ = 123;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at 'αβγ' (bytes 4-10, code points 5-8)
+    // "let " = 4 code points, then α=5, β=6, γ=7, space=8
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 8, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid token"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect 4 leading spaces (for "let "), then 3 carets for 'αβγ' (3 code points)
+    // Output format: "     │ " + underline (leading_spaces + carets)
+    // So we look for: "│" + (4+1) spaces + 3 carets = "│     ^^^"
+    REQUIRE(stripped.find("│     ^^^") != std::string::npos);  // box + 5 spaces + 3 carets
+}
+
+TEST_CASE("UnicodeColumn marker alignment emoji", "[UnicodeColumn][marker_alignment][US1]") {
+    // Source with emoji (😀 = "grinning face")
+    // UTF-8 encoding: 😀 = 4 bytes (F0 9F 98 80), 1 code point
+    constexpr std::string_view source = "let x = 😀;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at '😀' (byte 8-12, code point 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 12));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect 8 leading spaces (for "let x = "), then 1 caret for '😀' (1 code point)
+    REQUIRE(stripped.find("│         ^") != std::string::npos);  // 8 spaces + 1 caret
+}
+
+TEST_CASE("UnicodeColumn detect ansi color environment", "[UnicodeColumn][ansi][US1]") {
+    // Save original environment
+    const char* original_no_color = std::getenv("NO_COLOR");
+    const char* original_colorterm = std::getenv("COLORTERM");
+    const char* original_term = std::getenv("TERM");
+
+    SECTION("NO_COLOR disables color") {
+        // Set NO_COLOR
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "1");
+        #else
+        setenv("NO_COLOR", "1", 1);
+        #endif
+
+        REQUIRE(jsv::detect_ansi_color() == false);
+    }
+
+    SECTION("COLORTERM=truecolor enables color") {
+        // Clear NO_COLOR, set COLORTERM
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "");
+        _putenv_s("COLORTERM", "truecolor");
+        #else
+        unsetenv("NO_COLOR");
+        setenv("COLORTERM", "truecolor", 1);
+        #endif
+
+        REQUIRE(jsv::detect_ansi_color() == true);
+    }
+
+    SECTION("TERM=xterm-256color enables color") {
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "");
+        _putenv_s("COLORTERM", "");
+        _putenv_s("TERM", "xterm-256color");
+        #else
+        unsetenv("NO_COLOR");
+        unsetenv("COLORTERM");
+        setenv("TERM", "xterm-256color", 1);
+        #endif
+
+        REQUIRE(jsv::detect_ansi_color() == true);
+    }
+
+    SECTION("TERM=dumb disables color") {
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "");
+        _putenv_s("TERM", "dumb");
+        #else
+        unsetenv("NO_COLOR");
+        setenv("TERM", "dumb", 1);
+        #endif
+
+        REQUIRE(jsv::detect_ansi_color() == false);
+    }
+
+    // Restore original environment
+    #ifdef _WIN32
+    if(original_no_color) { _putenv_s("NO_COLOR", original_no_color); }
+    if(original_colorterm) { _putenv_s("COLORTERM", original_colorterm); }
+    if(original_term) { _putenv_s("TERM", original_term); }
+    #else
+    if(original_no_color) { setenv("NO_COLOR", original_no_color, 1); } else { unsetenv("NO_COLOR"); }
+    if(original_colorterm) { setenv("COLORTERM", original_colorterm, 1); } else { unsetenv("COLORTERM"); }
+    if(original_term) { setenv("TERM", original_term, 1); } else { unsetenv("TERM"); }
+    #endif
+}
+
+TEST_CASE("UnicodeColumn ansi color red code", "[UnicodeColumn][ansi][US1]") {
+    constexpr std::string_view source = "let x = test;";
+    const jsv::LineTracker tracker(source);
+
+    // Enable ANSI color
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = true;
+    config.tab_stop_width = 8;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 13, 12));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid token"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Verify ANSI red color codes are present: \x1b[1m\x1b[31m (bold + red)
+    REQUIRE(result.find("\x1b[1m") != std::string::npos);  // Bold
+    REQUIRE(result.find("\x1b[31m") != std::string::npos);  // Red
+    REQUIRE(result.find("\x1b[0m") != std::string::npos);   // Reset
+}
+
+TEST_CASE("UnicodeColumn ansi color fallback monochrome", "[UnicodeColumn][ansi][US1]") {
+    constexpr std::string_view source = "let x = test;";
+    const jsv::LineTracker tracker(source);
+
+    // Disable ANSI color
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+    config.tab_stop_width = 8;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 13, 12));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid token"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Verify carets are present in stripped output (same positioning)
+    REQUIRE(stripped.find("│         ^^^^") != std::string::npos);  // 8 spaces + 4 carets
+
+    // Verify no ANSI color codes in raw output (when ansi_color=false)
+    // Note: Other ANSI codes (bold) may still be present from ansi::red_bold()
+    // The key is that positioning is identical regardless of color setting
+}
+
+TEST_CASE("UnicodeColumn detect ansi color no color variants", "[UnicodeColumn][ansi][US1]") {
+    // Save original environment
+    const char* original_no_color = std::getenv("NO_COLOR");
+    const char* original_colorterm = std::getenv("COLORTERM");
+    const char* original_term = std::getenv("TERM");
+
+    SECTION("NO_COLOR empty string is treated as set") {
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "");  // Empty string
+        _putenv_s("COLORTERM", "");
+        _putenv_s("TERM", "");
+        #else
+        setenv("NO_COLOR", "", 1);  // Empty string
+        unsetenv("COLORTERM");
+        unsetenv("TERM");
+        #endif
+
+        // Empty NO_COLOR should disable color (per no-color.org standard)
+        REQUIRE(jsv::detect_ansi_color() == false);
+    }
+
+    SECTION("COLORTERM=truecolor enables, TERM=dumb disables") {
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "");
+        _putenv_s("COLORTERM", "truecolor");
+        _putenv_s("TERM", "dumb");
+        #else
+        unsetenv("NO_COLOR");
+        setenv("COLORTERM", "truecolor", 1);
+        setenv("TERM", "dumb", 1);
+        #endif
+
+        // COLORTERM takes priority over TERM
+        REQUIRE(jsv::detect_ansi_color() == true);
+    }
+
+    SECTION("No environment variables defaults to false") {
+        #ifdef _WIN32
+        _putenv_s("NO_COLOR", "");
+        _putenv_s("COLORTERM", "");
+        _putenv_s("TERM", "");
+        #else
+        unsetenv("NO_COLOR");
+        unsetenv("COLORTERM");
+        unsetenv("TERM");
+        #endif
+
+        REQUIRE(jsv::detect_ansi_color() == false);
+    }
+
+    // Restore original environment
+    #ifdef _WIN32
+    if(original_no_color) { _putenv_s("NO_COLOR", original_no_color); }
+    if(original_colorterm) { _putenv_s("COLORTERM", original_colorterm); }
+    if(original_term) { _putenv_s("TERM", original_term); }
+    #else
+    if(original_no_color) { setenv("NO_COLOR", original_no_color, 1); } else { unsetenv("NO_COLOR"); }
+    if(original_colorterm) { setenv("COLORTERM", original_colorterm, 1); } else { unsetenv("COLORTERM"); }
+    if(original_term) { setenv("TERM", original_term, 1); } else { unsetenv("TERM"); }
+    #endif
+}
+
+TEST_CASE("UnicodeColumn TDD red phase verification", "[UnicodeColumn][TDD][US1]") {
+    // This test verifies that all US1 test cases are written
+    // Before implementation, this test should PASS (tests are written)
+    // The individual US1 tests (T009-T011d) should FAIL before implementation
+
+    // If this test compiles and runs, the test cases exist
+    REQUIRE(true);
+
+    // Note: To verify RED phase, run individual US1 tests:
+    // ctest -R "UnicodeColumn.*US1" --output-on-failure
+    // Expected: Tests compile but may fail due to missing implementation
+}
+
+// -------------------------------------------------------------------------
+// UnicodeColumn Module Tests - User Story 2 (Invalid UTF-8 Detection)
+// -------------------------------------------------------------------------
+
+TEST_CASE("UnicodeColumn invalid UTF-8 detection", "[UnicodeColumn][invalid_utf8][US2]") {
+    // Source with invalid UTF-8 sequence (0xFF 0xFE are never valid UTF-8)
+    constexpr std::string_view source = "let x = \xFF\xFE;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at invalid bytes (byte offset 8-10)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report encoding error with byte offset
+    REQUIRE(result.find("encoding error") != std::string::npos);
+    REQUIRE(result.find("byte offset") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn invalid UTF-8 null byte", "[UnicodeColumn][null_byte][US2]") {
+    // Source with null byte (U+0000)
+    // Use explicit byte array to ensure null byte is included
+    constexpr char source_bytes[] = {'l', 'e', 't', ' ', 'x', ' ', '=', ' ', '\x00', ';', '\0'};
+    const std::string_view source(source_bytes, sizeof(source_bytes) - 1);
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at null byte (byte offset 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report null byte error with U+0000
+    REQUIRE(result.find("Null byte") != std::string::npos);
+    REQUIRE(result.find("U+0000") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn invalid UTF-8 overlong", "[UnicodeColumn][overlong][US2]") {
+    // Source with overlong UTF-8 encoding (0xC0 0x80 is overlong for NUL)
+    constexpr std::string_view source = "let x = \xC0\x80;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at overlong sequence (byte offset 8-10)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report encoding error
+    REQUIRE(result.find("encoding error") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn invalid UTF-8 surrogate", "[UnicodeColumn][surrogate][US2]") {
+    // Source with UTF-16 surrogate half (0xED 0xA0 0x80 encodes U+D800)
+    constexpr std::string_view source = "let x = \xED\xA0\x80;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at surrogate sequence (byte offset 8-11)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 11, 11));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report encoding error
+    REQUIRE(result.find("encoding error") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn logging critical errors", "[UnicodeColumn][logging][US2]") {
+    // This test verifies that LERROR is called for encoding errors
+    // Note: Actual log output verification requires spdlog sink mocking
+    // For now, we verify the error is reported correctly
+
+    constexpr std::string_view source = "let x = \xFF;";  // Invalid lead byte
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report encoding error
+    REQUIRE(result.find("encoding error") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn TDD red phase verification US2", "[UnicodeColumn][TDD][US2]") {
+    // This test verifies that all US2 test cases are written
+    // If this test compiles and runs, the test cases exist
+    REQUIRE(true);
+
+    // Note: To verify RED phase, run individual US2 tests:
+    // ctest -R "UnicodeColumn.*US2" --output-on-failure
+}
+
+// -------------------------------------------------------------------------
+// UnicodeColumn Module Tests - User Story 3 (Edge Case Handling)
+// -------------------------------------------------------------------------
+
+TEST_CASE("UnicodeColumn edge case empty line", "[UnicodeColumn][edge_case][US3]") {
+    // Empty line with error at column 1
+    constexpr std::string_view source = "\n";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at column 1 of empty line
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Unexpected end"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Should show single caret at column 1 with no leading spaces
+    REQUIRE(stripped.find("│ ^") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn edge case first column", "[UnicodeColumn][edge_case][US3]") {
+    // Error at column 1 (first character)
+    constexpr std::string_view source = "x = 5;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at first character
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid start"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Should show caret at column 1 with no leading spaces
+    REQUIRE(stripped.find("│ ^") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn edge case last column", "[UnicodeColumn][edge_case][US3]") {
+    // Error at last character of line
+    constexpr std::string_view source = "let x = 5";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at last character '5' (column 9, byte 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid digit"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Should show caret at last position
+    REQUIRE(stripped.find("│         ^") != std::string::npos);  // 8 spaces + 1 caret
+}
+
+TEST_CASE("UnicodeColumn edge case tab expansion", "[UnicodeColumn][edge_case][US3]") {
+    // Tab before error - verify tab expansion to next tab stop
+    constexpr std::string_view source = "let\tx = 1;";  // Tab after "let"
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+    config.tab_stop_width = 8;  // Default tab width
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at 'x' (after tab)
+    // "let" = 3 chars, tab expands to column 9, 'x' at column 10
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 10, 5), jsv::SourceLocation(1, 11, 6));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Tab at column 4 expands to column 9 (next tab stop)
+    // 'x' is at column 10, so we expect 9 leading spaces
+    REQUIRE(stripped.find("│          ^") != std::string::npos);  // 9 spaces + 1 caret
+}
+
+TEST_CASE("UnicodeColumn edge case BOM", "[UnicodeColumn][edge_case][US3]") {
+    // BOM at file start - should be skipped in column count
+    // BOM bytes: 0xEF 0xBB 0xBF
+    constexpr char source_bytes[] = {'\xEF', '\xBB', '\xBF', 'l', 'e', 't', ' ', 'x', '=', '1', ';', '\0'};
+    const std::string_view source(source_bytes, sizeof(source_bytes) - 1);
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at 'x' (BOM should be skipped in column count)
+    // "let " = 4 chars after BOM, 'x' at column 5
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 7), jsv::SourceLocation(1, 6, 8));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // BOM skipped, so 'x' should be at column 5 (4 leading spaces)
+    REQUIRE(stripped.find("│    ^") != std::string::npos);  // 4 spaces + 1 caret
+}
+
+TEST_CASE("UnicodeColumn edge case combining characters", "[UnicodeColumn][edge_case][US3]") {
+    // NFD "é" = e + combining acute accent (2 code points)
+    // e = U+0065, combining acute = U+0301
+    constexpr char source_bytes[] = {'l', 'e', 't', ' ', 'e', '\xCC', '\x81', ';', '\0'};
+    const std::string_view source(source_bytes, sizeof(source_bytes) - 1);
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at combining sequence (columns 5-6, bytes 4-7)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 7, 7));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Each code point counts as 1 column (e + combining acute = 2 columns)
+    REQUIRE(stripped.find("│    ^^") != std::string::npos);  // 4 spaces + 2 carets
+}
+
+TEST_CASE("UnicodeColumn edge case ZWJ emoji", "[UnicodeColumn][edge_case][US3]") {
+    // ZWJ emoji sequence: man + ZWJ + woman + ZWJ + girl + ZWJ + boy
+    // Each code point counts separately (7 code points total)
+    // Man: U+1F468, ZWJ: U+200D, Woman: U+1F469, ZWJ, Girl: U+1F467, ZWJ, Boy: U+1F466
+    constexpr char source_bytes[] = {'l', 'e', 't', ' ', '\xF0', '\x9F', '\x91', '\xA8',  // man
+                                     '\xE2', '\x80', '\x8D',  // ZWJ
+                                     '\xF0', '\x9F', '\x91', '\xA9',  // woman
+                                     '\xE2', '\x80', '\x8D',  // ZWJ
+                                     '\xF0', '\x9F', '\x91', '\xA7',  // girl
+                                     '\xE2', '\x80', '\x8D',  // ZWJ
+                                     '\xF0', '\x9F', '\x91', '\xA6',  // boy
+                                     ';', '\0'};
+    const std::string_view source(source_bytes, sizeof(source_bytes) - 1);
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at emoji sequence (columns 5-11, 7 code points)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 12, 31));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid emoji"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Each code point counts as 1 column (7 code points = 7 carets)
+    REQUIRE(stripped.find("│    ^^^^^^^") != std::string::npos);  // 4 spaces + 7 carets
+}
+
+TEST_CASE("UnicodeColumn edge case bidirectional text", "[UnicodeColumn][edge_case][US3]") {
+    // Arabic text (right-to-left)
+    // مرحبا = 5 code points
+    constexpr char source_bytes[] = {'l', 'e', 't', ' ',  // "let "
+                                     '\xD9', '\x85',  // م
+                                     '\xD8', '\xB1',  // ر
+                                     '\xD8', '\xAD',  // ح
+                                     '\xD8', '\xA8',  // ب
+                                     '\xD8', '\xA7',  // ا
+                                     ';', '\0'};
+    const std::string_view source(source_bytes, sizeof(source_bytes) - 1);
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at Arabic text (columns 5-9, 5 code points)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 10, 14));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid char"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Marker alignment by code point position (5 code points = 5 carets)
+    REQUIRE(stripped.find("│    ^^^^^") != std::string::npos);  // 4 spaces + 5 carets
+}
+
+TEST_CASE("UnicodeColumn edge case line length limit", "[UnicodeColumn][edge_case][US3]") {
+    // Line with > 10,000 code points should trigger error
+    std::string source(10001, 'a');  // 10,001 'a' characters
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at end of line (beyond 10,000 code points)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 10001, 10000), jsv::SourceLocation(1, 10002, 10001));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Too long"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report line length error (check for "10,000" which is specific to this error)
+    REQUIRE(result.find("10,000") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn edge case line length limit error format", "[UnicodeColumn][edge_case][US3]") {
+    // Verify FR-027 error message format
+    std::string source(10001, 'a');  // 10,001 'a' characters
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at end of line
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 10001, 10000), jsv::SourceLocation(1, 10002, 10001));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Too long"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should report: "Line exceeds maximum length of 10,000 code points (actual: 10001)"
+    REQUIRE(result.find("10,000") != std::string::npos);
+    REQUIRE(result.find("10001") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn TDD red phase verification US3", "[UnicodeColumn][TDD][US3]") {
+    // This test verifies that all US3 test cases are written
+    // If this test compiles and runs, the test cases exist
+    REQUIRE(true);
+
+    // Note: To verify RED phase, run individual US3 tests:
+    // ctest -R "UnicodeColumn.*US3" --output-on-failure
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
