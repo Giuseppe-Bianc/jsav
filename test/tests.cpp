@@ -6490,7 +6490,7 @@ TEST_CASE("LineTracker and ErrorReporter integration", "[LineTracker][ErrorRepor
         REQUIRE(stripped.find("example.jsv") != std::string::npos);
         REQUIRE(stripped.find("line 3") != std::string::npos);
         REQUIRE(stripped.find("    let y = @invalid;") != std::string::npos);  // Source line
-        REQUIRE(stripped.find("│             ^") != std::string::npos);        // Caret
+        REQUIRE(stripped.find("│             ^") != std::string::npos);        // Caret (13 spaces for column 13)
         REQUIRE(stripped.find("help:") != std::string::npos);
         REQUIRE(stripped.find("Remove the '@' character") != std::string::npos);
     }

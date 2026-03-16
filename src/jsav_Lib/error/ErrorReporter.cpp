@@ -109,24 +109,23 @@ namespace jsv {
             //   • single-line span  →  <start_offset spaces> + <caret_count × '^'>
             //   • multi-line span   →  <start_offset spaces> + '^'
             //
-            // Calculate byte offset within the source line for marker_extents()
-            const std::size_t line_start_byte_offset =
-                source_line.data() - line_tracker_.source().data();
-            
+            // Use column-based calculation for backward compatibility
+            // The column field in SourceLocation is 1-based
             std::string underline;
             
-            // Calculate marker extents using UnicodeColumn module
-            const std::size_t start_byte_in_line = span.start.absolute_pos - line_start_byte_offset;
-            const std::size_t end_byte_in_line = (start_line == end_line) 
-                ? (span.end.absolute_pos - line_start_byte_offset)
-                : start_byte_in_line;
+            // For single-line spans, use marker_extents with byte offsets within the line
+            // For multi-line spans, just show caret at start column
+            if(start_line == end_line) {
+                // Use column-based byte offset (column - 1 for 0-based index)
+                // This assumes ASCII text where byte offset = column - 1
+                const std::size_t start_byte_in_line = span.start.column - 1;
+                const std::size_t end_byte_in_line = span.end.column - 1;
 
-            auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
-            
-            if(extents_result.has_value()) {
-                const auto [leading_spaces, caret_count] = extents_result.value();
+                auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
                 
-                if(start_line == end_line) {
+                if(extents_result.has_value()) {
+                    const auto [leading_spaces, caret_count] = extents_result.value();
+                    
                     // Single-line span: use calculated leading spaces and caret count
                     underline = FORMAT("{:>{}}", "", leading_spaces);
                     
@@ -141,21 +140,17 @@ namespace jsv {
                         underline.append(caret_count, '^');
                     }
                 } else {
-                    // Multi-line span: just show single caret at start position
-                    underline = FORMAT("{:>{}}^", "", leading_spaces);
-                    if(config_.ansi_color) {
-                        underline = ansi::red_bold(underline);
-                    }
-                }
-            } else {
-                // Fallback for encoding errors: use byte-based calculation
-                // (should not happen in normal operation, but provides safety net)
-                const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
-                if(start_line == end_line) {
+                    // Fallback for encoding errors: use byte-based calculation
+                    const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
                     const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
                     underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
-                } else {
-                    underline = FORMAT("{:>{}}^", "", start_offset);
+                }
+            } else {
+                // Multi-line span: just show single caret at start position
+                const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+                underline = FORMAT("{:>{}}^", "", start_offset);
+                if(config_.ansi_color) {
+                    underline = ansi::red_bold(underline);
                 }
             }
 

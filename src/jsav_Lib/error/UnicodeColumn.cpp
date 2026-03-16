@@ -3,9 +3,9 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "error/UnicodeColumn.hpp"
-#include "headers.hpp"
-#include "lexer/unicode/Utf8.hpp"
+#include "jsav/error/UnicodeColumn.hpp"
+#include "jsav/headers.hpp"
+#include "jsav/lexer/unicode/Utf8.hpp"
 
 namespace jsv {
 
