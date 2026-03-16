@@ -74,10 +74,7 @@ visual_column(std::string_view line, std::size_t byte_offset,
     // FR-019: Skip BOM at file start (only at position 0 of the full source)
     // Note: This function receives a single line, so BOM detection is limited
     // to line 1. The caller (ErrorReporter) knows if this is line 1.
-    if(line.size() >= 3 && pos == 0 &&
-       static_cast<unsigned char>(line[0]) == 0xEF &&
-       static_cast<unsigned char>(line[1]) == 0xBB &&
-       static_cast<unsigned char>(line[2]) == 0xBF) {
+    if(line.size() >= 3 && pos == 0 && C_UC(line[0]) == 0xEF && C_UC(line[1]) == 0xBB && C_UC(line[2]) == 0xBF) {
         pos = 3;  // Skip BOM bytes
     }
 
