@@ -18,17 +18,18 @@ namespace jsv {
     // -----------------------------------------------------------------------------
     [[nodiscard]] bool detect_ansi_color() noexcept {
         // 1. Check NO_COLOR (overrides all) - per https://no-color.org/
-        if(const char *no_color = std::getenv("NO_COLOR"); no_color != nullptr && no_color[0] != '\0') { return false; }
+        if(const char *no_color = std::getenv("NO_COLOR"); no_color != nullptr) { return false; }
 
         // 2. Check COLORTERM (truecolor/24bit)
-        if(const char *colorterm = std::getenv("COLORTERM"); colorterm != nullptr) {
-            if(std::strcmp(colorterm, "truecolor") == 0 || std::strcmp(colorterm, "24bit") == 0) { return true; }
+        if(const char *colorterm = std::getenv("COLORTERM");
+           colorterm != nullptr && (std::strcmp(colorterm, "truecolor") == 0 || std::strcmp(colorterm, "24bit") == 0)) {
+            return true;
         }
 
         // 3. Check TERM (contains "color", "xterm", "screen", "tmux")
         if(const char *term = std::getenv("TERM"); term != nullptr) {
-            const std::string_view termView{term};
-            if(termView.contains("color") || termView.contains("xterm") || termView.contains("screen") || termView.contains("tmux")) {
+            if(std::strstr(term, "color") != nullptr || std::strstr(term, "xterm") != nullptr || std::strstr(term, "screen") != nullptr ||
+               std::strstr(term, "tmux") != nullptr) {
                 return true;
             }
         }
@@ -50,7 +51,8 @@ namespace jsv {
     // -----------------------------------------------------------------------------
     // visual_column
     // -----------------------------------------------------------------------------
-    [[nodiscard]] std::expected<std::size_t, std::string> visual_column(std::string_view line, std::size_t byte_offset, std::size_t tab_stop_width) noexcept {
+    [[nodiscard]] std::expected<std::size_t, std::string> visual_column(std::string_view line, std::size_t byte_offset,
+                                                                        std::size_t tab_stop_width) noexcept {
         // Defensive: clamp byte_offset to line size
         if(byte_offset > line.size()) { byte_offset = line.size(); }
 
@@ -63,7 +65,8 @@ namespace jsv {
         // FR-019: Skip BOM at file start (only at position 0 of the full source)
         // Note: This function receives a single line, so BOM detection is limited
         // to line 1. The caller (ErrorReporter) knows if this is line 1.
-        if(line.size() >= 3 && pos == 0 && C_UC(line[0]) == 0xEF && C_UC(line[1]) == 0xBB && C_UC(line[2]) == 0xBF) {
+        if(line.size() >= 3 && pos == 0 && static_cast<unsigned char>(line[0]) == 0xEF && static_cast<unsigned char>(line[1]) == 0xBB &&
+           static_cast<unsigned char>(line[2]) == 0xBF) {
             pos = 3;  // Skip BOM bytes
         }
 
@@ -97,7 +100,7 @@ namespace jsv {
 
                 // FR-028: Log error at error level
                 LERROR("{}", error_msg);
-                return std::unexpected(error_msg);
+                return std::unexpected(std::move(error_msg));
             }
 
             // FR-020: Null byte (U+0000) rejection
@@ -138,7 +141,10 @@ namespace jsv {
     // -----------------------------------------------------------------------------
     // marker_extents
     // -----------------------------------------------------------------------------
-    [[nodiscard]] std::expected<std::pair<std::size_t, std::size_t>, std::string> marker_extents(std::string_view line, std::size_t start_byte, std::size_t end_byte, std::size_t tab_stop_width) noexcept {
+    [[nodiscard]] std::expected<std::pair<std::size_t, std::size_t>, std::string> marker_extents(std::string_view line,
+                                                                                                 std::size_t start_byte,
+                                                                                                 std::size_t end_byte,
+                                                                                                 std::size_t tab_stop_width) noexcept {
         // Defensive: clamp byte offsets to line size
         if(start_byte > line.size()) { start_byte = line.size(); }
         if(end_byte > line.size()) { end_byte = line.size(); }

@@ -147,8 +147,10 @@ namespace jsv {
         FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(error_code), ansi::red(category),
                   ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
 
-        // --- Source-line block (only when the tracker found the line) -----------
-        if(!source_line.empty()) {
+        // --- Source-line block (FR-012: show marker even for empty lines) -------
+        // Check if line exists (line_number is valid) rather than if it's non-empty
+        // Empty lines should still show the marker row per FR-012
+        if(start_line <= line_tracker_.line_count()) {
             // "{start_line:4} │ {source_line}"
             // Rust: writeln!(output, "{start_line:4} │ {source_line}");
             FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
