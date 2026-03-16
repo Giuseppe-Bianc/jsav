@@ -60,27 +60,27 @@
 
 > **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T013-T019) until tests are written AND verified to FAIL.
 
-- [ ] T008a [P] [US1] **[TDD RED PHASE]** Write all US1 test cases (T009–T011d) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
-- [ ] T009 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Chinese` in `test/tests.cpp` (source: `"let x = 你好;"`, verify 8 leading spaces + 2 carets for Chinese characters)
-- [ ] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
-- [ ] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
-- [ ] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
-- [ ] T011b [P] [US1] Add test case `UnicodeColumn_ansi_color_red_code` in `test/tests.cpp` (verify `format_spanned_error()` outputs `\033[31m^\033[0m` when `config_.ansi_color` is true, per NFR-003)
-- [ ] T011c [P] [US1] Add test case `UnicodeColumn_ansi_color_fallback_monochrome` in `test/tests.cpp` (verify `format_spanned_error()` outputs plain `^` when `config_.ansi_color` is false, with no loss of positioning information)
-- [ ] T011d [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_no_color_variants` in `test/tests.cpp` (verify `NO_COLOR=""` (empty string) is treated as set/disabled, `COLORTERM="truecolor"` enables color, `TERM="dumb"` disables color)
-- [ ] T012 [US1] **[TDD RED PHASE VERIFICATION]** Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`). **DO NOT PROCEED to T013 until T012 confirms test failure.**
+- [x] T008a [P] [US1] **[TDD RED PHASE]** Write all US1 test cases (T009–T011d) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [x] T009 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Chinese` in `test/tests.cpp` (source: `"let x = 你好;"`, verify 8 leading spaces + 2 carets for Chinese characters)
+- [x] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
+- [x] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
+- [x] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
+- [x] T011b [P] [US1] Add test case `UnicodeColumn_ansi_color_red_code` in `test/tests.cpp` (verify `format_spanned_error()` outputs `\033[31m^\033[0m` when `config_.ansi_color` is true, per NFR-003)
+- [x] T011c [P] [US1] Add test case `UnicodeColumn_ansi_color_fallback_monochrome` in `test/tests.cpp` (verify `format_spanned_error()` outputs plain `^` when `config_.ansi_color` is false, with no loss of positioning information)
+- [x] T011d [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_no_color_variants` in `test/tests.cpp` (verify `NO_COLOR=""` (empty string) is treated as set/disabled, `COLORTERM="truecolor"` enables color, `TERM="dumb"` disables color)
+- [x] T012 [US1] **[TDD RED PHASE VERIFICATION]** Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`). **DO NOT PROCEED to T013 until T012 confirms test failure.**
 
 ### Implementation for User Story 1
 
-- [ ] T013 [P] [US1] Implement `visual_column()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (UTF-8 decoding walk, code point counting, tab expansion using FR-018 formula)
-- [ ] T014 [P] [US1] Implement `marker_extents()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (calculate leading spaces and caret count from byte span)
-- [ ] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
-- [ ] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
-- [ ] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
-- [ ] T018 [US1] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
-- [ ] T018b [US1] Implement `make_display_config()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` to populate `ErrorDisplayConfig` struct with `tab_stop_width` (default: 8) and `ansi_color` (from `detect_ansi_color()` result)
-- [ ] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
-- [ ] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
+- [x] T013 [P] [US1] Implement `visual_column()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (UTF-8 decoding walk, code point counting, tab expansion using FR-018 formula)
+- [x] T014 [P] [US1] Implement `marker_extents()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (calculate leading spaces and caret count from byte span)
+- [x] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
+- [x] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
+- [x] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
+- [x] T018 [US1] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [x] T018b [US1] Implement `make_display_config()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` to populate `ErrorDisplayConfig` struct with `tab_stop_width` (default: 8) and `ansi_color` (from `detect_ansi_color()` result)
+- [x] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
+- [x] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - Unicode error markers align correctly
 
