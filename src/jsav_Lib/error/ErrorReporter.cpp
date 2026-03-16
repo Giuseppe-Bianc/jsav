@@ -5,6 +5,7 @@
 
 // NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
 #include "jsav/error/ErrorReporter.hpp"
+#include "jsav/error/UnicodeColumn.hpp"
 
 namespace jsv {
 
@@ -104,24 +105,62 @@ namespace jsv {
             // Rust: writeln!(output, "{start_line:4} │ {source_line}");
             FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
 
-            // Build the underline string:
-            //   • single-line span  →  <start_offset spaces> + <length × '^'>
+            // Build the underline string using Unicode-aware column calculation:
+            //   • single-line span  →  <start_offset spaces> + <caret_count × '^'>
             //   • multi-line span   →  <start_offset spaces> + '^'
             //
-            // start_offset = start_col.saturating_sub(1)  (columns are 1-based)
-            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+            // Calculate byte offset within the source line for marker_extents()
+            const std::size_t line_start_byte_offset =
+                source_line.data() - line_tracker_.source().data();
+            
             std::string underline;
+            
+            // Calculate marker extents using UnicodeColumn module
+            const std::size_t start_byte_in_line = span.start.absolute_pos - line_start_byte_offset;
+            const std::size_t end_byte_in_line = (start_line == end_line) 
+                ? (span.end.absolute_pos - line_start_byte_offset)
+                : start_byte_in_line;
 
-            if(start_line == end_line) {
-                // Rust: let length = (end_col - start_col).max(1);
-                const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
-                underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
+            auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
+            
+            if(extents_result.has_value()) {
+                const auto [leading_spaces, caret_count] = extents_result.value();
+                
+                if(start_line == end_line) {
+                    // Single-line span: use calculated leading spaces and caret count
+                    underline = FORMAT("{:>{}}", "", leading_spaces);
+                    
+                    // Apply ANSI color if enabled
+                    if(config_.ansi_color) {
+                        // Output red carets
+                        for(std::size_t i = 0; i < caret_count; ++i) {
+                            underline += ansi::red_bold("^");
+                        }
+                    } else {
+                        // Output plain carets
+                        underline.append(caret_count, '^');
+                    }
+                } else {
+                    // Multi-line span: just show single caret at start position
+                    underline = FORMAT("{:>{}}^", "", leading_spaces);
+                    if(config_.ansi_color) {
+                        underline = ansi::red_bold(underline);
+                    }
+                }
             } else {
-                underline = FORMAT("{:>{}}^", "", start_offset);
+                // Fallback for encoding errors: use byte-based calculation
+                // (should not happen in normal operation, but provides safety net)
+                const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+                if(start_line == end_line) {
+                    const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
+                    underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
+                } else {
+                    underline = FORMAT("{:>{}}^", "", start_offset);
+                }
             }
 
             // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
-            FORMAT_TO(out, "     │ {}\n", ansi::red_bold(underline));
+            FORMAT_TO(out, "     │ {}\n", underline);
 
             // Multi-line note: "     │ ... (error spans lines X-Y)"
             if(start_line != end_line) { FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line); }
