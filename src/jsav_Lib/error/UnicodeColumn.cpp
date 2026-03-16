@@ -12,24 +12,21 @@
 #include <cstring>
 
 namespace jsv {
+// FR-027: Line length limit (10,000 code points maximum)
+constexpr std::size_t k_max_code_points = 10000;
 
 // -----------------------------------------------------------------------------
 // detect_ansi_color
 // -----------------------------------------------------------------------------
 [[nodiscard]] bool detect_ansi_color() noexcept {
     // 1. Check NO_COLOR (overrides all) - per https://no-color.org/
-    if(const char* no_color = std::getenv("NO_COLOR");
-       no_color != nullptr && no_color[0] != '\0') {
-        return false;
-    }
+    if(const char *const no_color = std::getenv("NO_COLOR"); no_color != nullptr 
+    && !std::string_view{no_color}.empty()) { return false; }
 
     // 2. Check COLORTERM (truecolor/24bit)
-    if(const char* colorterm = std::getenv("COLORTERM");
-       colorterm != nullptr) {
-        if(std::strcmp(colorterm, "truecolor") == 0 ||
-           std::strcmp(colorterm, "24bit") == 0) {
-            return true;
-        }
+    if(const char *const colorterm = std::getenv("COLORTERM"); colorterm != nullptr) {
+        const std::string_view colorterm_view{colorterm};
+        if(colorterm_view == "truecolor" || colorterm_view == "24bit") { return true; }
     }
 
     // 3. Check TERM (contains "color", "xterm", "screen", "tmux")
@@ -64,9 +61,6 @@ visual_column(std::string_view line, std::size_t byte_offset,
     if(byte_offset > line.size()) {
         byte_offset = line.size();
     }
-
-    // FR-027: Line length limit (10,000 code points maximum)
-    constexpr std::size_t k_max_code_points = 10000;
 
     std::size_t col = 1;  // 1-based visual column
     std::size_t pos = 0;  // Current byte position
@@ -176,7 +170,6 @@ marker_extents(std::string_view line, std::size_t start_byte, std::size_t end_by
     std::size_t caret_count = 0;
     std::size_t pos = start_byte;
     std::size_t code_point_count = 0;
-    constexpr std::size_t k_max_code_points = 10000;
 
     while(pos < end_byte && pos < line.size()) {
         const auto res = jsv::unicode::decode_utf8(line, pos);
