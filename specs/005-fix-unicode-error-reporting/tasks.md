@@ -38,13 +38,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/location/LineTracker.hpp` (one-liner inline function returning `std::string_view` of full source text for FR-024 integration)
-- [ ] T004a [P] Modify `ErrorReporter::format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to retrieve source text via `line_tracker_.source()` before Unicode column calculation (implements FR-024 requirement: ErrorReporter queries LineTracker for source line content)
-- [ ] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
-- [ ] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
-- [ ] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
-- [ ] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
-- [ ] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig` (**Note**: No circular include risk — `ErrorReporter.hpp` already includes `LineTracker.hpp`, and `UnicodeColumn.hpp` depends only on standard library, not on `LineTracker.hpp`)`
+- [x] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/location/LineTracker.hpp` (one-liner inline function returning `std::string_view` of full source text for FR-024 integration)
+- [x] T004a [P] Modify `ErrorReporter::format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to retrieve source text via `line_tracker_.source()` before Unicode column calculation (implements FR-024 requirement: ErrorReporter queries LineTracker for source line content)
+- [x] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
+- [x] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
+- [x] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [x] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
+- [x] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig` (**Note**: No circular include risk — `ErrorReporter.hpp` already includes `LineTracker.hpp`, and `UnicodeColumn.hpp` depends only on standard library, not on `LineTracker.hpp`)`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
