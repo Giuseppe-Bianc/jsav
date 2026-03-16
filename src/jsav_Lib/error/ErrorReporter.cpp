@@ -117,9 +117,12 @@ namespace jsv {
             // For multi-line spans, just show caret at start column
             if(start_line == end_line) {
                 // Use column-based byte offset (column - 1 for 0-based index)
-                // This assumes ASCII text where byte offset = column - 1
-                const std::size_t start_byte_in_line = span.start.column - 1;
-                const std::size_t end_byte_in_line = span.end.column - 1;
+                // Handle column 0 as column 1 (defensive programming)
+                const std::size_t start_column = (start_col > 0) ? start_col : 1;
+                const std::size_t end_column = (end_col > 0) ? end_col : start_column + 1;
+                
+                const std::size_t start_byte_in_line = start_column - 1;
+                const std::size_t end_byte_in_line = end_column - 1;
 
                 auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
                 
