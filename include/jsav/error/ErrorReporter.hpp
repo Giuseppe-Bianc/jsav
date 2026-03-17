@@ -109,23 +109,22 @@ namespace jsv {
         ///
         /// @param line_tracker  A fully-constructed `LineTracker` for the source
         ///                      being compiled.
-        explicit ErrorReporter(const LineTracker &line_tracker) noexcept
-            : line_tracker_(line_tracker), config_(make_display_config()) {}
+        explicit ErrorReporter(const LineTracker &line_tracker) noexcept : line_tracker_(line_tracker), config_(make_display_config()) {}
 
         /// @brief Construct a reporter with custom display configuration.
         ///
         /// This constructor allows explicit configuration of tab stop width and
-        /// ANSI color output. For automatic environment-based configuration,
-        /// use the single-argument constructor which calls make_display_config().
+        /// ANSI color output for error marker display. Use this when you need to
+        /// override the default environment-based settings (e.g., for testing or CI).
         ///
         /// @param line_tracker  A fully-constructed `LineTracker` for the source
-        ///                      being compiled.
+        ///                      being compiled. Must outlive this object.
         /// @param config        Display configuration for tab expansion and ANSI color.
+        ///                      See ErrorDisplayConfig for details.
         ///
         /// @see make_display_config(), ErrorDisplayConfig
-        ErrorReporter(const LineTracker &line_tracker,
-                      const ErrorDisplayConfig &config) noexcept
-            : line_tracker_(line_tracker), config_(config) {}
+        ErrorReporter(const LineTracker &line_tracker, const ErrorDisplayConfig &config) noexcept
+          : line_tracker_(line_tracker), config_(config) {}
 
         ErrorReporter() = delete;
         ErrorReporter(const ErrorReporter &) = delete;
@@ -188,8 +187,11 @@ namespace jsv {
         /// offending source line for display in `format_spanned_error`.
         LineTracker line_tracker_;
 
-        /// Display configuration for tab expansion and ANSI color output.
-        /// Controls visual appearance of error markers (carets).
+        /// @brief Display configuration for tab expansion and ANSI color output.
+        ///
+        /// Controls the visual appearance of error markers (carets) in formatted
+        /// diagnostics. Set via the constructor; immutable after construction.
+        ///
         /// @see ErrorDisplayConfig, make_display_config()
         ErrorDisplayConfig config_;
     };

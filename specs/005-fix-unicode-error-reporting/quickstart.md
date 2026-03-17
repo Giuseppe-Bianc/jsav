@@ -185,6 +185,55 @@ Ford et al. (FSE 2018) found:
 
 ## Quick Start (5 Minutes)
 
+### Using the UnicodeColumn Module Directly
+
+The `UnicodeColumn` module provides standalone functions for Unicode-aware column and marker calculations. These can be used independently of the error reporter for custom diagnostics, editor integrations, or advanced tooling.
+
+#### Example: Calculate Visual Column
+
+```cpp
+#include "jsav/error/UnicodeColumn.hpp"
+#include <iostream>
+
+std::string line = "let x = 你好;";
+std::size_t byte_offset = 8; // Byte offset of '你'
+auto col_result = jsv::visual_column(line, byte_offset);
+if (col_result) {
+    std::cout << "Visual column: " << *col_result << std::endl; // Should print 9
+} else {
+    std::cerr << "Error: " << col_result.error() << std::endl;
+}
+```
+
+#### Example: Compute Marker Extents
+
+```cpp
+std::string line = "let x = 你好;";
+auto extents = jsv::marker_extents(line, 8, 11); // Span covering '你'
+if (extents) {
+    auto [leading, width] = *extents;
+    std::cout << "Leading spaces: " << leading << ", Caret count: " << width << std::endl;
+} else {
+    std::cerr << "Error: " << extents.error() << std::endl;
+}
+```
+
+#### Example: Detect ANSI Color Support
+
+```cpp
+bool color = jsv::detect_ansi_color();
+std::cout << "ANSI color supported: " << std::boolalpha << color << std::endl;
+```
+
+#### Example: Create Display Config with Environment Detection
+
+```cpp
+auto config = jsv::make_display_config();
+std::cout << "Tab stop width: " << config.tab_stop_width << ", ANSI color: " << config.ansi_color << std::endl;
+```
+
+---
+
 ### Prerequisites
 
 - jsav compiler built from branch `005-fix-unicode-error-reporting`
@@ -644,6 +693,45 @@ Use this checklist to verify edge case handling:
 ---
 
 ## Troubleshooting
+
+### UnicodeColumn Module: Common Issues
+
+#### Problem: visual_column returns error
+
+**Symptom**: `visual_column` or `marker_extents` returns an error message instead of a column value.
+
+**Possible Causes**:
+
+| Cause | Diagnosis | Fix |
+|-------|-----------|-----|
+| Invalid UTF-8 | Input string contains invalid UTF-8 | Ensure input is valid UTF-8 |
+| Null byte | Input contains `\x00` | Remove null bytes from input |
+| Line too long | >10,000 code points | Shorten line or split input |
+| Tab stop width = 0 | Precondition violated | Pass tab_stop_width > 0 |
+
+**Debug Steps**:
+1. Print the error message returned by the function.
+2. Check the input string for encoding issues (use a hex editor or `hexdump`).
+3. Verify tab_stop_width is set to a positive integer.
+4. For persistent issues, add logging before calling the function to inspect parameters.
+
+#### Problem: Caret alignment incorrect in custom usage
+
+**Symptom**: Carets do not align under the expected Unicode characters when using `marker_extents` directly.
+
+**Possible Causes**:
+| Cause | Diagnosis | Fix |
+|-------|-----------|-----|
+| Wrong byte offsets | Byte offsets do not match code point boundaries | Use a UTF-8 aware method to determine byte offsets |
+| Tab stop width mismatch | Using a different tab_stop_width than intended | Ensure consistent tab_stop_width in all calls |
+| BOM not handled | BOM present in input | Use `visual_column` logic to skip BOM at file start |
+
+**Debug Steps**:
+1. Print both the input string and the byte offsets used.
+2. Use `visual_column` to verify the computed column for the given byte offset.
+3. Compare with expected output using the examples above.
+
+---
 
 ### Problem: Carets Misaligned
 

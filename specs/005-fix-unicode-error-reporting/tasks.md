@@ -185,14 +185,14 @@
 - [X] T052c [P] Add benchmark test case `UnicodeColumn_performance_format_spanned_error` in **existing** `test/benchmarks.cpp` (verify ≤1ms at p95, ≤5ms at p99 per NFR-001). **Note**: Benchmark `ErrorReporter::format_spanned_error()` with Unicode-containing source; tag with `[!benchmark][ErrorReporter][performance]`.
 - [X] T052d [P] Add test case `UnicodeColumn_no_fallback_mixed_valid_invalid` in `test/tests.cpp` (SC-005 verification: valid UTF-8 lines use code point calculation even when file contains invalid UTF-8 on other lines, proves no file-wide byte-based fallback)
 - [x] T053 Run full test suite to ensure all tests pass (`ctest --output-on-failure`)
-- [ ] T054 [P] Update **existing** `specs/005-fix-unicode-error-reporting/quickstart.md` with UnicodeColumn usage examples and troubleshooting guide (verify examples work by running actual compiler). **Note**: File already exists; add sections for Unicode error reporting, ANSI color configuration, and performance benchmarking instructions.
-- [ ] T055 [P] Add Doxygen comments to all public functions in `include/jsav/error/UnicodeColumn.hpp`
-- [ ] T055a [P] Add Doxygen comments to modified `ErrorReporter.hpp` (two-argument constructor, `config_` member variable of type `ErrorDisplayConfig`)
-- [ ] T056 [P] Run clang-format on all modified files (`clang-format -i src/jsav_Lib/error/*.cpp include/jsav/error/*.hpp`)
-- [ ] T057 [P] Run clang-tidy on all modified files (verify zero issues with `jsav_ENABLE_CLANG_TIDY=ON`)
-- [ ] T058 [P] Run cppcheck on all modified files (verify zero issues with `jsav_ENABLE_CPPCHECK=ON`)
-- [ ] T059 [P] Run AddressSanitizer test suite (verify zero memory leaks with `jsav_ENABLE_SANITIZER_ADDRESS=ON`)
-- [ ] T060 [P] Run UndefinedBehaviorSanitizer test suite (verify zero UB violations with `jsav_ENABLE_SANITIZER_UNDEFINED=ON`)
+- [x] T054 [P] Update **existing** `specs/005-fix-unicode-error-reporting/quickstart.md` with UnicodeColumn usage examples and troubleshooting guide (verify examples work by running actual compiler). **Note**: File already exists; add sections for Unicode error reporting, ANSI color configuration, and performance benchmarking instructions.
+- [x] T055 [P] Add Doxygen comments to all public functions in `include/jsav/error/UnicodeColumn.hpp`
+- [x] T055a [P] Add Doxygen comments to modified `ErrorReporter.hpp` (two-argument constructor, `config_` member variable of type `ErrorDisplayConfig`)
+- [x] T056 [P] Run clang-format on all modified files (`clang-format -i src/jsav_Lib/error/*.cpp include/jsav/error/*.hpp`)
+- [x] T057 [P] Run clang-tidy on all modified files (verify zero issues with `jsav_ENABLE_CLANG_TIDY=ON`)
+- [x] T058 [P] Run cppcheck on all modified files (verify zero issues with `jsav_ENABLE_CPPCHECK=ON`)
+- [x] T059 [P] Run AddressSanitizer test suite (verify zero memory leaks with `jsav_ENABLE_SANITIZER_ADDRESS=ON`)
+- [x] T060 [P] Run UndefinedBehaviorSanitizer test suite (verify zero UB violations with `jsav_ENABLE_SANITIZER_UNDEFINED=ON`)
 
 ---
 
