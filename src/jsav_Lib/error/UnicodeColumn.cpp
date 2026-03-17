@@ -13,17 +13,20 @@ namespace jsv {
     [[nodiscard]] bool detect_ansi_color() noexcept {
         // 1. Check NO_COLOR (overrides all)
         // Per https://no-color.org/ - any non-empty value disables color
-        if(const char *no_color = std::getenv("NO_COLOR"); no_color != nullptr && no_color[0] != '\0') { return false; }
+        if(const char *no_color_raw = std::getenv("NO_COLOR"); no_color_raw != nullptr) {
+            if(const std::string_view no_color{no_color_raw}; !no_color.empty()) { return false; }
+        }
 
         // 2. Check COLORTERM (truecolor/24bit)
-        if(const char *colorterm = std::getenv("COLORTERM"); colorterm != nullptr) {
-            if(std::strcmp(colorterm, "truecolor") == 0 || std::strcmp(colorterm, "24bit") == 0) { return true; }
+        if(const char *colorterm_raw = std::getenv("COLORTERM"); colorterm_raw != nullptr) {
+            if(const std::string_view colorterm{colorterm_raw}; colorterm == "truecolor" || colorterm == "24bit") { return true; }
         }
 
         // 3. Check TERM (contains "color", "xterm", "screen", or "tmux")
-        if(const char *term = std::getenv("TERM"); term != nullptr) {
-            if(std::strstr(term, "color") != nullptr || std::strstr(term, "xterm") != nullptr || std::strstr(term, "screen") != nullptr ||
-               std::strstr(term, "tmux") != nullptr) {
+        if(const char *term_raw = std::getenv("TERM"); term_raw != nullptr) {
+            if(const std::string_view term{term_raw};
+               term.find("color") != std::string_view::npos || term.find("xterm") != std::string_view::npos ||
+               term.find("screen") != std::string_view::npos || term.find("tmux") != std::string_view::npos) {
                 return true;
             }
         }
