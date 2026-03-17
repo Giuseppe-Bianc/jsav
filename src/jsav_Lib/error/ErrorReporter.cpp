@@ -86,10 +86,11 @@ namespace jsv {
         const auto [leading_spaces, caret_count] = *extents_result;
         std::string underline = FORMAT("{:>{}}", "", leading_spaces);
 
+        const std::string carets(caret_count, '^');
         if(config_.ansi_color) {
-            for(std::size_t i = 0; i < caret_count; ++i) { underline += ansi::red_bold("^"); }
+            underline += ansi::red_bold(carets);
         } else {
-            underline.append(caret_count, '^');
+            underline += carets;
         }
 
         return underline;
