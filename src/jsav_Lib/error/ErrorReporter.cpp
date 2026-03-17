@@ -3,17 +3,17 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-// NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
+// NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-identifier-length)
 #include "jsav/error/ErrorReporter.hpp"
 
 namespace jsv {
+    constexpr auto ERROR_EST_SIZE = 256u;
 
     // ---------------------------------------------------------------------------
     // Helpers – local to this translation unit
     // ---------------------------------------------------------------------------
 
     namespace details {
-
         /// Builds the "[Exxxx] " fragment that optionally prefixes the category.
         /// Returns a single space when @p code is absent (mirrors the Rust
         /// `code.map_or_else(|| " ".to_string(), |c| format!(" [{}] ", …))` call).
@@ -41,6 +41,112 @@ namespace jsv {
     std::string ErrorReporter::format_simple_error(std::string_view error_type, std::string_view msg, std::optional<ErrorCode> code) {
         return FORMAT("{}{}{}: {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(code), ansi::red(error_type),
                       ansi::yellow(msg));
+    }
+
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::build_underline
+    // ---------------------------------------------------------------------------
+    //
+    // Builds the caret underline for a single source line annotation.
+    //
+    //   • Single-line span  →  <leading spaces> + <caret_count × '^'>
+    //     Uses marker_extents() for Unicode-aware column calculation.
+    //     Falls back to byte-based arithmetic on decoding failure.
+    //
+    //   • Multi-line span   →  <leading spaces> + '^'
+    //
+    // ---------------------------------------------------------------------------
+    std::string ErrorReporter::build_underline(std::string_view source_line, const SourceSpan &span) const {
+        const std::size_t start_col = span.start.column;
+        const std::size_t end_col = span.end.column;
+
+        // --- Multi-line span: single caret at start position -------------------
+        if(span.start.line != span.end.line) {
+            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+            const std::string underline = FORMAT("{:>{}}^", "", start_offset);
+            return config_.ansi_color ? ansi::red_bold(underline) : underline;
+        }
+
+        // --- Single-line span: Unicode-aware marker extents --------------------
+        const std::size_t start_column = (start_col > 0) ? start_col : 1;
+        const std::size_t end_column = (end_col > 0) ? end_col : start_column + 1;
+
+        const std::size_t start_byte_in_line = start_column - 1;
+        const std::size_t end_byte_in_line = end_column - 1;
+
+        auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
+
+        // Fallback for encoding errors: use byte-based calculation
+        if(!extents_result.has_value()) {
+            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+            const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
+            return FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
+        }
+
+        const auto [leading_spaces, caret_count] = *extents_result;
+        std::string underline = FORMAT("{:>{}}", "", leading_spaces);
+
+        const std::string carets(caret_count, '^');
+        if(config_.ansi_color) {
+            underline += ansi::red_bold(carets);
+        } else {
+            underline += carets;
+        }
+
+        return underline;
+    }
+
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::colorize
+    // ---------------------------------------------------------------------------
+    //
+    // Helper function to conditionally apply ANSI color based on config_.ansi_color.
+    // When ansi_color is true, applies the color function to the text.
+    // Otherwise, returns the plain text unchanged.
+    //
+    // ---------------------------------------------------------------------------
+    std::string ErrorReporter::colorize(std::string_view text, std::function<std::string(std::string_view)> color_fn) const {
+        if(config_.ansi_color) { return color_fn(text); }
+        return std::string(text);
+    }
+
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::append_encoding_note
+    // ---------------------------------------------------------------------------
+    //
+    // FR-025, FR-026: For UTF-8 validation errors, appends a `note:` block
+    // with byte offset and line number.  Performs a case-insensitive keyword
+    // scan of the error message; silently returns when no encoding-related
+    // keyword is found or when the source line is empty.
+    //
+    // ---------------------------------------------------------------------------
+    void ErrorReporter::append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span,
+                                             std::string_view source_line) const {
+        if(source_line.empty()) { return; }
+
+        std::string msg_lower(msg);
+        std::ranges::transform(msg_lower, msg_lower.begin(), [](unsigned char c) { return C_C(std::tolower(c)); });
+
+        const bool is_encoding = msg_lower.find("utf-8") != std::string::npos || msg_lower.find("encoding") != std::string::npos ||
+                                 msg_lower.find("null byte") != std::string::npos || msg_lower.find("overlong") != std::string::npos ||
+                                 msg_lower.find("surrogate") != std::string::npos;
+        if(!is_encoding) { return; }
+
+        // Build enhanced error message with Unicode code point if applicable
+        std::string enhanced(msg);
+        if(msg_lower.find("null byte") != std::string::npos) {
+            enhanced += " (U+0000)";
+        } else if(msg_lower.find("surrogate") != std::string::npos) {
+            enhanced += " (U+D800–U+DFFF)";
+        }
+
+        const std::size_t byte_offset = span.start.absolute_pos;
+        const std::size_t start_line = span.start.line;
+
+        auto out = std::back_inserter(output);
+        FORMAT_TO(out, "     │\n");
+        FORMAT_TO(out, "     │ {} {} {}, {} {}\n", colorize("note:", ansi::blue), enhanced, colorize("at byte offset", ansi::cyan),
+                  colorize(FORMAT("{}", byte_offset), ansi::yellow), colorize(FORMAT("line {}", start_line), ansi::cyan));
     }
 
     // ---------------------------------------------------------------------------
@@ -72,64 +178,34 @@ namespace jsv {
         const std::optional<ErrorCode> error_code = error.error_code();
         const std::string_view msg = error.message();
         const SourceSpan &span = error.span();
-
-        const std::size_t start_line = span.start.line;
-        const std::size_t start_col = span.start.column;
-        const std::size_t end_line = span.end.line;
-        const std::size_t end_col = span.end.column;
-
-        // Retrieve the offending source line (O(1), zero-copy view).
-        // Mirrors: `self.line_tracker.get_line(start_line).unwrap_or_default()`
-        const std::string_view source_line = line_tracker_.get_line(start_line);
-
-        const std::size_t estimated = 100u + msg.size() + category.size() + (error_code.has_value() ? 12u : 0u)  // "[Exxxx] "
-                                      + 40u                                                                      // location line
-                                      + source_line.size() + 20u                                                 // source line row
-                                      + start_col + 10u                                                          // underline row
-                                      + (start_line != end_line ? 40u : 0u)                                      // multi-line note
-                                      + (error.help().has_value() ? 20u : 0u);                                   // help line
+        const std::string_view source_line = line_tracker_.get_line(span.start.line);
 
         std::string output;
-        output.reserve(estimated);
+        output.reserve(ERROR_EST_SIZE + msg.size() + source_line.size());
         auto out = std::back_inserter(output);
 
         // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
         //             Location: <span>
-        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(error_code), ansi::red(category),
-                  ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
+        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", colorize("ERROR", ansi::red_bold), details::error_code_fragment(error_code),
+                  colorize(category, ansi::red), colorize(msg, ansi::yellow), colorize("Location:", ansi::blue),
+                  colorize(FORMAT("{}", span), ansi::cyan));
 
         // --- Source-line block (only when the tracker found the line) -----------
         if(!source_line.empty()) {
-            // "{start_line:4} │ {source_line}"
-            // Rust: writeln!(output, "{start_line:4} │ {source_line}");
-            FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
+            FORMAT_TO(out, "{:4} │ {}\n", span.start.line, source_line);
+            FORMAT_TO(out, "     │ {}\n", build_underline(source_line, span));
 
-            // Build the underline string:
-            //   • single-line span  →  <start_offset spaces> + <length × '^'>
-            //   • multi-line span   →  <start_offset spaces> + '^'
-            //
-            // start_offset = start_col.saturating_sub(1)  (columns are 1-based)
-            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
-            std::string underline;
-
-            if(start_line == end_line) {
-                // Rust: let length = (end_col - start_col).max(1);
-                const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
-                underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
-            } else {
-                underline = FORMAT("{:>{}}^", "", start_offset);
+            if(span.start.line != span.end.line) {
+                FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", colorize("...", ansi::blue), span.start.line, span.end.line);
             }
-
-            // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
-            FORMAT_TO(out, "     │ {}\n", ansi::red_bold(underline));
-
-            // Multi-line note: "     │ ... (error spans lines X-Y)"
-            if(start_line != end_line) { FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line); }
         }
+
+        // --- Encoding error note (FR-025, FR-026) ------------------------------
+        append_encoding_note(output, msg, span, source_line);
 
         // --- Help line (optional) -----------------------------------------------
         if(const auto help_opt = error.help(); help_opt.has_value()) {
-            FORMAT_TO(out, "{} {}\n", ansi::blue_bold("help:"), ansi::green(**help_opt));
+            FORMAT_TO(out, "{} {}\n", colorize("help:", ansi::blue_bold), colorize(*help_opt.value(), ansi::green));
         }
 
         return output;
@@ -188,4 +264,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
+// NOLINTEND(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-identifier-length)

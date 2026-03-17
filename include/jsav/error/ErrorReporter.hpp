@@ -9,6 +9,7 @@
 #include "../headers.hpp"
 #include "../location/LineTracker.hpp"
 #include "CompileError.hpp"
+#include "UnicodeColumn.hpp"
 
 namespace jsv {
 
@@ -108,7 +109,22 @@ namespace jsv {
         ///
         /// @param line_tracker  A fully-constructed `LineTracker` for the source
         ///                      being compiled.
-        explicit ErrorReporter(const LineTracker &line_tracker) noexcept : line_tracker_(line_tracker) {}
+        explicit ErrorReporter(const LineTracker &line_tracker) noexcept : line_tracker_(line_tracker), config_(make_display_config()) {}
+
+        /// @brief Construct a reporter with custom display configuration.
+        ///
+        /// This constructor allows explicit configuration of tab stop width and
+        /// ANSI color output for error marker display. Use this when you need to
+        /// override the default environment-based settings (e.g., for testing or CI).
+        ///
+        /// @param line_tracker  A fully-constructed `LineTracker` for the source
+        ///                      being compiled. Must outlive this object.
+        /// @param config        Display configuration for tab expansion and ANSI color.
+        ///                      See ErrorDisplayConfig for details.
+        ///
+        /// @see make_display_config(), ErrorDisplayConfig
+        ErrorReporter(const LineTracker &line_tracker, const ErrorDisplayConfig &config) noexcept
+          : line_tracker_(line_tracker), config_(config) {}
 
         ErrorReporter() = delete;
         ErrorReporter(const ErrorReporter &) = delete;
@@ -167,9 +183,56 @@ namespace jsv {
         [[nodiscard]] static std::string format_simple_error(std::string_view error_type, std::string_view msg,
                                                              std::optional<ErrorCode> code);
 
+        /// @brief Builds the caret underline string for a source-line annotation.
+        ///
+        /// Handles both single-line spans (multiple `^` carets aligned via
+        /// `marker_extents`) and multi-line spans (single `^` at the start
+        /// column).  Falls back to byte-based column arithmetic when
+        /// `marker_extents` reports a decoding error.
+        ///
+        /// @param source_line  The source text of the line being annotated.
+        /// @param span         The error span (used for start/end column and
+        ///                     single-vs-multi-line detection).
+        /// @return A string of spaces and carets, optionally ANSI-coloured.
+        [[nodiscard]] std::string build_underline(std::string_view source_line, const SourceSpan &span) const;
+
+        /// @brief Appends an encoding-error note block when the message describes
+        ///        a UTF-8 or null-byte validation failure (FR-025, FR-026).
+        ///
+        /// Performs a case-insensitive keyword scan of @p msg for encoding-related
+        /// terms (`"utf-8"`, `"encoding"`, `"null byte"`, `"overlong"`,
+        /// `"surrogate"`).  When matched, a `note:` line is appended to @p output
+        /// with the byte offset and line number of the error.
+        ///
+        /// @param[in,out] output       The diagnostic string being built.
+        /// @param         msg          The error message to inspect.
+        /// @param         span         Source span (provides byte offset / line).
+        /// @param         source_line  The source line text (note is suppressed
+        ///                             when empty).
+        void append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span, std::string_view source_line) const;
+
+        /// @brief Conditionally applies ANSI color based on config_.ansi_color.
+        ///
+        /// When config_.ansi_color is true, applies the color function @p color_fn
+        /// to @p text. Otherwise, returns the plain text unchanged. This ensures
+        /// consistent color behavior across all diagnostic output.
+        ///
+        /// @param text      The text to potentially colorize.
+        /// @param color_fn  A function that applies ANSI color to a string_view.
+        /// @return Colored text if ansi_color is enabled, otherwise plain text.
+        [[nodiscard]] std::string colorize(std::string_view text, std::function<std::string(std::string_view)> color_fn) const;
+
         /// The line index built from the source text — used to retrieve the
         /// offending source line for display in `format_spanned_error`.
         LineTracker line_tracker_;
+
+        /// @brief Display configuration for tab expansion and ANSI color output.
+        ///
+        /// Controls the visual appearance of error markers (carets) in formatted
+        /// diagnostics. Set via the constructor; immutable after construction.
+        ///
+        /// @see ErrorDisplayConfig, make_display_config()
+        ErrorDisplayConfig config_;
     };
 
 }  // namespace jsv

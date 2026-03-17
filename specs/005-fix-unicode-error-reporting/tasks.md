@@ -1,0 +1,387 @@
+# Tasks: Unicode-Aware Error Reporter
+
+**Input**: Design documents from `/specs/005-fix-unicode-error-reporting/`
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, quickstart.md
+
+**Tests**: Tests are INCLUDED as requested in spec.md (P1/P2/P3 test fixtures required for validation).
+
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+## Format: `[ID] [P?] [Story] Description`
+
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
+
+## Path Conventions
+
+- **Single project**: `src/`, `test/` at repository root
+- **Headers**: `include/jsav/`
+- **Implementation**: `src/jsav_Lib/`
+- **Core Library**: `src/jsav_Core_lib/`
+
+---
+
+## Phase 1: Setup (Shared Infrastructure)
+
+**Purpose**: Project initialization and build system updates
+
+- [x] T001 Create `include/jsav/error/` directory for error reporting module
+- [x] T002 Create `src/jsav_Lib/error/` directory for error reporting implementation
+- [x] T003 [P] Update `src/jsav_Lib/CMakeLists.txt` to include `error/UnicodeColumn.cpp` in `jsav_lib` target sources
+
+---
+
+## Phase 2: Foundational (Blocking Prerequisites)
+
+**Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
+
+**⚠️ CRITICAL**: No user story work can begin until this phase is complete
+
+- [x] T004 [P] Add `source()` accessor to `LineTracker` class in `include/jsav/location/LineTracker.hpp` (one-liner inline function returning `std::string_view` of full source text for FR-024 integration)
+- [x] T004a [P] Modify `ErrorReporter::format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to retrieve source text via `line_tracker_.source()` before Unicode column calculation (implements FR-024 requirement: ErrorReporter queries LineTracker for source line content)
+- [x] T005 [P] Create `UnicodeColumn.hpp` public header in `include/jsav/error/UnicodeColumn.hpp` with function declarations for `detect_ansi_color()`, `make_display_config()`, `visual_column()`, `marker_extents()`
+- [x] T006 Create `UnicodeColumn.cpp` implementation in `src/jsav_Lib/error/UnicodeColumn.cpp` with UTF-8 decoding logic, tab expansion, BOM handling, null byte rejection
+- [x] T006a [P] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [x] T007 [P] Add `ErrorDisplayConfig` struct definition to `include/jsav/error/UnicodeColumn.hpp` (tab_stop_width, ansi_color fields)
+- [x] T008 [P] Update `ErrorReporter.hpp` to include `UnicodeColumn.hpp` and add `config_` member variable of type `ErrorDisplayConfig` (**Note**: No circular include risk — `ErrorReporter.hpp` already includes `LineTracker.hpp`, and `UnicodeColumn.hpp` depends only on standard library, not on `LineTracker.hpp`)`
+
+**Checkpoint**: Foundation ready - user story implementation can now begin in parallel
+
+---
+
+## Phase 3: User Story 1 - Unicode Source File Error Positioning (Priority: P1) 🎯 MVP
+
+**Goal**: Implement code point-based column calculation so error markers align precisely with Unicode characters in source files
+
+**Independent Test**: Compile a source file containing multi-byte Unicode characters (Chinese, Greek, emoji) with a deliberate syntax error and verify the caret marker (^) aligns visually under the correct character in the displayed source line
+
+### Tests for User Story 1 ⚠️
+
+> **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T013-T019) until tests are written AND verified to FAIL.
+
+- [x] T008a [P] [US1] **[TDD RED PHASE]** Write all US1 test cases (T009–T011d) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [x] T009 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Chinese` in `test/tests.cpp` (source: `"let x = 你好;"`, verify 8 leading spaces + 2 carets for Chinese characters)
+- [x] T010 [P] [US1] Add test case `UnicodeColumn_marker_alignment_Greek` in `test/tests.cpp` (source: `"let αβγ = 123;"`, verify 4 leading spaces + 3 carets for Greek letters)
+- [x] T011 [P] [US1] Add test case `UnicodeColumn_marker_alignment_emoji` in `test/tests.cpp` (source: `"let x = 😀;"`, verify correct column for emoji code point)
+- [x] T011a [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_environment` in `test/tests.cpp` (verify `detect_ansi_color()` returns false when `NO_COLOR` set, true when `COLORTERM` or `TERM` set, false otherwise)
+- [x] T011b [P] [US1] Add test case `UnicodeColumn_ansi_color_red_code` in `test/tests.cpp` (verify `format_spanned_error()` outputs `\033[31m^\033[0m` when `config_.ansi_color` is true, per NFR-003)
+- [x] T011c [P] [US1] Add test case `UnicodeColumn_ansi_color_fallback_monochrome` in `test/tests.cpp` (verify `format_spanned_error()` outputs plain `^` when `config_.ansi_color` is false, with no loss of positioning information)
+- [x] T011d [P] [US1] Add test case `UnicodeColumn_detect_ansi_color_no_color_variants` in `test/tests.cpp` (verify `NO_COLOR=""` (empty string) is treated as set/disabled, `COLORTERM="truecolor"` enables color, `TERM="dumb"` disables color)
+- [x] T012 [US1] **[TDD RED PHASE VERIFICATION]** Verify all US1 tests FAIL before implementation (run `ctest -R "US1" --output-on-failure`). **DO NOT PROCEED to T013 until T012 confirms test failure.**
+
+### Implementation for User Story 1
+
+- [x] T013 [P] [US1] Implement `visual_column()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (UTF-8 decoding walk, code point counting, tab expansion using FR-018 formula)
+- [x] T014 [P] [US1] Implement `marker_extents()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (calculate leading spaces and caret count from byte span)
+- [x] T015 [US1] Add two-argument constructor to `ErrorReporter` class in `include/jsav/error/ErrorReporter.hpp` (accepts `ErrorDisplayConfig` parameter)
+- [x] T016 [US1] Modify existing `ErrorReporter` constructor in `src/jsav_Lib/error/ErrorReporter.cpp` to call `make_display_config()` for default configuration
+- [x] T017 [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to call `marker_extents()` instead of byte-based calculation
+- [x] T018 [US1] Implement `detect_ansi_color()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` (check `NO_COLOR` env var first, then `COLORTERM` or `TERM` for ANSI support per NFR-003)
+- [x] T018b [US1] Implement `make_display_config()` function in `src/jsav_Lib/error/UnicodeColumn.cpp` to populate `ErrorDisplayConfig` struct with `tab_stop_width` (default: 8) and `ansi_color` (from `detect_ansi_color()` result)
+- [x] T018a [US1] Modify `format_spanned_error()` in `src/jsav_Lib/error/ErrorReporter.cpp` to use red ANSI carets (`\033[31m^\033[0m`) when `config_.ansi_color` is true, plain `^` otherwise
+- [x] T019 [US1] Run US1 tests and verify all PASS (`ctest -R "US1" --output-on-failure`)
+
+**Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - Unicode error markers align correctly
+
+---
+
+## Phase 4: User Story 2 - Invalid UTF-8 Detection and Reporting (Priority: P2)
+
+**Goal**: Detect and report invalid UTF-8 byte sequences with clear error messages identifying exact byte offset and line number
+
+**Independent Test**: Provide a source file with intentionally invalid UTF-8 byte sequences and verify the compiler reports a specific encoding error with byte offset and line number, rather than misinterpreting the bytes or producing misaligned markers
+
+### Tests for User Story 2 ⚠️
+
+> **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T025-T032) until tests are written AND verified to FAIL.
+
+- [X] T019a [P] [US2] **[TDD RED PHASE]** Write all US2 test cases (T020–T023b) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [X] T020 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_detection` in `test/tests.cpp` (source with invalid bytes `\xFF\xFE`, verify encoding error message with byte offset)
+- [X] T021 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_null_byte` in `test/tests.cpp` (source with null byte `\x00`, verify "Null byte (U+0000)" error message)
+- [X] T022 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong` in `test/tests.cpp` (overlong encoding `\xC0\x80`, verify encoding error)
+- [X] T022a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong_error_format` in `test/tests.cpp` (verify FR-025 error message format: "Overlong UTF-8 encoding at byte offset X, line Y" with actual byte offset and line number)
+- [X] T023 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate` in `test/tests.cpp` (surrogate half `\xED\xA0\x80`, verify encoding error)
+- [X] T023a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate_error_format` in `test/tests.cpp` (verify FR-026 error message format: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset X, line Y" with actual byte offset and line number)
+- [X] T023b [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_mixed_errors` in `test/tests.cpp` (source with both overlong encoding and surrogate half, verify both errors reported with correct byte offsets)
+- [X] T024 [US2] **[TDD RED PHASE VERIFICATION]** Verify all US2 tests FAIL before implementation (run `ctest -R "US2.*invalid" --output-on-failure`). **DO NOT PROCEED to T025 until T024 confirms test failure.**
+
+### Implementation for User Story 2
+
+- [X] T025 [US2] Add UTF-8 validation in `visual_column()` to detect invalid sequences (call `jsv::unicode::decode_utf8()` and check for error result; if error, return `std::unexpected` with error message)
+- [X] T026 [US2] Add null byte detection in `visual_column()` (check for U+0000 and return error per FR-020: "Null byte (U+0000) not allowed in source files at byte offset {offset}, line {line}")
+- [X] T027 [US2] Add overlong UTF-8 encoding rejection in `visual_column()` per **FR-025**: Detect sequences that use more bytes than necessary (e.g., `\xC0\x80` for NUL) by validating `decode_utf8()` result; return error message: "Overlong UTF-8 encoding at byte offset {offset}, line {line}"
+- [X] T027a [P] [US2] Add error formatting for overlong encodings in `format_spanned_error()` per **FR-025**: Include optional help line "help: save file with shortest valid UTF-8 encoding"
+- [X] T028 [US2] Add surrogate half rejection in `visual_column()` per **FR-026**: Detect U+D800–U+DFFF range (invalid in UTF-8) by validating `decode_utf8()` result; return error message: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset {offset}, line {line}"
+- [X] T028a [P] [US2] Add error formatting for surrogate halves in `format_spanned_error()` per **FR-026**: Include optional help line "help: use valid UTF-8 encoding instead of UTF-16"
+- [X] T029 [US2] Add error logging in `visual_column()` using `LERROR()` macro at error level before returning `std::unexpected` (per FR-028: log invalid UTF-8, null bytes, surrogate halves, overlong encodings)
+- [x] T029a [P] [US2] Add test case `UnicodeColumn_logging_critical_errors` in `test/tests.cpp` (verify `LERROR()` is called at error level for invalid UTF-8, null bytes, surrogate halves, and overlong encodings using spdlog sink mock or log output capture)
+- [X] T030 [US2] Propagate encoding errors in `marker_extents()` (return `std::unexpected` if `visual_column()` fails)
+- [X] T031 [US2] Handle encoding errors in `format_spanned_error()` per **FR-016**: Display encoding error message with 5-part structure (header, location, source line, marker row with byte-based calculation for invalid bytes only, optional help line)
+- [X] T032 [US2] Run US2 tests and verify all PASS (`ctest -R "US2.*invalid" --output-on-failure`)
+
+**Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - valid UTF-8 aligns correctly, invalid UTF-8 is detected and reported
+
+---
+
+## Phase 5: User Story 3 - Edge Case Handling for Unicode Display (Priority: P3)
+
+**Goal**: Handle Unicode edge cases correctly (BOM, tabs, combining characters, empty lines, line boundaries) so error messages remain accurate regardless of Unicode content
+
+**Independent Test**: Provide source files with specific edge case Unicode constructs and verify the error marker positioning matches the expected behavior for each case
+
+### Tests for User Story 3 ⚠️
+
+> **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T042-T048) until tests are written AND verified to FAIL.
+
+- [X] T041a [P] [US3] **[TDD RED PHASE]** Write all US3 test cases (T033-T040a) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [X] T033 [P] [US3] Add test case `UnicodeColumn_edge_case_empty_line` in `test/tests.cpp` (empty line with error, verify single caret at column 1)
+- [X] T034 [P] [US3] Add test case `UnicodeColumn_edge_case_first_column` in `test/tests.cpp` (error at column 1, verify no leading spaces)
+- [X] T035 [P] [US3] Add test case `UnicodeColumn_edge_case_last_column` in `test/tests.cpp` (error at last character, verify caret at end)
+- [X] T036 [P] [US3] Add test case `UnicodeColumn_edge_case_tab_expansion` in `test/tests.cpp` (tab before error, verify 8-column expansion with default tab_stop_width)
+- [X] T037 [P] [US3] Add test case `UnicodeColumn_edge_case_BOM` in `test/tests.cpp` (BOM at file start, verify BOM skipped in column count but included in byte offset)
+- [X] T038 [P] [US3] Add test case `UnicodeColumn_edge_case_combining_characters` in `test/tests.cpp` (NFD "é" = e + combining acute, verify 2 column positions)
+- [X] T038a [P] [US3] Add test case `UnicodeColumn_edge_case_normalization_forms` in `test/tests.cpp` (NFC precomposed vs NFD decomposed é per FR-023, verify both accepted without conversion, column count matches actual code points)
+- [X] T039 [P] [US3] Add test case `UnicodeColumn_edge_case_ZWJ_emoji` in `test/tests.cpp` (family emoji 👨‍👩‍👧‍👦, verify 7 code points counted)
+- [X] T039a [P] [US3] Add test case `UnicodeColumn_edge_case_bidirectional_text` in `test/tests.cpp` (Arabic/Hebrew text displayed as-is per FR-021, verify marker alignment by code point position not visual order)
+- [X] T040 [P] [US3] Add test case `UnicodeColumn_edge_case_line_length_limit` in `test/tests.cpp` (line > 10,000 code points, verify error returned)
+- [X] T040a [P] [US3] Add test case `UnicodeColumn_edge_case_line_length_limit_error_format` in `test/tests.cpp` (verify FR-027 error message format: "Line exceeds maximum length of 10,000 code points (actual: X)" with actual code point count)
+- [X] T041 [US3] **[TDD RED PHASE VERIFICATION]** Verify all US3 tests FAIL before implementation (run `ctest -R "US3.*edge" --output-on-failure`). **DO NOT PROCEED to T042 until T041 confirms test failure.**
+
+### Implementation for User Story 3
+
+- [X] T042 [US3] Add BOM detection in `visual_column()` (skip 0xEF 0xBB 0xBF at file start per FR-019)
+- [X] T043 [US3] Add line length limit check in `visual_column()` (enforce 10,000 code points per FR-027)
+- [X] T044 [US3] Ensure tab expansion formula is correct in `visual_column()` (verify integer division truncates toward zero per C++23 standard; test with non-integer results from formula `((col - 1) / tab_stop_width + 1) * tab_stop_width + 1`)
+- [X] T045 [US3] Ensure combining characters are counted individually (no grapheme cluster logic - each code point = 1 column)
+- [X] T046 [US3] Ensure ZWJ emoji sequences are counted as separate code points (no special handling - each code point including ZWJ = 1 column)
+- [X] T047 [US3] Add minimum 1 caret guarantee in `marker_extents()` (if `caret_count == 0`, set to 1 per FR-013)
+- [X] T048 [US3] Run US3 tests and verify all PASS (`ctest -R "US3.*edge" --output-on-failure`)
+
+**Checkpoint**: All user stories should now be independently functional - core Unicode handling, invalid UTF-8 detection, and edge cases all work correctly
+
+---
+
+## Phase 6: Polish & Cross-Cutting Concerns
+
+**Purpose**: Improvements that affect multiple user stories, **including NFR validation**
+
+### NFR Validation Tasks (CRITICAL — All NFRs Must Be Verified)
+
+- [X] T048a [P] [NFR-001] Add performance validation task: Verify `visual_column()` p95 latency ≤100ms for 1,000 code points input using Catch2 benchmarks in `test/benchmarks.cpp`. **Acceptance criterion**: Mean latency ≤10 microseconds for ASCII, ≤50 microseconds for 1,000 Unicode code points at p95.
+- [X] T048b [P] [NFR-001] Add performance validation task: Verify `format_spanned_error()` end-to-end latency ≤100ms at p95, ≤500ms at p99 using Catch2 benchmarks. **Acceptance criterion**: Benchmark results show p95 ≤100ms, p99 ≤500ms for Unicode-containing source files.
+- [X] T048c [P] [NFR-002] Add line length limit validation task: Verify ErrorReporter enforces 10,000 code points per line limit. **Test**: Create source file with 10,001 code points on single line, verify error reported per FR-027. **Acceptance criterion**: Error message states "Line exceeds maximum length of 10,000 code points (actual: 10001)".
+- [X] T048d [P] [NFR-003] Add ANSI color validation task: Verify `detect_ansi_color()` correctly detects terminal color support across platforms. **Test matrix**: (1) `NO_COLOR=1` → false, (2) `NO_COLOR=""` → false, (3) `COLORTERM=truecolor` → true, (4) `TERM=dumb` → false, (5) `TERM=xterm-256color` → true, (6) no env vars → false (conservative fallback). **Acceptance criterion**: All 6 test cases pass.
+- [X] T048e [P] [NFR-003] Add ANSI color output validation task: Verify error marker output contains correct ANSI escape sequences. **Test**: When `config_.ansi_color` is true, verify output contains `\033[31m^\033[0m` (red caret). When false, verify output contains plain `^` with zero positioning deviation. **Acceptance criterion**: Colored and monochrome output have identical caret count and column positions.
+
+### Polish Tasks (Existing)
+
+- [X] T049 [P] Add backward compatibility test in `test/tests.cpp` (ASCII-only source produces byte-for-byte identical output per SC-002)
+- [x] T050 [P] Run all existing `ErrorReporter` tests to verify no regressions (`ctest -R "ErrorReporter" --output-on-failure`)
+- [x] T051 [P] Generate code coverage report for UnicodeColumn module (`gcovr -r .. --filter "src/jsav_Lib/error/*" --filter "include/jsav/error/*"`)
+- [x] T052 [P] Verify coverage ≥80% for `UnicodeColumn.cpp` and `ErrorReporter.cpp`
+- [X] T052a [P] Add Catch2 `BENCHMARK` macros to **existing** `test/benchmarks.cpp` for `visual_column()` performance verification (100 iterations, measure mean/stddev). **Note**: File already exists with ErrorReporter benchmarks; add new UnicodeColumn-specific benchmarks following existing pattern with `[!benchmark]` tag.
+- [X] T052b [P] Add benchmark test case `UnicodeColumn_performance_unicode_vs_ascii` in **existing** `test/benchmarks.cpp` (verify ≤1% overhead for Unicode vs ASCII input per NFR-001). **Note**: Use `BENCHMARK` macro returning value to prevent dead-code elimination; tag with `[!benchmark][UnicodeColumn][performance]`.
+- [X] T052c [P] Add benchmark test case `UnicodeColumn_performance_format_spanned_error` in **existing** `test/benchmarks.cpp` (verify ≤1ms at p95, ≤5ms at p99 per NFR-001). **Note**: Benchmark `ErrorReporter::format_spanned_error()` with Unicode-containing source; tag with `[!benchmark][ErrorReporter][performance]`.
+- [X] T052d [P] Add test case `UnicodeColumn_no_fallback_mixed_valid_invalid` in `test/tests.cpp` (SC-005 verification: valid UTF-8 lines use code point calculation even when file contains invalid UTF-8 on other lines, proves no file-wide byte-based fallback)
+- [x] T053 Run full test suite to ensure all tests pass (`ctest --output-on-failure`)
+- [x] T054 [P] Update **existing** `specs/005-fix-unicode-error-reporting/quickstart.md` with UnicodeColumn usage examples and troubleshooting guide (verify examples work by running actual compiler). **Note**: File already exists; add sections for Unicode error reporting, ANSI color configuration, and performance benchmarking instructions.
+- [x] T055 [P] Add Doxygen comments to all public functions in `include/jsav/error/UnicodeColumn.hpp`
+- [x] T055a [P] Add Doxygen comments to modified `ErrorReporter.hpp` (two-argument constructor, `config_` member variable of type `ErrorDisplayConfig`)
+- [x] T056 [P] Run clang-format on all modified files (`clang-format -i src/jsav_Lib/error/*.cpp include/jsav/error/*.hpp`)
+- [x] T057 [P] Run clang-tidy on all modified files (verify zero issues with `jsav_ENABLE_CLANG_TIDY=ON`)
+- [x] T058 [P] Run cppcheck on all modified files (verify zero issues with `jsav_ENABLE_CPPCHECK=ON`)
+- [x] T059 [P] Run AddressSanitizer test suite (verify zero memory leaks with `jsav_ENABLE_SANITIZER_ADDRESS=ON`)
+- [x] T060 [P] Run UndefinedBehaviorSanitizer test suite (verify zero UB violations with `jsav_ENABLE_SANITIZER_UNDEFINED=ON`)
+
+---
+
+## Dependencies & Execution Order
+
+### Phase Dependencies
+
+- **Setup (Phase 1)**: No dependencies - can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
+- **User Stories (Phase 3+)**: All depend on Foundational phase completion
+    - User stories can then proceed in parallel (if staffed)
+    - Or sequentially in priority order (P1 → P2 → P3)
+- **Polish (Phase 6)**: Depends on all user stories being complete
+
+### User Story Dependencies
+
+- **User Story 1 (P1)**: Can start after Foundational (Phase 2) - No dependencies on other stories
+- **User Story 2 (P2)**: Can start after Foundational (Phase 2) - Builds on US1 infrastructure but independently testable
+- **User Story 3 (P3)**: Can start after Foundational (Phase 2) - Builds on US1/US2 infrastructure but independently testable
+
+### Within Each User Story
+
+- Tests MUST be written and FAIL before implementation (TDD approach)
+- `visual_column()` and `marker_extents()` before `ErrorReporter` modifications
+- Core UnicodeColumn functions before ErrorReporter integration
+- Story complete before moving to next priority
+
+### Parallel Opportunities
+
+- All Setup tasks marked [P] can run in parallel (T003)
+- All Foundational tasks marked [P] can run in parallel (T004, T005, T007, T008)
+- Once Foundational phase completes, all user stories can start in parallel (if team capacity allows)
+- All tests for a user story marked [P] can run in parallel
+- `visual_column()` and `marker_extents()` implementation can run in parallel (different functions)
+- Different user stories can be worked on in parallel by different team members
+
+---
+
+## Parallel Example: User Story 1
+
+```bash
+# Launch all tests for User Story 1 together:
+Task: "Add test case UnicodeColumn_marker_alignment_Chinese in test/tests.cpp"
+Task: "Add test case UnicodeColumn_marker_alignment_Greek in test/tests.cpp"
+Task: "Add test case UnicodeColumn_marker_alignment_emoji in test/tests.cpp"
+Task: "Add test case UnicodeColumn_detect_ansi_color_environment in test/tests.cpp"
+Task: "Add test case UnicodeColumn_ansi_color_red_code in test/tests.cpp"
+Task: "Add test case UnicodeColumn_ansi_color_fallback_monochrome in test/tests.cpp"
+Task: "Add test case UnicodeColumn_detect_ansi_color_no_color_variants in test/tests.cpp"
+
+# Launch all UnicodeColumn implementations for User Story 1 together:
+Task: "Implement visual_column() function in src/jsav_Lib/error/UnicodeColumn.cpp"
+Task: "Implement marker_extents() function in src/jsav_Lib/error/UnicodeColumn.cpp"
+```
+
+---
+
+## Parallel Example: User Story 2
+
+```bash
+# Launch all invalid UTF-8 tests together:
+Task: "Add test case UnicodeColumn_invalid_UTF8_detection in test/tests.cpp"
+Task: "Add test case UnicodeColumn_invalid_UTF8_null_byte in test/tests.cpp"
+Task: "Add test case UnicodeColumn_invalid_UTF8_overlong in test/tests.cpp"
+Task: "Add test case UnicodeColumn_invalid_UTF8_overlong_error_format in test/tests.cpp"
+Task: "Add test case UnicodeColumn_invalid_UTF8_surrogate in test/tests.cpp"
+Task: "Add test case UnicodeColumn_invalid_UTF8_surrogate_error_format in test/tests.cpp"
+Task: "Add test case UnicodeColumn_invalid_UTF8_mixed_errors in test/tests.cpp"
+Task: "Add test case UnicodeColumn_logging_critical_errors in test/tests.cpp"
+```
+
+---
+
+## Parallel Example: User Story 3
+
+```bash
+# Launch all edge case tests together:
+Task: "Add test case UnicodeColumn_edge_case_empty_line in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_first_column in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_last_column in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_tab_expansion in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_BOM in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_combining_characters in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_ZWJ_emoji in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_line_length_limit in test/tests.cpp"
+Task: "Add test case UnicodeColumn_edge_case_line_length_limit_error_format in test/tests.cpp"
+```
+
+---
+
+## Implementation Strategy
+
+### MVP First (User Story 1 Only)
+
+1. Complete Phase 1: Setup
+2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
+3. Complete Phase 3: User Story 1
+4. **STOP and VALIDATE**:
+   - Run US1 tests (`ctest -R "US1" --output-on-failure`)
+   - Manually test with Unicode source file (Chinese, Greek, emoji)
+   - Verify caret alignment is correct
+5. Deploy/demo if ready
+
+### Incremental Delivery
+
+1. Complete Setup + Foundational → Foundation ready
+2. Add User Story 1 → Test independently → Deploy/Demo (MVP!)
+3. Add User Story 2 → Test independently → Deploy/Demo
+4. Add User Story 3 → Test independently → Deploy/Demo
+5. Each story adds value without breaking previous stories
+
+### Parallel Team Strategy
+
+With multiple developers:
+
+1. Team completes Setup + Foundational together
+2. Once Foundational is done:
+   - Developer A: User Story 1 (core Unicode handling)
+   - Developer B: User Story 2 (invalid UTF-8 detection)
+   - Developer C: User Story 3 (edge cases)
+3. Stories complete and integrate independently
+4. Team reconvenes for Phase 6 (Polish & Cross-Cutting)
+
+---
+
+## Task Summary
+
+| Phase | Task Count | Description |
+|-------|------------|-------------|
+| **Phase 1: Setup** | 3 tasks | Project structure and build system |
+| **Phase 2: Foundational** | 7 tasks | Core UnicodeColumn module and ErrorReporter extensions (includes NFR-003 ANSI color detection, FR-024 LineTracker integration) |
+| **Phase 3: US1** | 18 tasks | Unicode marker alignment (MVP) + NFR-003 ANSI color tests **+2 TDD enforcement (T008a Red Phase, T012 Red Phase Verification)** |
+| **Phase 4: US2** | 21 tasks | Invalid UTF-8 detection and reporting **+6**: added T022a, T023a, T023b, T027a, T028a, T029a for FR-025/FR-026 error format, error message formatting, and FR-028 logging verification **+2 TDD enforcement (T019a Red Phase, T024 Red Phase Verification)** |
+| **Phase 5: US3** | 20 tasks | Edge case handling **+1**: added T040a for FR-027 error format verification **+2 TDD enforcement (T041a Red Phase, T041 Red Phase Verification)** |
+| **Phase 6: Polish** | 21 tasks | Testing, coverage, documentation, static analysis, performance benchmarks, **+5 NFR validation tasks (T048a–T048e)** |
+| **TOTAL** | **90 tasks** | Complete feature implementation (**+8**: FR-025/FR-026 error formatting + NFR validation + **6 TDD enforcement tasks**) |
+
+### Task Count per User Story
+
+- **User Story 1 (P1)**: 18 tasks (T008a, T009–T019, T011a–T011d, T012, T018, T018a) — **includes NFR-003 ANSI color support with comprehensive tests + TDD Red Phase enforcement**
+- **User Story 2 (P2)**: 21 tasks (T019a, T020–T032, T022a, T023a, T023b, **T024, T027a, T028a**, T029a) — **includes FR-025/FR-026 error format tests, FR-025/FR-026 error message formatting, FR-028 logging verification, + TDD Red Phase enforcement**
+- **User Story 3 (P3)**: 20 tasks (T033–T048, T040a, T041, T041a, T049–T052 in Polish) — **includes FR-027 error format test + TDD Red Phase enforcement**
+- **Setup + Foundational**: 10 tasks (T001–T008, T004a, T006a)
+- **Polish + NFR Validation**: 18 tasks (T048a–T048e NFR validation, T049–T060 Polish, T055a)
+
+### Parallel Opportunities Identified
+
+- **Phase 1**: T003 can run in parallel with T001, T002
+- **Phase 2**: T004, T004a, T005, T006a, T007, T008 can all run in parallel (different files)
+- **Phase 3**: T008a (TDD Red Phase) runs FIRST; then T009, T010, T011, T011a, T011b, T011c, T011d (tests) can run in parallel; T012 (verification) runs after all tests written; T013, T014 (implementations) can run in parallel after T012 passes; T018, T018a can run in parallel
+- **Phase 4**: T019a (TDD Red Phase) runs FIRST; then T020–T023b (tests) can run in parallel; T024 (verification) runs after all tests written
+- **Phase 5**: T041a (TDD Red Phase) runs FIRST; then T033–T040 (tests) can run in parallel; T041 (verification) runs after all tests written
+- **Phase 6**: T048a, T048b, T048c, T048d, T048e (NFR validation) can run in parallel; T049, T050, T051, T052 (coverage tests) can run in parallel; T056–T060 (static analysis) can run in parallel
+
+### Independent Test Criteria for Each Story
+
+- **User Story 1**: Compile source with Chinese/Greek/emoji characters, verify caret alignment under correct code points
+- **User Story 2**: Provide invalid UTF-8 bytes, verify encoding error message with byte offset and line number
+- **User Story 3**: Test each edge case (empty line, BOM, tabs, combining chars, ZWJ emoji, line length limit), verify expected behavior
+
+### Suggested MVP Scope
+
+**MVP = User Story 1 Only (Phase 3)**
+
+- Core functionality: Unicode-aware error marker alignment
+- Delivers immediate value: Correct positioning for multi-byte Unicode characters
+- Independently testable: Can verify with Chinese/Greek/emoji source files
+- Backward compatible: ASCII output unchanged
+- Can be deployed/demoed without waiting for P2/P3
+
+**MVP Test Criteria**:
+
+```bash
+# Create test file with Unicode
+echo "let x = 你好;" > test_unicode.vn
+# Compile and observe
+./build/jsav test_unicode.vn
+# Verify: Carets align under Chinese characters (not byte offsets)
+```
+
+---
+
+## Notes
+
+- [P] tasks = different files, no dependencies on incomplete tasks
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Verify tests fail before implementing (TDD approach)
+- Commit after each task or logical group of 2-3 tasks
+- Stop at any checkpoint to validate story independently
+- Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
+- **Constitution Check**: All tasks comply with AGENTS.md constitution (platform independence, VS 2026 compatibility, C++ Core Guidelines, zero new dependencies)
