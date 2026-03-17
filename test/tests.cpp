@@ -6542,7 +6542,7 @@ TEST_CASE("UnicodeColumn_ansi_color_fallback_monochrome", "[UnicodeColumn][US1][
     const std::string stripped = test_utils::strip_ansi(result);
 
     // Should contain plain caret without ANSI codes
-    REQUIRE(stripped.find("^") != std::string::npos);
+    REQUIRE(stripped.find('^') != std::string::npos);
     // After stripping ANSI, should still have correct positioning
     REQUIRE(stripped.find("        ^") != std::string::npos);  // 8 spaces + caret
 }
@@ -6986,7 +6986,7 @@ TEST_CASE("UnicodeColumn_edge_case_bidirectional_text", "[UnicodeColumn][US3][P3
 
 TEST_CASE("UnicodeColumn_edge_case_line_length_limit", "[UnicodeColumn][US3][P3]") {
     // Line with > 10,000 code points
-    std::string source(10001, 'a');  // 10,001 'a' characters
+    const std::string source(10001, 'a');  // 10,001 'a' characters
     const jsv::LineTracker tracker(source);
 
     jsv::ErrorDisplayConfig config;
@@ -7006,7 +7006,7 @@ TEST_CASE("UnicodeColumn_edge_case_line_length_limit", "[UnicodeColumn][US3][P3]
 
 TEST_CASE("UnicodeColumn_edge_case_line_length_limit_error_format", "[UnicodeColumn][US3][P3]") {
     // Verify FR-027 error message format
-    std::string source(10001, 'a');  // 10,001 'a' characters
+    const std::string source(10001, 'a');  // 10,001 'a' characters
     const jsv::LineTracker tracker(source);
 
     jsv::ErrorDisplayConfig config;
@@ -7040,7 +7040,7 @@ TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US3", "[UnicodeColumn][US3][
 
 TEST_CASE("NFR-002 line length limit enforcement", "[NFR][UnicodeColumn][NFR-002]") {
     // T048c: Verify ErrorReporter enforces 10,000 code points per line limit
-    std::string source(10001, 'a');  // 10,001 code points
+    const std::string source(10001, 'a');  // 10,001 code points
     const jsv::LineTracker tracker(source);
 
     jsv::ErrorDisplayConfig config;
@@ -7114,7 +7114,7 @@ TEST_CASE("NFR-003 ANSI color output validation", "[NFR][ErrorReporter][NFR-003]
         const std::string stripped = test_utils::strip_ansi(result);
 
         // Should contain plain caret without ANSI codes
-        REQUIRE(stripped.find("^") != std::string::npos);
+        REQUIRE(stripped.find('^') != std::string::npos);
         // After stripping ANSI, should still have correct positioning
         REQUIRE(stripped.find("        ^") != std::string::npos);  // 8 spaces + caret
     }
@@ -7168,7 +7168,7 @@ TEST_CASE("SC-002 ASCII backward compatibility", "[UnicodeColumn][SC-002][backwa
     // Should contain standard error message structure
     REQUIRE(stripped.find("ERROR") != std::string::npos);
     REQUIRE(stripped.find("let x = 5;") != std::string::npos);
-    REQUIRE(stripped.find("^") != std::string::npos);
+    REQUIRE(stripped.find('^') != std::string::npos);
 }
 
 TEST_CASE("SC-005 no fallback mixed valid invalid UTF-8", "[UnicodeColumn][SC-005][no_fallback]") {

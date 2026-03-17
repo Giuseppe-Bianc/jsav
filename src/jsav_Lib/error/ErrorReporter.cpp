@@ -63,7 +63,7 @@ namespace jsv {
         // --- Multi-line span: single caret at start position -------------------
         if(span.start.line != span.end.line) {
             const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
-            std::string underline = FORMAT("{:>{}}^", "", start_offset);
+            const std::string underline = FORMAT("{:>{}}^", "", start_offset);
             return config_.ansi_color ? ansi::red_bold(underline) : underline;
         }
 
