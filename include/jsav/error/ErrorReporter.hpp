@@ -209,7 +209,7 @@ namespace jsv {
         /// @param         span         Source span (provides byte offset / line).
         /// @param         source_line  The source line text (note is suppressed
         ///                             when empty).
-        void append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span, std::string_view source_line) const;
+        static void append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span, std::string_view source_line);
 
         /// The line index built from the source text — used to retrieve the
         /// offending source line for display in `format_spanned_error`.

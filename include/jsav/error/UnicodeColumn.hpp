@@ -30,7 +30,7 @@
 #include "jsav/lexer/unicode/Utf8.hpp"
 
 namespace jsv {
-
+    constexpr std::size_t tab_stop_width_default = 8;  // Matches GCC/Clang/MSVC default tab stop width
     // ---------------------------------------------------------------------------
     /// @brief Configuration for tab expansion and ANSI color output in error markers.
     ///
@@ -111,7 +111,7 @@ namespace jsv {
     ///
     /// @see marker_extents, ErrorDisplayConfig
     [[nodiscard]] std::expected<std::size_t, std::string> visual_column(std::string_view line, std::size_t byte_offset,
-                                                                        std::size_t tab_stop_width = 8) noexcept;
+                                                                        std::size_t tab_stop_width = tab_stop_width_default);
 
     // ---------------------------------------------------------------------------
     /// @brief Computes (leading_spaces, caret_count) for Unicode error marker display.
@@ -137,9 +137,7 @@ namespace jsv {
     /// @note caret_count is always >= 1 (FR-013)
     /// @note Tabs in the error span contribute their expanded width (FR-010)
     /// @see visual_column, ErrorDisplayConfig
-    [[nodiscard]] std::expected<std::pair<std::size_t, std::size_t>, std::string> marker_extents(std::string_view line,
-                                                                                                 std::size_t start_byte,
-                                                                                                 std::size_t end_byte,
-                                                                                                 std::size_t tab_stop_width = 8) noexcept;
+    [[nodiscard]] std::expected<std::pair<std::size_t, std::size_t>, std::string> marker_extents(
+        std::string_view line, std::size_t start_byte, std::size_t end_byte, std::size_t tab_stop_width = tab_stop_width_default);
 
 }  // namespace jsv

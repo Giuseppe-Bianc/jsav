@@ -3,17 +3,17 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-// NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
+// NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-identifier-length)
 #include "jsav/error/ErrorReporter.hpp"
 
 namespace jsv {
+    constexpr auto ERROR_EST_SIZE = 256u;
 
     // ---------------------------------------------------------------------------
     // Helpers – local to this translation unit
     // ---------------------------------------------------------------------------
 
     namespace details {
-
         /// Builds the "[Exxxx] " fragment that optionally prefixes the category.
         /// Returns a single space when @p code is absent (mirrors the Rust
         /// `code.map_or_else(|| " ".to_string(), |c| format!(" [{}] ", …))` call).
@@ -106,11 +106,11 @@ namespace jsv {
     //
     // ---------------------------------------------------------------------------
     void ErrorReporter::append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span,
-                                             std::string_view source_line) const {
+                                             std::string_view source_line) {
         if(source_line.empty()) { return; }
 
         std::string msg_lower(msg);
-        std::ranges::transform(msg_lower, msg_lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        std::ranges::transform(msg_lower, msg_lower.begin(), [](unsigned char c) { return C_C(std::tolower(c)); });
 
         const bool is_encoding = msg_lower.find("utf-8") != std::string::npos || msg_lower.find("encoding") != std::string::npos ||
                                  msg_lower.find("null byte") != std::string::npos || msg_lower.find("overlong") != std::string::npos ||
@@ -166,7 +166,7 @@ namespace jsv {
         const std::string_view source_line = line_tracker_.get_line(span.start.line);
 
         std::string output;
-        output.reserve(256u + msg.size() + source_line.size());
+        output.reserve(ERROR_EST_SIZE + msg.size() + source_line.size());
         auto out = std::back_inserter(output);
 
         // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
@@ -248,4 +248,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
+// NOLINTEND(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-identifier-length)

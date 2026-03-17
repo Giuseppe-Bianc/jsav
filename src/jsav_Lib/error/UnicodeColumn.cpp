@@ -2,11 +2,14 @@
  * Created by gbian on 14/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner, *-mt-unsafe)
+// NOLINTBEGIN(*-include-cleaner, *-mt-unsafe, *-easily-swappable-parameters)
 #include "jsav/error/UnicodeColumn.hpp"
 
 namespace jsv {
-
+    constexpr std::size_t MAX_CODE_POINTS = 10000;
+    constexpr auto BOM_BYTE_0 = C_UC(0xEF);
+    constexpr auto BOM_BYTE_1 = C_UC(0xBB);
+    constexpr auto BOM_BYTE_2 = C_UC(0xBF);
     // ---------------------------------------------------------------------------
     // detect_ansi_color()
     // ---------------------------------------------------------------------------
@@ -40,7 +43,7 @@ namespace jsv {
     // ---------------------------------------------------------------------------
     [[nodiscard]] ErrorDisplayConfig make_display_config() noexcept {
         ErrorDisplayConfig config;
-        config.tab_stop_width = 8;  // Default (matches GCC/Clang/MSVC)
+        config.tab_stop_width = tab_stop_width_default;  // Default (matches GCC/Clang/MSVC)
         config.ansi_color = detect_ansi_color();
         return config;
     }
@@ -49,7 +52,7 @@ namespace jsv {
     // visual_column()
     // ---------------------------------------------------------------------------
     [[nodiscard]] std::expected<std::size_t, std::string> visual_column(std::string_view line, std::size_t byte_offset,
-                                                                        std::size_t tab_stop_width) noexcept {
+                                                                        std::size_t tab_stop_width) {
         // Precondition: tab_stop_width > 0 (caller responsibility)
         // Note: Division by zero would occur in tab expansion formula if tab_stop_width == 0
 
@@ -57,14 +60,12 @@ namespace jsv {
         std::size_t pos = 0;  // Byte position in line
 
         // FR-019: Skip BOM at file start (only at position 0)
-        if(line.size() >= 3 && static_cast<unsigned char>(line[0]) == 0xEF && static_cast<unsigned char>(line[1]) == 0xBB &&
-           static_cast<unsigned char>(line[2]) == 0xBF) {
+        if(line.size() >= 3 && C_UC(line[0]) == BOM_BYTE_0 && C_UC(line[1]) == BOM_BYTE_1 && C_UC(line[2]) == BOM_BYTE_2) {
             pos = 3;  // Skip BOM bytes
         }
 
         // Walk UTF-8 code points from start to byte_offset
         std::size_t code_point_count = 0;
-        constexpr std::size_t MAX_CODE_POINTS = 10000;  // FR-027 line length limit
 
         while(pos < byte_offset && pos < line.size()) {
             // Decode UTF-8 sequence at current position
@@ -114,7 +115,7 @@ namespace jsv {
     [[nodiscard]] std::expected<std::pair<std::size_t, std::size_t>, std::string> marker_extents(std::string_view line,
                                                                                                  std::size_t start_byte,
                                                                                                  std::size_t end_byte,
-                                                                                                 std::size_t tab_stop_width) noexcept {
+                                                                                                 std::size_t tab_stop_width) {
         // Precondition: tab_stop_width > 0 (caller responsibility)
 
         // Calculate leading spaces (visual column at start_byte, converted to 0-based)
@@ -128,7 +129,6 @@ namespace jsv {
         std::size_t caret_count = 0;
         std::size_t pos = start_byte;
         std::size_t code_point_count = 0;
-        constexpr std::size_t MAX_CODE_POINTS = 10000;  // FR-027 line length limit
 
         while(pos < end_byte && pos < line.size()) {
             // Decode UTF-8 sequence at current position
@@ -173,4 +173,4 @@ namespace jsv {
     }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner, *-mt-unsafe)
+// NOLINTEND(*-include-cleaner, *-mt-unsafe, *-easily-swappable-parameters)
