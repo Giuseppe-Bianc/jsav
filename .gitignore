@@ -1,6 +1,5 @@
 # Build directories and binary files
-build/
-buildd/
+build{,d}/
 out/
 out/coverage/*
 cmake-build-*/
