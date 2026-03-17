@@ -6,6 +6,8 @@
 // NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
 #include "jsav/error/ErrorReporter.hpp"
 #include "jsav/error/UnicodeColumn.hpp"
+#include <algorithm>
+#include <cctype>
 
 namespace jsv {
 
@@ -112,7 +114,7 @@ namespace jsv {
             // Use column-based calculation for backward compatibility
             // The column field in SourceLocation is 1-based
             std::string underline;
-            
+
             // For single-line spans, use marker_extents with byte offsets within the line
             // For multi-line spans, just show caret at start column
             if(start_line == end_line) {
@@ -120,18 +122,18 @@ namespace jsv {
                 // Handle column 0 as column 1 (defensive programming)
                 const std::size_t start_column = (start_col > 0) ? start_col : 1;
                 const std::size_t end_column = (end_col > 0) ? end_col : start_column + 1;
-                
+
                 const std::size_t start_byte_in_line = start_column - 1;
                 const std::size_t end_byte_in_line = end_column - 1;
 
                 auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
-                
+
                 if(extents_result.has_value()) {
                     const auto [leading_spaces, caret_count] = extents_result.value();
-                    
+
                     // Single-line span: use calculated leading spaces and caret count
                     underline = FORMAT("{:>{}}", "", leading_spaces);
-                    
+
                     // Apply ANSI color if enabled
                     if(config_.ansi_color) {
                         // Output red carets
@@ -162,6 +164,45 @@ namespace jsv {
 
             // Multi-line note: "     │ ... (error spans lines X-Y)"
             if(start_line != end_line) { FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line); }
+        }
+
+        // --- Encoding error note (optional, for UTF-8 validation errors) -------
+        // FR-025, FR-026: Include byte offset and line number for encoding errors
+        // Check if error message contains encoding-related keywords (case-insensitive)
+        const std::string_view error_msg = msg;
+        std::string error_msg_lower = std::string(error_msg);
+        std::transform(error_msg_lower.begin(), error_msg_lower.end(), error_msg_lower.begin(), 
+                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+        
+        const bool is_encoding_error = (error_msg_lower.find("utf-8") != std::string::npos ||
+                                        error_msg_lower.find("encoding") != std::string::npos ||
+                                        error_msg_lower.find("null byte") != std::string::npos ||
+                                        error_msg_lower.find("overlong") != std::string::npos ||
+                                        error_msg_lower.find("surrogate") != std::string::npos);
+
+        if(is_encoding_error && !source_line.empty()) {
+            // Use byte offset from span (absolute position in source)
+            const std::size_t byte_offset = span.start.absolute_pos;
+            
+            // Build enhanced error message with Unicode code point if applicable
+            std::string enhanced_msg = std::string(error_msg);
+            
+            // Add Unicode code point for specific error types
+            if(error_msg_lower.find("null byte") != std::string::npos) {
+                enhanced_msg += " (U+0000)";
+            } else if(error_msg_lower.find("surrogate") != std::string::npos) {
+                enhanced_msg += " (U+D800–U+DFFF)";
+            }
+            
+            // Add note with byte offset and line number
+            FORMAT_TO(out, "     │\n");
+            FORMAT_TO(out, "     │ {} {} {}, {} {}\n", 
+                      ansi::blue("note:"), 
+                      enhanced_msg, 
+                      ansi::cyan("at byte offset"),
+                      ansi::yellow(FORMAT("{}", byte_offset)),
+                      ansi::cyan("line"),
+                      ansi::yellow(FORMAT("{}", start_line)));
         }
 
         // --- Help line (optional) -----------------------------------------------

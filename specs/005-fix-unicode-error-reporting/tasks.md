@@ -108,17 +108,17 @@
 
 ### Implementation for User Story 2
 
-- [ ] T025 [US2] Add UTF-8 validation in `visual_column()` to detect invalid sequences (call `jsv::unicode::decode_utf8()` and check for error result; if error, return `std::unexpected` with error message)
-- [ ] T026 [US2] Add null byte detection in `visual_column()` (check for U+0000 and return error per FR-020: "Null byte (U+0000) not allowed in source files at byte offset {offset}, line {line}")
-- [ ] T027 [US2] Add overlong UTF-8 encoding rejection in `visual_column()` per **FR-025**: Detect sequences that use more bytes than necessary (e.g., `\xC0\x80` for NUL) by validating `decode_utf8()` result; return error message: "Overlong UTF-8 encoding at byte offset {offset}, line {line}"
-- [ ] T027a [P] [US2] Add error formatting for overlong encodings in `format_spanned_error()` per **FR-025**: Include optional help line "help: save file with shortest valid UTF-8 encoding"
-- [ ] T028 [US2] Add surrogate half rejection in `visual_column()` per **FR-026**: Detect U+D800–U+DFFF range (invalid in UTF-8) by validating `decode_utf8()` result; return error message: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset {offset}, line {line}"
-- [ ] T028a [P] [US2] Add error formatting for surrogate halves in `format_spanned_error()` per **FR-026**: Include optional help line "help: use valid UTF-8 encoding instead of UTF-16"
-- [ ] T029 [US2] Add error logging in `visual_column()` using `LERROR()` macro at error level before returning `std::unexpected` (per FR-028: log invalid UTF-8, null bytes, surrogate halves, overlong encodings)
-- [ ] T029a [P] [US2] Add test case `UnicodeColumn_logging_critical_errors` in `test/tests.cpp` (verify `LERROR()` is called at error level for invalid UTF-8, null bytes, surrogate halves, and overlong encodings using spdlog sink mock or log output capture)
-- [ ] T030 [US2] Propagate encoding errors in `marker_extents()` (return `std::unexpected` if `visual_column()` fails)
-- [ ] T031 [US2] Handle encoding errors in `format_spanned_error()` per **FR-016**: Display encoding error message with 5-part structure (header, location, source line, marker row with byte-based calculation for invalid bytes only, optional help line)
-- [ ] T032 [US2] Run US2 tests and verify all PASS (`ctest -R "US2.*invalid" --output-on-failure`)
+- [X] T025 [US2] Add UTF-8 validation in `visual_column()` to detect invalid sequences (call `jsv::unicode::decode_utf8()` and check for error result; if error, return `std::unexpected` with error message)
+- [X] T026 [US2] Add null byte detection in `visual_column()` (check for U+0000 and return error per FR-020: "Null byte (U+0000) not allowed in source files at byte offset {offset}, line {line}")
+- [X] T027 [US2] Add overlong UTF-8 encoding rejection in `visual_column()` per **FR-025**: Detect sequences that use more bytes than necessary (e.g., `\xC0\x80` for NUL) by validating `decode_utf8()` result; return error message: "Overlong UTF-8 encoding at byte offset {offset}, line {line}"
+- [X] T027a [P] [US2] Add error formatting for overlong encodings in `format_spanned_error()` per **FR-025**: Include optional help line "help: save file with shortest valid UTF-8 encoding"
+- [X] T028 [US2] Add surrogate half rejection in `visual_column()` per **FR-026**: Detect U+D800–U+DFFF range (invalid in UTF-8) by validating `decode_utf8()` result; return error message: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset {offset}, line {line}"
+- [X] T028a [P] [US2] Add error formatting for surrogate halves in `format_spanned_error()` per **FR-026**: Include optional help line "help: use valid UTF-8 encoding instead of UTF-16"
+- [X] T029 [US2] Add error logging in `visual_column()` using `LERROR()` macro at error level before returning `std::unexpected` (per FR-028: log invalid UTF-8, null bytes, surrogate halves, overlong encodings)
+- [x] T029a [P] [US2] Add test case `UnicodeColumn_logging_critical_errors` in `test/tests.cpp` (verify `LERROR()` is called at error level for invalid UTF-8, null bytes, surrogate halves, and overlong encodings using spdlog sink mock or log output capture)
+- [X] T030 [US2] Propagate encoding errors in `marker_extents()` (return `std::unexpected` if `visual_column()` fails)
+- [X] T031 [US2] Handle encoding errors in `format_spanned_error()` per **FR-016**: Display encoding error message with 5-part structure (header, location, source line, marker row with byte-based calculation for invalid bytes only, optional help line)
+- [X] T032 [US2] Run US2 tests and verify all PASS (`ctest -R "US2.*invalid" --output-on-failure`)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently - valid UTF-8 aligns correctly, invalid UTF-8 is detected and reported
 
