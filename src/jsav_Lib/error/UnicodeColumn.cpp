@@ -7,9 +7,8 @@
 
 namespace jsv {
     constexpr std::size_t MAX_CODE_POINTS = 10000;
-    constexpr auto BOM_BYTE_0 = C_UC(0xEF);
-    constexpr auto BOM_BYTE_1 = C_UC(0xBB);
-    constexpr auto BOM_BYTE_2 = C_UC(0xBF);
+    static constexpr std::string_view utf8_bom{"\xEF\xBB\xBF"};
+    static constexpr std::array<std::string_view, 4> known_color_terms{"color", "xterm", "screen", "tmux"};
     // ---------------------------------------------------------------------------
     // detect_ansi_color()
     // ---------------------------------------------------------------------------
@@ -25,11 +24,11 @@ namespace jsv {
             if(const std::string_view colorterm{colorterm_raw}; colorterm == "truecolor" || colorterm == "24bit") { return true; }
         }
 
-        // 3. Check TERM (contains "color", "xterm", "screen", or "tmux")
         if(const char *term_raw = std::getenv("TERM"); term_raw != nullptr) {
-            if(const std::string_view term{term_raw};
-               term.find("color") != std::string_view::npos || term.find("xterm") != std::string_view::npos ||
-               term.find("screen") != std::string_view::npos || term.find("tmux") != std::string_view::npos) {
+            const std::string_view term{term_raw};
+            // C++23: string_view::contains() replaces find() != npos — states intent directly
+            if(std::ranges::any_of(known_color_terms,
+                                   [&term](const std::string_view keyword) noexcept { return term.contains(keyword); })) {
                 return true;
             }
         }
@@ -55,12 +54,13 @@ namespace jsv {
                                                                         std::size_t tab_stop_width) {
         // Precondition: tab_stop_width > 0 (caller responsibility)
         // Note: Division by zero would occur in tab expansion formula if tab_stop_width == 0
+        if(tab_stop_width == 0) [[unlikely]] { return std::unexpected(std::string("tab_stop_width must be greater than 0")); }
 
         std::size_t col = 1;  // 1-based visual column
         std::size_t pos = 0;  // Byte position in line
 
         // FR-019: Skip BOM at file start (only at position 0)
-        if(line.size() >= 3 && C_UC(line[0]) == BOM_BYTE_0 && C_UC(line[1]) == BOM_BYTE_1 && C_UC(line[2]) == BOM_BYTE_2) {
+        if(line.size() >= 3 && line.starts_with(utf8_bom)) {
             pos = 3;  // Skip BOM bytes
         }
 
@@ -72,22 +72,22 @@ namespace jsv {
             const auto res = unicode::decode_utf8(line, pos);
 
             // FR-025, FR-026: Check for invalid UTF-8
-            if(res.status != unicode::Utf8Status::Ok) {
+            if(res.status != unicode::Utf8Status::Ok) [[unlikely]] {
                 LERROR("Invalid UTF-8 sequence at byte offset {}", pos);
                 return std::unexpected(FORMAT("Invalid UTF-8 sequence at byte offset {}", pos));
             }
 
             // FR-020: Check for null byte (U+0000)
-            if(res.codepoint == U'\0') {
+            if(res.codepoint == U'\0') [[unlikely]] {
                 LERROR("Null byte (U+0000) at byte offset {}", pos);
                 return std::unexpected(FORMAT("Null byte (U+0000) at byte offset {}", pos));
             }
 
             // FR-027: Check line length limit
             ++code_point_count;
-            if(code_point_count > MAX_CODE_POINTS) {
+            if(code_point_count > MAX_CODE_POINTS) [[unlikely]] {
                 LERROR("Source line exceeds 10,000 code points");
-                return std::unexpected("Source line exceeds 10,000 code points");
+                return std::unexpected(std::string("Source line exceeds 10,000 code points"));
             }
 
             // FR-018: Tab expansion
@@ -120,7 +120,7 @@ namespace jsv {
 
         // Calculate leading spaces (visual column at start_byte, converted to 0-based)
         auto leading_result = visual_column(line, start_byte, tab_stop_width);
-        if(!leading_result.has_value()) { return std::unexpected(leading_result.error()); }
+        if(!leading_result.has_value()) [[unlikely]] { return std::unexpected(leading_result.error()); }
 
         // Convert 1-based column to 0-based leading spaces
         const std::size_t leading_spaces = leading_result.value() - 1;
@@ -135,20 +135,20 @@ namespace jsv {
             const auto res = unicode::decode_utf8(line, pos);
 
             // FR-025, FR-026: Check for invalid UTF-8
-            if(res.status != unicode::Utf8Status::Ok) {
+            if(res.status != unicode::Utf8Status::Ok) [[unlikely]] {
                 LERROR("Invalid UTF-8 sequence at byte offset {}", pos);
                 return std::unexpected(FORMAT("Invalid UTF-8 sequence at byte offset {}", pos));
             }
 
             // FR-020: Check for null byte (U+0000)
-            if(res.codepoint == U'\0') {
+            if(res.codepoint == U'\0') [[unlikely]] {
                 LERROR("Null byte (U+0000) at byte offset {}", pos);
                 return std::unexpected(FORMAT("Null byte (U+0000) at byte offset {}", pos));
             }
 
             // FR-027: Check line length limit
             ++code_point_count;
-            if(code_point_count > MAX_CODE_POINTS) {
+            if(code_point_count > MAX_CODE_POINTS) [[unlikely]] {
                 LERROR("Source line exceeds 10,000 code points");
                 return std::unexpected("Source line exceeds 10,000 code points");
             }
