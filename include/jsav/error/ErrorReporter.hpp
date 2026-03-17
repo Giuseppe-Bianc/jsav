@@ -183,6 +183,34 @@ namespace jsv {
         [[nodiscard]] static std::string format_simple_error(std::string_view error_type, std::string_view msg,
                                                              std::optional<ErrorCode> code);
 
+        /// @brief Builds the caret underline string for a source-line annotation.
+        ///
+        /// Handles both single-line spans (multiple `^` carets aligned via
+        /// `marker_extents`) and multi-line spans (single `^` at the start
+        /// column).  Falls back to byte-based column arithmetic when
+        /// `marker_extents` reports a decoding error.
+        ///
+        /// @param source_line  The source text of the line being annotated.
+        /// @param span         The error span (used for start/end column and
+        ///                     single-vs-multi-line detection).
+        /// @return A string of spaces and carets, optionally ANSI-coloured.
+        [[nodiscard]] std::string build_underline(std::string_view source_line, const SourceSpan &span) const;
+
+        /// @brief Appends an encoding-error note block when the message describes
+        ///        a UTF-8 or null-byte validation failure (FR-025, FR-026).
+        ///
+        /// Performs a case-insensitive keyword scan of @p msg for encoding-related
+        /// terms (`"utf-8"`, `"encoding"`, `"null byte"`, `"overlong"`,
+        /// `"surrogate"`).  When matched, a `note:` line is appended to @p output
+        /// with the byte offset and line number of the error.
+        ///
+        /// @param[in,out] output       The diagnostic string being built.
+        /// @param         msg          The error message to inspect.
+        /// @param         span         Source span (provides byte offset / line).
+        /// @param         source_line  The source line text (note is suppressed
+        ///                             when empty).
+        void append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span, std::string_view source_line) const;
+
         /// The line index built from the source text — used to retrieve the
         /// offending source line for display in `format_spanned_error`.
         LineTracker line_tracker_;

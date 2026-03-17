@@ -5,9 +5,6 @@
 
 // NOLINTBEGIN(*-include-cleaner, *-uppercase-literal-suffix, *-uppercase-literal-suffix)
 #include "jsav/error/ErrorReporter.hpp"
-#include "jsav/error/UnicodeColumn.hpp"
-#include <algorithm>
-#include <cctype>
 
 namespace jsv {
 
@@ -47,6 +44,97 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
+    // ErrorReporter::build_underline
+    // ---------------------------------------------------------------------------
+    //
+    // Builds the caret underline for a single source line annotation.
+    //
+    //   • Single-line span  →  <leading spaces> + <caret_count × '^'>
+    //     Uses marker_extents() for Unicode-aware column calculation.
+    //     Falls back to byte-based arithmetic on decoding failure.
+    //
+    //   • Multi-line span   →  <leading spaces> + '^'
+    //
+    // ---------------------------------------------------------------------------
+    std::string ErrorReporter::build_underline(std::string_view source_line, const SourceSpan &span) const {
+        const std::size_t start_col = span.start.column;
+        const std::size_t end_col = span.end.column;
+
+        // --- Multi-line span: single caret at start position -------------------
+        if(span.start.line != span.end.line) {
+            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+            std::string underline = FORMAT("{:>{}}^", "", start_offset);
+            return config_.ansi_color ? ansi::red_bold(underline) : underline;
+        }
+
+        // --- Single-line span: Unicode-aware marker extents --------------------
+        const std::size_t start_column = (start_col > 0) ? start_col : 1;
+        const std::size_t end_column = (end_col > 0) ? end_col : start_column + 1;
+
+        const std::size_t start_byte_in_line = start_column - 1;
+        const std::size_t end_byte_in_line = end_column - 1;
+
+        auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
+
+        // Fallback for encoding errors: use byte-based calculation
+        if(!extents_result.has_value()) {
+            const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
+            const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
+            return FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
+        }
+
+        const auto [leading_spaces, caret_count] = *extents_result;
+        std::string underline = FORMAT("{:>{}}", "", leading_spaces);
+
+        if(config_.ansi_color) {
+            for(std::size_t i = 0; i < caret_count; ++i) { underline += ansi::red_bold("^"); }
+        } else {
+            underline.append(caret_count, '^');
+        }
+
+        return underline;
+    }
+
+    // ---------------------------------------------------------------------------
+    // ErrorReporter::append_encoding_note
+    // ---------------------------------------------------------------------------
+    //
+    // FR-025, FR-026: For UTF-8 validation errors, appends a `note:` block
+    // with byte offset and line number.  Performs a case-insensitive keyword
+    // scan of the error message; silently returns when no encoding-related
+    // keyword is found or when the source line is empty.
+    //
+    // ---------------------------------------------------------------------------
+    void ErrorReporter::append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span,
+                                             std::string_view source_line) const {
+        if(source_line.empty()) { return; }
+
+        std::string msg_lower(msg);
+        std::ranges::transform(msg_lower, msg_lower.begin(), [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+        const bool is_encoding = msg_lower.find("utf-8") != std::string::npos || msg_lower.find("encoding") != std::string::npos ||
+                                 msg_lower.find("null byte") != std::string::npos || msg_lower.find("overlong") != std::string::npos ||
+                                 msg_lower.find("surrogate") != std::string::npos;
+        if(!is_encoding) { return; }
+
+        // Build enhanced error message with Unicode code point if applicable
+        std::string enhanced(msg);
+        if(msg_lower.find("null byte") != std::string::npos) {
+            enhanced += " (U+0000)";
+        } else if(msg_lower.find("surrogate") != std::string::npos) {
+            enhanced += " (U+D800–U+DFFF)";
+        }
+
+        const std::size_t byte_offset = span.start.absolute_pos;
+        const std::size_t start_line = span.start.line;
+
+        auto out = std::back_inserter(output);
+        FORMAT_TO(out, "     │\n");
+        FORMAT_TO(out, "     │ {} {} {}, {} {}\n", ansi::blue("note:"), enhanced, ansi::cyan("at byte offset"),
+                  ansi::yellow(FORMAT("{}", byte_offset)), ansi::cyan(FORMAT("line {}", start_line)));
+    }
+
+    // ---------------------------------------------------------------------------
     // ErrorReporter::format_spanned_error
     // ---------------------------------------------------------------------------
     //
@@ -75,25 +163,10 @@ namespace jsv {
         const std::optional<ErrorCode> error_code = error.error_code();
         const std::string_view msg = error.message();
         const SourceSpan &span = error.span();
-
-        const std::size_t start_line = span.start.line;
-        const std::size_t start_col = span.start.column;
-        const std::size_t end_line = span.end.line;
-        const std::size_t end_col = span.end.column;
-
-        // Retrieve the offending source line (O(1), zero-copy view).
-        // Mirrors: `self.line_tracker.get_line(start_line).unwrap_or_default()`
-        const std::string_view source_line = line_tracker_.get_line(start_line);
-
-        const std::size_t estimated = 100u + msg.size() + category.size() + (error_code.has_value() ? 12u : 0u)  // "[Exxxx] "
-                                      + 40u                                                                      // location line
-                                      + source_line.size() + 20u                                                 // source line row
-                                      + start_col + 10u                                                          // underline row
-                                      + (start_line != end_line ? 40u : 0u)                                      // multi-line note
-                                      + (error.help().has_value() ? 20u : 0u);                                   // help line
+        const std::string_view source_line = line_tracker_.get_line(span.start.line);
 
         std::string output;
-        output.reserve(estimated);
+        output.reserve(256u + msg.size() + source_line.size());
         auto out = std::back_inserter(output);
 
         // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
@@ -103,98 +176,16 @@ namespace jsv {
 
         // --- Source-line block (only when the tracker found the line) -----------
         if(!source_line.empty()) {
-            // "{start_line:4} │ {source_line}"
-            // Rust: writeln!(output, "{start_line:4} │ {source_line}");
-            FORMAT_TO(out, "{:4} │ {}\n", start_line, source_line);
+            FORMAT_TO(out, "{:4} │ {}\n", span.start.line, source_line);
+            FORMAT_TO(out, "     │ {}\n", build_underline(source_line, span));
 
-            // Build the underline string using Unicode-aware column calculation:
-            //   • single-line span  →  <start_offset spaces> + <caret_count × '^'>
-            //   • multi-line span   →  <start_offset spaces> + '^'
-            //
-            // Use column-based calculation for backward compatibility
-            // The column field in SourceLocation is 1-based
-            std::string underline;
-
-            // For single-line spans, use marker_extents with byte offsets within the line
-            // For multi-line spans, just show caret at start column
-            if(start_line == end_line) {
-                // Use column-based byte offset (column - 1 for 0-based index)
-                // Handle column 0 as column 1 (defensive programming)
-                const std::size_t start_column = (start_col > 0) ? start_col : 1;
-                const std::size_t end_column = (end_col > 0) ? end_col : start_column + 1;
-
-                const std::size_t start_byte_in_line = start_column - 1;
-                const std::size_t end_byte_in_line = end_column - 1;
-
-                auto extents_result = marker_extents(source_line, start_byte_in_line, end_byte_in_line, config_.tab_stop_width);
-
-                if(extents_result.has_value()) {
-                    const auto [leading_spaces, caret_count] = extents_result.value();
-
-                    // Single-line span: use calculated leading spaces and caret count
-                    underline = FORMAT("{:>{}}", "", leading_spaces);
-
-                    // Apply ANSI color if enabled
-                    if(config_.ansi_color) {
-                        // Output red carets
-                        for(std::size_t i = 0; i < caret_count; ++i) { underline += ansi::red_bold("^"); }
-                    } else {
-                        // Output plain carets
-                        underline.append(caret_count, '^');
-                    }
-                } else {
-                    // Fallback for encoding errors: use byte-based calculation
-                    const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
-                    const std::size_t length = (end_col > start_col) ? (end_col - start_col) : 1u;
-                    underline = FORMAT("{:>{}}{:^>{}}", "", start_offset, "", length);
-                }
-            } else {
-                // Multi-line span: just show single caret at start position
-                const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
-                underline = FORMAT("{:>{}}^", "", start_offset);
-                if(config_.ansi_color) { underline = ansi::red_bold(underline); }
+            if(span.start.line != span.end.line) {
+                FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), span.start.line, span.end.line);
             }
-
-            // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
-            FORMAT_TO(out, "     │ {}\n", underline);
-
-            // Multi-line note: "     │ ... (error spans lines X-Y)"
-            if(start_line != end_line) { FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), start_line, end_line); }
         }
 
-        // --- Encoding error note (optional, for UTF-8 validation errors) -------
-        // FR-025, FR-026: Include byte offset and line number for encoding errors
-        // Check if error message contains encoding-related keywords (case-insensitive)
-        const std::string_view error_msg = msg;
-        std::string error_msg_lower = std::string(error_msg);
-        std::transform(error_msg_lower.begin(), error_msg_lower.end(), error_msg_lower.begin(),
-                       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-        const bool is_encoding_error = (error_msg_lower.find("utf-8") != std::string::npos ||
-                                        error_msg_lower.find("encoding") != std::string::npos ||
-                                        error_msg_lower.find("null byte") != std::string::npos ||
-                                        error_msg_lower.find("overlong") != std::string::npos ||
-                                        error_msg_lower.find("surrogate") != std::string::npos);
-
-        if(is_encoding_error && !source_line.empty()) {
-            // Use byte offset from span (absolute position in source)
-            const std::size_t byte_offset = span.start.absolute_pos;
-
-            // Build enhanced error message with Unicode code point if applicable
-            std::string enhanced_msg = std::string(error_msg);
-
-            // Add Unicode code point for specific error types
-            if(error_msg_lower.find("null byte") != std::string::npos) {
-                enhanced_msg += " (U+0000)";
-            } else if(error_msg_lower.find("surrogate") != std::string::npos) {
-                enhanced_msg += " (U+D800–U+DFFF)";
-            }
-
-            // Add note with byte offset and line number
-            FORMAT_TO(out, "     │\n");
-            FORMAT_TO(out, "     │ {} {} {}, {} {}\n", ansi::blue("note:"), enhanced_msg, ansi::cyan("at byte offset"),
-                      ansi::yellow(FORMAT("{}", byte_offset)), ansi::cyan("line"), ansi::yellow(FORMAT("{}", start_line)));
-        }
+        // --- Encoding error note (FR-025, FR-026) ------------------------------
+        append_encoding_note(output, msg, span, source_line);
 
         // --- Help line (optional) -----------------------------------------------
         if(const auto help_opt = error.help(); help_opt.has_value()) {

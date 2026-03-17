@@ -2,10 +2,8 @@
  * Created by gbian on 14/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
+// NOLINTBEGIN(*-include-cleaner, *-mt-unsafe)
 #include "jsav/error/UnicodeColumn.hpp"
-#include "jsav/headers.hpp"
-#include "jsav/lexer/unicode/Utf8.hpp"
 
 namespace jsv {
 
@@ -172,3 +170,4 @@ namespace jsv {
     }
 
 }  // namespace jsv
+// NOLINTEND(*-include-cleaner, *-mt-unsafe)

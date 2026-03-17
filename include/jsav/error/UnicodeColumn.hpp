@@ -27,6 +27,7 @@
  */
 
 #include "../headers.hpp"
+#include "jsav/lexer/unicode/Utf8.hpp"
 
 namespace jsv {
 
