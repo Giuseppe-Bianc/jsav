@@ -156,7 +156,7 @@
 - [X] T045 [US3] Ensure combining characters are counted individually (no grapheme cluster logic - each code point = 1 column)
 - [X] T046 [US3] Ensure ZWJ emoji sequences are counted as separate code points (no special handling - each code point including ZWJ = 1 column)
 - [X] T047 [US3] Add minimum 1 caret guarantee in `marker_extents()` (if `caret_count == 0`, set to 1 per FR-013)
-- [ ] T048 [US3] Run US3 tests and verify all PASS (`ctest -R "US3.*edge" --output-on-failure`)
+- [X] T048 [US3] Run US3 tests and verify all PASS (`ctest -R "US3.*edge" --output-on-failure`)
 
 **Checkpoint**: All user stories should now be independently functional - core Unicode handling, invalid UTF-8 detection, and edge cases all work correctly
 

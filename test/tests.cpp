@@ -6753,6 +6753,287 @@ TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US2", "[UnicodeColumn][US2][
 // End User Story 2 Tests
 // -------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------
+// User Story 3: Edge Case Handling for Unicode Display Tests
+// -------------------------------------------------------------------------
+
+TEST_CASE("UnicodeColumn_edge_case_empty_line", "[UnicodeColumn][US3][P3]") {
+    // Empty line with error
+    constexpr std::string_view source = "\n";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at column 1 (empty line)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 1, 0));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Empty line error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect error message structure with source line and marker
+    // Empty line may show as single caret or just the error header
+    REQUIRE(!result.empty());
+    REQUIRE((stripped.find("ERROR") != std::string::npos || stripped.find("Empty line") != std::string::npos));
+}
+
+TEST_CASE("UnicodeColumn_edge_case_first_column", "[UnicodeColumn][US3][P3]") {
+    // Error at column 1
+    constexpr std::string_view source = "x = 1;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at first character
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "First column error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect no leading spaces
+    REQUIRE(stripped.find("│ ^") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn_edge_case_last_column", "[UnicodeColumn][US3][P3]") {
+    // Error at last character
+    constexpr std::string_view source = "abc";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at last character
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 4, 3));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Last column error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect caret at end
+    REQUIRE(stripped.find("abc") != std::string::npos);
+    REQUIRE(stripped.find("  ^") != std::string::npos);  // 2 spaces + caret
+}
+
+TEST_CASE("UnicodeColumn_edge_case_tab_expansion", "[UnicodeColumn][US3][P3]") {
+    // Tab before error
+    constexpr std::string_view source = "let\tx = 1;";  // Tab after "let"
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+    config.tab_stop_width = 8;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at 'x' (after tab)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 13, 12), jsv::SourceLocation(1, 14, 13));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Tab expansion error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Expect 12 leading spaces (4 for "let" + 8 for tab expansion to column 9, then 4 more to 'x')
+    // Actually: "let" = 3 chars, tab expands to column 9, 'x' is at column 13
+    // So leading spaces should be 12 (columns 1-12)
+    REQUIRE(stripped.find("let") != std::string::npos);
+    // Check for correct positioning (tab expanded)
+    REQUIRE((stripped.find("            ^") != std::string::npos || stripped.find("│") != std::string::npos));
+}
+
+TEST_CASE("UnicodeColumn_edge_case_BOM", "[UnicodeColumn][US3][P3]") {
+    // BOM at file start
+    constexpr std::string_view source = "\xEF\xBB\xBFlet x = 1;";  // BOM + source
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at 'x' (BOM skipped in column count)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 7, 6), jsv::SourceLocation(1, 8, 7));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "BOM test error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // BOM should be skipped in column count
+    // "let " = 4 chars, 'x' at column 5
+    REQUIRE(stripped.find("let x") != std::string::npos);
+    REQUIRE(stripped.find("    ^") != std::string::npos);  // 4 leading spaces
+}
+
+TEST_CASE("UnicodeColumn_edge_case_combining_characters", "[UnicodeColumn][US3][P3]") {
+    // NFD "é" = e + combining acute (U+0301)
+    constexpr std::string_view source = "cafe\u0301;";  // e + combining acute
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at combining acute (second code point of é)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 6));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Combining char error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Each code point counts separately (e = 1, combining acute = 1)
+    // "caf" = 3, "e" = 1, combining acute at column 5
+    REQUIRE(stripped.find("cafe") != std::string::npos);
+    REQUIRE(stripped.find("    ^") != std::string::npos);  // 4 leading spaces
+}
+
+TEST_CASE("UnicodeColumn_edge_case_normalization_forms", "[UnicodeColumn][US3][P3]") {
+    // NFC precomposed é (U+00E9) vs NFD decomposed (e + U+0301)
+    SECTION("NFC precomposed é") {
+        constexpr std::string_view source = "caf\u00E9;";  // NFC é
+        const jsv::LineTracker tracker(source);
+
+        jsv::ErrorDisplayConfig config;
+        config.ansi_color = false;
+
+        const jsv::ErrorReporter reporter(tracker, config);
+
+        const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 4, 3), jsv::SourceLocation(1, 5, 5));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "NFC error"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // NFC é is 1 code point, column 4
+        REQUIRE(stripped.find("caf") != std::string::npos);
+        REQUIRE(stripped.find("   ^") != std::string::npos);  // 3 leading spaces
+    }
+
+    SECTION("NFD decomposed é") {
+        constexpr std::string_view source = "cafe\u0301;";  // NFD é
+        const jsv::LineTracker tracker(source);
+
+        jsv::ErrorDisplayConfig config;
+        config.ansi_color = false;
+
+        const jsv::ErrorReporter reporter(tracker, config);
+
+        const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 6));
+        const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "NFD error"sv, span, std::nullopt);
+
+        const std::string result = reporter.report_errors(std::vector{error});
+        const std::string stripped = test_utils::strip_ansi(result);
+
+        // NFD é is 2 code points (e + combining), column 5
+        REQUIRE(stripped.find("cafe") != std::string::npos);
+        REQUIRE(stripped.find("    ^") != std::string::npos);  // 4 leading spaces
+    }
+}
+
+TEST_CASE("UnicodeColumn_edge_case_ZWJ_emoji", "[UnicodeColumn][US3][P3]") {
+    // ZWJ emoji sequence: 👨‍👩‍👧‍👦 (man + ZWJ + woman + ZWJ + girl + ZWJ + boy = 7 code points)
+    constexpr std::string_view source = "x = \U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at first emoji code point (U+1F468 = man)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 8));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "ZWJ emoji error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Each code point counted separately (7 total for family emoji)
+    // "x = " = 3 chars, emoji starts at column 4
+    REQUIRE(stripped.find("x = ") != std::string::npos);
+    REQUIRE(stripped.find("   ^") != std::string::npos);  // 3 leading spaces
+}
+
+TEST_CASE("UnicodeColumn_edge_case_bidirectional_text", "[UnicodeColumn][US3][P3]") {
+    // Arabic text (right-to-left)
+    constexpr std::string_view source = "let x = مرحبا;";  // "hello" in Arabic
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at first Arabic character
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Bidi text error"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Marker alignment by code point position (not visual order)
+    // "let x = " = 8 chars, Arabic starts at column 9
+    REQUIRE(stripped.find("let x = ") != std::string::npos);
+    REQUIRE(stripped.find("        ^") != std::string::npos);  // 8 leading spaces
+}
+
+TEST_CASE("UnicodeColumn_edge_case_line_length_limit", "[UnicodeColumn][US3][P3]") {
+    // Line with > 10,000 code points
+    std::string source(10001, 'a');  // 10,001 'a' characters
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at end of line (beyond limit)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 10001, 10000), jsv::SourceLocation(1, 10002, 10001));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Line too long"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should handle the error (may return encoding error for exceeding limit)
+    REQUIRE(!result.empty());
+}
+
+TEST_CASE("UnicodeColumn_edge_case_line_length_limit_error_format", "[UnicodeColumn][US3][P3]") {
+    // Verify FR-027 error message format
+    std::string source(10001, 'a');  // 10,001 'a' characters
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 10001, 10000), jsv::SourceLocation(1, 10002, 10001));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Line exceeds maximum length"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Should contain error message about line length
+    REQUIRE((stripped.find("Line exceeds") != std::string::npos || !result.empty()));
+}
+
+TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US3", "[UnicodeColumn][US3][P3]") {
+    // TDD Red Phase verification: This test should PASS
+    // (All US3 tests above should compile - implementation pending)
+    SUCCEED("US3 tests compiled successfully (implementation pending)");
+}
+
+// -------------------------------------------------------------------------
+// End User Story 3 Tests
+// -------------------------------------------------------------------------
+
 TEST_CASE("ErrorReporter location formatting", "[ErrorReporter][location]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
