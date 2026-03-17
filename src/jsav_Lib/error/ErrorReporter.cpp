@@ -97,6 +97,20 @@ namespace jsv {
     }
 
     // ---------------------------------------------------------------------------
+    // ErrorReporter::colorize
+    // ---------------------------------------------------------------------------
+    //
+    // Helper function to conditionally apply ANSI color based on config_.ansi_color.
+    // When ansi_color is true, applies the color function to the text.
+    // Otherwise, returns the plain text unchanged.
+    //
+    // ---------------------------------------------------------------------------
+    std::string ErrorReporter::colorize(std::string_view text, std::function<std::string(std::string_view)> color_fn) const {
+        if(config_.ansi_color) { return color_fn(text); }
+        return std::string(text);
+    }
+
+    // ---------------------------------------------------------------------------
     // ErrorReporter::append_encoding_note
     // ---------------------------------------------------------------------------
     //
@@ -107,7 +121,7 @@ namespace jsv {
     //
     // ---------------------------------------------------------------------------
     void ErrorReporter::append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span,
-                                             std::string_view source_line) {
+                                             std::string_view source_line) const {
         if(source_line.empty()) { return; }
 
         std::string msg_lower(msg);
@@ -131,8 +145,8 @@ namespace jsv {
 
         auto out = std::back_inserter(output);
         FORMAT_TO(out, "     │\n");
-        FORMAT_TO(out, "     │ {} {} {}, {} {}\n", ansi::blue("note:"), enhanced, ansi::cyan("at byte offset"),
-                  ansi::yellow(FORMAT("{}", byte_offset)), ansi::cyan(FORMAT("line {}", start_line)));
+        FORMAT_TO(out, "     │ {} {} {}, {} {}\n", colorize("note:", ansi::blue), enhanced, colorize("at byte offset", ansi::cyan),
+                  colorize(FORMAT("{}", byte_offset), ansi::yellow), colorize(FORMAT("line {}", start_line), ansi::cyan));
     }
 
     // ---------------------------------------------------------------------------
@@ -172,8 +186,9 @@ namespace jsv {
 
         // --- Header: ERROR [Exxxx] CATEGORY: message ----------------------------
         //             Location: <span>
-        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", ansi::red_bold("ERROR"), details::error_code_fragment(error_code), ansi::red(category),
-                  ansi::yellow(msg), ansi::blue("Location:"), ansi::cyan(FORMAT("{}", span)));
+        FORMAT_TO(out, "{}{}{}: {}\n{} {}\n", colorize("ERROR", ansi::red_bold), details::error_code_fragment(error_code),
+                  colorize(category, ansi::red), colorize(msg, ansi::yellow), colorize("Location:", ansi::blue),
+                  colorize(FORMAT("{}", span), ansi::cyan));
 
         // --- Source-line block (only when the tracker found the line) -----------
         if(!source_line.empty()) {
@@ -181,7 +196,7 @@ namespace jsv {
             FORMAT_TO(out, "     │ {}\n", build_underline(source_line, span));
 
             if(span.start.line != span.end.line) {
-                FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", ansi::blue("..."), span.start.line, span.end.line);
+                FORMAT_TO(out, "     │ {} (error spans lines {}-{})\n", colorize("...", ansi::blue), span.start.line, span.end.line);
             }
         }
 
@@ -190,7 +205,7 @@ namespace jsv {
 
         // --- Help line (optional) -----------------------------------------------
         if(const auto help_opt = error.help(); help_opt.has_value()) {
-            FORMAT_TO(out, "{} {}\n", ansi::blue_bold("help:"), ansi::green(**help_opt));
+            FORMAT_TO(out, "{} {}\n", colorize("help:", ansi::blue_bold), colorize(*help_opt.value(), ansi::green));
         }
 
         return output;

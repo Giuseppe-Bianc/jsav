@@ -209,7 +209,19 @@ namespace jsv {
         /// @param         span         Source span (provides byte offset / line).
         /// @param         source_line  The source line text (note is suppressed
         ///                             when empty).
-        static void append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span, std::string_view source_line);
+        void append_encoding_note(std::string &output, std::string_view msg, const SourceSpan &span, std::string_view source_line) const;
+
+        /// @brief Conditionally applies ANSI color based on config_.ansi_color.
+        ///
+        /// When config_.ansi_color is true, applies the color function @p color_fn
+        /// to @p text. Otherwise, returns the plain text unchanged. This ensures
+        /// consistent color behavior across all diagnostic output.
+        ///
+        /// @param text      The text to potentially colorize.
+        /// @param color_fn  A function that applies ANSI color to a string_view.
+        /// @return Colored text if ansi_color is enabled, otherwise plain text.
+        [[nodiscard]] std::string colorize(std::string_view text,
+                                           std::function<std::string(std::string_view)> color_fn) const;
 
         /// The line index built from the source text — used to retrieve the
         /// offending source line for display in `format_spanned_error`.

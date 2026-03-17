@@ -33,8 +33,8 @@ namespace jsv {
             }
         }
 
-        // 4. Default: no color
-        return false;
+        // 3. Default: colors enabled
+        return true;
     }
 
     // ---------------------------------------------------------------------------

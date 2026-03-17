@@ -49,17 +49,17 @@ namespace jsv {
         ///
         /// @note Must be > 0. Division by zero occurs if tab_stop_width == 0.
         /// @see FR-018, FR-010
-        std::size_t tab_stop_width = 8;
+        std::size_t tab_stop_width = tab_stop_width_default;
 
-        /// @brief Enable ANSI color escape codes for error markers (default: false).
+        /// @brief Enable ANSI color escape codes for error markers (default: true).
         ///
-        /// When true, error markers (carets) are output with ANSI color escape
-        /// codes (red color). When false, plain '^' characters are used.
+        /// When true, error markers (carets) and diagnostic output use ANSI color
+        /// escape codes. When false, plain text without color codes is used.
         ///
-        /// @note Auto-detected by detect_ansi_color() based on environment variables.
-        /// @note Respects NO_COLOR environment variable (overrides to false).
-        /// @see NFR-003, detect_ansi_color()
-        bool ansi_color = false;
+        /// @note Set to false explicitly to disable color output (e.g., for CI or
+        /// non-interactive terminals).
+        /// @see NFR-003
+        bool ansi_color = true;
     };
 
     // ---------------------------------------------------------------------------
