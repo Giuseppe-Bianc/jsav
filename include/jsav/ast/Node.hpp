@@ -5,9 +5,9 @@
 
 #pragma once
 // clang-format off
-#include "jsav/headers.hpp"
-#include "jsav/ast/NodeKind.hpp"
-#include "jsav/location/SourceSpan.hpp"
+#include "../headers.hpp"
+#include "NodeKind.hpp"
+#include "../location/SourceSpan.hpp"
 // clang-format on
 
 namespace jsv {
@@ -41,6 +41,17 @@ namespace jsv {
         SourceSpan loc_;
     };
 
+    // ============================================================
+    // Unique pointer alias
+    // ============================================================
+    using NodePtr = std::unique_ptr<Node>;
+    using ExprPtr = std::unique_ptr<Expr>;
+    using StmtPtr = std::unique_ptr<Stmt>;
+
+    // ============================================================
+    // Classi intermedie: Expr e Stmt
+    // Servono come "categorie" per il tag dispatching
+    // ============================================================
     class Expr : public Node {
     public:
         using Node::Node;

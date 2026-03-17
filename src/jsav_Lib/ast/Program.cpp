@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "Program.hpp"
+#include "jsav/ast/Program.hpp"
 
 namespace jsv {
 }  // namespace jsv

@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "Expressions.hpp"
+#include "jsav/ast/Expressions.hpp"
 
 namespace jsv {
 }  // namespace jsv

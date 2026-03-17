@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "NodeKind.hpp"
+#include "jsav/ast/NodeKind.hpp"
 
 namespace jsv {
 }  // namespace jsv

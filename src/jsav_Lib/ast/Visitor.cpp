@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "Visitor.hpp"
+#include "jsav/ast/Visitor.hpp"
 
 namespace jsv {
 }  // namespace jsv

@@ -21,6 +21,20 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/error/ErrorReporter.hpp
         error/UnicodeColumn.cpp
         ../../include/jsav/error/UnicodeColumn.hpp
+        ast/NodeKind.cpp
+        ../../include/jsav/ast/NodeKind.hpp
+        ast/Node.cpp
+        ../../include/jsav/ast/Node.hpp
+        ast/Expressions.cpp
+        ../../include/jsav/ast/Expressions.hpp
+        ast/Statements.cpp
+        ../../include/jsav/ast/Statements.hpp
+        ast/Program.cpp
+        ../../include/jsav/ast/Program.hpp
+        ast/Visitor.cpp
+        ../../include/jsav/ast/Visitor.hpp
+        ast/Ast_printer.cpp
+        ../../include/jsav/ast/Ast_printer.hpp
         #[[lexer/Token.cpp
                 lexer/Tokenizer.cpp
                 lexer/TokenizerUtility.cpp

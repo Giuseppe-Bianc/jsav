@@ -36,6 +36,46 @@ DISABLE_WARNINGS_POP()
 }  // namespace vnd
 
 */
+
+// ============================================================
+// Helper: costruisce AST manualmente (senza parser)
+// ============================================================
+std::unique_ptr<jsv::Program> build_manual_ast() {
+    using namespace jsv;
+    std::vector<StmtPtr> stmts;
+
+    // var x: int = 42;
+    stmts.push_back(std::make_unique<VarDecl>("x", std::optional<std::string>{"int"}, std::make_unique<IntegerLiteral>(42), false));
+
+    // const pi = 3.14;
+    stmts.push_back(std::make_unique<VarDecl>("pi", std::nullopt, std::make_unique<FloatLiteral>(3.14), true));
+
+    // fn add(a: int, b: int) -> int {
+    //     return a + b;
+    // }
+    {
+        std::vector<StmtPtr> body_stmts;
+        body_stmts.push_back(std::make_unique<ReturnStmt>(
+            std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<Identifier>("a"), std::make_unique<Identifier>("b"))));
+
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts));
+        std::vector<FuncParam> params{{"a", "int"}, {"b", "int"}};
+
+        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<std::string>{"int"}, std::move(body)));
+    }
+
+    // print add(x, 8);
+    {
+        std::vector<ExprPtr> args;
+        args.push_back(std::make_unique<Identifier>("x"));
+        args.push_back(std::make_unique<IntegerLiteral>(8));
+
+        stmts.push_back(std::make_unique<PrintStmt>(std::make_unique<CallExpr>(std::make_unique<Identifier>("add"), std::move(args))));
+    }
+
+    return std::make_unique<Program>(std::move(stmts));
+}
+
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
 // NOLINTNEXTLINE(*-function-cognitive-complexity, *-exception-escape)
@@ -171,17 +211,17 @@ auto main(int argc, const char *const argv[]) -> int {
         mock_errors.push_back(
             jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "carattere '@' non riconosciuto", e1_span, std::nullopt));
 
-        // E0005 – con help
-        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0005, "stringa aperta con '\"' mai chiusa", e2_span,
-                                                            std::string{R"(aggiungere '"' alla fine del letterale: "ciao mondo")"}));
-
-        // E0007 – con help contenente backslash (raw string per sicurezza)
-        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0007, R"(sequenza di escape '\q' non valida)", e3_span,
-                                                            std::string{R"(sequenze valide: \n \t \\ \" \' \0 \u{XXXX})"}));
-
-        // E0008 – span multi-riga, con help
-        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0008, "commento multi-linea '/*' non terminato", e4_span,
-                                                            std::string{"aggiungere '*/' per chiudere il commento"}));
+        // // E0005 – con help
+        // mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0005, "stringa aperta con '\"' mai chiusa", e2_span,
+        //                                                     std::string{R"(aggiungere '"' alla fine del letterale: "ciao mondo")"}));
+        //
+        // // E0007 – con help contenente backslash (raw string per sicurezza)
+        // mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0007, R"(sequenza di escape '\q' non valida)", e3_span,
+        //                                                     std::string{R"(sequenze valide: \n \t \\ \" \' \0 \u{XXXX})"}));
+        //
+        // // E0008 – span multi-riga, con help
+        // mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0008, "commento multi-linea '/*' non terminato", e4_span,
+        //                                                     std::string{"aggiungere '*/' per chiudere il commento"}));
 
         const std::string diagnostic = reporter.report_errors(mock_errors);
 
@@ -189,6 +229,12 @@ auto main(int argc, const char *const argv[]) -> int {
         // Alternativa con il logger del progetto: LERROR("{}", diagnostic);
         // fmt::print(stderr, "{}", diagnostic);
         fmt::print("{}", diagnostic);
+
+        auto program = build_manual_ast();
+
+        std::cout << "--- Tree view ---\n";
+        jsv::AstPrinter tree_printer;
+        tree_printer.print(*program);
         // LINFO("{}", code);
         /*vnd::Tokenizer tokenizer{code, porfilename};
         std::vector<vnd::TokenVec> tokens;

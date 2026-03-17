@@ -5,7 +5,7 @@
 #pragma once
 
 // clang-format off
-#include "jsav/ast/Node.hpp"
+#include "Node.hpp"
 // clang-format on
 
 namespace jsv {

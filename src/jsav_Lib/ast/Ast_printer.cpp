@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "Ast_printer.hpp"
+#include "../../../include/jsav/ast/Ast_printer.hpp"
 
 namespace jsv {
 }  // namespace jsv
