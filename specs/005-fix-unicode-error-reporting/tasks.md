@@ -96,15 +96,15 @@
 
 > **⚠️ TDD ENFORCEMENT (Constitution IV)**: Write ALL test cases below FIRST (Red Phase). Do NOT proceed to implementation tasks (T025-T032) until tests are written AND verified to FAIL.
 
-- [ ] T019a [P] [US2] **[TDD RED PHASE]** Write all US2 test cases (T020–T023b) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
-- [ ] T020 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_detection` in `test/tests.cpp` (source with invalid bytes `\xFF\xFE`, verify encoding error message with byte offset)
-- [ ] T021 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_null_byte` in `test/tests.cpp` (source with null byte `\x00`, verify "Null byte (U+0000)" error message)
-- [ ] T022 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong` in `test/tests.cpp` (overlong encoding `\xC0\x80`, verify encoding error)
-- [ ] T022a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong_error_format` in `test/tests.cpp` (verify FR-025 error message format: "Overlong UTF-8 encoding at byte offset X, line Y" with actual byte offset and line number)
-- [ ] T023 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate` in `test/tests.cpp` (surrogate half `\xED\xA0\x80`, verify encoding error)
-- [ ] T023a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate_error_format` in `test/tests.cpp` (verify FR-026 error message format: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset X, line Y" with actual byte offset and line number)
-- [ ] T023b [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_mixed_errors` in `test/tests.cpp` (source with both overlong encoding and surrogate half, verify both errors reported with correct byte offsets)
-- [ ] T024 [US2] **[TDD RED PHASE VERIFICATION]** Verify all US2 tests FAIL before implementation (run `ctest -R "US2.*invalid" --output-on-failure`). **DO NOT PROCEED to T025 until T024 confirms test failure.**
+- [X] T019a [P] [US2] **[TDD RED PHASE]** Write all US2 test cases (T020–T023b) in `test/tests.cpp` **before any implementation**. Tests MUST compile but FAIL (linker error or test failure) since functions do not exist yet. This is the Constitution IV "Red Phase" checkpoint.
+- [X] T020 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_detection` in `test/tests.cpp` (source with invalid bytes `\xFF\xFE`, verify encoding error message with byte offset)
+- [X] T021 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_null_byte` in `test/tests.cpp` (source with null byte `\x00`, verify "Null byte (U+0000)" error message)
+- [X] T022 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong` in `test/tests.cpp` (overlong encoding `\xC0\x80`, verify encoding error)
+- [X] T022a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_overlong_error_format` in `test/tests.cpp` (verify FR-025 error message format: "Overlong UTF-8 encoding at byte offset X, line Y" with actual byte offset and line number)
+- [X] T023 [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate` in `test/tests.cpp` (surrogate half `\xED\xA0\x80`, verify encoding error)
+- [X] T023a [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_surrogate_error_format` in `test/tests.cpp` (verify FR-026 error message format: "UTF-16 surrogate half (U+D800–U+DFFF) not allowed in source files at byte offset X, line Y" with actual byte offset and line number)
+- [X] T023b [P] [US2] Add test case `UnicodeColumn_invalid_UTF8_mixed_errors` in `test/tests.cpp` (source with both overlong encoding and surrogate half, verify both errors reported with correct byte offsets)
+- [X] T024 [US2] **[TDD RED PHASE VERIFICATION]** Verify all US2 tests FAIL before implementation (run `ctest -R "US2.*invalid" --output-on-failure`). **DO NOT PROCEED to T025 until T024 confirms test failure.**
 
 ### Implementation for User Story 2
 

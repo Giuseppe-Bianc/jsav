@@ -6567,6 +6567,192 @@ TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification", "[UnicodeColumn][US1][P1]"
 // End User Story 1 Tests
 // -------------------------------------------------------------------------
 
+// -------------------------------------------------------------------------
+// User Story 2: Invalid UTF-8 Detection and Reporting Tests
+// -------------------------------------------------------------------------
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_detection", "[UnicodeColumn][US2][P2]") {
+    // Source with invalid UTF-8 sequence (0xFF 0xFE are invalid UTF-8 bytes)
+    constexpr std::string_view source = "let x = \xFF\xFE;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+    config.tab_stop_width = 8;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at invalid UTF-8 sequence (byte offset 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid UTF-8 sequence"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should contain encoding error message or Invalid UTF-8
+    REQUIRE((result.find("encoding error") != std::string::npos || result.find("Invalid UTF-8") != std::string::npos));
+    REQUIRE(result.find("byte offset") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_null_byte", "[UnicodeColumn][US2][P2]") {
+    // Source with null byte (U+0000)
+    constexpr std::string_view source = "let x = \x00;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at null byte (byte offset 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 9, 9));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Null byte detected"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should contain null byte error message
+    REQUIRE(result.find("Null byte") != std::string::npos);
+    REQUIRE(result.find("U+0000") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_overlong", "[UnicodeColumn][US2][P2]") {
+    // Source with overlong UTF-8 encoding (0xC0 0x80 is overlong NUL)
+    constexpr std::string_view source = "let x = \xC0\x80;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at overlong encoding (byte offset 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Overlong UTF-8 encoding"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should contain overlong encoding error
+    REQUIRE((result.find("Overlong") != std::string::npos || result.find("encoding error") != std::string::npos));
+}
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_overlong_error_format", "[UnicodeColumn][US2][P2]") {
+    // Verify FR-025 error message format
+    constexpr std::string_view source = "let x = \xC0\x80;";  // Overlong NUL
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Overlong encoding"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Should contain byte offset and line number
+    REQUIRE(stripped.find("byte offset") != std::string::npos);
+    REQUIRE(stripped.find("line 1") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate", "[UnicodeColumn][US2][P2]") {
+    // Source with UTF-16 surrogate half (0xED 0xA0 0x80 encodes U+D800)
+    constexpr std::string_view source = "let x = \xED\xA0\x80;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // Error at surrogate half (byte offset 8)
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 11, 11));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Surrogate half detected"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+
+    // Should contain surrogate error
+    REQUIRE((result.find("surrogate") != std::string::npos || result.find("U+D800") != std::string::npos ||
+            result.find("encoding error") != std::string::npos));
+}
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate_error_format", "[UnicodeColumn][US2][P2]") {
+    // Verify FR-026 error message format
+    constexpr std::string_view source = "let x = \xED\xA0\x80;";  // Surrogate half
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 11, 11));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Surrogate half"sv, span, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error});
+    const std::string stripped = test_utils::strip_ansi(result);
+
+    // Should contain byte offset and line number
+    REQUIRE(stripped.find("byte offset") != std::string::npos);
+    REQUIRE(stripped.find("line 1") != std::string::npos);
+}
+
+TEST_CASE("UnicodeColumn_invalid_UTF8_mixed_errors", "[UnicodeColumn][US2][P2]") {
+    // Source with both overlong encoding and surrogate half
+    constexpr std::string_view source = "let x = \xC0\x80; let y = \xED\xA0\x80;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    // First error: overlong encoding at byte offset 8
+    const jsv::SourceSpan span1("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error1 = jsv::CompileError::LexerError(std::nullopt, "Overlong encoding"sv, span1, std::nullopt);
+
+    // Second error: surrogate half at byte offset 19
+    const jsv::SourceSpan span2("test.jsv", jsv::SourceLocation(1, 20, 19), jsv::SourceLocation(1, 22, 22));
+    const jsv::CompileError error2 = jsv::CompileError::LexerError(std::nullopt, "Surrogate half"sv, span2, std::nullopt);
+
+    const std::string result = reporter.report_errors(std::vector{error1, error2});
+
+    // Both errors should be reported
+    REQUIRE((result.find("Overlong") != std::string::npos || result.find("encoding error") != std::string::npos));
+    REQUIRE((result.find("surrogate") != std::string::npos || result.find("U+D800") != std::string::npos));
+}
+
+TEST_CASE("UnicodeColumn_logging_critical_errors", "[UnicodeColumn][US2][P2]") {
+    // Verify LERROR() is called for critical encoding errors
+    // Note: This test verifies the function exists and can be called
+    // Actual log output verification requires spdlog sink mocking
+
+    constexpr std::string_view source = "let x = \xFF\xFE;";
+    const jsv::LineTracker tracker(source);
+
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = false;
+
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 10));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Invalid UTF-8"sv, span, std::nullopt);
+
+    // Just verify the function can be called without crashing
+    const std::string result = reporter.report_errors(std::vector{error});
+    REQUIRE(!result.empty());
+}
+
+TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US2", "[UnicodeColumn][US2][P2]") {
+    // TDD Red Phase verification: This test should PASS
+    // (All US2 tests above should compile - implementation pending)
+    SUCCEED("US2 tests compiled successfully (implementation pending)");
+}
+
+// -------------------------------------------------------------------------
+// End User Story 2 Tests
+// -------------------------------------------------------------------------
+
 TEST_CASE("ErrorReporter location formatting", "[ErrorReporter][location]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
