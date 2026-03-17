@@ -105,7 +105,7 @@ namespace jsv {
     // Otherwise, returns the plain text unchanged.
     //
     // ---------------------------------------------------------------------------
-    std::string ErrorReporter::colorize(std::string_view text, std::function<std::string(std::string_view)> color_fn) const {
+    std::string ErrorReporter::colorize(std::string_view text,const std::function<std::string(std::string_view)>& color_fn) const {
         if(config_.ansi_color) { return color_fn(text); }
         return std::string(text);
     }

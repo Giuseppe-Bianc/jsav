@@ -220,7 +220,7 @@ namespace jsv {
         /// @param text      The text to potentially colorize.
         /// @param color_fn  A function that applies ANSI color to a string_view.
         /// @return Colored text if ansi_color is enabled, otherwise plain text.
-        [[nodiscard]] std::string colorize(std::string_view text, std::function<std::string(std::string_view)> color_fn) const;
+        [[nodiscard]] std::string colorize(std::string_view text, const std::function<std::string(std::string_view)> &color_fn) const;
 
         /// The line index built from the source text — used to retrieve the
         /// offending source line for display in `format_spanned_error`.
