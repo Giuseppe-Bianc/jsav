@@ -137,9 +137,7 @@ namespace jsv {
                     // Apply ANSI color if enabled
                     if(config_.ansi_color) {
                         // Output red carets
-                        for(std::size_t i = 0; i < caret_count; ++i) {
-                            underline += ansi::red_bold("^");
-                        }
+                        for(std::size_t i = 0; i < caret_count; ++i) { underline += ansi::red_bold("^"); }
                     } else {
                         // Output plain carets
                         underline.append(caret_count, '^');
@@ -154,9 +152,7 @@ namespace jsv {
                 // Multi-line span: just show single caret at start position
                 const std::size_t start_offset = (start_col > 0u) ? (start_col - 1u) : 0u;
                 underline = FORMAT("{:>{}}^", "", start_offset);
-                if(config_.ansi_color) {
-                    underline = ansi::red_bold(underline);
-                }
+                if(config_.ansi_color) { underline = ansi::red_bold(underline); }
             }
 
             // "     │ <underline>"  (5 spaces to align with the 4-digit line number)
@@ -171,9 +167,9 @@ namespace jsv {
         // Check if error message contains encoding-related keywords (case-insensitive)
         const std::string_view error_msg = msg;
         std::string error_msg_lower = std::string(error_msg);
-        std::transform(error_msg_lower.begin(), error_msg_lower.end(), error_msg_lower.begin(), 
+        std::transform(error_msg_lower.begin(), error_msg_lower.end(), error_msg_lower.begin(),
                        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        
+
         const bool is_encoding_error = (error_msg_lower.find("utf-8") != std::string::npos ||
                                         error_msg_lower.find("encoding") != std::string::npos ||
                                         error_msg_lower.find("null byte") != std::string::npos ||
@@ -183,26 +179,21 @@ namespace jsv {
         if(is_encoding_error && !source_line.empty()) {
             // Use byte offset from span (absolute position in source)
             const std::size_t byte_offset = span.start.absolute_pos;
-            
+
             // Build enhanced error message with Unicode code point if applicable
             std::string enhanced_msg = std::string(error_msg);
-            
+
             // Add Unicode code point for specific error types
             if(error_msg_lower.find("null byte") != std::string::npos) {
                 enhanced_msg += " (U+0000)";
             } else if(error_msg_lower.find("surrogate") != std::string::npos) {
                 enhanced_msg += " (U+D800–U+DFFF)";
             }
-            
+
             // Add note with byte offset and line number
             FORMAT_TO(out, "     │\n");
-            FORMAT_TO(out, "     │ {} {} {}, {} {}\n", 
-                      ansi::blue("note:"), 
-                      enhanced_msg, 
-                      ansi::cyan("at byte offset"),
-                      ansi::yellow(FORMAT("{}", byte_offset)),
-                      ansi::cyan("line"),
-                      ansi::yellow(FORMAT("{}", start_line)));
+            FORMAT_TO(out, "     │ {} {} {}, {} {}\n", ansi::blue("note:"), enhanced_msg, ansi::cyan("at byte offset"),
+                      ansi::yellow(FORMAT("{}", byte_offset)), ansi::cyan("line"), ansi::yellow(FORMAT("{}", start_line)));
         }
 
         // --- Help line (optional) -----------------------------------------------

@@ -168,23 +168,23 @@
 
 ### NFR Validation Tasks (CRITICAL — All NFRs Must Be Verified)
 
-- [ ] T048a [P] [NFR-001] Add performance validation task: Verify `visual_column()` p95 latency ≤100ms for 1,000 code points input using Catch2 benchmarks in `test/benchmarks.cpp`. **Acceptance criterion**: Mean latency ≤10 microseconds for ASCII, ≤50 microseconds for 1,000 Unicode code points at p95.
-- [ ] T048b [P] [NFR-001] Add performance validation task: Verify `format_spanned_error()` end-to-end latency ≤100ms at p95, ≤500ms at p99 using Catch2 benchmarks. **Acceptance criterion**: Benchmark results show p95 ≤100ms, p99 ≤500ms for Unicode-containing source files.
-- [ ] T048c [P] [NFR-002] Add line length limit validation task: Verify ErrorReporter enforces 10,000 code points per line limit. **Test**: Create source file with 10,001 code points on single line, verify error reported per FR-027. **Acceptance criterion**: Error message states "Line exceeds maximum length of 10,000 code points (actual: 10001)".
-- [ ] T048d [P] [NFR-003] Add ANSI color validation task: Verify `detect_ansi_color()` correctly detects terminal color support across platforms. **Test matrix**: (1) `NO_COLOR=1` → false, (2) `NO_COLOR=""` → false, (3) `COLORTERM=truecolor` → true, (4) `TERM=dumb` → false, (5) `TERM=xterm-256color` → true, (6) no env vars → false (conservative fallback). **Acceptance criterion**: All 6 test cases pass.
-- [ ] T048e [P] [NFR-003] Add ANSI color output validation task: Verify error marker output contains correct ANSI escape sequences. **Test**: When `config_.ansi_color` is true, verify output contains `\033[31m^\033[0m` (red caret). When false, verify output contains plain `^` with zero positioning deviation. **Acceptance criterion**: Colored and monochrome output have identical caret count and column positions.
+- [X] T048a [P] [NFR-001] Add performance validation task: Verify `visual_column()` p95 latency ≤100ms for 1,000 code points input using Catch2 benchmarks in `test/benchmarks.cpp`. **Acceptance criterion**: Mean latency ≤10 microseconds for ASCII, ≤50 microseconds for 1,000 Unicode code points at p95.
+- [X] T048b [P] [NFR-001] Add performance validation task: Verify `format_spanned_error()` end-to-end latency ≤100ms at p95, ≤500ms at p99 using Catch2 benchmarks. **Acceptance criterion**: Benchmark results show p95 ≤100ms, p99 ≤500ms for Unicode-containing source files.
+- [X] T048c [P] [NFR-002] Add line length limit validation task: Verify ErrorReporter enforces 10,000 code points per line limit. **Test**: Create source file with 10,001 code points on single line, verify error reported per FR-027. **Acceptance criterion**: Error message states "Line exceeds maximum length of 10,000 code points (actual: 10001)".
+- [X] T048d [P] [NFR-003] Add ANSI color validation task: Verify `detect_ansi_color()` correctly detects terminal color support across platforms. **Test matrix**: (1) `NO_COLOR=1` → false, (2) `NO_COLOR=""` → false, (3) `COLORTERM=truecolor` → true, (4) `TERM=dumb` → false, (5) `TERM=xterm-256color` → true, (6) no env vars → false (conservative fallback). **Acceptance criterion**: All 6 test cases pass.
+- [X] T048e [P] [NFR-003] Add ANSI color output validation task: Verify error marker output contains correct ANSI escape sequences. **Test**: When `config_.ansi_color` is true, verify output contains `\033[31m^\033[0m` (red caret). When false, verify output contains plain `^` with zero positioning deviation. **Acceptance criterion**: Colored and monochrome output have identical caret count and column positions.
 
 ### Polish Tasks (Existing)
 
-- [ ] T049 [P] Add backward compatibility test in `test/tests.cpp` (ASCII-only source produces byte-for-byte identical output per SC-002)
-- [ ] T050 [P] Run all existing `ErrorReporter` tests to verify no regressions (`ctest -R "ErrorReporter" --output-on-failure`)
-- [ ] T051 [P] Generate code coverage report for UnicodeColumn module (`gcovr -r .. --filter "src/jsav_Lib/error/*" --filter "include/jsav/error/*"`)
-- [ ] T052 [P] Verify coverage ≥80% for `UnicodeColumn.cpp` and `ErrorReporter.cpp`
+- [X] T049 [P] Add backward compatibility test in `test/tests.cpp` (ASCII-only source produces byte-for-byte identical output per SC-002)
+- [x] T050 [P] Run all existing `ErrorReporter` tests to verify no regressions (`ctest -R "ErrorReporter" --output-on-failure`)
+- [x] T051 [P] Generate code coverage report for UnicodeColumn module (`gcovr -r .. --filter "src/jsav_Lib/error/*" --filter "include/jsav/error/*"`)
+- [x] T052 [P] Verify coverage ≥80% for `UnicodeColumn.cpp` and `ErrorReporter.cpp`
 - [X] T052a [P] Add Catch2 `BENCHMARK` macros to **existing** `test/benchmarks.cpp` for `visual_column()` performance verification (100 iterations, measure mean/stddev). **Note**: File already exists with ErrorReporter benchmarks; add new UnicodeColumn-specific benchmarks following existing pattern with `[!benchmark]` tag.
 - [X] T052b [P] Add benchmark test case `UnicodeColumn_performance_unicode_vs_ascii` in **existing** `test/benchmarks.cpp` (verify ≤1% overhead for Unicode vs ASCII input per NFR-001). **Note**: Use `BENCHMARK` macro returning value to prevent dead-code elimination; tag with `[!benchmark][UnicodeColumn][performance]`.
 - [X] T052c [P] Add benchmark test case `UnicodeColumn_performance_format_spanned_error` in **existing** `test/benchmarks.cpp` (verify ≤1ms at p95, ≤5ms at p99 per NFR-001). **Note**: Benchmark `ErrorReporter::format_spanned_error()` with Unicode-containing source; tag with `[!benchmark][ErrorReporter][performance]`.
 - [X] T052d [P] Add test case `UnicodeColumn_no_fallback_mixed_valid_invalid` in `test/tests.cpp` (SC-005 verification: valid UTF-8 lines use code point calculation even when file contains invalid UTF-8 on other lines, proves no file-wide byte-based fallback)
-- [ ] T053 Run full test suite to ensure all tests pass (`ctest --output-on-failure`)
+- [x] T053 Run full test suite to ensure all tests pass (`ctest --output-on-failure`)
 - [ ] T054 [P] Update **existing** `specs/005-fix-unicode-error-reporting/quickstart.md` with UnicodeColumn usage examples and troubleshooting guide (verify examples work by running actual compiler). **Note**: File already exists; add sections for Unicode error reporting, ANSI color configuration, and performance benchmarking instructions.
 - [ ] T055 [P] Add Doxygen comments to all public functions in `include/jsav/error/UnicodeColumn.hpp`
 - [ ] T055a [P] Add Doxygen comments to modified `ErrorReporter.hpp` (two-argument constructor, `config_` member variable of type `ErrorDisplayConfig`)

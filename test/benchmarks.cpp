@@ -150,6 +150,83 @@ TEST_CASE("LineTracker Windows vs Unix newlines benchmark", "[!benchmark][LineTr
 }
 
 // ==========================================================================
+// UnicodeColumn performance benchmarks (NFR-001 validation)
+// Run with:  ./benchmarks [!benchmark]
+// ==========================================================================
+
+TEST_CASE("UnicodeColumn visual_column benchmark", "[!benchmark][UnicodeColumn][performance][NFR-001]") {
+    SECTION("ASCII input (baseline)") {
+        constexpr std::string_view source = "let x = 5; let y = 10; let z = 15;";
+
+        BENCHMARK("visual_column ASCII") {
+            std::size_t total = 0;
+            for(std::size_t i = 0; i < source.size(); ++i) {
+                auto result = jsv::visual_column(source, i, 8);
+                if(result.has_value()) { total += result.value(); }
+            }
+            return total;
+        };
+    }
+
+    SECTION("Unicode input (1,000 code points)") {
+        std::string source;
+        source.reserve(3000);                                        // Multi-byte chars
+        for(int i = 0; i < 1000; ++i) { source += "\xe4\xbd\xa0"; }  // '你' (3 bytes)
+
+        BENCHMARK("visual_column 1000 Unicode code points") {
+            std::size_t total = 0;
+            for(std::size_t i = 0; i < source.size(); i += 3) {
+                auto result = jsv::visual_column(source, i, 8);
+                if(result.has_value()) { total += result.value(); }
+            }
+            return total;
+        };
+    }
+
+    SECTION("Unicode vs ASCII overhead comparison") {
+        constexpr std::string_view ascii_source = "abcdefghijklmnopqrstuvwxyz";
+        std::string unicode_source = "abcdefghijklmnopqrstuvwxyz";
+        // Replace some chars with multi-byte
+        unicode_source[5] = '\xe4';
+        unicode_source[6] = '\xbd';
+        unicode_source[7] = '\xa0';  // '你'
+
+        BENCHMARK("visual_column ASCII 26 chars") {
+            std::size_t total = 0;
+            for(std::size_t i = 0; i < ascii_source.size(); ++i) {
+                auto result = jsv::visual_column(ascii_source, i, 8);
+                if(result.has_value()) { total += result.value(); }
+            }
+            return total;
+        };
+
+        BENCHMARK("visual_column Unicode 26 chars") {
+            std::size_t total = 0;
+            for(std::size_t i = 0; i < unicode_source.size(); ++i) {
+                auto result = jsv::visual_column(unicode_source, i, 8);
+                if(result.has_value()) { total += result.value(); }
+            }
+            return total;
+        };
+    };
+}
+
+TEST_CASE("ErrorReporter format_spanned_error latency benchmark", "[!benchmark][ErrorReporter][performance][NFR-001]") {
+    // NFR-001: p95 ≤100ms, p99 ≤500ms
+    constexpr std::string_view source = "let x = 你好世界; let y = αβγδ;";
+    const jsv::LineTracker tracker(source);
+    jsv::ErrorDisplayConfig config;
+    config.ansi_color = true;
+    config.tab_stop_width = 8;
+    const jsv::ErrorReporter reporter(tracker, config);
+
+    const jsv::SourceSpan span("test.jsv", jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 11, 14));
+    const jsv::CompileError error = jsv::CompileError::LexerError(std::nullopt, "Unicode error test"sv, span, std::nullopt);
+
+    BENCHMARK("format_spanned_error Unicode (p95/p99)") { return reporter.report_errors(std::vector{error}); };
+}
+
+// ==========================================================================
 // ErrorReporter performance benchmarks
 // Run with:  ./benchmarks [!benchmark]
 // ==========================================================================
