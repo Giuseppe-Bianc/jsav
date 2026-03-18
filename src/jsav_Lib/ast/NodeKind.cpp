@@ -3,6 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/ast/NodeKind.hpp"
 
 namespace jsv {
@@ -67,8 +68,8 @@ namespace jsv {
         return "Unknown";
     }
 
-    std::string_view unary_op_symbol(UnaryOp op) {
-        switch(op) {
+    std::string_view unary_op_symbol(UnaryOp opcode) {
+        switch(opcode) {
         case UnaryOp::Negate:
             return "-";
         case UnaryOp::Not:
@@ -87,8 +88,8 @@ namespace jsv {
         return "?";
     }
 
-    std::string_view binary_op_symbol(BinaryOp op) {
-        switch(op) {
+    std::string_view binary_op_symbol(BinaryOp opcode) {
+        switch(opcode) {
         case BinaryOp::Add:
             return "+";
         case BinaryOp::Sub:
@@ -130,3 +131,5 @@ namespace jsv {
     }
 
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)
