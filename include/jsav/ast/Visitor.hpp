@@ -34,7 +34,7 @@ namespace jsv {
         // Le classi derivate li overridano.
 
 #define DECLARE_VISIT(Type)                                                                                                                \
-    R visit_##Type(const Type &node) { throw std::runtime_error(FORMAT("Unhandled node: {}", #Type)); }
+    R visit_##Type([[maybe_unused]] const Type &node) { throw std::runtime_error(FORMAT("Unhandled node: {}", #Type)); }
 
         // Expressions
         DECLARE_VISIT(IntegerLiteral)
