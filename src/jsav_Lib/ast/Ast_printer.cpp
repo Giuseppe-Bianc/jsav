@@ -3,8 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-#include "../../../include/jsav/ast/Ast_printer.hpp"
-
+#include "jsav/ast/Ast_printer.hpp"
 namespace jsv {
 
     // ============================================================
@@ -18,17 +17,17 @@ namespace jsv {
     }
 
     void AstPrinter::print_prefix() {
-        for(bool is_last : prefix_stack_) { std::cout << (is_last ? "    " : "│   "); }
+        for(bool is_last : prefix_stack_) { fmt::print("{}", is_last ? "    " : "│   "); }
     }
 
     void AstPrinter::print_line(std::string_view msg, bool is_last) {
         print_prefix();
-        std::cout << (is_last ? "└── " : "├── ") << msg << "\n";
+        fmt::println("{}{}", is_last ? "└── " : "├── ", msg);
     }
 
     void AstPrinter::print_value(std::string_view label, std::string_view value, bool is_last) {
         print_prefix();
-        std::cout << (is_last ? "└── " : "├── ") << label << value << "\n";
+        fmt::println("{}{}{}", is_last ? "└── " : "├── ", label, value);
     }
 
     // ============================================================
@@ -450,7 +449,7 @@ namespace jsv {
 
     void AstPrinter::visit_Program(const Program &node) {
         // Program è la radice, stampa senza prefisso
-        std::cout << "Program\n";
+        fmt::println("Program");
 
         if(!node.statements().empty()) {
             for(std::size_t i = 0; i < node.statements().size(); ++i) {
