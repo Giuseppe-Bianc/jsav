@@ -3,6 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/ast/Node.hpp"
 
 namespace jsv {
@@ -17,3 +18,4 @@ namespace jsv {
     // If specific instantiations are needed, they can be moved here.
 
 }  // namespace jsv
+// NOLINTEND(*-include-cleaner)
