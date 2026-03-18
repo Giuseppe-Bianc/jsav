@@ -5,28 +5,44 @@
 
 #pragma once
 #include "jsav/ast/Visitor.hpp"
+#include "jsav/error/ErrorReporter.hpp"
 
 namespace jsv {
 
     // ============================================================
-    // AST Pretty Printer — usa il Visitor CRTP
+    // AST Pretty Printer — formato ad albero con caratteri Unicode
     // ============================================================
     class AstPrinter : public Visitor<AstPrinter> {
-        friend class Visitor<AstPrinter>;  // accesso a visit_*
+        friend class Visitor<AstPrinter>;
 
     public:
         void print(const Node &node);
 
     private:
-        int indent_ = 0;
+        std::vector<bool> prefix_stack_;
+        bool next_is_last_ = true;
 
-        void print_indent();
-        void println(std::string_view msg);
+        void print_prefix();
+        void print_line(std::string_view msg, bool is_last);
+        void print_line_colored(std::string_view msg, std::string_view color, bool is_last);
+        void print_value(std::string_view label, std::string_view value, bool is_last);
+        void print_value_colored(std::string_view label, std::string_view label_color,
+                                 std::string_view value, std::string_view value_color, bool is_last);
+
+        void push_indent(bool is_last) { prefix_stack_.push_back(is_last); }
+        void pop_indent() { prefix_stack_.pop_back(); }
+
+        void visit_child(const Node &node, bool is_last) {
+            next_is_last_ = is_last;
+            visit(node);
+        }
+
+        std::optional<std::string> get_inline_value(const Node &node);
 
         struct IndentGuard {
             AstPrinter &p;
-            IndentGuard(AstPrinter &p) : p(p) { ++p.indent_; }
-            ~IndentGuard() { --p.indent_; }
+            IndentGuard(AstPrinter &p, bool is_last) : p(p) { p.push_indent(is_last); }
+            ~IndentGuard() { p.pop_indent(); }
         };
 
         // ========== Expressions ==========
@@ -65,7 +81,7 @@ namespace jsv {
     };
 
     // ============================================================
-    // S-Expression Printer — restituisce una stringa
+    // S-Expression Printer (invariato)
     // ============================================================
     class SExprPrinter : public Visitor<SExprPrinter, std::string> {
         friend class Visitor<SExprPrinter, std::string>;
@@ -105,4 +121,5 @@ namespace jsv {
         std::string visit_PrintStmt(const PrintStmt &n);
         std::string visit_Program(const Program &n);
     };
+
 }  // namespace jsv

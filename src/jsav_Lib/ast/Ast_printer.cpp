@@ -8,291 +8,460 @@
 namespace jsv {
 
     // ============================================================
-    // AstPrinter implementation
+    // AstPrinter - Core methods
     // ============================================================
 
     void AstPrinter::print(const Node &node) {
-        indent_ = 0;
+        prefix_stack_.clear();
+        next_is_last_ = true;
         visit(node);
     }
 
-    void AstPrinter::print_indent() {
-        for(int i = 0; i < indent_; ++i) std::cout << "  ";
+    void AstPrinter::print_prefix() {
+        for(bool is_last : prefix_stack_) { std::cout << (is_last ? "    " : "│   "); }
     }
 
-    void AstPrinter::println(std::string_view msg) {
-        print_indent();
-        std::cout << msg << "\n";
+    void AstPrinter::print_line(std::string_view msg, bool is_last) {
+        print_prefix();
+        std::cout << (is_last ? "└── " : "├── ") << msg << "\n";
     }
 
-    // ========== Expressions ==========
+    void AstPrinter::print_value(std::string_view label, std::string_view value, bool is_last) {
+        print_prefix();
+        std::cout << (is_last ? "└── " : "├── ") << label << value << "\n";
+    }
 
-    void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) { println(FORMAT("IntegerLiteral: {}", node.value())); }
+    // ============================================================
+    // Expressions
+    // ============================================================
 
-    void AstPrinter::visit_FloatLiteral(const FloatLiteral &node) { println(FORMAT("FloatLiteral: {}", node.value())); }
+    void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
+        bool is_last = next_is_last_;
+        print_value("Literal ", FORMAT("{}", node.value()), is_last);
+    }
 
-    void AstPrinter::visit_StringLiteral(const StringLiteral &node) { println(FORMAT("StringLiteral: \"{}\"", node.value())); }
+    void AstPrinter::visit_FloatLiteral(const FloatLiteral &node) {
+        bool is_last = next_is_last_;
+        print_value("Literal ", FORMAT("{}f", node.value()), is_last);
+    }
 
-    void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) { println(FORMAT("BoolLiteral: {}", node.value() ? "true" : "false")); }
+    void AstPrinter::visit_StringLiteral(const StringLiteral &node) {
+        bool is_last = next_is_last_;
+        print_value("Literal ", FORMAT("\"{}\"", node.value()), is_last);
+    }
 
-    void AstPrinter::visit_NullLiteral(const NullLiteral &) { println("NullLiteral"); }
+    void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) {
+        bool is_last = next_is_last_;
+        print_value("Literal ", node.value() ? "true" : "false", is_last);
+    }
 
-    void AstPrinter::visit_Identifier(const Identifier &node) { println(FORMAT("Identifier: {}", node.name())); }
+    void AstPrinter::visit_NullLiteral(const NullLiteral &) {
+        bool is_last = next_is_last_;
+        print_line("Literal null", is_last);
+    }
+
+    void AstPrinter::visit_Identifier(const Identifier &node) {
+        bool is_last = next_is_last_;
+        print_value("Identifier ", node.name(), is_last);
+    }
 
     void AstPrinter::visit_UnaryExpr(const UnaryExpr &node) {
-        println(FORMAT("UnaryExpr: {}", unary_op_symbol(node.op())));
-        IndentGuard g{*this};
-        visit(node.operand());
+        bool is_last = next_is_last_;
+        print_value("UnaryExpr '", FORMAT("{}'", unary_op_symbol(node.op())), is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Operand:", true);
+        {
+            IndentGuard g2{*this, true};
+            visit_child(node.operand(), true);
+        }
     }
 
     void AstPrinter::visit_BinaryExpr(const BinaryExpr &node) {
-        println(FORMAT("BinaryExpr: {}", binary_op_symbol(node.op())));
-        IndentGuard g{*this};
-        visit(node.lhs());
-        visit(node.rhs());
+        bool is_last = next_is_last_;
+        print_value("BinaryExpr '", FORMAT("{}'", binary_op_symbol(node.op())), is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Left:", false);
+        {
+            IndentGuard g2{*this, false};
+            visit_child(node.lhs(), true);
+        }
+
+        print_line("Right:", true);
+        {
+            IndentGuard g2{*this, true};
+            visit_child(node.rhs(), true);
+        }
     }
 
     void AstPrinter::visit_TernaryExpr(const TernaryExpr &node) {
-        println("TernaryExpr:");
-        IndentGuard g{*this};
-        println("condition:");
+        bool is_last = next_is_last_;
+        print_line("TernaryExpr", is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Condition:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.condition());
+            IndentGuard g2{*this, false};
+            visit_child(node.condition(), true);
         }
-        println("then:");
+
+        print_line("Then:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.then_expr());
+            IndentGuard g2{*this, false};
+            visit_child(node.then_expr(), true);
         }
-        println("else:");
+
+        print_line("Else:", true);
         {
-            IndentGuard g2{*this};
-            visit(node.else_expr());
+            IndentGuard g2{*this, true};
+            visit_child(node.else_expr(), true);
         }
     }
 
     void AstPrinter::visit_CallExpr(const CallExpr &node) {
-        println("CallExpr:");
-        IndentGuard g{*this};
-        println("callee:");
+        bool is_last = next_is_last_;
+        print_line("CallExpr", is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Callee:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.callee());
+            IndentGuard g2{*this, false};
+            visit_child(node.callee(), true);
         }
-        println(FORMAT("args: ({})", node.args().size()));
-        for(const auto &arg : node.args()) {
-            IndentGuard g2{*this};
-            visit(*arg);
+
+        print_value("Arguments: (", FORMAT("{})", node.args().size()), true);
+        if(!node.args().empty()) {
+            IndentGuard g2{*this, true};
+            for(std::size_t i = 0; i < node.args().size(); ++i) {
+                bool arg_last = (i == node.args().size() - 1);
+                visit_child(*node.args()[i], arg_last);
+            }
         }
     }
 
     void AstPrinter::visit_IndexExpr(const IndexExpr &node) {
-        println("IndexExpr:");
-        IndentGuard g{*this};
-        println("object:");
+        bool is_last = next_is_last_;
+        print_line("IndexExpr", is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Object:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.object());
+            IndentGuard g2{*this, false};
+            visit_child(node.object(), true);
         }
-        println("index:");
+
+        print_line("Index:", true);
         {
-            IndentGuard g2{*this};
-            visit(node.index());
+            IndentGuard g2{*this, true};
+            visit_child(node.index(), true);
         }
     }
 
     void AstPrinter::visit_MemberExpr(const MemberExpr &node) {
-        println(FORMAT("MemberExpr: .{}", node.member()));
-        IndentGuard g{*this};
-        visit(node.object());
+        bool is_last = next_is_last_;
+        print_value("MemberExpr .", node.member(), is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Object:", true);
+        {
+            IndentGuard g2{*this, true};
+            visit_child(node.object(), true);
+        }
     }
 
     void AstPrinter::visit_AssignExpr(const AssignExpr &node) {
-        println("AssignExpr:");
-        IndentGuard g{*this};
-        println("target:");
+        bool is_last = next_is_last_;
+        print_line("AssignExpr", is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Target:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.target());
+            IndentGuard g2{*this, false};
+            visit_child(node.target(), true);
         }
-        println("value:");
+
+        print_line("Value:", true);
         {
-            IndentGuard g2{*this};
-            visit(node.value());
+            IndentGuard g2{*this, true};
+            visit_child(node.value(), true);
         }
     }
 
     void AstPrinter::visit_CastExpr(const CastExpr &node) {
-        println(FORMAT("CastExpr: -> {}", node.target_type()));
-        IndentGuard g{*this};
-        visit(node.operand());
+        bool is_last = next_is_last_;
+        print_value("CastExpr -> ", node.target_type(), is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Operand:", true);
+        {
+            IndentGuard g2{*this, true};
+            visit_child(node.operand(), true);
+        }
     }
 
     void AstPrinter::visit_ArrayLiteral(const ArrayLiteral &node) {
-        println(FORMAT("ArrayLiteral: [{} elements]", node.elements().size()));
-        IndentGuard g{*this};
-        for(const auto &elem : node.elements()) visit(*elem);
+        bool is_last = next_is_last_;
+        print_value("ArrayLiteral [", FORMAT("{} elements]", node.elements().size()), is_last);
+
+        if(!node.elements().empty()) {
+            IndentGuard g{*this, is_last};
+            for(std::size_t i = 0; i < node.elements().size(); ++i) {
+                bool elem_last = (i == node.elements().size() - 1);
+                visit_child(*node.elements()[i], elem_last);
+            }
+        }
     }
 
-    // ========== Statements ==========
+    // ============================================================
+    // Statements
+    // ============================================================
 
     void AstPrinter::visit_ExprStmt(const ExprStmt &node) {
-        println("ExprStmt:");
-        IndentGuard g{*this};
-        visit(node.expression());
+        bool is_last = next_is_last_;
+        print_line("ExprStmt", is_last);
+        IndentGuard g{*this, is_last};
+        visit_child(node.expression(), true);
     }
 
     void AstPrinter::visit_VarDecl(const VarDecl &node) {
-        const std::string keyword = node.is_const() ? "const" : "var";
+        bool is_last = next_is_last_;
+        const std::string keyword = node.is_const() ? "Const" : "Var";
 
-        // Multi-variable declaration: var a, b: i64 = 10, 20;
         if(node.num_variables() > 1) {
-            std::string info = FORMAT("{}: ", keyword);
-            for(std::size_t i = 0; i < node.names().size(); ++i) {
-                if(i > 0) info += ", ";
-                info += node.names()[i];
-            }
-            if(node.type_annotation()) { info += FORMAT(": {}", *node.type_annotation()); }
-            println(info);
+            // Multi-variable declaration
+            print_line(keyword, is_last);
+            IndentGuard g{*this, is_last};
 
-            // Print each initializer indented with index
+            // Names
+            print_line("Names:", false);
+            {
+                IndentGuard g2{*this, false};
+                for(std::size_t i = 0; i < node.names().size(); ++i) {
+                    bool name_last = (i == node.names().size() - 1);
+                    print_line(node.names()[i], name_last);
+                }
+            }
+
+            // Type annotation
+            if(node.type_annotation()) { print_value("Type: ", *node.type_annotation(), false); }
+
+            // Initializers
             if(!node.initializers().empty()) {
-                IndentGuard g{*this};
-                println("initializers:");
+                print_line("Initializers:", true);
+                IndentGuard g2{*this, true};
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
+                    bool init_last = (i == node.initializers().size() - 1);
                     if(node.initializers()[i]) {
-                        println(FORMAT("[{}] ", i));
-                        IndentGuard g2{*this};
-                        visit(*node.initializers()[i]);
+                        print_value("", FORMAT("[{}]", i), init_last);
+                        IndentGuard g3{*this, init_last};
+                        visit_child(*node.initializers()[i], true);
                     }
                 }
             }
         } else {
-            // Single variable declaration (backward compatible format)
-            std::string info = FORMAT("{}: {}", keyword, node.name());
-            if(node.type_annotation()) { info += FORMAT(": {}", *node.type_annotation()); }
-            if(node.has_initializer()) {
-                println(info);
-                IndentGuard g{*this};
-                println("initializer:");
-                IndentGuard g2{*this};
-                visit(node.initializer());
-            } else {
-                println(info);
+            // Single variable declaration
+            print_value(keyword, FORMAT(" '{}'", node.name()), is_last);
+            IndentGuard g{*this, is_last};
+
+            bool has_type = node.type_annotation().has_value();
+            bool has_init = node.has_initializer();
+
+            if(has_type) { print_value("Type: ", *node.type_annotation(), !has_init); }
+
+            if(has_init) {
+                print_line("Initializer:", true);
+                IndentGuard g2{*this, true};
+                visit_child(node.initializer(), true);
             }
         }
     }
 
     void AstPrinter::visit_FuncDecl(const FuncDecl &node) {
-        std::string info = FORMAT("FuncDecl: {}", node.name());
-        if(node.return_type()) info += FORMAT(" -> {}", *node.return_type());
-        println(info);
+        bool is_last = next_is_last_;
+        print_line("Function", is_last);
+        IndentGuard g{*this, is_last};
+
+        bool has_params = !node.params().empty();
+        bool has_return = node.return_type().has_value();
+
+        // Name
+        print_line("Name:", false);
         {
-            IndentGuard g{*this};
-            if(!node.params().empty()) {
-                println("params:");
-                IndentGuard g2{*this};
-                for(const auto &p : node.params()) println(FORMAT("{}: {}", p.name, p.type));
+            IndentGuard g2{*this, false};
+            print_line(node.name(), true);
+        }
+
+        // Parameters
+        if(has_params) {
+            print_line("Parameters:", !has_return);
+            IndentGuard g2{*this, !has_return};
+            for(std::size_t i = 0; i < node.params().size(); ++i) {
+                bool param_last = (i == node.params().size() - 1);
+                const auto &param = node.params()[i];
+                print_value("Parameter '", FORMAT("{}'", param.name), param_last);
+                IndentGuard g3{*this, param_last};
+                print_value("Type: ", param.type, true);
             }
-            println("body:");
-            IndentGuard g3{*this};
-            visit_BlockStmt(node.body());
+        } else {
+            print_line("Parameters: (none)", !has_return);
+        }
+
+        // Return Type
+        if(has_return) {
+            print_line("Return Type:", false);
+            IndentGuard g2{*this, false};
+            print_line(*node.return_type(), true);
+        }
+
+        // Body
+        print_line("Body:", true);
+        {
+            IndentGuard g2{*this, true};
+            visit_child(node.body(), true);
         }
     }
 
     void AstPrinter::visit_ReturnStmt(const ReturnStmt &node) {
-        println("ReturnStmt:");
+        bool is_last = next_is_last_;
+        print_line("Return", is_last);
+
         if(node.has_value()) {
-            IndentGuard g{*this};
-            visit(node.value());
+            IndentGuard g{*this, is_last};
+            print_line("Value:", true);
+            IndentGuard g2{*this, true};
+            visit_child(node.value(), true);
         }
     }
 
     void AstPrinter::visit_IfStmt(const IfStmt &node) {
-        println("IfStmt:");
-        IndentGuard g{*this};
-        println("condition:");
+        bool is_last = next_is_last_;
+        print_line("If", is_last);
+        IndentGuard g{*this, is_last};
+
+        bool has_else = node.has_else();
+
+        print_line("Condition:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.condition());
+            IndentGuard g2{*this, false};
+            visit_child(node.condition(), true);
         }
-        println("then:");
+
+        print_line("Then:", !has_else);
         {
-            IndentGuard g2{*this};
-            visit(node.then_branch());
+            IndentGuard g2{*this, !has_else};
+            visit_child(node.then_branch(), true);
         }
-        if(node.has_else()) {
-            println("else:");
-            IndentGuard g2{*this};
-            visit(node.else_branch());
+
+        if(has_else) {
+            print_line("Else:", true);
+            IndentGuard g2{*this, true};
+            visit_child(node.else_branch(), true);
         }
     }
 
     void AstPrinter::visit_WhileStmt(const WhileStmt &node) {
-        println("WhileStmt:");
-        IndentGuard g{*this};
-        println("condition:");
+        bool is_last = next_is_last_;
+        print_line("While", is_last);
+        IndentGuard g{*this, is_last};
+
+        print_line("Condition:", false);
         {
-            IndentGuard g2{*this};
-            visit(node.condition());
+            IndentGuard g2{*this, false};
+            visit_child(node.condition(), true);
         }
-        println("body:");
+
+        print_line("Body:", true);
         {
-            IndentGuard g2{*this};
-            visit(node.body());
+            IndentGuard g2{*this, true};
+            visit_child(node.body(), true);
         }
     }
 
     void AstPrinter::visit_ForStmt(const ForStmt &node) {
-        println("ForStmt:");
-        IndentGuard g{*this};
-        if(node.has_init()) {
-            println("init:");
-            IndentGuard g2{*this};
-            visit(node.init());
+        bool is_last = next_is_last_;
+        print_line("For", is_last);
+        IndentGuard g{*this, is_last};
+
+        bool has_init = node.has_init();
+        bool has_cond = node.has_condition();
+        bool has_incr = node.has_increment();
+
+        if(has_init) {
+            print_line("Init:", false);
+            IndentGuard g2{*this, false};
+            visit_child(node.init(), true);
+        } else {
+            print_line("Init: (none)", false);
         }
-        if(node.has_condition()) {
-            println("condition:");
-            IndentGuard g2{*this};
-            visit(node.condition());
+
+        if(has_cond) {
+            print_line("Condition:", false);
+            IndentGuard g2{*this, false};
+            visit_child(node.condition(), true);
+        } else {
+            print_line("Condition: (none)", false);
         }
-        if(node.has_increment()) {
-            println("increment:");
-            IndentGuard g2{*this};
-            visit(node.increment());
+
+        if(has_incr) {
+            print_line("Increment:", false);
+            IndentGuard g2{*this, false};
+            visit_child(node.increment(), true);
+        } else {
+            print_line("Increment: (none)", false);
         }
-        println("body:");
+
+        print_line("Body:", true);
         {
-            IndentGuard g2{*this};
-            visit(node.body());
+            IndentGuard g2{*this, true};
+            visit_child(node.body(), true);
         }
     }
 
     void AstPrinter::visit_BlockStmt(const BlockStmt &node) {
-        println("BlockStmt:");
-        IndentGuard g{*this};
-        for(const auto &stmt : node.statements()) visit(*stmt);
+        bool is_last = next_is_last_;
+        print_line("Block", is_last);
+
+        if(!node.statements().empty()) {
+            IndentGuard g{*this, is_last};
+            for(std::size_t i = 0; i < node.statements().size(); ++i) {
+                bool stmt_last = (i == node.statements().size() - 1);
+                visit_child(*node.statements()[i], stmt_last);
+            }
+        }
     }
 
-    void AstPrinter::visit_BreakStmt(const BreakStmt &) { println("BreakStmt"); }
+    void AstPrinter::visit_BreakStmt(const BreakStmt &) {
+        bool is_last = next_is_last_;
+        print_line("Break", is_last);
+    }
 
-    void AstPrinter::visit_ContinueStmt(const ContinueStmt &) { println("ContinueStmt"); }
+    void AstPrinter::visit_ContinueStmt(const ContinueStmt &) {
+        bool is_last = next_is_last_;
+        print_line("Continue", is_last);
+    }
 
     void AstPrinter::visit_PrintStmt(const PrintStmt &node) {
-        println("PrintStmt:");
-        IndentGuard g{*this};
-        visit(node.expression());
+        bool is_last = next_is_last_;
+        print_line("Print", is_last);
+        IndentGuard g{*this, is_last};
+        visit_child(node.expression(), true);
     }
 
     void AstPrinter::visit_Program(const Program &node) {
-        println("Program:");
-        IndentGuard g{*this};
-        for(const auto &stmt : node.statements()) visit(*stmt);
+        // Program è la radice, stampa senza prefisso
+        std::cout << "Program\n";
+
+        if(!node.statements().empty()) {
+            for(std::size_t i = 0; i < node.statements().size(); ++i) {
+                bool stmt_last = (i == node.statements().size() - 1);
+                visit_child(*node.statements()[i], stmt_last);
+            }
+        }
     }
 
     // ============================================================
-    // SExprPrinter implementation
+    // SExprPrinter implementation (invariato - mantieni come prima)
     // ============================================================
 
     std::string SExprPrinter::to_string(const Node &node) { return visit(node); }
@@ -358,11 +527,7 @@ namespace jsv {
                 result += " (";
                 for(std::size_t i = 0; i < n.initializers().size(); ++i) {
                     if(i > 0) result += " ";
-                    if(n.initializers()[i]) {
-                        result += visit(*n.initializers()[i]);
-                    } else {
-                        result += "null";
-                    }
+                    result += n.initializers()[i] ? visit(*n.initializers()[i]) : "null";
                 }
                 result += ")";
             }
