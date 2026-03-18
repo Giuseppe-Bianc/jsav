@@ -50,6 +50,16 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
     // const pi = 3.14;
     stmts.push_back(std::make_unique<VarDecl>("pi", std::nullopt, std::make_unique<FloatLiteral>(3.14), true));
 
+    // Multi-variable declaration: var a2, b2: i64 = 12, 21;
+    {
+        std::vector<std::string> names{"a2", "b2"};
+        std::vector<ExprPtr> initializers;
+        initializers.reserve(2);
+        initializers.push_back(std::make_unique<IntegerLiteral>(12));
+        initializers.push_back(std::make_unique<IntegerLiteral>(21));
+        stmts.push_back(std::make_unique<VarDecl>(std::move(names), std::optional<std::string>{"i64"}, std::move(initializers), false));
+    }
+
     // fn add(a: int, b: int) -> int {
     //     return a + b;
     // }

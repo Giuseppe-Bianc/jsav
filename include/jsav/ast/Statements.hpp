@@ -29,28 +29,42 @@ namespace jsv {
     };
 
     // ============================================================
-    // Variable Declaration:  var x: int = 42;
+    // Variable Declaration:  var x: int = 42;  oppure  var a, b: i64 = 10, 20;
     // ============================================================
     class VarDecl final : public Stmt {
     public:
+        // Single variable declaration
         VarDecl(std::string name, std::optional<std::string> type_annotation, ExprPtr initializer, bool is_const = false,
                 SourceSpan loc = {})
-          : Stmt(NodeKind::VarDecl, loc), name_{std::move(name)}, type_annotation_{std::move(type_annotation)},
-            initializer_{std::move(initializer)}, is_const_{is_const} {}
+          : Stmt(NodeKind::VarDecl, loc), is_const_{is_const} {
+            names_.reserve(1);
+            names_.push_back(std::move(name));
+            type_annotation_ = std::move(type_annotation);
+            initializers_.reserve(1);
+            initializers_.push_back(std::move(initializer));
+        }
 
-        [[nodiscard]] const std::string &name() const noexcept { return name_; }
+        // Multi-variable declaration (e.g., var a, b: i64 = 10, 20;)
+        VarDecl(std::vector<std::string> names, std::optional<std::string> type_annotation, std::vector<ExprPtr> initializers,
+                bool is_const = false, SourceSpan loc = {})
+          : Stmt(NodeKind::VarDecl, loc), names_{std::move(names)}, type_annotation_{std::move(type_annotation)},
+            initializers_{std::move(initializers)}, is_const_{is_const} {}
+
+        [[nodiscard]] const std::vector<std::string> &names() const noexcept { return names_; }
+        [[nodiscard]] const std::string &name() const noexcept { return names_.front(); }  // For backward compatibility
         [[nodiscard]] const std::optional<std::string> &type_annotation() const noexcept { return type_annotation_; }
-        [[nodiscard]] bool has_initializer() const noexcept { return initializer_ != nullptr; }
-        [[nodiscard]] const Expr &initializer() const noexcept { return *initializer_; }
-        [[nodiscard]] const ExprPtr &initializer_ptr() const noexcept { return initializer_; }
+        [[nodiscard]] const std::vector<ExprPtr> &initializers() const noexcept { return initializers_; }
+        [[nodiscard]] const Expr &initializer() const noexcept { return *initializers_.front(); }  // For backward compatibility
+        [[nodiscard]] bool has_initializer() const noexcept { return !initializers_.empty() && initializers_.front() != nullptr; }
         [[nodiscard]] bool is_const() const noexcept { return is_const_; }
+        [[nodiscard]] std::size_t num_variables() const noexcept { return names_.size(); }
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::VarDecl; }
 
     private:
-        std::string name_;
+        std::vector<std::string> names_;
         std::optional<std::string> type_annotation_;
-        ExprPtr initializer_;
+        std::vector<ExprPtr> initializers_;
         bool is_const_;
     };
 

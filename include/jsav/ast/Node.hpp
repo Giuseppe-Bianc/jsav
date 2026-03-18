@@ -34,7 +34,7 @@ namespace jsv {
         [[nodiscard]] constexpr SourceSpan location() const noexcept { return loc_; }
         void set_location(SourceSpan loc) noexcept { loc_ = loc; }
 
-        [[nodiscard]] constexpr std::string_view kind_name() const noexcept { return node_kind_name(kind_); }
+        [[nodiscard]] std::string_view kind_name() const noexcept;
 
     private:
         NodeKind kind_;
@@ -140,4 +140,5 @@ namespace jsv {
     [[nodiscard]] inline bool node_isa(const From *node) {
         return node && To::classof(node);
     }
+
 }  // namespace jsv
