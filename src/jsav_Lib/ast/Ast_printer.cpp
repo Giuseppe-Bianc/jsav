@@ -27,27 +27,17 @@ namespace jsv {
 
     // ========== Expressions ==========
 
-    void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
-        println(FORMAT("IntegerLiteral: {}", node.value()));
-    }
+    void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) { println(FORMAT("IntegerLiteral: {}", node.value())); }
 
-    void AstPrinter::visit_FloatLiteral(const FloatLiteral &node) {
-        println(FORMAT("FloatLiteral: {}", node.value()));
-    }
+    void AstPrinter::visit_FloatLiteral(const FloatLiteral &node) { println(FORMAT("FloatLiteral: {}", node.value())); }
 
-    void AstPrinter::visit_StringLiteral(const StringLiteral &node) {
-        println(FORMAT("StringLiteral: \"{}\"", node.value()));
-    }
+    void AstPrinter::visit_StringLiteral(const StringLiteral &node) { println(FORMAT("StringLiteral: \"{}\"", node.value())); }
 
-    void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) {
-        println(FORMAT("BoolLiteral: {}", node.value() ? "true" : "false"));
-    }
+    void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) { println(FORMAT("BoolLiteral: {}", node.value() ? "true" : "false")); }
 
     void AstPrinter::visit_NullLiteral(const NullLiteral &) { println("NullLiteral"); }
 
-    void AstPrinter::visit_Identifier(const Identifier &node) {
-        println(FORMAT("Identifier: {}", node.name()));
-    }
+    void AstPrinter::visit_Identifier(const Identifier &node) { println(FORMAT("Identifier: {}", node.name())); }
 
     void AstPrinter::visit_UnaryExpr(const UnaryExpr &node) {
         println(FORMAT("UnaryExpr: {}", unary_op_symbol(node.op())));
@@ -155,7 +145,7 @@ namespace jsv {
 
     void AstPrinter::visit_VarDecl(const VarDecl &node) {
         const std::string keyword = node.is_const() ? "const" : "var";
-        
+
         // Multi-variable declaration: var a, b: i64 = 10, 20;
         if(node.num_variables() > 1) {
             std::string info = FORMAT("{}: ", keyword);
@@ -163,11 +153,9 @@ namespace jsv {
                 if(i > 0) info += ", ";
                 info += node.names()[i];
             }
-            if(node.type_annotation()) {
-                info += FORMAT(": {}", *node.type_annotation());
-            }
+            if(node.type_annotation()) { info += FORMAT(": {}", *node.type_annotation()); }
             println(info);
-            
+
             // Print each initializer indented with index
             if(!node.initializers().empty()) {
                 IndentGuard g{*this};
@@ -183,9 +171,7 @@ namespace jsv {
         } else {
             // Single variable declaration (backward compatible format)
             std::string info = FORMAT("{}: {}", keyword, node.name());
-            if(node.type_annotation()) {
-                info += FORMAT(": {}", *node.type_annotation());
-            }
+            if(node.type_annotation()) { info += FORMAT(": {}", *node.type_annotation()); }
             if(node.has_initializer()) {
                 println(info);
                 IndentGuard g{*this};
@@ -312,29 +298,19 @@ namespace jsv {
     std::string SExprPrinter::to_string(const Node &node) { return visit(node); }
 
     // Expressions
-    std::string SExprPrinter::visit_IntegerLiteral(const IntegerLiteral &n) {
-        return std::to_string(n.value());
-    }
+    std::string SExprPrinter::visit_IntegerLiteral(const IntegerLiteral &n) { return std::to_string(n.value()); }
 
-    std::string SExprPrinter::visit_FloatLiteral(const FloatLiteral &n) {
-        return FORMAT("{}", n.value());
-    }
+    std::string SExprPrinter::visit_FloatLiteral(const FloatLiteral &n) { return FORMAT("{}", n.value()); }
 
-    std::string SExprPrinter::visit_StringLiteral(const StringLiteral &n) {
-        return FORMAT("\"{}\"", n.value());
-    }
+    std::string SExprPrinter::visit_StringLiteral(const StringLiteral &n) { return FORMAT("\"{}\"", n.value()); }
 
-    std::string SExprPrinter::visit_BoolLiteral(const BoolLiteral &n) {
-        return n.value() ? "true" : "false";
-    }
+    std::string SExprPrinter::visit_BoolLiteral(const BoolLiteral &n) { return n.value() ? "true" : "false"; }
 
     std::string SExprPrinter::visit_NullLiteral(const NullLiteral &) { return "null"; }
 
     std::string SExprPrinter::visit_Identifier(const Identifier &n) { return n.name(); }
 
-    std::string SExprPrinter::visit_UnaryExpr(const UnaryExpr &n) {
-        return FORMAT("({} {})", unary_op_symbol(n.op()), visit(n.operand()));
-    }
+    std::string SExprPrinter::visit_UnaryExpr(const UnaryExpr &n) { return FORMAT("({} {})", unary_op_symbol(n.op()), visit(n.operand())); }
 
     std::string SExprPrinter::visit_BinaryExpr(const BinaryExpr &n) {
         return FORMAT("({} {} {})", binary_op_symbol(n.op()), visit(n.lhs()), visit(n.rhs()));
@@ -351,21 +327,13 @@ namespace jsv {
         return result;
     }
 
-    std::string SExprPrinter::visit_IndexExpr(const IndexExpr &n) {
-        return FORMAT("(index {} {})", visit(n.object()), visit(n.index()));
-    }
+    std::string SExprPrinter::visit_IndexExpr(const IndexExpr &n) { return FORMAT("(index {} {})", visit(n.object()), visit(n.index())); }
 
-    std::string SExprPrinter::visit_MemberExpr(const MemberExpr &n) {
-        return FORMAT("(. {} {})", visit(n.object()), n.member());
-    }
+    std::string SExprPrinter::visit_MemberExpr(const MemberExpr &n) { return FORMAT("(. {} {})", visit(n.object()), n.member()); }
 
-    std::string SExprPrinter::visit_AssignExpr(const AssignExpr &n) {
-        return FORMAT("(= {} {})", visit(n.target()), visit(n.value()));
-    }
+    std::string SExprPrinter::visit_AssignExpr(const AssignExpr &n) { return FORMAT("(= {} {})", visit(n.target()), visit(n.value())); }
 
-    std::string SExprPrinter::visit_CastExpr(const CastExpr &n) {
-        return FORMAT("(cast {} {})", n.target_type(), visit(n.operand()));
-    }
+    std::string SExprPrinter::visit_CastExpr(const CastExpr &n) { return FORMAT("(cast {} {})", n.target_type(), visit(n.operand())); }
 
     std::string SExprPrinter::visit_ArrayLiteral(const ArrayLiteral &n) {
         std::string result = "[";
@@ -378,17 +346,13 @@ namespace jsv {
     }
 
     // Statements
-    std::string SExprPrinter::visit_ExprStmt(const ExprStmt &n) {
-        return FORMAT("(expr-stmt {})", visit(n.expression()));
-    }
+    std::string SExprPrinter::visit_ExprStmt(const ExprStmt &n) { return FORMAT("(expr-stmt {})", visit(n.expression())); }
 
     std::string SExprPrinter::visit_VarDecl(const VarDecl &n) {
         // Multi-variable declaration: var a, b: i64 = 10, 20;
         if(n.num_variables() > 1) {
             std::string result = FORMAT("({}", n.is_const() ? "const" : "var");
-            for(std::size_t i = 0; i < n.names().size(); ++i) {
-                result += FORMAT(" {}", n.names()[i]);
-            }
+            for(std::size_t i = 0; i < n.names().size(); ++i) { result += FORMAT(" {}", n.names()[i]); }
             if(n.type_annotation()) result += FORMAT(" : {}", *n.type_annotation());
             if(!n.initializers().empty()) {
                 result += " (";
@@ -405,7 +369,7 @@ namespace jsv {
             result += ")";
             return result;
         }
-        
+
         // Single variable declaration (backward compatible)
         std::string result = FORMAT("({} {}", n.is_const() ? "const" : "var", n.name());
         if(n.type_annotation()) result += FORMAT(" : {}", *n.type_annotation());
@@ -438,9 +402,7 @@ namespace jsv {
         return result;
     }
 
-    std::string SExprPrinter::visit_WhileStmt(const WhileStmt &n) {
-        return FORMAT("(while {} {})", visit(n.condition()), visit(n.body()));
-    }
+    std::string SExprPrinter::visit_WhileStmt(const WhileStmt &n) { return FORMAT("(while {} {})", visit(n.condition()), visit(n.body())); }
 
     std::string SExprPrinter::visit_ForStmt(const ForStmt &n) {
         std::string result = "(for ";
@@ -464,9 +426,7 @@ namespace jsv {
 
     std::string SExprPrinter::visit_ContinueStmt(const ContinueStmt &) { return "(continue)"; }
 
-    std::string SExprPrinter::visit_PrintStmt(const PrintStmt &n) {
-        return FORMAT("(print {})", visit(n.expression()));
-    }
+    std::string SExprPrinter::visit_PrintStmt(const PrintStmt &n) { return FORMAT("(print {})", visit(n.expression())); }
 
     std::string SExprPrinter::visit_Program(const Program &n) {
         std::string result = "(program";
