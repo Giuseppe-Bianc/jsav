@@ -11,6 +11,7 @@
 #include "location/SourceLocation.hpp"
 #include "location/SourceSpan.hpp"
 #include "location/LineTracker.hpp"
+#include "util/AnsiStyles.hpp"
 #include "error/error_codes.hpp"
 #include "error/CompileError.hpp"
 #include "error/ErrorReporter.hpp"

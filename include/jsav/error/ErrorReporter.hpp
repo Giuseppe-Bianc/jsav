@@ -8,58 +8,11 @@
 
 #include "../headers.hpp"
 #include "../location/LineTracker.hpp"
+#include "../util/AnsiStyles.hpp"
 #include "CompileError.hpp"
 #include "UnicodeColumn.hpp"
 
 namespace jsv {
-
-    // ---------------------------------------------------------------------------
-    /// @brief ANSI terminal colour / style helpers
-    ///
-    /// Thin wrappers that apply ANSI escape sequences so that diagnostic output
-    /// mirrors the coloured output produced by the Rust `console::style` calls
-    /// in the original `ErrorReporter`.  Each helper returns a `std::string` so
-    /// it can be composed freely with `FORMAT()` / `fmt`.
-    ///
-    /// Reset is always appended after the styled text so colours never "bleed"
-    /// into the next token on the terminal line.
-    // ---------------------------------------------------------------------------
-    namespace ansi {
-
-        inline constexpr std::string_view kReset = "\x1b[0m";
-        inline constexpr std::string_view kBold = "\x1b[1m";
-        inline constexpr std::string_view kRed = "\x1b[31m";
-        inline constexpr std::string_view kYellow = "\x1b[33m";
-        inline constexpr std::string_view kBlue = "\x1b[34m";
-        inline constexpr std::string_view kCyan = "\x1b[36m";
-        inline constexpr std::string_view kGreen = "\x1b[32m";
-
-        /// Apply @p escape_code (an ANSI prefix) around @p text, then reset.
-        /// Uses only `{}` specifiers so it is compatible with both the
-        /// `fmt::format` and `std::format` backends exposed by FORMAT().
-        [[nodiscard]] inline std::string styled(std::string_view text, std::string_view escape_code) {
-            return FORMAT("{}{}{}", escape_code, text, kReset);
-        }
-
-        // --- convenience wrappers matching Rust `style(x).<colour>()` names ---
-        // All calls use plain `{}` specifiers → valid for both fmt and std::format.
-
-        /// @{ Plain-colour variants – equivalent of `style(x).red()` etc.
-        [[nodiscard]] inline std::string red(std::string_view text) { return styled(text, kRed); }
-        [[nodiscard]] inline std::string yellow(std::string_view text) { return styled(text, kYellow); }
-        [[nodiscard]] inline std::string blue(std::string_view text) { return styled(text, kBlue); }
-        [[nodiscard]] inline std::string cyan(std::string_view text) { return styled(text, kCyan); }
-        [[nodiscard]] inline std::string green(std::string_view text) { return styled(text, kGreen); }
-        /// @}
-
-        /// @{ Bold+colour variants – equivalent of `style(x).red().bold()` etc.
-        /// Four `{}` placeholders: bold-esc, colour-esc, text, reset – all
-        /// standard specifiers, no fmt-only extension used.
-        [[nodiscard]] inline std::string red_bold(std::string_view text) { return FORMAT("{}{}{}{}", kBold, kRed, text, kReset); }
-        [[nodiscard]] inline std::string blue_bold(std::string_view text) { return FORMAT("{}{}{}{}", kBold, kBlue, text, kReset); }
-        /// @}
-
-    }  // namespace ansi
 
     // ---------------------------------------------------------------------------
     /// @class ErrorReporter
