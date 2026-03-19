@@ -28,9 +28,7 @@ namespace std {
             break;
         case jsv::TypeKind::Array:
         case jsv::TypeKind::Vector:
-            if(type.element_type_) {
-                jsv::hash_combine(seed, std::hash<jsv::Type>{}(*type.element_type_));
-            }
+            if(type.element_type_) { jsv::hash_combine(seed, std::hash<jsv::Type>{}(*type.element_type_)); }
             break;
         default:
             break;
