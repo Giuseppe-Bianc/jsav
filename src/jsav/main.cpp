@@ -37,6 +37,13 @@ DISABLE_WARNINGS_POP()
 
 */
 
+constexpr int kExampleIntValue = 42;
+constexpr double kExamplePiValue = 3.14;
+constexpr int kMultiVarFirst = 12;
+constexpr int kMultiVarSecond = 21;
+constexpr int kCallArgValue = 8;
+constexpr int kGroupingMultiplier = 2;
+
 // ============================================================
 // Helper: costruisce AST manualmente (senza parser)
 // ============================================================
@@ -45,18 +52,19 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
     std::vector<StmtPtr> stmts;
 
     // var x: int = 42;
-    stmts.push_back(std::make_unique<VarDecl>("x", std::optional<std::string>{"int"}, std::make_unique<IntegerLiteral>(42), false));
+    stmts.push_back(
+        std::make_unique<VarDecl>("x", std::optional<std::string>{"int"}, std::make_unique<IntegerLiteral>(kExampleIntValue), false));
 
     // const pi = 3.14;
-    stmts.push_back(std::make_unique<VarDecl>("pi", std::nullopt, std::make_unique<FloatLiteral>(3.14), true));
+    stmts.push_back(std::make_unique<VarDecl>("pi", std::nullopt, std::make_unique<FloatLiteral>(kExamplePiValue), true));
 
     // Multi-variable declaration: var a2, b2: i64 = 12, 21;
     {
         std::vector<std::string> names{"a2", "b2"};
         std::vector<ExprPtr> initializers;
         initializers.reserve(2);
-        initializers.push_back(std::make_unique<IntegerLiteral>(12));
-        initializers.push_back(std::make_unique<IntegerLiteral>(21));
+        initializers.push_back(std::make_unique<IntegerLiteral>(kMultiVarFirst));
+        initializers.push_back(std::make_unique<IntegerLiteral>(kMultiVarSecond));
         stmts.push_back(std::make_unique<VarDecl>(std::move(names), std::optional<std::string>{"i64"}, std::move(initializers), false));
     }
 
@@ -78,7 +86,7 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
     {
         std::vector<ExprPtr> args;
         args.push_back(std::make_unique<Identifier>("x"));
-        args.push_back(std::make_unique<IntegerLiteral>(8));
+        args.push_back(std::make_unique<IntegerLiteral>(kCallArgValue));
 
         stmts.push_back(std::make_unique<PrintStmt>(std::make_unique<CallExpr>(std::make_unique<Identifier>("add"), std::move(args))));
     }
@@ -90,7 +98,7 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
             std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<Identifier>("a2"), std::make_unique<Identifier>("b2")));
 
         auto grouping_outer = std::make_unique<GroupingExpr>(
-            std::make_unique<BinaryExpr>(BinaryOp::Mul, std::move(grouping_inner), std::make_unique<IntegerLiteral>(2)));
+            std::make_unique<BinaryExpr>(BinaryOp::Mul, std::move(grouping_inner), std::make_unique<IntegerLiteral>(kGroupingMultiplier)));
 
         stmts.push_back(std::make_unique<VarDecl>("result", std::optional<std::string>{"int"}, std::move(grouping_outer), false));
 
@@ -101,9 +109,9 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
     return std::make_unique<Program>(std::move(stmts));
 }
 
-std::string toLower(std::string s) {
-    std::ranges::transform(s, s.begin(), [](unsigned char c) -> char { return C_C(std::tolower(C_UC(c))); });
-    return s;
+std::string toLower(std::string str) {
+    std::ranges::transform(str, str.begin(), [](unsigned char chr) -> char { return C_C(std::tolower(C_UC(chr))); });
+    return str;
 }
 
 bool hasExtensionVN(const fs::path &p) { return toLower(p.extension().string()) == ".vn"; }
