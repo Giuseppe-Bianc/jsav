@@ -77,9 +77,9 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
             std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<Identifier>("a"), std::make_unique<Identifier>("b"))));
 
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts));
-        std::vector<FuncParam> params{{.name = "a", .type = "int"}, {.name = "b", .type = "int"}};
+        std::vector<FuncParam> params{{.name = "a", .type = Type::I32, .loc = {}}, {.name = "b", .type = Type::I32, .loc = {}}};
 
-        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<std::string>{"int"}, std::move(body)));
+        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<Type>{Type::I32}, std::move(body)));
     }
 
     // print add(x, 8);

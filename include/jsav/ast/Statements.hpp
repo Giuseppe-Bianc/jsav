@@ -84,24 +84,42 @@ namespace jsv {
         std::vector<StmtPtr> statements_;
     };
 
+    enum class Type {
+        I8,
+        I16,
+        I32,
+        I64,
+        U8,
+        U16,
+        U32,
+        U64,
+        F32,
+        F64,
+        Char,
+        String,
+        Bool,
+        Void
+    };
+
     // ============================================================
     // Function Declaration:  fn foo(a: int, b: int) -> int { ... }
     // ============================================================
     struct FuncParam {
         std::string name;
-        std::string type;
+        Type type;
+        SourceSpan loc;
     };
 
     class FuncDecl final : public Stmt {
     public:
-        FuncDecl(std::string name, std::vector<FuncParam> params, std::optional<std::string> return_type, std::unique_ptr<BlockStmt> body,
+        FuncDecl(std::string name, std::vector<FuncParam> params, std::optional<Type> return_type, std::unique_ptr<BlockStmt> body,
                  SourceSpan loc = {})
           : Stmt(NodeKind::FuncDecl, loc), name_{std::move(name)}, params_{std::move(params)}, return_type_{std::move(return_type)},
             body_{std::move(body)} {}
 
         [[nodiscard]] const std::string &name() const noexcept { return name_; }
         [[nodiscard]] const std::vector<FuncParam> &params() const noexcept { return params_; }
-        [[nodiscard]] const std::optional<std::string> &return_type() const noexcept { return return_type_; }
+        [[nodiscard]] const std::optional<Type> &return_type() const noexcept { return return_type_; }
         [[nodiscard]] const BlockStmt &body() const noexcept { return *body_; }
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::FuncDecl; }
@@ -109,7 +127,7 @@ namespace jsv {
     private:
         std::string name_;
         std::vector<FuncParam> params_;
-        std::optional<std::string> return_type_;
+        std::optional<Type> return_type_;
         std::unique_ptr<BlockStmt> body_;
     };
 
@@ -228,4 +246,29 @@ namespace jsv {
         ExprPtr expression_;
     };
 
+    // ============================================================
+    // Type to string conversion
+    // ============================================================
+    [[nodiscard]] std::string to_string(Type type);
+
 }  // namespace jsv
+
+// -------------------------------------------------------------------------
+// std::formatter  (C++23 <format>)
+// -------------------------------------------------------------------------
+namespace std {
+    template <> struct formatter<jsv::Type> : formatter<string> {
+        template <typename FormatContext> auto format(jsv::Type type, FormatContext &ctx) const {
+            return formatter<string>::format(to_string(type), ctx);
+        }
+    };
+}  // namespace std
+
+// -------------------------------------------------------------------------
+// fmt::formatter  (fmtlib)
+// -------------------------------------------------------------------------
+template <> struct fmt::formatter<jsv::Type> : fmt::formatter<std::string> {
+    template <typename FormatContext> auto format(jsv::Type type, FormatContext &ctx) const {
+        return fmt::formatter<std::string>::format(to_string(type), ctx);
+    }
+};

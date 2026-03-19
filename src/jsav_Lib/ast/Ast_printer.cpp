@@ -316,7 +316,7 @@ namespace jsv {
                 const auto &param = node.params()[i];
                 print_value("Parameter '", FORMAT("{}'", param.name), param_last);
                 const IndentGuard guard3{*this, param_last};
-                print_value("Type: ", param.type, true);
+                print_value("Type: ", to_string(param.type), true);
             }
         } else {
             print_line("Parameters: (none)", !has_return);
@@ -326,7 +326,7 @@ namespace jsv {
         if(has_return) {
             print_line("Return Type:", false);
             const IndentGuard guard2{*this, false};
-            print_line(*ret_type, true);
+            print_line(to_string(*ret_type), true);
         }
 
         // Body
