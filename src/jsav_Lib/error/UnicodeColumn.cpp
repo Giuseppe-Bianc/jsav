@@ -2,7 +2,7 @@
  * Created by gbian on 14/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner, *-mt-unsafe, *-easily-swappable-parameters)
+// NOLINTBEGIN(*-include-cleaner, *-mt-unsafe, *-easily-swappable-parameters, *-diagnostic-deprecated-declarations)
 #include "jsav/error/UnicodeColumn.hpp"
 
 namespace jsv {
@@ -173,4 +173,4 @@ namespace jsv {
     }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner, *-mt-unsafe, *-easily-swappable-parameters)
+// NOLINTEND(*-include-cleaner, *-mt-unsafe, *-easily-swappable-parameters, *-diagnostic-deprecated-declarations)
