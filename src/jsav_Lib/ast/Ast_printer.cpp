@@ -35,31 +35,37 @@ namespace jsv {
     // Expressions
     // ============================================================
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
         const bool is_last = next_is_last_;
         print_value("Literal ", FORMAT("{}", node.value()), is_last);
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_FloatLiteral(const FloatLiteral &node) {
         const bool is_last = next_is_last_;
         print_value("Literal ", FORMAT("{}f", node.value()), is_last);
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_StringLiteral(const StringLiteral &node) {
         const bool is_last = next_is_last_;
         print_value("Literal ", FORMAT("\"{}\"", node.value()), is_last);
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) {
         const bool is_last = next_is_last_;
         print_value("Literal ", node.value() ? "true" : "false", is_last);
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_NullLiteral(const NullLiteral & /*unused*/) {
         const bool is_last = next_is_last_;
         print_line("Literal null", is_last);
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_Identifier(const Identifier &node) {
         const bool is_last = next_is_last_;
         print_value("Identifier ", node.name(), is_last);
@@ -440,11 +446,13 @@ namespace jsv {
         }
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_BreakStmt(const BreakStmt & /*unused*/) {
         const bool is_last = next_is_last_;
         print_line("Break", is_last);
     }
 
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_ContinueStmt(const ContinueStmt & /*unused*/) {
         const bool is_last = next_is_last_;
         print_line("Continue", is_last);

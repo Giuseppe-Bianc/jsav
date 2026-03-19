@@ -44,11 +44,17 @@ namespace jsv {
 
         // ========== Expressions ==========
 
+        // cppcheck-suppress functionConst
         void visit_IntegerLiteral(const IntegerLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_FloatLiteral(const FloatLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_StringLiteral(const StringLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_BoolLiteral(const BoolLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_NullLiteral(const NullLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_Identifier(const Identifier &node);
         void visit_UnaryExpr(const UnaryExpr &node);
         void visit_BinaryExpr(const BinaryExpr &node);
@@ -71,7 +77,9 @@ namespace jsv {
         void visit_WhileStmt(const WhileStmt &node);
         void visit_ForStmt(const ForStmt &node);
         void visit_BlockStmt(const BlockStmt &node);
+        // cppcheck-suppress functionConst
         void visit_BreakStmt(const BreakStmt &node);
+        // cppcheck-suppress functionConst
         void visit_ContinueStmt(const ContinueStmt &node);
         void visit_PrintStmt(const PrintStmt &node);
 
