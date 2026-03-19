@@ -233,8 +233,7 @@ auto main(int argc, const char *const argv[]) -> int {
         std::vector<jsv::CompileError> mock_errors;
 
         // E0001 – no help
-        mock_errors.push_back(
-            jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "unrecognized '@' character", e1_span, std::nullopt));
+        mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "unrecognized '@' character", e1_span, std::nullopt));
 
         // // E0005 – with help
         // mock_errors.push_back(jsv::CompileError::LexerError(jsv::ErrorCode::E0005, "unterminated string starting with '\"'", e2_span,
