@@ -5,7 +5,7 @@
 
 // NOLINTBEGIN(*-include-cleaner)
 #include "jsav/ast/Ast_printer.hpp"
-namespace jsv {
+    namespace jsv {
 
     // ============================================================
     // AstPrinter - Core methods
@@ -251,7 +251,7 @@ namespace jsv {
             }
 
             // Type annotation
-            if(node.type_annotation()) { print_value("Type: ", node.type_annotation().value(), false); }
+            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { print_value("Type: ", *type_ann, false); }
 
             // Initializers
             if(!node.initializers().empty()) {
@@ -271,10 +271,11 @@ namespace jsv {
             print_value(keyword, FORMAT(" '{}'", node.name()), is_last);
             const IndentGuard guard{*this, is_last};
 
-            const bool has_type = node.type_annotation().has_value();
+            const auto &type_ann = node.type_annotation();
+            const bool has_type = type_ann.has_value();
             const bool has_init = node.has_initializer();
 
-            if(has_type) { print_value("Type: ", node.type_annotation().value(), !has_init); }
+            if(has_type) { print_value("Type: ", *type_ann, !has_init); }
 
             if(has_init) {
                 print_line("Initializer:", true);
@@ -290,7 +291,8 @@ namespace jsv {
         const IndentGuard guard{*this, is_last};
 
         const bool has_params = !node.params().empty();
-        const bool has_return = node.return_type().has_value();
+        const auto &ret_type = node.return_type();
+        const bool has_return = ret_type.has_value();
 
         // Name
         print_line("Name:", false);
@@ -318,7 +320,7 @@ namespace jsv {
         if(has_return) {
             print_line("Return Type:", false);
             const IndentGuard guard2{*this, false};
-            print_line(node.return_type().value(), true);
+            print_line(*ret_type, true);
         }
 
         // Body
@@ -539,7 +541,7 @@ namespace jsv {
         if(node.num_variables() > 1) {
             std::string result = FORMAT("({}", node.is_const() ? "const" : "var");
             for(const auto &varname : node.names()) { result += FORMAT(" {}", varname); }
-            if(node.type_annotation().has_value()) { result += FORMAT(" : {}", node.type_annotation().value()); }
+            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { result += FORMAT(" : {}", *type_ann); }
             if(!node.initializers().empty()) {
                 result += " (";
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
@@ -554,7 +556,7 @@ namespace jsv {
 
         // Single variable declaration (backward compatible)
         std::string result = FORMAT("({} {}", node.is_const() ? "const" : "var", node.name());
-        if(node.type_annotation().has_value()) { result += FORMAT(" : {}", node.type_annotation().value()); }
+        if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { result += FORMAT(" : {}", *type_ann); }
         if(node.has_initializer()) { result += " " + visit(node.initializer()); }
         result += ")";
         return result;
@@ -567,7 +569,7 @@ namespace jsv {
             result += FORMAT("({} {})", node.params()[i].name, node.params()[i].type);
         }
         result += ")";
-        if(node.return_type().has_value()) { result += FORMAT(" -> {}", node.return_type().value()); }
+        if(const auto &ret_type = node.return_type(); ret_type.has_value()) { result += FORMAT(" -> {}", *ret_type); }
         result += " " + visit_BlockStmt(node.body()) + ")";
         return result;
     }
