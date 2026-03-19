@@ -520,9 +520,7 @@ namespace jsv {
         return result;
     }
 
-    std::string SExprPrinter::visit_GroupingExpr(const GroupingExpr &n) {
-        return FORMAT("(group {})", visit(n.expression()));
-    }
+    std::string SExprPrinter::visit_GroupingExpr(const GroupingExpr &n) { return FORMAT("(group {})", visit(n.expression())); }
 
     // Statements
     std::string SExprPrinter::visit_ExprStmt(const ExprStmt &n) { return FORMAT("(expr-stmt {})", visit(n.expression())); }
