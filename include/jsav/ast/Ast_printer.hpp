@@ -41,7 +41,7 @@ namespace jsv {
 
         struct IndentGuard {
             AstPrinter &p;
-            IndentGuard(AstPrinter &p, bool is_last) : p(p) { p.push_indent(is_last); }
+            IndentGuard(AstPrinter &printer, bool is_last) : p(printer) { printer.push_indent(is_last); }
             ~IndentGuard() { p.pop_indent(); }
         };
 
