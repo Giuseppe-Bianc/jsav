@@ -92,12 +92,12 @@ namespace jsv {
 
     private:
         // Expressions
-        std::string visit_IntegerLiteral(const IntegerLiteral &node);
-        std::string visit_FloatLiteral(const FloatLiteral &node);
-        std::string visit_StringLiteral(const StringLiteral &node);
-        std::string visit_BoolLiteral(const BoolLiteral &node);
-        std::string visit_NullLiteral(const NullLiteral &node);
-        std::string visit_Identifier(const Identifier &node);
+        static std::string visit_IntegerLiteral(const IntegerLiteral &node);
+        static std::string visit_FloatLiteral(const FloatLiteral &node);
+        static std::string visit_StringLiteral(const StringLiteral &node);
+        static std::string visit_BoolLiteral(const BoolLiteral &node);
+        static std::string visit_NullLiteral(const NullLiteral &node);
+        static std::string visit_Identifier(const Identifier &node);
         std::string visit_UnaryExpr(const UnaryExpr &node);
         std::string visit_BinaryExpr(const BinaryExpr &node);
         std::string visit_TernaryExpr(const TernaryExpr &node);
@@ -118,8 +118,8 @@ namespace jsv {
         std::string visit_WhileStmt(const WhileStmt &node);
         std::string visit_ForStmt(const ForStmt &node);
         std::string visit_BlockStmt(const BlockStmt &node);
-        std::string visit_BreakStmt(const BreakStmt &node);
-        std::string visit_ContinueStmt(const ContinueStmt &node);
+        static std::string visit_BreakStmt(const BreakStmt &node);
+        static std::string visit_ContinueStmt(const ContinueStmt &node);
         std::string visit_PrintStmt(const PrintStmt &node);
         std::string visit_Program(const Program &node);
     };

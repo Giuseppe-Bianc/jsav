@@ -539,7 +539,7 @@ namespace jsv {
         if(node.num_variables() > 1) {
             std::string result = FORMAT("({}", node.is_const() ? "const" : "var");
             for(const auto &varname : node.names()) { result += FORMAT(" {}", varname); }
-            if(node.type_annotation()) { result += FORMAT(" : {}", node.type_annotation().value()); }
+            if(node.type_annotation().has_value()) { result += FORMAT(" : {}", node.type_annotation().value()); }
             if(!node.initializers().empty()) {
                 result += " (";
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
@@ -554,7 +554,7 @@ namespace jsv {
 
         // Single variable declaration (backward compatible)
         std::string result = FORMAT("({} {}", node.is_const() ? "const" : "var", node.name());
-        if(node.type_annotation()) { result += FORMAT(" : {}", node.type_annotation().value()); }
+        if(node.type_annotation().has_value()) { result += FORMAT(" : {}", node.type_annotation().value()); }
         if(node.has_initializer()) { result += " " + visit(node.initializer()); }
         result += ")";
         return result;
@@ -567,7 +567,7 @@ namespace jsv {
             result += FORMAT("({} {})", node.params()[i].name, node.params()[i].type);
         }
         result += ")";
-        if(node.return_type()) { result += FORMAT(" -> {}", node.return_type().value()); }
+        if(node.return_type().has_value()) { result += FORMAT(" -> {}", node.return_type().value()); }
         result += " " + visit_BlockStmt(node.body()) + ")";
         return result;
     }
