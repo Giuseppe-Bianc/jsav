@@ -95,7 +95,7 @@ namespace vnd {
     }
 }  // namespace vnd
 
-// ─── Strutture di supporto ───────────────────────────────────────────────────
+// ─── Support structures ───────────────────────────────────────────────────
 
 struct SizeSystem {
     std::string_view name;
@@ -196,7 +196,7 @@ template <> struct fmt::formatter<FileSizeReport> : fmt::formatter<std::string_v
     }
 };
 
-// ─── Sistemi di unità ────────────────────────────────────────────────────────
+// ─── Unit systems ────────────────────────────────────────────────────────
 
 constexpr SizeSystem kSI = {.name = "SI", .base = 1000.0L, .prefixes = {"B", "KB", "MB", "GB", "TB", "PB"}};
 

@@ -467,7 +467,7 @@ namespace jsv {
     }
 
     // ============================================================
-    // SExprPrinter implementation (invariato - mantieni come prima)
+    // SExprPrinter implementation (unchanged - keep as before)
     // ============================================================
 
     std::string SExprPrinter::to_string(const Node &node) { return visit(node); }

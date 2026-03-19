@@ -11,7 +11,7 @@
 namespace jsv {
 
     enum class TokenKind : std::uint8_t {
-        // ── Operatori a due caratteri (longest-match first) ──
+        // ── Two-character operators (longest-match first) ──
         PlusEqual,     // +=
         MinusEqual,    // -=
         EqualEqual,    // ==
@@ -27,7 +27,7 @@ namespace jsv {
         PercentEqual,  // %=
         XorEqual,      // ^=
 
-        // ── Operatori a singolo carattere ──
+        // ── Single-character operators ──
         Plus,     // +
         Minus,    // -
         Star,     // *
@@ -44,7 +44,7 @@ namespace jsv {
         Comma,    // ,
         Dot,      // .
 
-        // ── Keyword ──
+        // ── Keywords ──
         KeywordFun,
         KeywordIf,
         KeywordElse,
@@ -57,23 +57,23 @@ namespace jsv {
         KeywordNullptr,
         KeywordBreak,
         KeywordContinue,
-        KeywordBool,  // porta il valore bool nel TokenValue
+        KeywordBool,  // carries bool value in TokenValue
 
-        // ── Identificatori ──
+        // ── Identifiers ──
         IdentifierAscii,    // [a-zA-Z_][a-zA-Z0-9_]*
         IdentifierUnicode,  // Unicode XID (fallback)
 
-        // ── Letterali numerici ──
-        Numeric,      // decimale/float/scientifico + suffisso
+        // ── Numeric literals ──
+        Numeric,      // decimal/float/scientific + suffix
         Binary,       // #b[01]+[uU]?
         Octal,        // #o[0-7]+[uU]?
         Hexadecimal,  // #x[0-9a-fA-F]+[uU]?
 
-        // ── Letterali stringa / carattere ──
-        StringLiteral,  // "..."  (senza virgolette)
-        CharLiteral,    // '.'   (senza virgolette)
+        // ── String / character literals ──
+        StringLiteral,  // "..."  (without quotes)
+        CharLiteral,    // '.'   (without quotes)
 
-        // ── Parentesi ──
+        // ── Brackets ──
         OpenParen,
         CloseParen,  // ( )
         OpenBracket,
@@ -81,7 +81,7 @@ namespace jsv {
         OpenBrace,
         CloseBrace,  // { }
 
-        // ── Tipi primitivi ──
+        // ── Primitive types ──
         TypeI8,
         TypeI16,
         TypeI32,
@@ -96,7 +96,7 @@ namespace jsv {
         TypeString,
         TypeBool,
 
-        // ── Varie ──
+        // ── Miscellaneous ──
         Semicolon,
         Eof,
     };
@@ -195,13 +195,13 @@ namespace jsv {
         case TokenKind::KeywordBool:
             return "BOOL";
 
-            // Identificatori
+            // Identifiers
         case TokenKind::IdentifierAscii:
             return "IDENTIFIER";
         case TokenKind::IdentifierUnicode:
             return "IDENTIFIER";
 
-            // Letterali numerici
+            // Numeric literals
         case TokenKind::Numeric:
             return "NUMERIC";
         case TokenKind::Binary:
@@ -211,7 +211,7 @@ namespace jsv {
         case TokenKind::Hexadecimal:
             return "HEX";
 
-            // Letterali stringa / carattere
+            // String / character literals
         case TokenKind::StringLiteral:
             return "STRING";
         case TokenKind::CharLiteral:
@@ -231,7 +231,7 @@ namespace jsv {
         case TokenKind::CloseBrace:
             return "CLOSE_BRACE";
 
-            // Tipi primitivi
+            // Primitive types
         case TokenKind::TypeI8:
             return "I8";
         case TokenKind::TypeI16:
@@ -259,7 +259,7 @@ namespace jsv {
         case TokenKind::TypeBool:
             return "BOOL";
 
-            // Varie
+            // Miscellaneous
         case TokenKind::Semicolon:
             return "SEMICOLON";
         case TokenKind::Eof:
@@ -271,7 +271,7 @@ namespace jsv {
 
     class Token {
     public:
-        // Costruttore primario
+        // Primary constructor
         Token() = default;
         Token(const TokenKind kind, std::string_view text, const SourceSpan &span) : m_kind(kind), m_text(text), m_span(span) {}
 

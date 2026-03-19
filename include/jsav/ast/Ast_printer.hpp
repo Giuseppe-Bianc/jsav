@@ -82,7 +82,7 @@ namespace jsv {
     };
 
     // ============================================================
-    // S-Expression Printer (invariato)
+    // S-Expression Printer (unchanged)
     // ============================================================
     class SExprPrinter : public Visitor<SExprPrinter, std::string> {
         friend class Visitor<SExprPrinter, std::string>;
