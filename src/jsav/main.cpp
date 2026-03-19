@@ -101,6 +101,14 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
     return std::make_unique<Program>(std::move(stmts));
 }
 
+std::string toLower(std::string s) {
+    std::ranges::transform(s, s.begin(),
+                           [](unsigned char c) -> char { return C_C(std::tolower(C_UC(c))); });
+    return s;
+}
+
+bool hasExtensionVN(const fs::path &p) { return toLower(p.extension().string()) == ".vn"; }
+
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
 // NOLINTNEXTLINE(*-function-cognitive-complexity, *-exception-escape)
@@ -150,6 +158,12 @@ auto main(int argc, const char *const argv[]) -> int {
             return EXIT_SUCCESS;
         }
         const auto porfilename = fs::canonical(fs::path(path.value_or(filename.data())).lexically_normal()).string();
+
+        if (!hasExtensionVN(fs::path(porfilename))) {
+            LERROR("File {} does not have the expected .vn extension", porfilename);
+            return EXIT_FAILURE;
+        }
+
         /*if(clean) {
             const auto folderPath = vnd::GetBuildFolder(fs::path(porfilename));
             LINFO("Cleaning the project");
