@@ -5,7 +5,7 @@
 
 // NOLINTBEGIN(*-include-cleaner)
 #include "jsav/ast/Ast_printer.hpp"
-    namespace jsv {
+namespace jsv {
 
     // ============================================================
     // AstPrinter - Core methods
