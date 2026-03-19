@@ -9,6 +9,7 @@ namespace jsv {
     constexpr std::size_t MAX_CODE_POINTS = 10000;
     static constexpr std::string_view utf8_bom{"\xEF\xBB\xBF"};
     static constexpr std::array<std::string_view, 4> known_color_terms{"color", "xterm", "screen", "tmux"};
+    DISABLE_CLANG_WARNINGS_PUSH("-Wdeprecated-declarations")
     // ---------------------------------------------------------------------------
     // detect_ansi_color()
     // ---------------------------------------------------------------------------
@@ -36,6 +37,7 @@ namespace jsv {
         // 3. Default: colors enabled
         return true;
     }
+    DISABLE_CLANG_WARNINGS_POP()
 
     // ---------------------------------------------------------------------------
     // make_display_config()
