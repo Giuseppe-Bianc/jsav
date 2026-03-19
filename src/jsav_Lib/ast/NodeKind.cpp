@@ -40,6 +40,8 @@ namespace jsv {
             return "CastExpr";
         case NodeKind::ArrayLiteral:
             return "ArrayLiteral";
+        case NodeKind::GroupingExpr:
+            return "GroupingExpr";
         case NodeKind::ExprStmt:
             return "ExprStmt";
         case NodeKind::VarDecl:

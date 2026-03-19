@@ -83,6 +83,21 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
         stmts.push_back(std::make_unique<PrintStmt>(std::make_unique<CallExpr>(std::make_unique<Identifier>("add"), std::move(args))));
     }
 
+    // Grouping expression example: (a2 + b2) * 2
+    {
+        // var result: int = ((a2 + b2) * 2);
+        auto grouping_inner = std::make_unique<GroupingExpr>(
+            std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<Identifier>("a2"), std::make_unique<Identifier>("b2")));
+        
+        auto grouping_outer = std::make_unique<GroupingExpr>(
+            std::make_unique<BinaryExpr>(BinaryOp::Mul, std::move(grouping_inner), std::make_unique<IntegerLiteral>(2)));
+        
+        stmts.push_back(std::make_unique<VarDecl>("result", std::optional<std::string>{"int"}, std::move(grouping_outer), false));
+        
+        // print result;
+        stmts.push_back(std::make_unique<PrintStmt>(std::make_unique<Identifier>("result")));
+    }
+
     return std::make_unique<Program>(std::move(stmts));
 }
 

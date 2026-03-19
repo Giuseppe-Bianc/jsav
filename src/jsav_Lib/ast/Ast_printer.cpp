@@ -212,6 +212,13 @@ namespace jsv {
         }
     }
 
+    void AstPrinter::visit_GroupingExpr(const GroupingExpr &node) {
+        bool is_last = next_is_last_;
+        print_line("GroupingExpr", is_last);
+        IndentGuard g{*this, is_last};
+        visit_child(node.expression(), true);
+    }
+
     // ============================================================
     // Statements
     // ============================================================
@@ -511,6 +518,10 @@ namespace jsv {
         }
         result += "]";
         return result;
+    }
+
+    std::string SExprPrinter::visit_GroupingExpr(const GroupingExpr &n) {
+        return FORMAT("(group {})", visit(n.expression()));
     }
 
     // Statements

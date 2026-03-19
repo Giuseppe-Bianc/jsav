@@ -27,6 +27,7 @@ namespace jsv {
         AssignExpr,
         CastExpr,
         ArrayLiteral,
+        GroupingExpr,  // (expr)
 
         // Statements
         ExprStmt,

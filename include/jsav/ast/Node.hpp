@@ -73,6 +73,7 @@ namespace jsv {
             case NodeKind::AssignExpr:
             case NodeKind::CastExpr:
             case NodeKind::ArrayLiteral:
+            case NodeKind::GroupingExpr:
                 return true;
             default:
                 return false;

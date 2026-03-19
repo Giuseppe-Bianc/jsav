@@ -52,6 +52,7 @@ namespace jsv {
         DECLARE_VISIT(AssignExpr)
         DECLARE_VISIT(CastExpr)
         DECLARE_VISIT(ArrayLiteral)
+        DECLARE_VISIT(GroupingExpr)
 
         // Statements
         DECLARE_VISIT(ExprStmt)
@@ -107,6 +108,8 @@ namespace jsv {
                 return self().visit_CastExpr(static_cast<const CastExpr &>(node));
             case NodeKind::ArrayLiteral:
                 return self().visit_ArrayLiteral(static_cast<const ArrayLiteral &>(node));
+            case NodeKind::GroupingExpr:
+                return self().visit_GroupingExpr(static_cast<const GroupingExpr &>(node));
 
             // --- Statements ---
             case NodeKind::ExprStmt:

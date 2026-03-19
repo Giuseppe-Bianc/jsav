@@ -261,4 +261,21 @@ namespace jsv {
         std::vector<ExprPtr> elements_;
     };
 
+    // ============================================================
+    // Grouping Expression:  (expr) - parenthesized expression
+    // ============================================================
+    class GroupingExpr final : public Expr {
+    public:
+        explicit GroupingExpr(ExprPtr expression, SourceSpan loc = {})
+          : Expr(NodeKind::GroupingExpr, loc), expression_{std::move(expression)} {}
+
+        [[nodiscard]] const Expr &expression() const noexcept { return *expression_; }
+        [[nodiscard]] Expr &expression() noexcept { return *expression_; }
+
+        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::GroupingExpr; }
+
+    private:
+        ExprPtr expression_;
+    };
+
 }  // namespace jsv

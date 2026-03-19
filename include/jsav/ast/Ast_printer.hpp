@@ -62,6 +62,7 @@ namespace jsv {
         void visit_AssignExpr(const AssignExpr &node);
         void visit_CastExpr(const CastExpr &node);
         void visit_ArrayLiteral(const ArrayLiteral &node);
+        void visit_GroupingExpr(const GroupingExpr &node);
 
         // ========== Statements ==========
 
@@ -106,6 +107,7 @@ namespace jsv {
         std::string visit_AssignExpr(const AssignExpr &n);
         std::string visit_CastExpr(const CastExpr &n);
         std::string visit_ArrayLiteral(const ArrayLiteral &n);
+        std::string visit_GroupingExpr(const GroupingExpr &n);
 
         // Statements
         std::string visit_ExprStmt(const ExprStmt &n);
