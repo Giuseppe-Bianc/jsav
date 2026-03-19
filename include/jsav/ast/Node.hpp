@@ -112,8 +112,7 @@ namespace jsv {
         }
     }
 
-    template <typename T>
-    [[nodiscard]] constexpr bool node_isa_check(const Node *node, std::type_identity<T>) noexcept {
+    template <typename T> [[nodiscard]] constexpr bool node_isa_check(const Node *node, std::type_identity<T>) noexcept {
         return T::classof(node);
     }
 
