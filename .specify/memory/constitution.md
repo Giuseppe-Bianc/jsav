@@ -1,26 +1,26 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.3.0 → 1.4.0 (MINOR: Added Algorithmic Design Excellence principle,
-enhanced Documentation Standards with explicit structural requirements)
+Version change: 1.4.0 → 1.5.0 (MINOR: Enhanced Principle I with explicit .vn file 
+handling, added explicit C++23 standard library exclusivity requirement)
 
 Modified Principles:
-- VI. Documentation Standards & markdownlint Compliance: Enhanced with explicit structural
-  requirements (heading hierarchy, single H1 per document, table of contents for long documents)
+- I. Platform Independence: Enhanced with explicit mention of .vn file input handling
+  and strengthened C++23 standard library exclusivity requirement
+- II. Visual Studio 2026 Compatibility: Clarified MSVC C++23 feature verification
+  requirement with explicit fallback documentation
 
 Added Principles:
-- VII. Algorithmic Design Excellence: New principle mandating advanced algorithmic techniques
-  (dynamic programming, greedy algorithms, divide and conquer, backtracking, branch and bound)
-  with formal analysis requirements, complexity analysis, and systematic verification
+- None
 
 Removed Principles:
 - None
 
 Templates Status:
-- plan-template.md: ✅ No updates required (Constitution Check section is generic)
-- spec-template.md: ✅ No updates required (technology-agnostic by design)
-- tasks-template.md: ✅ No updates required (TDD workflow aligns with Principle IV)
-- agent-file-template.md: ✅ No updates required (auto-generated from plans)
+- plan-template.md: ✓ No changes needed (Constitution Check section is generic)
+- spec-template.md: ✓ No changes needed (technology-agnostic by design)
+- tasks-template.md: ✓ No changes needed (TDD workflow aligns with Principle IV)
+- agent-file-template.md: ✓ No changes needed (auto-generated from plans)
 
 Follow-up TODOs: None
 -->
@@ -35,7 +35,9 @@ The jsav compiler MUST be implemented as an OS-independent system. All code MUST
 different platforms without depending on specific OS functionalities. The implementation MUST leverage
 C++23 standard library features exclusively. Platform-specific APIs MUST be avoided; if unavoidable
 due to OS integration requirements, they MUST be isolated behind portable abstraction layers with
-clear documentation justifying their necessity.
+clear documentation justifying their necessity. The compiler MUST accept
+`.vn` extension files as input and generate optimized executables compatible with the target
+operating system.
 
 **Rationale**: Ensures the compiler can be built and run on Windows, Linux, and macOS without
 modification, maximizing accessibility and maintainability.
@@ -502,4 +504,4 @@ Compliance is mandatory and verified through automated tooling in CI/CD pipeline
 **Compliance Review**: All pull requests MUST be reviewed for constitution compliance. CI/CD
 pipelines enforce automated compliance checks.
 
-**Version**: 1.4.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-03-11
+**Version**: 1.5.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-03-19
