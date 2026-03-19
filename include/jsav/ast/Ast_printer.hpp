@@ -82,7 +82,7 @@ namespace jsv {
     };
 
     // ============================================================
-    // S-Expression Printer (unchanged)
+    // S-Expression Printer
     // ============================================================
     class SExprPrinter : public Visitor<SExprPrinter, std::string> {
         friend class Visitor<SExprPrinter, std::string>;
@@ -92,36 +92,36 @@ namespace jsv {
 
     private:
         // Expressions
-        std::string visit_IntegerLiteral(const IntegerLiteral &n);
-        std::string visit_FloatLiteral(const FloatLiteral &n);
-        std::string visit_StringLiteral(const StringLiteral &n);
-        std::string visit_BoolLiteral(const BoolLiteral &n);
-        std::string visit_NullLiteral(const NullLiteral &n);
-        std::string visit_Identifier(const Identifier &n);
-        std::string visit_UnaryExpr(const UnaryExpr &n);
-        std::string visit_BinaryExpr(const BinaryExpr &n);
-        std::string visit_TernaryExpr(const TernaryExpr &n);
-        std::string visit_CallExpr(const CallExpr &n);
-        std::string visit_IndexExpr(const IndexExpr &n);
-        std::string visit_MemberExpr(const MemberExpr &n);
-        std::string visit_AssignExpr(const AssignExpr &n);
-        std::string visit_CastExpr(const CastExpr &n);
-        std::string visit_ArrayLiteral(const ArrayLiteral &n);
-        std::string visit_GroupingExpr(const GroupingExpr &n);
+        std::string visit_IntegerLiteral(const IntegerLiteral &node);
+        std::string visit_FloatLiteral(const FloatLiteral &node);
+        std::string visit_StringLiteral(const StringLiteral &node);
+        std::string visit_BoolLiteral(const BoolLiteral &node);
+        std::string visit_NullLiteral(const NullLiteral &node);
+        std::string visit_Identifier(const Identifier &node);
+        std::string visit_UnaryExpr(const UnaryExpr &node);
+        std::string visit_BinaryExpr(const BinaryExpr &node);
+        std::string visit_TernaryExpr(const TernaryExpr &node);
+        std::string visit_CallExpr(const CallExpr &node);
+        std::string visit_IndexExpr(const IndexExpr &node);
+        std::string visit_MemberExpr(const MemberExpr &node);
+        std::string visit_AssignExpr(const AssignExpr &node);
+        std::string visit_CastExpr(const CastExpr &node);
+        std::string visit_ArrayLiteral(const ArrayLiteral &node);
+        std::string visit_GroupingExpr(const GroupingExpr &node);
 
         // Statements
-        std::string visit_ExprStmt(const ExprStmt &n);
-        std::string visit_VarDecl(const VarDecl &n);
-        std::string visit_FuncDecl(const FuncDecl &n);
-        std::string visit_ReturnStmt(const ReturnStmt &n);
-        std::string visit_IfStmt(const IfStmt &n);
-        std::string visit_WhileStmt(const WhileStmt &n);
-        std::string visit_ForStmt(const ForStmt &n);
-        std::string visit_BlockStmt(const BlockStmt &n);
-        std::string visit_BreakStmt(const BreakStmt &n);
-        std::string visit_ContinueStmt(const ContinueStmt &n);
-        std::string visit_PrintStmt(const PrintStmt &n);
-        std::string visit_Program(const Program &n);
+        std::string visit_ExprStmt(const ExprStmt &node);
+        std::string visit_VarDecl(const VarDecl &node);
+        std::string visit_FuncDecl(const FuncDecl &node);
+        std::string visit_ReturnStmt(const ReturnStmt &node);
+        std::string visit_IfStmt(const IfStmt &node);
+        std::string visit_WhileStmt(const WhileStmt &node);
+        std::string visit_ForStmt(const ForStmt &node);
+        std::string visit_BlockStmt(const BlockStmt &node);
+        std::string visit_BreakStmt(const BreakStmt &node);
+        std::string visit_ContinueStmt(const ContinueStmt &node);
+        std::string visit_PrintStmt(const PrintStmt &node);
+        std::string visit_Program(const Program &node);
     };
 
 }  // namespace jsv
