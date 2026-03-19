@@ -114,7 +114,7 @@ std::string toLower(std::string str) {
     return str;
 }
 
-bool hasExtensionVN(const fs::path &p) { return toLower(p.extension().string()) == ".vn"; }
+bool hasExtensionVN(const fs::path &pth) { return toLower(pth.extension().string()) == ".vn"; }
 
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
