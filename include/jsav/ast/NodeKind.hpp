@@ -61,7 +61,7 @@ namespace jsv {
         PostDec,  // x--
     };
 
-    [[nodiscard]] std::string_view unary_op_symbol(UnaryOp op);
+    [[nodiscard]] std::string_view unary_op_symbol(UnaryOp opcode);
 
     enum class BinaryOp : std::uint8_t {
         Add,
@@ -84,6 +84,6 @@ namespace jsv {
         Shr,
     };
 
-    [[nodiscard]] std::string_view binary_op_symbol(BinaryOp op);
+    [[nodiscard]] std::string_view binary_op_symbol(BinaryOp opcode);
 
 }  // namespace jsv

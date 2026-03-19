@@ -18,7 +18,7 @@ namespace jsv {
 
     class Node {
     public:
-        constexpr explicit Node(NodeKind kind, SourceSpan loc = {}) : kind_{kind}, loc_{loc} {}
+        constexpr explicit Node(NodeKind kind, const SourceSpan &loc = {}) : kind_{kind}, loc_{loc} {}
         // Non virtual destructor: i nodi vengono distrutti tramite
         // unique_ptr<DerivedConcreto>. Il distruttore è protetto
         // nelle classi intermedie per evitare delete attraverso base.
@@ -32,7 +32,7 @@ namespace jsv {
 
         [[nodiscard]] constexpr NodeKind kind() const noexcept { return kind_; }
         [[nodiscard]] constexpr SourceSpan location() const noexcept { return loc_; }
-        void set_location(SourceSpan loc) noexcept { loc_ = loc; }
+        void set_location(const SourceSpan &loc) noexcept { loc_ = loc; }
 
         [[nodiscard]] std::string_view kind_name() const noexcept;
 
