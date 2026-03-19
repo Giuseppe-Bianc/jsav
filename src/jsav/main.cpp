@@ -102,8 +102,7 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
 }
 
 std::string toLower(std::string s) {
-    std::ranges::transform(s, s.begin(),
-                           [](unsigned char c) -> char { return C_C(std::tolower(C_UC(c))); });
+    std::ranges::transform(s, s.begin(), [](unsigned char c) -> char { return C_C(std::tolower(C_UC(c))); });
     return s;
 }
 
@@ -159,7 +158,7 @@ auto main(int argc, const char *const argv[]) -> int {
         }
         const auto porfilename = fs::canonical(fs::path(path.value_or(filename.data())).lexically_normal()).string();
 
-        if (!hasExtensionVN(fs::path(porfilename))) {
+        if(!hasExtensionVN(fs::path(porfilename))) {
             LERROR("File {} does not have the expected .vn extension", porfilename);
             return EXIT_FAILURE;
         }
