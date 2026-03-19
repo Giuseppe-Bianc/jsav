@@ -19,10 +19,6 @@ namespace jsv {
     class Node {
     public:
         constexpr explicit Node(NodeKind kind, const SourceSpan &loc = {}) : kind_{kind}, loc_{loc} {}
-        // Non virtual destructor: i nodi vengono distrutti tramite
-        // unique_ptr<DerivedConcreto>. Il distruttore è protetto
-        // nelle classi intermedie per evitare delete attraverso base.
-        // Per semplicità lo rendiamo virtual solo qui.
         virtual ~Node() = default;
 
         Node(const Node &) = delete;
@@ -50,60 +46,76 @@ namespace jsv {
 
     // ============================================================
     // Classi intermedie: Expr e Stmt
-    // Servono come "categorie" per il tag dispatching
+    // Non definiscono classof: la logica di categoria è
+    // gestita dagli overload di node_isa_check qui sotto.
     // ============================================================
     class Expr : public Node {
     public:
         using Node::Node;
-
-        [[nodiscard]] static constexpr bool classof(const Node *node) {
-            switch(node->kind()) {
-            case NodeKind::IntegerLiteral:
-            case NodeKind::FloatLiteral:
-            case NodeKind::StringLiteral:
-            case NodeKind::BoolLiteral:
-            case NodeKind::NullLiteral:
-            case NodeKind::Identifier:
-            case NodeKind::UnaryExpr:
-            case NodeKind::BinaryExpr:
-            case NodeKind::TernaryExpr:
-            case NodeKind::CallExpr:
-            case NodeKind::IndexExpr:
-            case NodeKind::MemberExpr:
-            case NodeKind::AssignExpr:
-            case NodeKind::CastExpr:
-            case NodeKind::ArrayLiteral:
-            case NodeKind::GroupingExpr:
-                return true;
-            default:
-                return false;
-            }
-        }
     };
 
     class Stmt : public Node {
     public:
         using Node::Node;
-
-        [[nodiscard]] static constexpr bool classof(const Node *node) {
-            switch(node->kind()) {
-            case NodeKind::ExprStmt:
-            case NodeKind::VarDecl:
-            case NodeKind::FuncDecl:
-            case NodeKind::ReturnStmt:
-            case NodeKind::IfStmt:
-            case NodeKind::WhileStmt:
-            case NodeKind::ForStmt:
-            case NodeKind::BlockStmt:
-            case NodeKind::BreakStmt:
-            case NodeKind::ContinueStmt:
-            case NodeKind::PrintStmt:
-                return true;
-            default:
-                return false;
-            }
-        }
     };
+
+    // ============================================================
+    // node_isa_check — overload liberi per il dispatch di classof.
+    //
+    // Overload concreti (Expr, Stmt): implementano il controllo
+    // di categoria direttamente, senza definire classof nelle
+    // classi intermedie.
+    //
+    // Overload generico: delega a T::classof per le classi
+    // concrete (IntegerLiteral, BinaryExpr, ecc.).
+    // ============================================================
+    [[nodiscard]] constexpr bool node_isa_check(const Node *node, std::type_identity<Expr>) noexcept {
+        switch(node->kind()) {
+        case NodeKind::IntegerLiteral:
+        case NodeKind::FloatLiteral:
+        case NodeKind::StringLiteral:
+        case NodeKind::BoolLiteral:
+        case NodeKind::NullLiteral:
+        case NodeKind::Identifier:
+        case NodeKind::UnaryExpr:
+        case NodeKind::BinaryExpr:
+        case NodeKind::TernaryExpr:
+        case NodeKind::CallExpr:
+        case NodeKind::IndexExpr:
+        case NodeKind::MemberExpr:
+        case NodeKind::AssignExpr:
+        case NodeKind::CastExpr:
+        case NodeKind::ArrayLiteral:
+        case NodeKind::GroupingExpr:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    [[nodiscard]] constexpr bool node_isa_check(const Node *node, std::type_identity<Stmt>) noexcept {
+        switch(node->kind()) {
+        case NodeKind::ExprStmt:
+        case NodeKind::VarDecl:
+        case NodeKind::FuncDecl:
+        case NodeKind::ReturnStmt:
+        case NodeKind::IfStmt:
+        case NodeKind::WhileStmt:
+        case NodeKind::ForStmt:
+        case NodeKind::BlockStmt:
+        case NodeKind::BreakStmt:
+        case NodeKind::ContinueStmt:
+        case NodeKind::PrintStmt:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    template <typename T>
+    [[nodiscard]] constexpr bool node_isa_check(const Node *node, std::type_identity<T>) noexcept {
+        return T::classof(node);
+    }
 
     // ============================================================
     // Safe casting utilities (LLVM-style)
@@ -111,35 +123,35 @@ namespace jsv {
     template <typename To, typename From>
         requires std::is_base_of_v<Node, To> && std::is_base_of_v<Node, From>
     [[nodiscard]] inline To *node_cast(From *node) {
-        assert(node && To::classof(node) && "Invalid node_cast");
+        assert(node && node_isa_check(node, std::type_identity<To>{}) && "Invalid node_cast");
         return static_cast<To *>(node);
     }
 
     template <typename To, typename From>
         requires std::is_base_of_v<Node, To> && std::is_base_of_v<Node, From>
     [[nodiscard]] inline const To *node_cast(const From *node) {
-        assert(node && To::classof(node) && "Invalid node_cast");
+        assert(node && node_isa_check(node, std::type_identity<To>{}) && "Invalid node_cast");
         return static_cast<const To *>(node);
     }
 
     template <typename To, typename From>
         requires std::is_base_of_v<Node, To> && std::is_base_of_v<Node, From>
     [[nodiscard]] inline To *node_dyn_cast(From *node) {
-        if(node && To::classof(node)) return static_cast<To *>(node);
+        if(node && node_isa_check(node, std::type_identity<To>{})) return static_cast<To *>(node);
         return nullptr;
     }
 
     template <typename To, typename From>
         requires std::is_base_of_v<Node, To> && std::is_base_of_v<Node, From>
     [[nodiscard]] inline const To *node_dyn_cast(const From *node) {
-        if(node && To::classof(node)) return static_cast<const To *>(node);
+        if(node && node_isa_check(node, std::type_identity<To>{})) return static_cast<const To *>(node);
         return nullptr;
     }
 
     template <typename To, typename From>
         requires std::is_base_of_v<Node, To> && std::is_base_of_v<Node, From>
     [[nodiscard]] inline bool node_isa(const From *node) {
-        return node && To::classof(node);
+        return node && node_isa_check(node, std::type_identity<To>{});
     }
 
 }  // namespace jsv
