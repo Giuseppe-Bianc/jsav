@@ -30,47 +30,10 @@ namespace jsv {
         }
 
     protected:
-        // I metodi visit_* di default lanciano un'eccezione.
-        // Le classi derivate li overridano.
-
-#define DECLARE_VISIT(Type)                                                                                                                \
-    static R visit_##Type([[maybe_unused]] const Type &node) { throw std::runtime_error(FORMAT("Unhandled node: {}", #Type)); }
-
-        // Expressions
-        DECLARE_VISIT(IntegerLiteral)
-        DECLARE_VISIT(FloatLiteral)
-        DECLARE_VISIT(StringLiteral)
-        DECLARE_VISIT(BoolLiteral)
-        DECLARE_VISIT(NullLiteral)
-        DECLARE_VISIT(Identifier)
-        DECLARE_VISIT(UnaryExpr)
-        DECLARE_VISIT(BinaryExpr)
-        DECLARE_VISIT(TernaryExpr)
-        DECLARE_VISIT(CallExpr)
-        DECLARE_VISIT(IndexExpr)
-        DECLARE_VISIT(MemberExpr)
-        DECLARE_VISIT(AssignExpr)
-        DECLARE_VISIT(CastExpr)
-        DECLARE_VISIT(ArrayLiteral)
-        DECLARE_VISIT(GroupingExpr)
-
-        // Statements
-        DECLARE_VISIT(ExprStmt)
-        DECLARE_VISIT(VarDecl)
-        DECLARE_VISIT(FuncDecl)
-        DECLARE_VISIT(ReturnStmt)
-        DECLARE_VISIT(IfStmt)
-        DECLARE_VISIT(WhileStmt)
-        DECLARE_VISIT(ForStmt)
-        DECLARE_VISIT(BlockStmt)
-        DECLARE_VISIT(BreakStmt)
-        DECLARE_VISIT(ContinueStmt)
-        DECLARE_VISIT(PrintStmt)
-
-        // Top-level
-        DECLARE_VISIT(Program)
-
-#undef DECLARE_VISIT
+        // No default visit_* methods.
+        // Derived MUST implement every visit_* it needs.
+        // Missing ones → compile-time error (better than runtime throw).
+        ~Visitor() = default;
 
     private:
         Derived &self() { return static_cast<Derived &>(*this); }

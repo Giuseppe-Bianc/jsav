@@ -22,7 +22,7 @@ namespace jsv {
         std::vector<bool> prefix_stack_;
         bool next_is_last_ = true;
 
-        void print_prefix();
+        void print_prefix() const;
         void print_line(std::string_view msg, bool is_last);
         void print_line_colored(std::string_view msg, std::string_view color, bool is_last);
         void print_value(std::string_view label, std::string_view value, bool is_last);
