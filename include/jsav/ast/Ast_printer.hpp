@@ -23,11 +23,8 @@ namespace jsv {
         bool next_is_last_ = true;
 
         void print_prefix() const;
-        void print_line(std::string_view msg, bool is_last);
-        void print_line_colored(std::string_view msg, std::string_view color, bool is_last);
-        void print_value(std::string_view label, std::string_view value, bool is_last);
-        void print_value_colored(std::string_view label, std::string_view label_color, std::string_view value, std::string_view value_color,
-                                 bool is_last);
+        void print_line(std::string_view msg, bool is_last) const;
+        void print_value(std::string_view label, std::string_view value, bool is_last) const;
 
         void push_indent(bool is_last) { prefix_stack_.push_back(is_last); }
         void pop_indent() { prefix_stack_.pop_back(); }

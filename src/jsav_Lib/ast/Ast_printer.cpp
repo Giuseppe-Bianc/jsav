@@ -21,12 +21,12 @@ namespace jsv {
         for(const bool is_last : prefix_stack_) { fmt::print("{}", is_last ? "    " : "│   "); }
     }
 
-    void AstPrinter::print_line(std::string_view msg, bool is_last) {
+    void AstPrinter::print_line(std::string_view msg, bool is_last) const {
         print_prefix();
         fmt::println("{}{}", is_last ? "└── " : "├── ", msg);
     }
 
-    void AstPrinter::print_value(std::string_view label, std::string_view value, bool is_last) {
+    void AstPrinter::print_value(std::string_view label, std::string_view value, bool is_last) const {
         print_prefix();
         fmt::println("{}{}{}", is_last ? "└── " : "├── ", label, value);
     }
