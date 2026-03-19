@@ -17,7 +17,7 @@ namespace jsv {
         visit(node);
     }
 
-    void AstPrinter::print_prefix() const{
+    void AstPrinter::print_prefix() const {
         for(const bool is_last : prefix_stack_) { fmt::print("{}", is_last ? "    " : "│   "); }
     }
 
