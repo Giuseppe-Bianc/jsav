@@ -69,7 +69,7 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
             std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<Identifier>("a"), std::make_unique<Identifier>("b"))));
 
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts));
-        std::vector<FuncParam> params{{"a", "int"}, {"b", "int"}};
+        std::vector<FuncParam> params{{.name = "a", .type = "int"}, {.name = "b", .type = "int"}};
 
         stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<std::string>{"int"}, std::move(body)));
     }
@@ -224,21 +224,21 @@ auto main(int argc, const char *const argv[]) -> int {
 
         // --- Error 2 ─ unterminated string (E0005), with help --------------
         //   line 7, col 12, offset 110  →  line 7, col 13, offset 111
-        const jsv::SourceLocation e2_start{7, 12, 110};
-        const jsv::SourceLocation e2_end{7, 13, 111};
-        const jsv::SourceSpan e2_span{mock_file, e2_start, e2_end};
+        [[maybe_unused]] const jsv::SourceLocation e2_start{7, 12, 110};
+        [[maybe_unused]] const jsv::SourceLocation e2_end{7, 13, 111};
+        [[maybe_unused]] const jsv::SourceSpan e2_span{mock_file, e2_start, e2_end};
 
         // --- Error 3 ─ invalid escape sequence (E0007), with help ------
         //   line 15, col 3, offset 280  →  line 15, col 5, offset 282
-        const jsv::SourceLocation e3_start{15, 3, 280};
-        const jsv::SourceLocation e3_end{15, 5, 282};
-        const jsv::SourceSpan e3_span{mock_file, e3_start, e3_end};
+        [[maybe_unused]] const jsv::SourceLocation e3_start{15, 3, 280};
+        [[maybe_unused]] const jsv::SourceLocation e3_end{15, 5, 282};
+        [[maybe_unused]] const jsv::SourceSpan e3_span{mock_file, e3_start, e3_end};
 
         // --- Error 4 ─ unterminated multi-line comment (E0008) -----------
         //   starts line 20 col 1 offset 400 → ends line 25 col 1 offset 520
-        const jsv::SourceLocation e4_start{20, 1, 400};
-        const jsv::SourceLocation e4_end{25, 1, 520};
-        const jsv::SourceSpan e4_span{mock_file, e4_start, e4_end};
+        [[maybe_unused]] const jsv::SourceLocation e4_start{20, 1, 400};
+        [[maybe_unused]] const jsv::SourceLocation e4_end{25, 1, 520};
+        [[maybe_unused]] const jsv::SourceSpan e4_span{mock_file, e4_start, e4_end};
 
         // -----------------------------------------------------------------
         // Building CompileError via factory
