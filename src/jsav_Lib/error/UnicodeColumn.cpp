@@ -9,18 +9,20 @@ namespace jsv {
     constexpr std::size_t MAX_CODE_POINTS = 10000;
     static constexpr std::string_view utf8_bom{"\xEF\xBB\xBF"};
     static constexpr std::array<std::string_view, 4> known_color_terms{"color", "xterm", "screen", "tmux"};
-    [[nodiscard]] static std::optional<std::string> safe_getenv(const char *name) noexcept {
+    [[nodiscard]] static std::optional<std::string> safe_getenv(const char *const name) noexcept {
+        assert(name != nullptr);
 #ifdef _MSC_VER
-        char *buf = nullptr;
+        char *raw = nullptr;
         std::size_t len = 0;
-        if(_dupenv_s(&buf, &len, name) != 0 || buf == nullptr) { return std::nullopt; }
-        std::string value(buf, len > 0 ? len - 1 : 0);  // len includes '\0'
-        free(buf);                                      // NOLINT(*-no-malloc) — _dupenv_s contract requires free()
-        return value;
+
+        if(_dupenv_s(&raw, &len, name) != 0 || raw == nullptr) { return std::nullopt; }
+        const std::unique_ptr<char, decltype(&free)> buf{raw, &free};
+        return std::string{buf.get(), len > 0 ? len - 1 : 0};
+
 #else
-        const char *val = std::getenv(name);
+        const char *const val = std::getenv(name);
         if(val == nullptr) { return std::nullopt; }
-        return std::string(val);
+        return std::string{val};
 #endif
     }
     // ---------------------------------------------------------------------------
