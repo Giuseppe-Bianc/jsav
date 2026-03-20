@@ -173,14 +173,13 @@ auto main(int argc, const char *const argv[]) -> int {
         LINFO("{}", tokenizationTimer);
         LINFO("num tokens {}", tokens.size());
 
-        //for(jsv::Token token : tokens) { LINFO("{}", token); }
+        // for(jsv::Token token : tokens) { LINFO("{}", token); }
         if(!errors.empty()) {
             LERROR("Lexer produced {} error(s)", errors.size());
             const std::string diagnostic = reporter.report_errors(errors);
             // fmt::print(stderr, "{}", diagnostic);
             fmt::print("{}", diagnostic);
         }
-    
 
         auto program = build_manual_ast();
 
