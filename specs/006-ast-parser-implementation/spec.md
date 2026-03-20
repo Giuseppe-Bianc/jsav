@@ -62,9 +62,7 @@ error_codes.hpp:
    (unreachable code after return), E0308 (missing expression for print statement)
 - Structural Errors: E0401 (unexpected token at top level), E0402 (unexpected end of file)
 
-Error Recovery: Implement panic-mode error recovery. When an error is detected: (1) report the error with source location, (2) set panic_mode_ = true,
-(3) call synchronize() to advance tokens until a synchronization point is found (;, }, or statement keywords), (4) reset panic_mode_ = false, (5)
-continue parsing. No limit on error collection — parser continues until end of input.
+Error Recovery: Implement panic-mode error recovery. When an error is detected: (1) report the error with source location, (2) set panic_mode_ = true, (3) call synchronize() to advance tokens until a synchronization point is found (;, }, or statement keywords), (4) reset panic_mode_ = false, (5) continue parsing. No limit on error collection — parser continues until end of input. Unknown tokens from the lexer are reported as E0105 (unexpected token in expression) or E0401 (unexpected token at top level) with graceful degradation.
 
 Integration Points: ExpressionParser integrates with Parser by calling parser_.advance(), parser_.peek(), parser_.check(), parser_.match(), parser_.expect(), parser_.report_error(). StatementParser integrates with Parser similarly and integrates with ExpressionParser by calling expression_parser_.parse_expression(min_precedence) for parsing expressions within statements (initializers, conditions, arguments). Both
 ExpressionParser and StatementParser construct AST nodes using std::make_unique<NodeType>(...) and return ExprPtr or StmtPtr to the caller.
@@ -206,7 +204,7 @@ fix."
 ### Non-Functional Requirements
 
 - **NFR-001**: System MUST prioritize correctness over performance — optimization decisions must be based on empirical profiling data, not theoretical analysis.
-- **NFR-002**: System MUST handle arbitrary nesting depth limited only by available stack space (no artificial limits).
+- **NFR-002**: System MUST handle arbitrary file sizes and nesting depth limited only by available stack/memory space (no artificial limits).
 - **NFR-003**: System MUST complete parsing of typical source files (1K-10K LOC) within interactive responsiveness thresholds (<100ms to <500ms) as a secondary concern after correctness.
 - **NFR-004**: System MUST be single-threaded only — parser instances are NOT thread-safe; parallel compilation is achieved by running multiple parser instances on different files.
 
@@ -218,7 +216,7 @@ fix."
 - **Expression Node**: AST node representing a value-producing construct (literals, operators, calls, etc.). All expression nodes derive from a common Expression base type. Owned by parent via `std::unique_ptr<Expression>`.
 - **Statement Node**: AST node representing an action or declaration within the program. All statement nodes derive from a common Statement base type. Owned by parent via `std::unique_ptr<Statement>`.
 - **Type**: Enumeration of builtin types (i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, string, bool, void) used for type annotations on variable declarations and function parameters/return types.
-- **Compile Error**: Structured error record containing error code, message, source location (span), and optional help text for recovery.
+- **Compile Error**: Structured error record containing error code, message, source location (span), and optional help text for recovery. Format: `ERROR [Exxxx] CATEGORY: message` with source line visualization and optional `help:` line (see `jsav/error/ErrorReporter.hpp`).
 - **Error Code**: Unique identifier (e.g., E0101, E0201) for each type of syntax error, enabling precise error handling and documentation.
 
 ## Clarifications
@@ -231,6 +229,11 @@ fix."
 - Q: What performance targets should the parser meet? → A: No explicit performance targets — correctness first, optimize based on profiling data later.
 - Q: Should the parser support concurrent access from multiple threads? → A: Single-threaded only — parser instances are NOT thread-safe; parallel compilation achieved by running multiple parser instances on different files.
 - Q: What memory limit should be enforced for error collection? → A: No hard limit — collect all errors until memory exhaustion (risk OOM on pathological inputs).
+- Q: What format should error messages follow and should they include help text? → A: Use existing ErrorReporter format: `ERROR [Exxxx] CATEGORY: message` with source line visualization and optional `help:` line.
+- Q: What maximum file size should the parser support? → A: No explicit limit (Option A). Parser handles arbitrary file sizes limited only by available memory.
+- Q: Should the parser include trace-level diagnostic logging for debugging? → A: No trace logging (Option A). Parser is silent except for error reporting. Debugging requires external debugger or manual instrumentation.
+- Q: Should error messages support localization (i18n) or be English only? → A: English only (Option A). All error messages, help text, and diagnostics are in English. No localization infrastructure required.
+- Q: How should the parser handle tokens produced by the lexer that it doesn't recognize? → A: Error reporting (Option B). Parser reports unknown/unexpected tokens as syntax error E0105 (unexpected token in expression) or E0401 (unexpected token at top level) with clear message. Graceful degradation.
 
 ## Success Criteria
 
