@@ -15,8 +15,8 @@ namespace jsv {
     public:
         enum class Kind {
             LexerError,
-            /*SyntaxError,
-            TypeError,
+            SyntaxError,
+            /*TypeError,
             IrGeneratorError,
             AsmGeneratorError,
             IoError,*/
@@ -27,14 +27,10 @@ namespace jsv {
         static CompileError LexerError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
                                        std::optional<std::string> help);
 
-        /*static CompileError SyntaxError(
-        std::optional<ErrorCode> code,
-        std::string_view message,
-        SourceSpan span,
-        std::optional<std::string> help
-    );
+        static CompileError SyntaxError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
+                                        std::optional<std::string> help);
 
-    static CompileError TypeError(
+    /*static CompileError TypeError(
         std::optional<ErrorCode> code,
         std::string_view message,
         SourceSpan span,
