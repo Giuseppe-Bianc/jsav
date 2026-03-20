@@ -16,6 +16,7 @@ namespace jsv::ansi {
     inline constexpr std::string_view kBlue = "\x1b[34m";
     inline constexpr std::string_view kCyan = "\x1b[36m";
     inline constexpr std::string_view kGreen = "\x1b[32m";
+    inline constexpr std::string_view kMagenta = "\x1b[35m";
     /// @}
 
     /// @brief Apply @p escape_code (an ANSI prefix) around @p text, then reset.
@@ -36,10 +37,12 @@ namespace jsv::ansi {
     [[nodiscard]] std::string blue(std::string_view text);
     [[nodiscard]] std::string cyan(std::string_view text);
     [[nodiscard]] std::string green(std::string_view text);
+    [[nodiscard]] std::string magenta(std::string_view text);
     /// @}
 
     /// @{ Bold+colour variants – equivalent of `style(x).red().bold()` etc.
     [[nodiscard]] std::string red_bold(std::string_view text);
     [[nodiscard]] std::string blue_bold(std::string_view text);
+    [[nodiscard]] std::string cyan_bold(std::string_view text);
     /// @}
 }  // namespace jsv::ansi

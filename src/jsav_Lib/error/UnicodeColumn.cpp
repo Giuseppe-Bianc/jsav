@@ -9,27 +9,40 @@ namespace jsv {
     constexpr std::size_t MAX_CODE_POINTS = 10000;
     static constexpr std::string_view utf8_bom{"\xEF\xBB\xBF"};
     static constexpr std::array<std::string_view, 4> known_color_terms{"color", "xterm", "screen", "tmux"};
-    DISABLE_CLANG_WARNINGS_PUSH("-Wdeprecated-declarations")
+    [[nodiscard]] static std::optional<std::string> safe_getenv(const char *name) noexcept {
+#ifdef _MSC_VER
+        char *buf = nullptr;
+        std::size_t len = 0;
+        if(_dupenv_s(&buf, &len, name) != 0 || buf == nullptr) { return std::nullopt; }
+        std::string value(buf, len > 0 ? len - 1 : 0);  // len includes '\0'
+        free(buf);  // NOLINT(*-no-malloc) — _dupenv_s contract requires free()
+        return value;
+#else
+        const char *val = std::getenv(name);
+        if(val == nullptr) { return std::nullopt; }
+        return std::string(val);
+#endif
+    }
     // ---------------------------------------------------------------------------
     // detect_ansi_color()
     // ---------------------------------------------------------------------------
     [[nodiscard]] bool detect_ansi_color() noexcept {
         // 1. Check NO_COLOR (overrides all)
         // Per https://no-color.org/ - any non-empty value disables color
-        if(const char *no_color_raw = std::getenv("NO_COLOR"); no_color_raw != nullptr) {
-            if(const std::string_view no_color{no_color_raw}; !no_color.empty()) { return false; }
+        if(const auto no_color = safe_getenv("NO_COLOR"); no_color.has_value()) {
+            if(const std::string_view no_color_view{*no_color}; !no_color_view.empty()) { return false; }
         }
 
         // 2. Check COLORTERM (truecolor/24bit)
-        if(const char *colorterm_raw = std::getenv("COLORTERM"); colorterm_raw != nullptr) {
-            if(const std::string_view colorterm{colorterm_raw}; colorterm == "truecolor" || colorterm == "24bit") { return true; }
+        if(const auto colorterm = safe_getenv("COLORTERM"); colorterm.has_value()) {
+            if(const std::string_view colorterm_view{*colorterm}; colorterm_view == "truecolor" || colorterm_view == "24bit") { return true; }
         }
 
-        if(const char *term_raw = std::getenv("TERM"); term_raw != nullptr) {
-            const std::string_view term{term_raw};
+        if(const auto term = safe_getenv("TERM"); term.has_value()) {
+            const std::string_view term_view{*term};
             // C++23: string_view::contains() replaces find() != npos — states intent directly
             if(std::ranges::any_of(known_color_terms,
-                                   [&term](const std::string_view keyword) noexcept { return term.contains(keyword); })) {
+                                   [&term_view](const std::string_view keyword) noexcept { return term_view.contains(keyword); })) {
                 return true;
             }
         }
@@ -37,7 +50,6 @@ namespace jsv {
         // 3. Default: colors enabled
         return true;
     }
-    DISABLE_CLANG_WARNINGS_POP()
 
     // ---------------------------------------------------------------------------
     // make_display_config()

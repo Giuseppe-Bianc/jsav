@@ -15,9 +15,13 @@ namespace jsv::ansi {
 
     std::string green(std::string_view text) { return styled(text, kGreen); }
 
+    std::string magenta(std::string_view text) { return styled(text, kMagenta); }
+
     std::string red_bold(std::string_view text) { return styled(text, FORMAT("{}{}", kBold, kRed)); }
 
     std::string blue_bold(std::string_view text) { return styled(text, FORMAT("{}{}", kBold, kBlue)); }
+
+    std::string cyan_bold(std::string_view text) { return styled(text, FORMAT("{}{}", kBold, kCyan)); }
 
 }  // namespace jsv::ansi
 // NOLINTEND(*-include-cleaner)

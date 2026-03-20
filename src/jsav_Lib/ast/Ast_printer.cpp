@@ -40,45 +40,45 @@ namespace jsv {
     // cppcheck-suppress functionConst
     void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value("Literal ", FORMAT("{}", node.value()), is_last);
+        print_value(ansi::green("Literal "), FORMAT("{}", node.value()), is_last);
     }
 
     // cppcheck-suppress functionConst
     void AstPrinter::visit_FloatLiteral(const FloatLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value("Literal ", FORMAT("{}f", node.value()), is_last);
+        print_value(ansi::green("Literal "), FORMAT("{}f", node.value()), is_last);
     }
 
     // cppcheck-suppress functionConst
     void AstPrinter::visit_StringLiteral(const StringLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value("Literal ", FORMAT("\"{}\"", node.value()), is_last);
+        print_value(ansi::green("Literal "), FORMAT("\"{}\"", node.value()), is_last);
     }
 
     // cppcheck-suppress functionConst
     void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value("Literal ", node.value() ? "true" : "false", is_last);
+        print_value(ansi::green("Literal "), node.value() ? "true" : "false", is_last);
     }
 
     // cppcheck-suppress functionConst
     void AstPrinter::visit_NullLiteral(const NullLiteral & /*unused*/) {
         const bool is_last = next_is_last_;
-        print_line("Literal null", is_last);
+        print_line(ansi::green("Literal null"), is_last);
     }
 
     // cppcheck-suppress functionConst
     void AstPrinter::visit_Identifier(const Identifier &node) {
         const bool is_last = next_is_last_;
-        print_value("Identifier ", node.name(), is_last);
+        print_value(ansi::blue("Identifier "), node.name(), is_last);
     }
 
     void AstPrinter::visit_UnaryExpr(const UnaryExpr &node) {
         const bool is_last = next_is_last_;
-        print_value("UnaryExpr '", FORMAT("{}'", unary_op_symbol(node.op())), is_last);
+        print_value(ansi::cyan("UnaryExpr "), FORMAT("'{}'", unary_op_symbol(node.op())), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Operand:", true);
+        print_line(ansi::cyan("Operand:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.operand(), true);
@@ -87,16 +87,16 @@ namespace jsv {
 
     void AstPrinter::visit_BinaryExpr(const BinaryExpr &node) {
         const bool is_last = next_is_last_;
-        print_value("BinaryExpr '", FORMAT("{}'", binary_op_symbol(node.op())), is_last);
+        print_value(ansi::cyan("BinaryExpr "), FORMAT("'{}'", binary_op_symbol(node.op())), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Left:", false);
+        print_line(ansi::cyan("Left:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.lhs(), true);
         }
 
-        print_line("Right:", true);
+        print_line(ansi::cyan("Right:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.rhs(), true);
@@ -105,22 +105,22 @@ namespace jsv {
 
     void AstPrinter::visit_TernaryExpr(const TernaryExpr &node) {
         const bool is_last = next_is_last_;
-        print_line("TernaryExpr", is_last);
+        print_line(ansi::cyan("TernaryExpr"), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Condition:", false);
+        print_line(ansi::cyan("Condition:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.condition(), true);
         }
 
-        print_line("Then:", false);
+        print_line(ansi::cyan("Then:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.then_expr(), true);
         }
 
-        print_line("Else:", true);
+        print_line(ansi::cyan("Else:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.else_expr(), true);
@@ -129,16 +129,16 @@ namespace jsv {
 
     void AstPrinter::visit_CallExpr(const CallExpr &node) {
         const bool is_last = next_is_last_;
-        print_line("CallExpr", is_last);
+        print_line(ansi::cyan("CallExpr"), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Callee:", false);
+        print_line(ansi::red("Callee:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.callee(), true);
         }
 
-        print_value("Arguments: (", FORMAT("{})", node.args().size()), true);
+        print_value(ansi::green("Arguments: "), FORMAT("({})", node.args().size()), true);
         if(!node.args().empty()) {
             const IndentGuard guard2{*this, true};
             for(std::size_t i = 0; i < node.args().size(); ++i) {
@@ -150,16 +150,16 @@ namespace jsv {
 
     void AstPrinter::visit_IndexExpr(const IndexExpr &node) {
         const bool is_last = next_is_last_;
-        print_line("IndexExpr", is_last);
+        print_line(ansi::cyan("IndexExpr"), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Object:", false);
+        print_line(ansi::blue("Object:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.object(), true);
         }
 
-        print_line("Index:", true);
+        print_line(ansi::red("Index:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.index(), true);
@@ -168,10 +168,10 @@ namespace jsv {
 
     void AstPrinter::visit_MemberExpr(const MemberExpr &node) {
         const bool is_last = next_is_last_;
-        print_value("MemberExpr .", node.member(), is_last);
+        print_value(ansi::cyan("MemberExpr "), FORMAT(".{}", node.member()), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Object:", true);
+        print_line(ansi::blue("Object:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.object(), true);
@@ -180,16 +180,16 @@ namespace jsv {
 
     void AstPrinter::visit_AssignExpr(const AssignExpr &node) {
         const bool is_last = next_is_last_;
-        print_line("AssignExpr", is_last);
+        print_line(ansi::cyan("AssignExpr"), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Target:", false);
+        print_line(ansi::blue("Target:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.target(), true);
         }
 
-        print_line("Value:", true);
+        print_line(ansi::red("Value:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.value(), true);
@@ -198,10 +198,10 @@ namespace jsv {
 
     void AstPrinter::visit_CastExpr(const CastExpr &node) {
         const bool is_last = next_is_last_;
-        print_value("CastExpr -> ", node.target_type(), is_last);
+        print_value(ansi::cyan("CastExpr "), FORMAT("-> {}", node.target_type()), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Operand:", true);
+        print_line(ansi::green("Operand:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.operand(), true);
@@ -210,7 +210,7 @@ namespace jsv {
 
     void AstPrinter::visit_ArrayLiteral(const ArrayLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value("ArrayLiteral [", FORMAT("{} elements]", node.elements().size()), is_last);
+        print_value(ansi::cyan("ArrayLiteral "), FORMAT("[{} elements]", node.elements().size()), is_last);
 
         if(!node.elements().empty()) {
             const IndentGuard guard{*this, is_last};
@@ -223,7 +223,7 @@ namespace jsv {
 
     void AstPrinter::visit_GroupingExpr(const GroupingExpr &node) {
         const bool is_last = next_is_last_;
-        print_line("GroupingExpr", is_last);
+        print_line(ansi::cyan("GroupingExpr"), is_last);
         const IndentGuard guard{*this, is_last};
         visit_child(node.expression(), true);
     }
@@ -234,14 +234,14 @@ namespace jsv {
 
     void AstPrinter::visit_ExprStmt(const ExprStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("ExprStmt", is_last);
+        print_line(ansi::yellow("ExprStmt"), is_last);
         const IndentGuard guard{*this, is_last};
         visit_child(node.expression(), true);
     }
 
     void AstPrinter::visit_VarDecl(const VarDecl &node) {
         const bool is_last = next_is_last_;
-        const std::string keyword = node.is_const() ? "Const" : "Var";
+        const std::string keyword = node.is_const() ? ansi::blue_bold("Const") : ansi::blue("Var");
 
         if(node.num_variables() > 1) {
             // Multi-variable declaration
@@ -249,7 +249,7 @@ namespace jsv {
             const IndentGuard guard{*this, is_last};
 
             // Names
-            print_line("Names:", false);
+            print_line(ansi::yellow("Names:"), false);
             {
                 const IndentGuard guard2{*this, false};
                 for(std::size_t i = 0; i < node.names().size(); ++i) {
@@ -259,11 +259,12 @@ namespace jsv {
             }
 
             // Type annotation
-            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { print_value("Type: ", *type_ann, false); }
+            const bool has_init = !node.initializers().empty();
+            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { print_value(ansi::magenta("Type: "), *type_ann, !has_init); }
 
             // Initializers
-            if(!node.initializers().empty()) {
-                print_line("Initializers:", true);
+            if(has_init) {
+                print_line(ansi::red("Initializers:"), true);
                 const IndentGuard guard2{*this, true};
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
                     const bool init_last = (i == node.initializers().size() - 1);
@@ -283,10 +284,10 @@ namespace jsv {
             const bool has_type = type_ann.has_value();
             const bool has_init = node.has_initializer();
 
-            if(has_type) { print_value("Type: ", *type_ann, !has_init); }
+            if(has_type) { print_value(ansi::magenta("Type: "), *type_ann, !has_init); }
 
             if(has_init) {
-                print_line("Initializer:", true);
+                print_line(ansi::red("Initializer:"), true);
                 const IndentGuard guard2{*this, true};
                 visit_child(node.initializer(), true);
             }
@@ -295,7 +296,7 @@ namespace jsv {
 
     void AstPrinter::visit_FuncDecl(const FuncDecl &node) {
         const bool is_last = next_is_last_;
-        print_line("Function", is_last);
+        print_line(ansi::blue_bold("Function"), is_last);
         const IndentGuard guard{*this, is_last};
 
         const bool has_params = !node.params().empty();
@@ -303,7 +304,7 @@ namespace jsv {
         const bool has_return = ret_type.has_value();
 
         // Name
-        print_line("Name:", false);
+        print_line(ansi::yellow("Name:"), false);
         {
             const IndentGuard guard2{*this, false};
             print_line(node.name(), true);
@@ -311,28 +312,28 @@ namespace jsv {
 
         // Parameters
         if(has_params) {
-            print_line("Parameters:", !has_return);
+            print_line(ansi::green("Parameters:"), !has_return);
             const IndentGuard guard2{*this, !has_return};
             for(std::size_t i = 0; i < node.params().size(); ++i) {
                 const bool param_last = (i == node.params().size() - 1);
                 const auto &param = node.params()[i];
-                print_value("Parameter '", FORMAT("{}'", param.name), param_last);
+                print_value(ansi::green("Parameter '"), FORMAT("{}'", param.name), param_last);
                 const IndentGuard guard3{*this, param_last};
-                print_value("Type: ", to_string(param.type), true);
+                print_value(ansi::magenta("Type: "), to_string(param.type), true);
             }
         } else {
-            print_line("Parameters: (none)", !has_return);
+            print_line(ansi::green("Parameters: (none)"), !has_return);
         }
 
         // Return Type
         if(has_return) {
-            print_line("Return Type:", false);
+            print_line(ansi::magenta("Return Type:"), false);
             const IndentGuard guard2{*this, false};
             print_line(to_string(*ret_type), true);
         }
 
         // Body
-        print_line("Body:", true);
+        print_line(ansi::blue("Body:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.body(), true);
@@ -341,11 +342,11 @@ namespace jsv {
 
     void AstPrinter::visit_ReturnStmt(const ReturnStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("Return", is_last);
+        print_line(ansi::yellow("Return"), is_last);
 
         if(node.has_value()) {
             const IndentGuard guard{*this, is_last};
-            print_line("Value:", true);
+            print_line(ansi::yellow("Value:"), true);
             const IndentGuard guard2{*this, true};
             visit_child(node.value(), true);
         }
@@ -353,25 +354,25 @@ namespace jsv {
 
     void AstPrinter::visit_IfStmt(const IfStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("If", is_last);
+        print_line(ansi::yellow("If"), is_last);
         const IndentGuard guard{*this, is_last};
 
         const bool has_else = node.has_else();
 
-        print_line("Condition:", false);
+        print_line(ansi::yellow("Condition:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.condition(), true);
         }
 
-        print_line("Then:", !has_else);
+        print_line(ansi::yellow("Then:"), !has_else);
         {
             const IndentGuard guard2{*this, !has_else};
             visit_child(node.then_branch(), true);
         }
 
         if(has_else) {
-            print_line("Else:", true);
+            print_line(ansi::yellow("Else:"), true);
             const IndentGuard guard2{*this, true};
             visit_child(node.else_branch(), true);
         }
@@ -379,16 +380,16 @@ namespace jsv {
 
     void AstPrinter::visit_WhileStmt(const WhileStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("While", is_last);
+        print_line(ansi::yellow("While"), is_last);
         const IndentGuard guard{*this, is_last};
 
-        print_line("Condition:", false);
+        print_line(ansi::yellow("Condition:"), false);
         {
             const IndentGuard guard2{*this, false};
             visit_child(node.condition(), true);
         }
 
-        print_line("Body:", true);
+        print_line(ansi::yellow("Body:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.body(), true);
@@ -397,7 +398,7 @@ namespace jsv {
 
     void AstPrinter::visit_ForStmt(const ForStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("For", is_last);
+        print_line(ansi::yellow("For"), is_last);
         const IndentGuard guard{*this, is_last};
 
         const bool has_init = node.has_init();
@@ -405,30 +406,30 @@ namespace jsv {
         const bool has_incr = node.has_increment();
 
         if(has_init) {
-            print_line("Init:", false);
+            print_line(ansi::yellow("Init:"), false);
             const IndentGuard guard2{*this, false};
             visit_child(node.init(), true);
         } else {
-            print_line("Init: (none)", false);
+            print_line(ansi::yellow("Init: (none)"), false);
         }
 
         if(has_cond) {
-            print_line("Condition:", false);
+            print_line(ansi::yellow("Condition:"), false);
             const IndentGuard guard2{*this, false};
             visit_child(node.condition(), true);
         } else {
-            print_line("Condition: (none)", false);
+            print_line(ansi::yellow("Condition: (none)"), false);
         }
 
         if(has_incr) {
-            print_line("Increment:", false);
+            print_line(ansi::yellow("Increment:"), false);
             const IndentGuard guard2{*this, false};
             visit_child(node.increment(), true);
         } else {
-            print_line("Increment: (none)", false);
+            print_line(ansi::yellow("Increment: (none)"), false);
         }
 
-        print_line("Body:", true);
+        print_line(ansi::yellow("Body:"), true);
         {
             const IndentGuard guard2{*this, true};
             visit_child(node.body(), true);
@@ -437,7 +438,7 @@ namespace jsv {
 
     void AstPrinter::visit_BlockStmt(const BlockStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("Block", is_last);
+        print_line(ansi::yellow("Block"), is_last);
 
         if(!node.statements().empty()) {
             const IndentGuard guard{*this, is_last};
@@ -451,25 +452,25 @@ namespace jsv {
     // cppcheck-suppress functionConst
     void AstPrinter::visit_BreakStmt(const BreakStmt & /*unused*/) {
         const bool is_last = next_is_last_;
-        print_line("Break", is_last);
+        print_line(ansi::yellow("Break"), is_last);
     }
 
     // cppcheck-suppress functionConst
     void AstPrinter::visit_ContinueStmt(const ContinueStmt & /*unused*/) {
         const bool is_last = next_is_last_;
-        print_line("Continue", is_last);
+        print_line(ansi::yellow("Continue"), is_last);
     }
 
     void AstPrinter::visit_PrintStmt(const PrintStmt &node) {
         const bool is_last = next_is_last_;
-        print_line("Print", is_last);
+        print_line(ansi::yellow("Print"), is_last);
         const IndentGuard guard{*this, is_last};
         visit_child(node.expression(), true);
     }
 
     void AstPrinter::visit_Program(const Program &node) {
         // Program is the root — print without prefix
-        fmt::println("{}", ansi::cyan("Program"));
+        fmt::println("{}", ansi::cyan_bold("Program"));
 
         if(!node.statements().empty()) {
             for(std::size_t i = 0; i < node.statements().size(); ++i) {
