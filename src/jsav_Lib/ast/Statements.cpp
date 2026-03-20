@@ -2,8 +2,8 @@
  * Created by gbian on 17/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
-#include "../../../include/jsav/ast/Statements.hpp"
+// NOLINTBEGIN(*-include-cleaner)
+#include "jsav/ast/Statements.hpp"
 
 namespace jsv {
     std::string to_string(Type type) {
@@ -41,3 +41,5 @@ namespace jsv {
         }
     }
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)
