@@ -6,7 +6,7 @@
 #include "jsav/ast/Statements.hpp"
 
 namespace jsv {
-    std::string to_string(Type type) {
+    std::string_view to_string(const Type type) noexcept {
         switch(type) {
         case Type::I8:
             return "i8";

@@ -249,7 +249,7 @@ namespace jsv {
     // ============================================================
     // Type to string conversion
     // ============================================================
-    [[nodiscard]] std::string to_string(Type type);
+    [[nodiscard]] std::string_view to_string(Type type) noexcept;
 
 }  // namespace jsv
 
@@ -257,9 +257,9 @@ namespace jsv {
 // std::formatter  (C++23 <format>)
 // -------------------------------------------------------------------------
 namespace std {
-    template <> struct formatter<jsv::Type> : formatter<string> {
+    template <> struct formatter<jsv::Type> : formatter<std::string_view> {
         template <typename FormatContext> auto format(jsv::Type type, FormatContext &ctx) const {
-            return formatter<string>::format(to_string(type), ctx);
+            return formatter<std::string_view>::format(to_string(type), ctx);
         }
     };
 }  // namespace std
@@ -267,8 +267,8 @@ namespace std {
 // -------------------------------------------------------------------------
 // fmt::formatter  (fmtlib)
 // -------------------------------------------------------------------------
-template <> struct fmt::formatter<jsv::Type> : fmt::formatter<std::string> {
+template <> struct fmt::formatter<jsv::Type> : fmt::formatter<std::string_view> {
     template <typename FormatContext> auto format(jsv::Type type, FormatContext &ctx) const {
-        return fmt::formatter<std::string>::format(to_string(type), ctx);
+        return fmt::formatter<std::string_view>::format(to_string(type), ctx);
     }
 };

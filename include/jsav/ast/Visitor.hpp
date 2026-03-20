@@ -22,9 +22,9 @@ namespace jsv {
     // ============================================================
     template <typename Derived, typename R = void> class Visitor {
     public:
-        R visit(const Node &node) { return dispatch(node); }
+        [[nodiscard]] R visit(const Node &node) { return dispatch(node); }
 
-        R visit(const Node *node) {
+        [[nodiscard]] R visit(const Node *node) {
             if(!node) throw std::runtime_error("Visiting null node");
             return dispatch(*node);
         }

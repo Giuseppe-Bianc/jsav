@@ -5,6 +5,8 @@
 
 // NOLINTBEGIN(*-include-cleaner)
 #include "jsav/ast/Ast_printer.hpp"
+#include "jsav/util/AnsiStyles.hpp"
+
 namespace jsv {
 
     // ============================================================
@@ -467,7 +469,7 @@ namespace jsv {
 
     void AstPrinter::visit_Program(const Program &node) {
         // Program is the root — print without prefix
-        fmt::println("Program");
+        fmt::println("{}", ansi::cyan("Program"));
 
         if(!node.statements().empty()) {
             for(std::size_t i = 0; i < node.statements().size(); ++i) {
@@ -509,9 +511,13 @@ namespace jsv {
     }
 
     std::string SExprPrinter::visit_CallExpr(const CallExpr &node) {
-        std::string result = FORMAT("(call {}", visit(node.callee()));
-        for(const auto &arg : node.args()) { result += " " + visit(*arg); }
-        result += ")";
+        std::string result;
+        const auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(call {}", visit(node.callee()));
+        for(const auto &arg : node.args()) {
+            FORMAT_TO(out, " {}", visit(*arg));
+        }
+        FORMAT_TO(out, ")");
         return result;
     }
 
@@ -530,12 +536,17 @@ namespace jsv {
     }
 
     std::string SExprPrinter::visit_ArrayLiteral(const ArrayLiteral &node) {
-        std::string result = "[";
-        for(std::size_t i = 0; i < node.elements().size(); ++i) {
-            if(i > 0) { result += " "; }
-            result += visit(*node.elements()[i]);
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "[");
+        for (std::size_t i = 0; i < node.elements().size(); ++i)
+        {
+            if (i > 0) {
+                FORMAT_TO(out, " ");
+            }
+            FORMAT_TO(out, "{}", visit(*node.elements()[i]));
         }
-        result += "]";
+        FORMAT_TO(out, "]");
         return result;
     }
 
@@ -547,38 +558,50 @@ namespace jsv {
     std::string SExprPrinter::visit_VarDecl(const VarDecl &node) {
         // Multi-variable declaration: var a, b: i64 = 10, 20;
         if(node.num_variables() > 1) {
-            std::string result = FORMAT("({}", node.is_const() ? "const" : "var");
-            for(const auto &varname : node.names()) { result += FORMAT(" {}", varname); }
-            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { result += FORMAT(" : {}", *type_ann); }
-            if(!node.initializers().empty()) {
-                result += " (";
-                for(std::size_t i = 0; i < node.initializers().size(); ++i) {
-                    if(i > 0) { result += " "; }
-                    result += node.initializers()[i] ? visit(*node.initializers()[i]) : "null";
-                }
-                result += ")";
+            std::string result;
+            auto out = std::back_inserter(result);
+            FORMAT_TO(out, "({}", node.is_const() ? "const" : "var");
+            for(const auto &varname : node.names()) { FORMAT_TO(out, " {}", varname); }
+            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) {
+                FORMAT_TO(out, " : {}", *type_ann);
             }
-            result += ")";
+            if(!node.initializers().empty()) {
+                FORMAT_TO(out, " (");
+                for(std::size_t i = 0; i < node.initializers().size(); ++i) {
+                    if(i > 0) { FORMAT_TO(out, " "); }
+                    FORMAT_TO(out, "{}", node.initializers()[i] ? visit(*node.initializers()[i]) : "null");
+                }
+                FORMAT_TO(out, ")");
+            }
+            FORMAT_TO(out, ")");
             return result;
         }
 
         // Single variable declaration (backward compatible)
-        std::string result = FORMAT("({} {}", node.is_const() ? "const" : "var", node.name());
-        if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { result += FORMAT(" : {}", *type_ann); }
-        if(node.has_initializer()) { result += " " + visit(node.initializer()); }
-        result += ")";
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());
+        if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) {
+            FORMAT_TO(out, " : {}", *type_ann);
+        }
+        if(node.has_initializer()) { FORMAT_TO(out, " {}", visit(node.initializer())); }
+        FORMAT_TO(out, ")");
         return result;
     }
 
     std::string SExprPrinter::visit_FuncDecl(const FuncDecl &node) {
-        std::string result = FORMAT("(fn {} (", node.name());
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(fn {} (", node.name());
         for(std::size_t i = 0; i < node.params().size(); ++i) {
-            if(i > 0) { result += " "; }
-            result += FORMAT("({} {})", node.params()[i].name, node.params()[i].type);
+            if(i > 0) { FORMAT_TO(out, " "); }
+            FORMAT_TO(out, "({} {})", node.params()[i].name, node.params()[i].type);
         }
-        result += ")";
-        if(const auto &ret_type = node.return_type(); ret_type.has_value()) { result += FORMAT(" -> {}", *ret_type); }
-        result += " " + visit_BlockStmt(node.body()) + ")";
+        FORMAT_TO(out, ")");
+        if(const auto &ret_type = node.return_type(); ret_type.has_value()) {
+            FORMAT_TO(out, " -> {}", *ret_type);
+        }
+        FORMAT_TO(out, " {})", visit_BlockStmt(node.body()));
         return result;
     }
 
@@ -588,9 +611,11 @@ namespace jsv {
     }
 
     std::string SExprPrinter::visit_IfStmt(const IfStmt &node) {
-        std::string result = FORMAT("(if {} {}", visit(node.condition()), visit(node.then_branch()));
-        if(node.has_else()) { result += " " + visit(node.else_branch()); }
-        result += ")";
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(if {} {}", visit(node.condition()), visit(node.then_branch()));
+        if(node.has_else()) { FORMAT_TO(out, " {}", visit(node.else_branch())); }
+        FORMAT_TO(out, ")");
         return result;
     }
 
@@ -599,20 +624,24 @@ namespace jsv {
     }
 
     std::string SExprPrinter::visit_ForStmt(const ForStmt &node) {
-        std::string result = "(for ";
-        result += node.has_init() ? visit(node.init()) : "_";
-        result += " ";
-        result += node.has_condition() ? visit(node.condition()) : "_";
-        result += " ";
-        result += node.has_increment() ? visit(node.increment()) : "_";
-        result += " " + visit(node.body()) + ")";
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(for ");
+        FORMAT_TO(out, "{}", node.has_init() ? visit(node.init()) : "_");
+        FORMAT_TO(out, " ");
+        FORMAT_TO(out, "{}", node.has_condition() ? visit(node.condition()) : "_");
+        FORMAT_TO(out, " ");
+        FORMAT_TO(out, "{}", node.has_increment() ? visit(node.increment()) : "_");
+        FORMAT_TO(out, " {})", visit(node.body()));
         return result;
     }
 
     std::string SExprPrinter::visit_BlockStmt(const BlockStmt &node) {
-        std::string result = "(block";
-        for(const auto &stmt : node.statements()) { result += " " + visit(*stmt); }
-        result += ")";
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(block");
+        for(const auto &stmt : node.statements()) { FORMAT_TO(out, " {}", visit(*stmt)); }
+        FORMAT_TO(out, ")");
         return result;
     }
 
@@ -623,9 +652,11 @@ namespace jsv {
     std::string SExprPrinter::visit_PrintStmt(const PrintStmt &node) { return FORMAT("(print {})", visit(node.expression())); }
 
     std::string SExprPrinter::visit_Program(const Program &node) {
-        std::string result = "(program";
-        for(const auto &stmt : node.statements()) { result += " " + visit(*stmt); }
-        result += ")";
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(program");
+        for(const auto &stmt : node.statements()) { FORMAT_TO(out, " {}", visit(*stmt)); }
+        FORMAT_TO(out, ")");
         return result;
     }
 
