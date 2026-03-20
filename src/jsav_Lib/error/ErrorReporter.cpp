@@ -233,22 +233,21 @@ namespace jsv {
                 output += format_spanned_error("LEX", error);
                 break;
 
-                // --- Future kinds (currently commented-out in CompileError.hpp) ---
-                // case CompileError::Kind::SyntaxError:
-                //     output += format_spanned_error("SYNTAX", error);
-                //     break;
-                // case CompileError::Kind::TypeError:
-                //     output += format_spanned_error("TYPE", error);
-                //     break;
-                // case CompileError::Kind::IrGeneratorError:
-                //     output += format_spanned_error("IR GEN", error);
-                //     break;
-                // case CompileError::Kind::AsmGeneratorError:
-                //     output += format_simple_error("ASM GEN", error.message(), error.error_code());
-                //     break;
-                // case CompileError::Kind::IoError:
-                //     output += format_simple_error("I/O", error.message(), std::nullopt);
-                //     break;
+            case CompileError::Kind::SyntaxError:
+                output += format_spanned_error("SYNTAX", error);
+                break;
+            // case CompileError::Kind::TypeError:
+            //     output += format_spanned_error("TYPE", error);
+            //     break;
+            // case CompileError::Kind::IrGeneratorError:
+            //     output += format_spanned_error("IR GEN", error);
+            //     break;
+            // case CompileError::Kind::AsmGeneratorError:
+            //     output += format_simple_error("ASM GEN", error.message(), error.error_code());
+            //     break;
+            // case CompileError::Kind::IoError:
+            //     output += format_simple_error("I/O", error.message(), std::nullopt);
+            //     break;
 
             default:
                 // Safety net: treat unknown kinds as simple errors so that new

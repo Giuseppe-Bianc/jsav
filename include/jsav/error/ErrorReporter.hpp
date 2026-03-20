@@ -46,7 +46,7 @@ namespace jsv {
     /// | CompileError::Kind          | category   | location | source line | help     |
     /// |-----------------------------|------------|:--------:|:-----------:|:--------:|
     /// | LexerError                  | `"LEX"`    | yes      | yes         | optional |
-    /// | SyntaxError *(future)*      | `"SYNTAX"` | yes      | yes         | optional |
+    /// | SyntaxError                 | `"SYNTAX"` | yes      | yes         | optional |
     /// | TypeError *(future)*        | `"TYPE"`   | yes      | yes         | optional |
     /// | IrGeneratorError *(future)* | `"IR GEN"` | yes      | yes         | optional |
     /// | AsmGeneratorError *(future)*| `"ASM GEN"`| no       | no          | no       |
