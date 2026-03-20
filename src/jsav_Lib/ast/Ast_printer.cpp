@@ -514,9 +514,7 @@ namespace jsv {
         std::string result;
         const auto out = std::back_inserter(result);
         FORMAT_TO(out, "(call {}", visit(node.callee()));
-        for(const auto &arg : node.args()) {
-            FORMAT_TO(out, " {}", visit(*arg));
-        }
+        for(const auto &arg : node.args()) { FORMAT_TO(out, " {}", visit(*arg)); }
         FORMAT_TO(out, ")");
         return result;
     }
@@ -539,11 +537,8 @@ namespace jsv {
         std::string result;
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "[");
-        for (std::size_t i = 0; i < node.elements().size(); ++i)
-        {
-            if (i > 0) {
-                FORMAT_TO(out, " ");
-            }
+        for(std::size_t i = 0; i < node.elements().size(); ++i) {
+            if(i > 0) { FORMAT_TO(out, " "); }
             FORMAT_TO(out, "{}", visit(*node.elements()[i]));
         }
         FORMAT_TO(out, "]");
@@ -562,9 +557,7 @@ namespace jsv {
             auto out = std::back_inserter(result);
             FORMAT_TO(out, "({}", node.is_const() ? "const" : "var");
             for(const auto &varname : node.names()) { FORMAT_TO(out, " {}", varname); }
-            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) {
-                FORMAT_TO(out, " : {}", *type_ann);
-            }
+            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { FORMAT_TO(out, " : {}", *type_ann); }
             if(!node.initializers().empty()) {
                 FORMAT_TO(out, " (");
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
@@ -581,9 +574,7 @@ namespace jsv {
         std::string result;
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());
-        if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) {
-            FORMAT_TO(out, " : {}", *type_ann);
-        }
+        if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { FORMAT_TO(out, " : {}", *type_ann); }
         if(node.has_initializer()) { FORMAT_TO(out, " {}", visit(node.initializer())); }
         FORMAT_TO(out, ")");
         return result;
@@ -598,9 +589,7 @@ namespace jsv {
             FORMAT_TO(out, "({} {})", node.params()[i].name, node.params()[i].type);
         }
         FORMAT_TO(out, ")");
-        if(const auto &ret_type = node.return_type(); ret_type.has_value()) {
-            FORMAT_TO(out, " -> {}", *ret_type);
-        }
+        if(const auto &ret_type = node.return_type(); ret_type.has_value()) { FORMAT_TO(out, " -> {}", *ret_type); }
         FORMAT_TO(out, " {})", visit_BlockStmt(node.body()));
         return result;
     }
