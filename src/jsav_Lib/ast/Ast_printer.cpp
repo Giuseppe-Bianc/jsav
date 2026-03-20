@@ -260,7 +260,9 @@ namespace jsv {
 
             // Type annotation
             const bool has_init = !node.initializers().empty();
-            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { print_value(ansi::magenta("Type: "), *type_ann, !has_init); }
+            if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) {
+                print_value(ansi::magenta("Type: "), *type_ann, !has_init);
+            }
 
             // Initializers
             if(has_init) {

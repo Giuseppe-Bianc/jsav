@@ -15,7 +15,7 @@ namespace jsv {
         std::size_t len = 0;
         if(_dupenv_s(&buf, &len, name) != 0 || buf == nullptr) { return std::nullopt; }
         std::string value(buf, len > 0 ? len - 1 : 0);  // len includes '\0'
-        free(buf);  // NOLINT(*-no-malloc) — _dupenv_s contract requires free()
+        free(buf);                                      // NOLINT(*-no-malloc) — _dupenv_s contract requires free()
         return value;
 #else
         const char *val = std::getenv(name);
@@ -35,7 +35,9 @@ namespace jsv {
 
         // 2. Check COLORTERM (truecolor/24bit)
         if(const auto colorterm = safe_getenv("COLORTERM"); colorterm.has_value()) {
-            if(const std::string_view colorterm_view{*colorterm}; colorterm_view == "truecolor" || colorterm_view == "24bit") { return true; }
+            if(const std::string_view colorterm_view{*colorterm}; colorterm_view == "truecolor" || colorterm_view == "24bit") {
+                return true;
+            }
         }
 
         if(const auto term = safe_getenv("TERM"); term.has_value()) {
