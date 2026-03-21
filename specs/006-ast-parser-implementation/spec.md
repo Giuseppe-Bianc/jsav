@@ -173,7 +173,7 @@ fix."
 - **What happens when parsing encounters an unexpected token at the top level?** The parser reports error E0401 (unexpected token at top level) and performs panic-mode recovery to continue parsing.
 - **How does the system handle trailing commas in argument lists or array literals?** The parser reports error E0109 (trailing comma in argument list) or E0110 (trailing comma in array literal) and continues parsing.
 - **What happens when a closing delimiter appears without matching opening delimiter?** The parser reports the appropriate unbalanced delimiter error (E0101, E0102, or E0103) and performs error recovery.
-- **How does the system handle deeply nested expressions or statements?** The parser handles arbitrary nesting depth limited only by available stack space; no artificial nesting limits are imposed.
+- **How does the system handle deeply nested expressions or statements?** The parser implements soft safeguards: monitors recursion depth and memory usage, reports error (e.g., "expression too complex") and aborts gracefully when thresholds approached. Prevents stack overflow crashes while maintaining no artificial limits for legitimate inputs.
 
 ## Requirements
 
@@ -198,15 +198,17 @@ fix."
 - **FR-017**: System MUST detect and report trailing commas in argument lists and array literals.
 - **FR-018**: System MUST detect and report missing function body for function declarations.
 - **FR-019**: System MUST detect and report unknown type annotations that are not in the builtin Type enumeration.
-- **FR-020**: System MUST provide a main entry point that returns both the AST root and the list of collected errors.
-- **FR-021**: System MUST maintain non-owning references to the input token stream (no token duplication).
+- **FR-020**: System MUST detect and report duplicate parameter names in function declarations (error E0204) at parse time.
+- **FR-021**: System MUST provide a main entry point that returns both the AST root and the list of collected errors.
+- **FR-022**: System MUST maintain non-owning references to the input token stream (no token duplication).
 
 ### Non-Functional Requirements
 
 - **NFR-001**: System MUST prioritize correctness over performance — optimization decisions must be based on empirical profiling data, not theoretical analysis.
-- **NFR-002**: System MUST handle arbitrary file sizes and nesting depth limited only by available stack/memory space (no artificial limits).
+- **NFR-002**: System MUST handle arbitrary file sizes and nesting depth limited only by available stack/memory space, with soft safeguards to prevent crashes from pathological inputs (no hard artificial limits for legitimate code).
 - **NFR-003**: System MUST complete parsing of typical source files (1K-10K LOC) within interactive responsiveness thresholds (<100ms to <500ms) as a secondary concern after correctness.
 - **NFR-004**: System MUST be single-threaded only — parser instances are NOT thread-safe; parallel compilation is achieved by running multiple parser instances on different files.
+- **NFR-005**: System MUST implement soft safeguards against pathological inputs: monitor recursion depth and memory usage, report graceful errors (e.g., "expression too complex") instead of crashing on stack overflow or OOM conditions.
 
 ### Key Entities
 
@@ -234,6 +236,8 @@ fix."
 - Q: Should the parser include trace-level diagnostic logging for debugging? → A: No trace logging (Option A). Parser is silent except for error reporting. Debugging requires external debugger or manual instrumentation.
 - Q: Should error messages support localization (i18n) or be English only? → A: English only (Option A). All error messages, help text, and diagnostics are in English. No localization infrastructure required.
 - Q: How should the parser handle tokens produced by the lexer that it doesn't recognize? → A: Error reporting (Option B). Parser reports unknown/unexpected tokens as syntax error E0105 (unexpected token in expression) or E0401 (unexpected token at top level) with clear message. Graceful degradation.
+- Q: Should the parser implement safeguards against pathological inputs (deep nesting, massive token streams) that could cause stack overflow or OOM? → A: Soft safeguards (Option B). Monitor recursion depth and memory usage, report graceful errors instead of crashing. Prevents DoS while maintaining no hard limits for legitimate code.
+- Q: Should duplicate name detection (variables, functions, parameters) be performed at parse time or deferred to semantic analysis? → A: Parameter-only (Option B). Detect duplicate function parameter names at parse time (E0204); defer variable shadowing and duplicate function names to semantic analysis.
 
 ## Success Criteria
 
