@@ -12,7 +12,7 @@ Supported AST Nodes: The parser must construct all 16 expression node types defi
 Module Architecture:
 
 Parser Module (Main Orchestrator): Maintains parser state including tokens_(non-owning reference to token vector), current_ (current token index), errors_(vector of CompileError), panic_mode_(boolean error recovery flag), context_stack_(stack of Context records for tracking nesting: Global, Function, Loop, Block). Provides token navigation methods: advance() (consume current token, move to next), peek(offset=0) (inspect token at offset without consuming), check(TokenKind) (test if current token matches kind), match(TokenKind) (consume if matches, return true/false), expect(TokenKind, error_message) (consume or report error), is_at_end() (check if at EOF). Provides error handling: report_error(error_code, message, span, help) (create CompileError and add to errors_), synchronize() (panic-mode recovery by advancing to next
-synchronization point: ;, }, or statement keywords var, fun, if, while, for, return, break, continue, print). Provides context management: push_context(Context) (enter new scope: Function, Loop, or Block), pop_context() (exit current scope), is_in_loop_context() (check if inside loop for break/continue validation), is_in_function_context() (check if inside function for return validation). Provides main entry point: parse() (return std::pair<NodePtr, std::vector<CompileError>>).
+synchronization point: ;, }, or statement keywords var, fun, if, while, for, return, break, continue, print). Provides context management: push_context(Context) (enter new scope: Function, Loop, or Block), pop_context() (exit current scope), is_in_loop_context() (check if inside loop for break/continue validation), is_in_function_context() (check if inside function for return validation). Context transitions use RAII-style guards: ContextGuard object is created on entry to each scoped construct (Function, Loop, Block) and automatically pops context on destruction (including error paths). Provides main entry point: parse() (return std::pair<NodePtr, std::vector<CompileError>>).
 
 ExpressionParser Module (Pratt Parsing with Binding Powers): Implements Pratt Parsing algorithm using binding power pairs (left_bp, right_bp) for each
 operator TokenKind. Maintains parser_(reference to Parser), prefix_parse_table_ (map from TokenKind to prefix parser function), infix_parse_table_(map
@@ -74,6 +74,7 @@ Integration Points: ExpressionParser integrates with Parser by calling parser_.a
 ExpressionParser and StatementParser construct AST nodes using std::make_unique<NodeType>(...) and return ExprPtr or StmtPtr to the caller.
 
 Integration & External Dependencies:
+
 - **External services/APIs**: Not applicable (library consumed by subsequent compiler phases).
 - **Data import/export formats**: AST is purely an in-memory structure with no serialization support. No JSON, binary, or other export formats are provided. Debugging requires manual AST traversal or external tooling.
 - **Protocol/versioning**: Not applicable.
@@ -219,7 +220,9 @@ fix."
 - **NFR-002**: System MUST handle arbitrary file sizes and nesting depth limited only by available stack/memory space, with soft safeguards to prevent crashes from pathological inputs (no hard artificial limits for legitimate code).
 - **NFR-003**: System MUST complete parsing of typical source files (1K-10K LOC) within interactive responsiveness thresholds (<100ms to <500ms) as a secondary concern after correctness.
 - **NFR-004**: System MUST be single-threaded only — parser instances are NOT thread-safe; parallel compilation is achieved by running multiple parser instances on different files.
-- **NFR-005**: System MUST implement soft safeguards against pathological inputs: monitor recursion depth and memory usage, report graceful errors (e.g., "expression too complex") instead of crashing on stack overflow or OOM conditions.
+- **NFR-005**: System MUST implement soft safeguards against pathological inputs: monitor recursion depth (limit: 1000) and memory usage (limit: 512MB), report graceful errors (e.g., "expression too complex") instead of crashing on stack overflow or OOM conditions.
+- **NFR-006**: System MUST validate all parser inputs (token kinds, source locations) and enforce memory bounds to provide defense-in-depth against malformed token streams from lexer bugs or corrupted inputs.
+- **NFR-007**: System MUST be silent during normal operation — no logging infrastructure integration. Errors are returned only via `std::vector<CompileError>` with no spdlog integration.
 
 ### Key Entities
 
@@ -228,7 +231,7 @@ fix."
 - **Program Node**: Root AST node containing all top-level declarations in the source file.
 - **Expression Node**: AST node representing a value-producing construct (literals, operators, calls, etc.). All expression nodes derive from a common Expression base type. Owned by parent via `std::unique_ptr<Expression>`.
 - **Statement Node**: AST node representing an action or declaration within the program. All statement nodes derive from a common Statement base type. Owned by parent via `std::unique_ptr<Statement>`.
-- **Type**: Enumeration of builtin types (i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, string, bool, void) used for type annotations on variable declarations and function parameters/return types.
+- **Type**: Enumeration of builtin types (i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, string, bool, void). This is a closed set — parser only recognizes types explicitly defined in the Type enum. Unknown type identifiers are rejected at parse time with error E0203 (missing type annotation) or E0105 (unexpected token in expression). Adding new types requires modifying the Type enum definition first.
 - **Compile Error**: Structured error record containing error code, message, source location (span), and optional help text for recovery. Format: `ERROR [Exxxx] CATEGORY: message` with source line visualization and optional `help:` line (see `jsav/error/ErrorReporter.hpp`).
 - **Error Code**: Unique identifier (e.g., E0101, E0201) for each type of syntax error, enabling precise error handling and documentation.
 
@@ -255,6 +258,11 @@ fix."
 - Q: How should prefix operators (-, !, ~, ++, --) be integrated into the Pratt Parsing flow? → A: Prefix-only in prefix table (Option A). Register prefix operators ONLY in prefix_parse_table_. The parse_prefix() function dispatches to prefix parsers. Do NOT register them in infix_parse_table_. When a prefix token is encountered as a left-hand side, the Pratt loop naturally handles the subsequent infix operator.
 - Q: When a binary operator encounters a missing right-hand side operand (e.g., `5 + ;`), how should the Pratt Parser handle error recovery? → A: Report error + synchronize (Option B). Report E0104, call synchronize() to advance to next `;` or `}`, then return the left-hand side expression as-is. Abandons the current expression.
 - Q: What should be the default min_precedence for parse_expression() entry point and how should the Pratt loop terminate? → A: Default min_precedence=-2, loop while left_bp >= -2 (Option B). Start with min_precedence=-2 (assignment level). The Pratt loop continues through all operators including assignment. Simplest for top-level expressions.
+- Q: What security/threat model should the parser assume for handling potentially malicious inputs? → A: Input validation focus (Option B). Validate all parser inputs (token kinds, source locations) and enforce memory bounds. Defense-in-depth against malformed token streams.
+- Q: What logging/diagnostics strategy should the parser use for observability? → A: Silent parser (Option A). No logging. Errors returned only via std::vector<CompileError>.
+- Q: What concrete thresholds should soft safeguards enforce for recursion depth and memory usage? → A: Depth 1000, memory 512MB limit.
+- Q: Should the Type enum be treated as a closed set or allow arbitrary type identifiers? → A: Closed set, extensible via Type enum updates (Option B). Parser only recognizes types explicitly defined in Type enum.
+- Q: How should parser context transitions be managed for nested constructs (Function, Loop, Block)? → A: RAII-style context guards (Option B). ContextGuard object created on entry, automatically pops on destruction (including error paths).
 
 ## Success Criteria
 
