@@ -68,7 +68,7 @@ The remote validation gate above is the single most important safety check in th
 
 ---
 
-4. For each task in the list, use the GitHub MCP server to create a new issue in the repository that is representative of the Git remote.
+1. For each task in the list, use the GitHub MCP server to create a new issue in the repository that is representative of the Git remote.
 
 > [!CAUTION]
 > UNDER NO CIRCUMSTANCES EVER CREATE ISSUES IN REPOSITORIES THAT DO NOT MATCH THE REMOTE URL
