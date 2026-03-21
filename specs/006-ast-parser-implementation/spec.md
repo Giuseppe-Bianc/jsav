@@ -222,7 +222,7 @@ fix."
 - **NFR-004**: System MUST be single-threaded only — parser instances are NOT thread-safe; parallel compilation is achieved by running multiple parser instances on different files.
 - **NFR-005**: System MUST implement soft safeguards against pathological inputs: monitor recursion depth (limit: 1000) and memory usage (limit: 512MB), report graceful errors (e.g., "expression too complex") instead of crashing on stack overflow or OOM conditions.
 - **NFR-006**: System MUST validate all parser inputs (token kinds, source locations) and enforce memory bounds to provide defense-in-depth against malformed token streams from lexer bugs or corrupted inputs.
-- **NFR-007**: System MUST be silent during normal operation — no logging infrastructure integration. Errors are returned only via `std::vector<CompileError>` with no spdlog integration.
+- **NFR-007**: System MUST be silent during normal operation — no logging infrastructure integration. Errors are returned only via `std::vector<CompileError>`.
 
 ### Key Entities
 
