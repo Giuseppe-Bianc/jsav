@@ -23,6 +23,8 @@ calls, indexing, member access, assignment using right binding power to determin
 
 **Prefix Operator Registration**: Prefix operators (Level 8: `-`, `!`, `~`, `++`, `--`) are registered ONLY in `prefix_parse_table_`. They are NOT registered in `infix_parse_table_`. When a prefix operator is parsed, it consumes its operand and returns; any subsequent infix operator is handled by the main Pratt loop.
 
+**Entry Point Behavior**: The `parse_expression(min_precedence)` function defaults to `min_precedence=-2` when called at the top level. The Pratt loop continues while the current operator's `left_bp >= min_precedence`, ensuring all operators (including assignment at level -2) are parsed. StatementParser may call with higher precedence (e.g., -1 for expression statements, 0 for for-loop conditions) to restrict parsing depth.
+
 Binding Power Table for Pratt Parsing (12 precedence levels with explicit associativity):
 
 **Implementation Note**: The `left_bp` and `right_bp` values in this table are the authoritative source of truth. The Pratt Parser implementation stores and uses these exact values directly — no runtime calculation of binding powers is performed.
@@ -65,6 +67,8 @@ error_codes.hpp:
 - Structural Errors: E0401 (unexpected token at top level), E0402 (unexpected end of file)
 
 Error Recovery: Implement panic-mode error recovery. When an error is detected: (1) report the error with source location, (2) set panic_mode_ = true, (3) call synchronize() to advance tokens until a synchronization point is found (;, }, or statement keywords), (4) reset panic_mode_ = false, (5) continue parsing. No limit on error collection — parser continues until end of input. Unknown tokens from the lexer are reported as E0105 (unexpected token in expression) or E0401 (unexpected token at top level) with graceful degradation.
+
+**Expression Error Recovery**: When the Pratt Parser encounters a missing operand (E0104) or unexpected token in expression (E0105), it reports the error, calls synchronize() to advance to the next synchronization point, and returns the left-hand side expression parsed so far. The incomplete expression is abandoned; parsing continues from the synchronization point.
 
 Integration Points: ExpressionParser integrates with Parser by calling parser_.advance(), parser_.peek(), parser_.check(), parser_.match(), parser_.expect(), parser_.report_error(). StatementParser integrates with Parser similarly and integrates with ExpressionParser by calling expression_parser_.parse_expression(min_precedence) for parsing expressions within statements (initializers, conditions, arguments). Both
 ExpressionParser and StatementParser construct AST nodes using std::make_unique<NodeType>(...) and return ExprPtr or StmtPtr to the caller.
@@ -249,6 +253,8 @@ fix."
 - Q: Should the Pratt Parser use explicit binding power values from the table or calculate right_bp dynamically using associativity formulas? → A: Explicit table values (Option A). Store and use exact left_bp and right_bp values from the Binding Power Table as-is. The table IS the source of truth; no runtime calculation needed.
 - Q: How should postfix operators (calls, indexing, member access, postfix ++/--) be handled in the Pratt Parser's parse_infix() function? → A: Unified infix approach (Option B). Treat postfix operators as infix operators with left_bp=10/9 and right_bp=INT_MAX (or omit right_bp check). The Pratt loop naturally handles them as left-associative operators that consume the left-hand side.
 - Q: How should prefix operators (-, !, ~, ++, --) be integrated into the Pratt Parsing flow? → A: Prefix-only in prefix table (Option A). Register prefix operators ONLY in prefix_parse_table_. The parse_prefix() function dispatches to prefix parsers. Do NOT register them in infix_parse_table_. When a prefix token is encountered as a left-hand side, the Pratt loop naturally handles the subsequent infix operator.
+- Q: When a binary operator encounters a missing right-hand side operand (e.g., `5 + ;`), how should the Pratt Parser handle error recovery? → A: Report error + synchronize (Option B). Report E0104, call synchronize() to advance to next `;` or `}`, then return the left-hand side expression as-is. Abandons the current expression.
+- Q: What should be the default min_precedence for parse_expression() entry point and how should the Pratt loop terminate? → A: Default min_precedence=-2, loop while left_bp >= -2 (Option B). Start with min_precedence=-2 (assignment level). The Pratt loop continues through all operators including assignment. Simplest for top-level expressions.
 
 ## Success Criteria
 
