@@ -21,13 +21,18 @@ side, then while current operator's left binding power >= min_precedence, parse 
 based on current token: literals, identifiers, unary operators, grouping). Provides parse_infix(left, left_binding_power)` (parse binary operators,
 calls, indexing, member access, assignment using right binding power to determine recursion depth).
 
+**Prefix Operator Registration**: Prefix operators (Level 8: `-`, `!`, `~`, `++`, `--`) are registered ONLY in `prefix_parse_table_`. They are NOT registered in `infix_parse_table_`. When a prefix operator is parsed, it consumes its operand and returns; any subsequent infix operator is handled by the main Pratt loop.
+
 Binding Power Table for Pratt Parsing (12 precedence levels with explicit associativity):
 
-- Level 10 (highest, left-associative postfix): () calls, [] indexing, . member access — left_bp=10, no right_bp (postfix operators consume left-hand
-   side immediately)
-- Level 9 (left-associative postfix): ++, -- postfix — left_bp=9, no right_bp
-- Level 8 (right-associative prefix): - negate, ! not, ~ bitnot, ++ preinc, -- predec — left_bp=N/A (prefix only), right_bp=8
-- Level 7 (left-associative binary): * mul, / div, % mod — left_bp=7, right_bp=8 (left-associative: parse right-hand side with precedence+1)
+**Implementation Note**: The `left_bp` and `right_bp` values in this table are the authoritative source of truth. The Pratt Parser implementation stores and uses these exact values directly — no runtime calculation of binding powers is performed.
+
+**Postfix Operator Handling**: Level 10 and Level 9 operators (calls, indexing, member access, postfix `++`/`--`) are treated as left-associative infix operators with very high binding power. They consume the left-hand side expression immediately and do not parse a right-hand side operand.
+
+- Level 10 (highest, left-associative postfix): () calls, [] indexing, . member access — left_bp=10, right_bp=INT_MAX (postfix operators consume left-hand side immediately, no right operand parsed)
+- Level 9 (left-associative postfix): ++, -- postfix — left_bp=9, right_bp=INT_MAX (postfix increment/decrement, no right operand parsed)
+- Level 8 (right-associative prefix): - negate, ! not, ~ bitnot, ++ preinc, -- predec — left_bp=N/A (prefix-only, registered in prefix_parse_table_ only), right_bp=8 (used when parsing prefix operand)
+- Level 7 (left-associative binary): * mul, / div, % mod — left_bp=7, right_bp=8
 - Level 6 (left-associative binary): + add, - sub — left_bp=6, right_bp=7
 - Level 5 (left-associative binary): << shl, >> shr — left_bp=5, right_bp=6
 - Level 4 (left-associative binary): < lt, > gt, <= le, >= ge — left_bp=4, right_bp=5
@@ -35,13 +40,10 @@ Binding Power Table for Pratt Parsing (12 precedence levels with explicit associ
 - Level 2 (left-associative binary): & bitand, ^ bitxor, | bitor — left_bp=2, right_bp=3
 - Level 1 (left-associative binary): && and — left_bp=1, right_bp=2
 - Level 0 (left-associative binary): || or — left_bp=0, right_bp=1
-- Level -1 (right-associative ternary): ? : conditional — left_bp=-1, right_bp=0 (right-associative: parse right-hand side with same precedence)
-- Level -2 (right-associative binary): =, +=, -=, *=, /=, %=, &=, ^=, |=, <<=, >>= — left_bp=-2, right_bp=-1 (right-associative: parse right-hand side
-   with same precedence, enabling chained assignment a=b=c as a=(b=c))
+- Level -1 (right-associative ternary): ? : conditional — left_bp=-1, right_bp=0
+- Level -2 (right-associative binary): =, +=, -=, *=, /=, %=, &=, ^=, |=, <<=, >>= — left_bp=-2, right_bp=-1
 
-Associativity Implementation: For left-associative binary operators, parse right-hand side with right_bp = left_bp + 1 so that a - b - c groups as (a -
-b) - c. For right-associative operators (assignment, ternary, unary prefix), parse right-hand side with right_bp = left_bp (or left_bp + 1 for unary) so
-that a = b = c groups as a = (b = c) and !flag binds tightly to flag.
+Associativity Implementation: The binding power values in the table encode associativity. For left-associative binary operators (Levels 7 through 0), the right_bp is set to left_bp + 1, ensuring that a - b - c groups as (a - b) - c. For right-associative operators (Level -1 ternary and Level -2 assignment), the right_bp equals left_bp, ensuring that a = b = c groups as a = (b = c). For prefix operators (Level 8), the right_bp=8 ensures they bind tightly to their operand; prefix operators are registered only in `prefix_parse_table_` and are not handled by the infix Pratt loop. For postfix operators (Levels 10 and 9), the right_bp=INT_MAX ensures they consume the left-hand side immediately and prevent further infix parsing at any precedence level.
 
 StatementParser Module (Recursive Descent): Implements one parsing function per statement type. Provides parse_statement() (main dispatch: inspect current token and route to specific parser). Provides parse_var_declaration() (parse var/const keyword, identifier list, optional type annotation,
 required initializer for const, semicolon). Provides parse_function_declaration() (parse fun keyword, identifier, parameter list with types, optional return type, block body). Provides parse_return_statement() (parse return keyword, optional expression, semicolon). Provides parse_if_statement() (parse
@@ -244,6 +246,9 @@ fix."
 - Q: How should the parser handle tokens produced by the lexer that it doesn't recognize? → A: Error reporting (Option B). Parser reports unknown/unexpected tokens as syntax error E0105 (unexpected token in expression) or E0401 (unexpected token at top level) with clear message. Graceful degradation.
 - Q: Should the parser implement safeguards against pathological inputs (deep nesting, massive token streams) that could cause stack overflow or OOM? → A: Soft safeguards (Option B). Monitor recursion depth and memory usage, report graceful errors instead of crashing. Prevents DoS while maintaining no hard limits for legitimate code.
 - Q: Should duplicate name detection (variables, functions, parameters) be performed at parse time or deferred to semantic analysis? → A: Parameter-only (Option B). Detect duplicate function parameter names at parse time (E0204); defer variable shadowing and duplicate function names to semantic analysis.
+- Q: Should the Pratt Parser use explicit binding power values from the table or calculate right_bp dynamically using associativity formulas? → A: Explicit table values (Option A). Store and use exact left_bp and right_bp values from the Binding Power Table as-is. The table IS the source of truth; no runtime calculation needed.
+- Q: How should postfix operators (calls, indexing, member access, postfix ++/--) be handled in the Pratt Parser's parse_infix() function? → A: Unified infix approach (Option B). Treat postfix operators as infix operators with left_bp=10/9 and right_bp=INT_MAX (or omit right_bp check). The Pratt loop naturally handles them as left-associative operators that consume the left-hand side.
+- Q: How should prefix operators (-, !, ~, ++, --) be integrated into the Pratt Parsing flow? → A: Prefix-only in prefix table (Option A). Register prefix operators ONLY in prefix_parse_table_. The parse_prefix() function dispatches to prefix parsers. Do NOT register them in infix_parse_table_. When a prefix token is encountered as a left-hand side, the Pratt loop naturally handles the subsequent infix operator.
 
 ## Success Criteria
 
