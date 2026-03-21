@@ -67,6 +67,11 @@ Error Recovery: Implement panic-mode error recovery. When an error is detected: 
 Integration Points: ExpressionParser integrates with Parser by calling parser_.advance(), parser_.peek(), parser_.check(), parser_.match(), parser_.expect(), parser_.report_error(). StatementParser integrates with Parser similarly and integrates with ExpressionParser by calling expression_parser_.parse_expression(min_precedence) for parsing expressions within statements (initializers, conditions, arguments). Both
 ExpressionParser and StatementParser construct AST nodes using std::make_unique<NodeType>(...) and return ExprPtr or StmtPtr to the caller.
 
+Integration & External Dependencies:
+- **External services/APIs**: Not applicable (library consumed by subsequent compiler phases).
+- **Data import/export formats**: AST is purely an in-memory structure with no serialization support. No JSON, binary, or other export formats are provided. Debugging requires manual AST traversal or external tooling.
+- **Protocol/versioning**: Not applicable.
+
 Extensibility Design: New expression operators are added by: (1) adding TokenKind to lexer, (2) registering prefix parser in prefix_parse_table_for
 prefix operators, (3) registering infix parser with binding power pair in infix_parse_table_ for infix operators, (4) implementing parse function in
 ExpressionParser. New statement types are added by: (1) adding NodeKind to NodeKind.hpp, (2) implementing node class in Statements.hpp, (3) implementing
@@ -223,8 +228,9 @@ fix."
 
 ## Clarifications
 
-### Session 2026-03-20
+### Session 2026-03-21
 
+- Q: Should the parser support AST serialization/export format for debugging or tooling integration? → A: In-memory only (Option A). AST exists only during parsing with no serialization support.
 - Q: Should the parser parse type annotations as simple identifiers (strings) or as typed `Type` enum values? → A: Enum-based (Option B). Parser resolves type annotations to the existing `Type` enum (i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, string, bool, void). Unknown types are rejected at parse time.
 - Q: What ownership model should AST nodes use for parent-child relationships? → A: `std::unique_ptr<Node>` for parent-to-child ownership; raw `Node*` for child-to-parent references (non-owning observers).
 - Q: How should the parser track context for validation (break/continue/return placement, duplicate parameters)? → A: Stack-based context tracking (`std::vector<Context>` where Context = {Function, Loop, Block}) — accurate nesting, detailed error locations.
