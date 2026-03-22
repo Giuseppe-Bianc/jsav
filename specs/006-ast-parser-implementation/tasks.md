@@ -65,10 +65,10 @@
 
 - [ ] T013 [P] [US1] Add constexpr test in `test/constexpr_tests.cpp`: Verify Program node construction compiles with STATIC_REQUIRE
 - [ ] T014 [P] [US1] Add relaxed_constexpr test in `test/constexpr_tests.cpp`: Verify Program node with empty declarations list
-- [ ] T015 [P] [US1] Add runtime test in `test/tests.cpp`: `Parser_EmptyInput_ReturnsEmptyProgram` - empty token stream produces valid empty Program node
-- [ ] T016 [P] [US1] Add runtime test in `test/tests.cpp`: `Parser_SingleDeclaration_ReturnsProgramWithOneDeclaration` - single var declaration parsed correctly
-- [ ] T017 [US1] Add runtime test in `test/tests.cpp`: `Parser_MultipleDeclarations_PreservesOrder` - multiple declarations appear in correct order in Program node
-- [ ] T018 [US1] Add runtime test in `test/tests.cpp`: `Parser_NestedBlocks_CorrectHierarchy` - function containing block containing statement has correct parent-child relationships
+- [ ] T015 [P] [US1] Add runtime test in `test/tests.cpp`: `Parser_EmptyInput_ReturnsEmptyProgramNode` - empty token stream produces valid empty Program node
+- [ ] T016 [P] [US1] Add runtime test in `test/tests.cpp`: `Parser_SingleDeclaration_ReturnsProgramNodeWithOneDeclaration` - single var declaration parsed correctly
+- [ ] T017 [US1] Add runtime test in `test/tests.cpp`: `Parser_MultipleDeclarations_ProducesProgramNodeWithDeclarationsInOrder` - multiple declarations appear in correct order in Program node
+- [ ] T018 [US1] Add runtime test in `test/tests.cpp`: `Parser_NestedBlocks_ProducesCorrectParentChildRelationships` - function containing block containing statement has correct parent-child relationships
 
 ### Implementation for User Story 1
 
@@ -99,6 +99,8 @@
 - [ ] T031 [US1] Add test helper function to create token streams from source strings in `test/testsConstanst.hpp`
 - [ ] T032 [US1] Run all User Story 1 tests and verify they pass
 - [ ] T033 [US1] Verify gcovr coverage for User Story 1 files (target ≥80% line, ≥70% branch)
+- [ ] T033a [US1] Run clang-tidy on all User Story 1 files — verify zero warnings
+- [ ] T033b [US1] Run cppcheck on all User Story 1 files — verify zero warnings
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently - can parse empty programs and programs with simple expression statements
 
@@ -116,41 +118,41 @@
 
 #### Constexpr Tests (Binding Power Verification)
 
-- [ ] T034 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_MultiplicationHigherThanAddition` - STATIC_REQUIRE mul BP > add BP
-- [ ] T035 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_LeftAssociativeBinary` - STATIC_REQUIRE right_bp = left_bp + 1 for levels 7-0
-- [ ] T036 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_RightAssociativeAssignment` - STATIC_REQUIRE assignment right_bp = -1, left_bp = -2
-- [ ] T037 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_PostfixOperators` - STATIC_REQUIRE postfix BP has right_bp = INT_MAX
+- [ ] T034 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_Comparison_MultiplicationGreaterThanAddition` - STATIC_REQUIRE mul BP > add BP
+- [ ] T035 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_Associativity_LeftAssociativeBinaryProducesCorrectGrouping` - STATIC_REQUIRE right_bp = left_bp + 1 for levels 7-0
+- [ ] T036 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_Associativity_RightAssociativeAssignmentProducesCorrectGrouping` - STATIC_REQUIRE assignment right_bp = -1, left_bp = -2
+- [ ] T037 [P] [US2] Add constexpr test in `test/constexpr_tests.cpp`: `BindingPower_PostfixOperators_HaveIntMaxRightBindingPower` - STATIC_REQUIRE postfix BP has right_bp = INT_MAX
 
 #### Runtime Tests - Literals
 
-- [ ] T038 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_IntegerLiteral_ParsesCorrectly` - test various integer formats (decimal, hex, binary)
-- [ ] T039 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_FloatLiteral_ParsesCorrectly` - test decimal and scientific notation
-- [ ] T040 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_StringLiteral_ParsesWithEscapes` - test escape sequences (\n, \t, \\, \")
-- [ ] T041 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_BoolLiteral_ParsesTrueAndFalse`
-- [ ] T042 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_NullLiteral_ParsesCorrectly`
+- [ ] T038 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_IntegerLiteral_ProducesIntegerLiteralNodeWithValue` - test various integer formats (decimal, hex, binary)
+- [ ] T039 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_FloatLiteral_ProducesFloatLiteralNodeWithValue` - test decimal and scientific notation
+- [ ] T040 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_StringLiteral_ProducesStringLiteralNodeWithEscapedCharacters` - test escape sequences (\n, \t, \\, \")
+- [ ] T041 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_BoolLiteral_ProducesBoolLiteralNodeWithTrueOrFalseValue`
+- [ ] T042 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_NullLiteral_ProducesNullLiteralNode`
 
 #### Runtime Tests - Operator Precedence
 
-- [ ] T043 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Precedence_MultiplicationBeforeAddition` - `1 + 2 * 3` groups as `1 + (2 * 3)`
-- [ ] T044 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Precedence_AdditionBeforeComparison` - `1 + 2 > 3 * 4` groups correctly
-- [ ] T045 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Associativity_LeftAssociativeSubtraction` - `1 - 2 - 3` groups as `(1 - 2) - 3`
-- [ ] T046 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Associativity_RightAssociativeAssignment` - `a = b = c` groups as `a = (b = c)`
-- [ ] T047 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Associativity_RightAssociativeTernary` - `a ? b : c ? d : e` groups correctly
+- [ ] T043 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Precedence_MultiplicationBindsTighterThanAddition` - `1 + 2 * 3` groups as `1 + (2 * 3)`
+- [ ] T044 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Precedence_AdditionBindsTighterThanComparison` - `1 + 2 > 3 * 4` groups correctly
+- [ ] T045 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Associativity_LeftAssociativeSubtractionGroupsLeftToRight` - `1 - 2 - 3` groups as `(1 - 2) - 3`
+- [ ] T046 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Associativity_RightAssociativeAssignmentGroupsRightToLeft` - `a = b = c` groups as `a = (b = c)`
+- [ ] T047 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_Associativity_RightAssociativeTernaryGroupsRightToLeft` - `a ? b : c ? d : e` groups correctly
 
 #### Runtime Tests - Expression Types
 
-- [ ] T048 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_UnaryExpr_ParsesNegation` - `-x`
-- [ ] T049 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_UnaryExpr_ParsesLogicalNot` - `!flag`
-- [ ] T050 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_BinaryExpr_ParsesAllOperators` - test +, -, *, /, %, &, |, ^, <<, >>, &&, ||
-- [ ] T051 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_CallExpr_ParsesWithArguments` - `func(arg1, arg2)`
-- [ ] T052 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_IndexExpr_ParsesArrayAccess` - `array[index]`
-- [ ] T053 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_MemberExpr_ParsesMemberAccess` - `object.member`
-- [ ] T054 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_TernaryExpr_ParsesConditional` - `cond ? thenVal : elseVal`
-- [ ] T055 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_AssignExpr_ParsesAssignment` - `x = value`
-- [ ] T056 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_CompoundAssignExpr_ParsesCompoundAssignment` - `x += value`, `x -= value`, etc.
-- [ ] T057 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_CastExpr_ParsesTypeCast` - `i32(x)`, `float(value)`
-- [ ] T058 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_ArrayLiteral_ParsesElements` - `[1, 2, 3]`
-- [ ] T059 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_GroupingExpr_ParsesParentheses` - `(1 + 2) * 3`
+- [ ] T048 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_UnaryExpr_ProducesUnaryExprNodeWithNegatedOperand` - `-x`
+- [ ] T049 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_UnaryExpr_ProducesUnaryExprNodeWithLogicalNotOperand` - `!flag`
+- [ ] T050 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_BinaryExpr_ProducesBinaryExprNodeForAllOperators` - test +, -, *, /, %, &, |, ^, <<, >>, &&, ||
+- [ ] T051 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_CallExpr_ProducesCallExprNodeWithArguments` - `func(arg1, arg2)`
+- [ ] T052 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_IndexExpr_ProducesIndexExprNodeWithArrayAndIndex` - `array[index]`
+- [ ] T053 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_MemberExpr_ProducesMemberExprNodeWithObjectAndMemberName` - `object.member`
+- [ ] T054 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_TernaryExpr_ProducesTernaryExprNodeWithThreeOperands` - `cond ? thenVal : elseVal`
+- [ ] T055 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_AssignExpr_ProducesAssignExprNodeWithTargetAndValue` - `x = value`
+- [ ] T056 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_CompoundAssignExpr_ProducesAssignExprNodeWithCompoundOperator` - `x += value`, `x -= value`, etc.
+- [ ] T057 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_CastExpr_ProducesCastExprNodeWithTypeAndExpression` - `i32(x)`, `float(value)`
+- [ ] T058 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_ArrayLiteral_ProducesArrayLiteralNodeWithElements` - `[1, 2, 3]`
+- [ ] T059 [P] [US2] Add runtime test in `test/tests.cpp`: `Parser_GroupingExpr_ProducesGroupingExprNodeWithParenthesizedExpression` - `(1 + 2) * 3`
 
 ### Implementation for User Story 2
 
@@ -219,6 +221,8 @@
 - [ ] T089 [US2] Run all User Story 2 tests (constexpr_tests, relaxed_constexpr_tests, tests) and verify they pass
 - [ ] T090 [US2] Verify gcovr coverage for User Story 2 files (target ≥80% line, ≥70% branch)
 - [ ] T091 [US2] Run AddressSanitizer and UndefinedBehaviorSanitizer tests - verify zero violations
+- [ ] T091a [US2] Run clang-tidy on all User Story 2 files — verify zero warnings
+- [ ] T091b [US2] Run cppcheck on all User Story 2 files — verify zero warnings
 
 **Checkpoint**: At this point, User Story 2 should be fully functional and testable independently - can parse all 16 expression types with correct precedence and associativity
 
@@ -236,38 +240,38 @@
 
 #### Variable Declarations
 
-- [ ] T092 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_VarDeclaration_ParsesWithInitializer` - `var x = 42`
-- [ ] T093 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ConstDeclaration_RequiresInitializer` - `const PI = 3.14`
-- [ ] T094 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_TypedDeclaration_ParsesTypeAnnotation` - `var x: i32 = 42`
-- [ ] T095 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_MultipleVarDeclarations_ParsesCommaSeparated` - `var x = 1, y = 2`
+- [ ] T092 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_VarDeclaration_ProducesVarDeclNodeWithInitializer` - `var x = 42`
+- [ ] T093 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ConstDeclaration_RejectsMissingInitializer_ReportsErrorE0201` - `const PI = 3.14`
+- [ ] T094 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_TypedDeclaration_ProducesVarDeclNodeWithTypeAnnotation` - `var x: i32 = 42`
+- [ ] T095 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_MultipleVarDeclarations_ProducesMultipleVarDeclNodesInOrder` - `var x = 1, y = 2`
 
 #### Function Declarations
 
-- [ ] T096 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ParsesParametersAndBody` - `fun add(a: i32, b: i32) -> i32 { return a + b; }`
-- [ ] T097 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ParsesWithoutReturnType` - `fun print(x) { }`
-- [ ] T098 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ParsesUntypedParameters` - `fun add(a, b) { return a + b; }`
-- [ ] T099 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ReportsDuplicateParameterNames` - error E0204
+- [ ] T096 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ProducesFuncDeclNodeWithParametersAndReturnType` - `fun add(a: i32, b: i32) -> i32 { return a + b; }`
+- [ ] T097 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ProducesFuncDeclNodeWithoutReturnType` - `fun print(x) { }`
+- [ ] T098 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_ProducesFuncDeclNodeWithUntypedParameters` - `fun add(a, b) { return a + b; }`
+- [ ] T099 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_FuncDeclaration_DetectsDuplicateParameterNames_ReportsErrorE0204` - error E0204
 
 #### Control Flow Statements
 
-- [ ] T100 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_IfStatement_ParsesWithElseBranch` - `if (cond) { } else { }`
-- [ ] T101 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_IfStatement_ParsesWithoutElseBranch` - `if (cond) { }`
-- [ ] T102 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_WhileStatement_ParsesConditionAndBody` - `while (cond) { }`
-- [ ] T103 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ForStatement_ParsesAllComponents` - `for (init; cond; inc) { }`
-- [ ] T104 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ForStatement_ParsesWithEmptyComponents` - `for (; ; ) { }`
+- [ ] T100 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_IfStatement_ProducesIfStmtNodeWithElseBranch` - `if (cond) { } else { }`
+- [ ] T101 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_IfStatement_ProducesIfStmtNodeWithoutElseBranch` - `if (cond) { }`
+- [ ] T102 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_WhileStatement_ProducesWhileStmtNodeWithConditionAndBody` - `while (cond) { }`
+- [ ] T103 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ForStatement_ProducesForStmtNodeWithAllComponents` - `for (init; cond; inc) { }`
+- [ ] T104 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ForStatement_ProducesForStmtNodeWithEmptyComponents` - `for (; ; ) { }`
 
 #### Return, Break, Continue, Print
 
-- [ ] T105 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ReturnStatement_ParsesWithValue` - `return value;`
-- [ ] T106 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ReturnStatement_ParsesWithoutValue` - `return;`
-- [ ] T107 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_BreakStatement_ParsesInLoop` - `while (true) { break; }`
-- [ ] T108 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ContinueStatement_ParsesInLoop` - `while (true) { continue; }`
-- [ ] T109 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_PrintStatement_ParsesExpression` - `print x`
+- [ ] T105 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ReturnStatement_ProducesReturnStmtNodeWithValue` - `return value;`
+- [ ] T106 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ReturnStatement_ProducesReturnStmtNodeWithoutValue` - `return;`
+- [ ] T107 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_BreakStatement_ProducesBreakStmtNode_WhenInsideLoop` - `while (true) { break; }`
+- [ ] T108 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_ContinueStatement_ProducesContinueStmtNode_WhenInsideLoop` - `while (true) { continue; }`
+- [ ] T109 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_PrintStatement_ProducesPrintStmtNodeWithExpression` - `print x`
 
 #### Nested Structures
 
-- [ ] T110 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_NestedBlocks_ParsesCorrectly` - blocks within if, functions within blocks
-- [ ] T111 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_NestedControlFlow_ParsesCorrectly` - if within while within for
+- [ ] T110 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_NestedBlocks_ProducesCorrectBlockStmtHierarchy` - blocks within if, functions within blocks
+- [ ] T111 [P] [US3] Add runtime test in `test/tests.cpp`: `Parser_NestedControlFlow_ProducesCorrectStatementNesting` - if within while within for
 
 ### Implementation for User Story 3
 
@@ -332,6 +336,8 @@
 - [ ] T146 [US3] Run all User Story 3 tests and verify they pass
 - [ ] T147 [US3] Verify gcovr coverage for User Story 3 files (target ≥80% line, ≥70% branch)
 - [ ] T148 [US3] Run AddressSanitizer and UndefinedBehaviorSanitizer tests - verify zero violations
+- [ ] T148a [US3] Run clang-tidy on all User Story 3 files — verify zero warnings
+- [ ] T148b [US3] Run cppcheck on all User Story 3 files — verify zero warnings
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently - can parse complete programs with all expression and statement types
 
@@ -349,41 +355,41 @@
 
 #### Expression Errors
 
-- [ ] T149 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0101_UnbalancedParentheses` - `(1 + 2` reports E0101 at opening paren location
-- [ ] T150 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0102_UnbalancedBrackets` - `[1 + 2` reports E0102
-- [ ] T151 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0103_UnbalancedBraces` - `{1 + 2` reports E0103
-- [ ] T152 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0104_MissingBinaryOperand` - `5 +` reports E0104 at operator location
-- [ ] T153 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0105_UnexpectedTokenInExpression` - `1 @ 2` reports E0105 (assuming @ is unknown)
-- [ ] T154 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0106_MissingFunctionCallArguments` - `func(` without `)` reports E0106
-- [ ] T155 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0107_MissingIndexExpression` - `arr[` without `]` reports E0107
-- [ ] T156 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0108_MissingMemberName` - `obj.` without identifier reports E0108
-- [ ] T157 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0109_TrailingCommaInArgs` - `func(1, 2,)` reports E0109
-- [ ] T158 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0110_TrailingCommaInArray` - `[1, 2,]` reports E0110
+- [ ] T149 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0101UnbalancedParentheses_ReportsErrorAtOpenParenLocation` - `(1 + 2` reports E0101 at opening paren location
+- [ ] T150 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0102UnbalancedBrackets_ReportsErrorAtOpenBracketLocation` - `[1 + 2` reports E0102
+- [ ] T151 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0103UnbalancedBraces_ReportsErrorAtOpenBraceLocation` - `{1 + 2` reports E0103
+- [ ] T152 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0104MissingBinaryOperand_ReportsErrorAtOperatorLocation` - `5 +` reports E0104 at operator location
+- [ ] T153 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0105UnexpectedTokenInExpression_ReportsErrorAtUnknownTokenLocation` - `1 @ 2` reports E0105 (assuming @ is unknown)
+- [ ] T154 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0106MissingFunctionCallArguments_ReportsErrorAtOpenParenLocation` - `func(` without `)` reports E0106
+- [ ] T155 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0107MissingIndexExpression_ReportsErrorAtOpenBracketLocation` - `arr[` without `]` reports E0107
+- [ ] T156 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0108MissingMemberName_ReportsErrorAfterDotOperator` - `obj.` without identifier reports E0108
+- [ ] T157 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0109TrailingCommaInArgs_ReportsErrorBeforeCloseParen` - `func(1, 2,)` reports E0109
+- [ ] T158 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0110TrailingCommaInArray_ReportsErrorBeforeCloseBracket` - `[1, 2,]` reports E0110
 
 #### Declaration Errors
 
-- [ ] T159 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0201_MissingConstInitializer` - `const x;` reports E0201
-- [ ] T160 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0202_InvalidVariableName` - `var 123 = 5;` reports E0202
-- [ ] T161 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0204_DuplicateParameterNames` - `fun f(x: i32, x: i32)` reports E0204
-- [ ] T162 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0205_MissingFunctionBody` - `fun foo();` reports E0205
+- [ ] T159 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0201MissingConstInitializer_ReportsErrorAtSemicolonLocation` - `const x;` reports E0201
+- [ ] T160 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0202InvalidVariableName_ReportsErrorAtDigitLocation` - `var 123 = 5;` reports E0202
+- [ ] T161 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0204DuplicateParameterNames_ReportsErrorAtSecondParameterLocation` - `fun f(x: i32, x: i32)` reports E0204
+- [ ] T162 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0205MissingFunctionBody_ReportsErrorAtSemicolonInsteadOfBrace` - `fun foo();` reports E0205
 
 #### Statement Errors
 
-- [ ] T163 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0301_MissingIfCondition` - `if { }` reports E0301
-- [ ] T164 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0302_MissingWhileCondition` - `while { }` reports E0302
-- [ ] T165 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0303_MissingSemicolon` - `var x = 5` without `;` reports E0303
-- [ ] T166 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0304_BreakOutsideLoop` - `break;` at top level reports E0304
-- [ ] T167 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0305_ContinueOutsideLoop` - `continue;` at top level reports E0305
-- [ ] T168 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0306_ReturnOutsideFunction` - `return 5;` at top level reports E0306
-- [ ] T169 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0308_MissingPrintExpression` - `print;` reports E0308
+- [ ] T163 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0301MissingIfCondition_ReportsErrorAtOpenBraceInsteadOfParen` - `if { }` reports E0301
+- [ ] T164 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0302MissingWhileCondition_ReportsErrorAtOpenBraceInsteadOfParen` - `while { }` reports E0302
+- [ ] T165 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0303MissingSemicolon_ReportsErrorAtNextStatementKeyword` - `var x = 5` without `;` reports E0303
+- [ ] T166 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0304BreakOutsideLoop_ReportsErrorAtBreakKeywordLocation` - `break;` at top level reports E0304
+- [ ] T167 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0305ContinueOutsideLoop_ReportsErrorAtContinueKeywordLocation` - `continue;` at top level reports E0305
+- [ ] T168 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0306ReturnOutsideFunction_ReportsErrorAtReturnKeywordLocation` - `return 5;` at top level reports E0306
+- [ ] T169 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0308MissingPrintExpression_ReportsErrorAtPrintKeywordLocation` - `print;` reports E0308
 
 #### Structural Errors and Error Recovery
 
-- [ ] T170 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0401_UnexpectedTokenAtTopLevel` - random token at top level reports E0401
-- [ ] T171 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_E0402_UnexpectedEOF` - incomplete program reports E0402
-- [ ] T172 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorRecovery_MultipleErrorsCollected` - multiple syntax errors in sequence all reported (up to 100)
-- [ ] T173 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorRecovery_ContinuesAfterUnbalancedParen` - `(1 + 2; var y = 5;` reports E0101 but still parses `var y = 5`
-- [ ] T174 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorRecovery_SynchronizesToStatementBoundary` - error in middle of statement recovers at next `;` or `}`
+- [ ] T170 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0401UnexpectedTokenAtTopLevel_ReportsErrorAtUnknownTokenLocation` - random token at top level reports E0401
+- [ ] T171 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorDetection_E0402UnexpectedEOF_ReportsErrorAtEndOfFileLocation` - incomplete program reports E0402
+- [ ] T172 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorRecovery_MultipleErrorsCollected_AllErrorsReportedUpTo100` - multiple syntax errors in sequence all reported (up to 100)
+- [ ] T173 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorRecovery_ContinuesAfterUnbalancedParen_ParsesSubsequentValidStatement` - `(1 + 2; var y = 5;` reports E0101 but still parses `var y = 5`
+- [ ] T174 [P] [US4] Add runtime test in `test/tests.cpp`: `Parser_ErrorRecovery_SynchronizesToStatementBoundary_ResumesParsingAtNextSemicolonOrBrace` - error in middle of statement recovers at next `;` or `}`
 
 ### Implementation for User Story 4
 
@@ -456,6 +462,8 @@
 - [ ] T208 [US4] Run all User Story 4 tests and verify they pass
 - [ ] T209 [US4] Verify gcovr coverage for User Story 4 files (target ≥80% line, ≥70% branch)
 - [ ] T210 [US4] Run AddressSanitizer and UndefinedBehaviorSanitizer tests - verify zero violations
+- [ ] T210a [US4] Run clang-tidy on all User Story 4 files — verify zero warnings
+- [ ] T210b [US4] Run cppcheck on all User Story 4 files — verify zero warnings
 - [ ] T211 [US4] Test error recovery with pathological inputs (many errors in sequence)
 
 **Checkpoint**: All user stories should now be independently functional - parser detects and reports all syntax errors with recovery
@@ -472,11 +480,11 @@
   - Error code documentation with condition, typical cause, suggested fix
 - [ ] T213 [P] Add usage examples to `include/jsav/parser/Parser.hpp` showing basic parsing workflow
 - [ ] T214 [P] Update quickstart.md with complete examples for all user stories
-- [ ] T215 [P] Code cleanup and refactoring based on clang-tidy/cppcheck suggestions
+- [ ] T215 [P] Code cleanup and refactoring based on any remaining clang-tidy/cppcheck suggestions (per-story verification already completed)
 - [ ] T216 [P] Performance optimization: profile parser with large inputs (10k+ lines) using RelWithDebInfo build
 - [ ] T217 [P] Add additional unit tests for edge cases not covered in user story tests
 - [ ] T218 [P] Verify all lizard thresholds met (CCN ≤15, length ≤100 lines, params ≤6)
-- [ ] T219 [P] Run full test suite with all sanitizers enabled - verify zero violations
+- [ ] T219 [P] Run full test suite with all sanitizers enabled - verify zero violations (final verification - per-story checks already completed)
 - [ ] T220 [P] Generate final gcovr coverage report - verify ≥80% line, ≥70% branch coverage
 - [ ] T221 [P] Update AGENTS.md and QWEN.md with parser module documentation
 - [ ] T222 [P] Create parser architecture diagram showing module relationships
@@ -553,17 +561,17 @@ Task: "Create ArrayLiteral.hpp"
 Task: "Create GroupingExpr.hpp"
 
 # Launch all binding power constexpr tests together (T034-T037):
-Task: "BindingPower_MultiplicationHigherThanAddition"
-Task: "BindingPower_LeftAssociativeBinary"
-Task: "BindingPower_RightAssociativeAssignment"
-Task: "BindingPower_PostfixOperators"
+Task: "BindingPower_Comparison_MultiplicationGreaterThanAddition"
+Task: "BindingPower_Associativity_LeftAssociativeBinaryProducesCorrectGrouping"
+Task: "BindingPower_Associativity_RightAssociativeAssignmentProducesCorrectGrouping"
+Task: "BindingPower_PostfixOperators_HaveIntMaxRightBindingPower"
 
 # Launch all literal parsing tests together (T038-T042):
-Task: "Parser_IntegerLiteral_ParsesCorrectly"
-Task: "Parser_FloatLiteral_ParsesCorrectly"
-Task: "Parser_StringLiteral_ParsesWithEscapes"
-Task: "Parser_BoolLiteral_ParsesTrueAndFalse"
-Task: "Parser_NullLiteral_ParsesCorrectly"
+Task: "Parser_IntegerLiteral_ProducesIntegerLiteralNodeWithValue"
+Task: "Parser_FloatLiteral_ProducesFloatLiteralNodeWithValue"
+Task: "Parser_StringLiteral_ProducesStringLiteralNodeWithEscapedCharacters"
+Task: "Parser_BoolLiteral_ProducesBoolLiteralNodeWithTrueOrFalseValue"
+Task: "Parser_NullLiteral_ProducesNullLiteralNode"
 ```
 
 ---
@@ -644,33 +652,34 @@ With multiple developers:
 - Commit after each task or logical group of small tasks
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
-- **Test Naming Convention**: `Parser_Module_Scenario` format (e.g., `Parser_EmptyInput_ReturnsEmptyProgram`, `Parser_Precedence_MultiplicationBeforeAddition`)
+- **Test Naming Convention**: `[Unit]_[Scenario]_[ExpectedResult]` format per Constitution Principle IV (e.g., `Parser_EmptyInput_ReturnsEmptyProgramNode`, `Parser_ErrorDetection_E0101UnbalancedParentheses_ReportsErrorAtOpenParenLocation`, `BindingPower_Comparison_MultiplicationGreaterThanAddition`)
 - **Test Tags**: Use Catch2 tags for filtered execution: `[parser]`, `[expressions]`, `[statements]`, `[errors]`, `[US1]`, `[US2]`, `[US3]`, `[US4]`
 - **Coverage Tracking**: Run gcovr after each user story completion to track coverage progress
 - **Sanitizer Testing**: Run AddressSanitizer and UndefinedBehaviorSanitizer after each user story - zero violations required
+- **Static Analysis**: Run clang-tidy and cppcheck after each user story completion - zero warnings required (Constitution Principle III compliance)
 
 ---
 
 ## Task Summary
 
-**Total Tasks**: 222 tasks
+**Total Tasks**: 230 tasks
 
 **Breakdown by Phase**:
 
 - Phase 1 (Setup): 4 tasks
 - Phase 2 (Foundational): 8 tasks
-- Phase 3 (User Story 1): 21 tasks
-- Phase 4 (User Story 2): 58 tasks
-- Phase 5 (User Story 3): 57 tasks
-- Phase 6 (User Story 4): 40 tasks
+- Phase 3 (User Story 1): 23 tasks (21 + 2 static analysis)
+- Phase 4 (User Story 2): 60 tasks (58 + 2 static analysis)
+- Phase 5 (User Story 3): 59 tasks (57 + 2 static analysis)
+- Phase 6 (User Story 4): 42 tasks (40 + 2 static analysis)
 - Phase N (Polish): 11 tasks
 
 **Breakdown by User Story**:
 
-- US1 (Parse Complete Program): 21 tasks (T013-T033)
-- US2 (Parse Expressions): 58 tasks (T034-T091)
-- US3 (Parse Statements): 57 tasks (T092-T148)
-- US4 (Error Detection): 40 tasks (T149-T211)
+- US1 (Parse Complete Program): 23 tasks (T013-T033b)
+- US2 (Parse Expressions): 60 tasks (T034-T091b)
+- US3 (Parse Statements): 59 tasks (T092-T148b)
+- US4 (Error Detection): 42 tasks (T149-T211)
 
 **Parallel Opportunities Identified**:
 
