@@ -17,9 +17,9 @@ Implement a hybrid parser for the jsav compiler that transforms token streams fr
 **Testing**: Three-target Catch2 approach (constexpr_tests, relaxed_constexpr_tests, tests) with ≥80% line coverage, ≥70% branch coverage. Sanitizers: AddressSanitizer + UndefinedBehaviorSanitizer (zero violations required).
 **Target Platform**: Cross-platform (Windows, Linux, macOS) — native compiler executable
 **Project Type**: Compiler (parser phase transforming tokens to AST)
-**Performance Goals**: Parse 10k+ lines/sec, memory-efficient AST construction, single-pass parsing where possible
+**Performance Goals**: Latency targets per NFR-003: p95 parsing latency <500ms for 10K LOC, <100ms for 1K LOC. Memory-efficient AST construction via std::unique_ptr. Single-pass parsing where possible.
 **Constraints**: Unidirectional dependency flow (Lexer → Parser → AST), no circular dependencies with jsav_Core_lib, zero compiler warnings, clang-tidy/cppcheck zero issues, lizard thresholds (CCN ≤15, length ≤100, params ≤6)
-**Scale/Scope**: 27 AST node types (16 expressions + 11 statements), 12-level binding power table, panic-mode error recovery with explicit resource limits (recursion depth ≤1000, memory usage ≤512MB)
+**Scale/Scope**: 27 AST node types (16 expressions + 11 statements), 12-level binding power table, panic-mode error recovery with explicit resource limits (recursion depth ≤1000, memory usage ≤512MB). Performance optimization based on empirical profiling data only (Constitution Principle VII).
 
 ## Constitution Check
 
