@@ -19,7 +19,7 @@ Implement a hybrid parser for the jsav compiler that transforms token streams fr
 **Project Type**: Compiler (parser phase transforming tokens to AST)
 **Performance Goals**: Parse 10k+ lines/sec, memory-efficient AST construction, single-pass parsing where possible
 **Constraints**: Unidirectional dependency flow (Lexer → Parser → AST), no circular dependencies with jsav_Core_lib, zero compiler warnings, clang-tidy/cppcheck zero issues, lizard thresholds (CCN ≤15, length ≤100, params ≤6)
-**Scale/Scope**: 27 AST node types (16 expressions + 11 statements), 12-level binding power table, panic-mode error recovery with unlimited error collection
+**Scale/Scope**: 27 AST node types (16 expressions + 11 statements), 12-level binding power table, panic-mode error recovery with explicit resource limits (recursion depth ≤1000, memory usage ≤512MB)
 
 ## Constitution Check
 
@@ -52,7 +52,7 @@ Implement a hybrid parser for the jsav compiler that transforms token streams fr
 - **Ownership Semantics**: AST nodes use std::unique_ptr exclusively; parent nodes own child nodes. No raw new/delete. Token stream held as non-owning std::string_view reference.
 - **Const Correctness**: Parser methods that don't modify state will be declared const. Parameters passed by const reference where appropriate.
 - **Move Semantics**: AST nodes will implement move operations as needed. Return by value with copy elision.
-- **Error Handling**: Syntax errors collected in std::vector<CompileError>, returned alongside AST. No exceptions for expected failures.
+- **Error Handling**: Syntax errors collected in std::vector<CompileError>, returned alongside AST via std::pair<NodePtr, std::vector<CompileError>>. Alternative considered: std::expected<T, E> (C++23) — rejected because parser always produces AST even when syntax errors present; std::expected semantics (either value OR error) inappropriate for parser that returns both partial AST and error list. No exceptions for expected failures.
 - **Enforcement**: clang-tidy/cppcheck zero warnings, sanitizers zero violations, lizard thresholds enforced.
 
 ### Principle IV: Test-Driven Development (Red-Green)

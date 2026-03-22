@@ -181,7 +181,7 @@ fix."
 ### Edge Cases
 
 - **What happens when the token stream is empty (only EOF)?** The parser produces a valid AST with an empty Program node and no errors.
-- **How does the system handle pathological inputs with many syntax errors?** The parser collects all errors until memory exhaustion; no artificial limit is imposed.
+- **How does the system handle pathological inputs with many syntax errors?** The parser collects all errors until explicit resource limits are reached (recursion depth >1000 or memory usage >512MB). When limits approached, parser reports graceful error and aborts without crashing.
 - **What happens when parsing encounters an unexpected token at the top level?** The parser reports error E0401 (unexpected token at top level) and performs panic-mode recovery to continue parsing.
 - **How does the system handle trailing commas in argument lists or array literals?** The parser reports error E0109 (trailing comma in argument list) or E0110 (trailing comma in array literal) and continues parsing.
 - **What happens when a closing delimiter appears without matching opening delimiter?** The parser reports the appropriate unbalanced delimiter error (E0101, E0102, or E0103) and performs error recovery.
@@ -200,7 +200,7 @@ fix."
 - **FR-007**: System MUST collect syntax errors in a list and return them alongside the AST.
 - **FR-008**: System MUST report errors with source location information (file, line, column, span).
 - **FR-009**: System MUST perform panic-mode error recovery by synchronizing to the next statement boundary (`;`, `}`, or statement keywords) after detecting an error.
-- **FR-010**: System MUST collect all syntax errors without a predefined limit, continuing parsing until end of input or memory exhaustion.
+- **FR-010**: System MUST collect all syntax errors without a predefined limit, continuing parsing until end of input or explicit resource limit exceeded (recursion depth >1000 or memory usage >512MB).
 - **FR-011**: System MUST detect and report unbalanced delimiters (parentheses, brackets, braces) with appropriate error codes.
 - **FR-012**: System MUST detect and report missing operands for binary operators.
 - **FR-013**: System MUST detect and report missing initializer for const declarations.
@@ -217,12 +217,10 @@ fix."
 ### Non-Functional Requirements
 
 - **NFR-001**: System MUST prioritize correctness over performance — optimization decisions must be based on empirical profiling data, not theoretical analysis.
-- **NFR-002**: System MUST handle arbitrary file sizes and nesting depth limited only by available stack/memory space, with soft safeguards to prevent crashes from pathological inputs (no hard artificial limits for legitimate code).
+- **NFR-002**: System MUST handle arbitrary file sizes and nesting depth with explicit safeguards to prevent crashes: recursion depth limit ≤1000 nested expressions, memory usage limit ≤512MB. When limits are approached, system MUST report error (e.g., E0xxx "expression too complex" or "memory limit exceeded") and abort parsing gracefully without crashing or invoking undefined behavior. No hard artificial limits for legitimate code within these thresholds.
 - **NFR-003**: System MUST complete parsing of typical source files (1K-10K LOC) within interactive responsiveness thresholds (<100ms to <500ms) as a secondary concern after correctness.
 - **NFR-004**: System MUST be single-threaded only — parser instances are NOT thread-safe; parallel compilation is achieved by running multiple parser instances on different files.
-- **NFR-005**: System MUST implement soft safeguards against pathological inputs: monitor recursion depth (limit: 1000) and memory usage (limit: 512MB), report graceful errors (e.g., "expression too complex") instead of crashing on stack overflow or OOM conditions.
-- **NFR-006**: System MUST validate all parser inputs (token kinds, source locations) and enforce memory bounds to provide defense-in-depth against malformed token streams from lexer bugs or corrupted inputs.
-- **NFR-007**: System MUST be silent during normal operation — no logging infrastructure integration. Errors are returned only via `std::vector<CompileError>`.
+- **NFR-005**: System MUST be silent during normal operation — no logging infrastructure integration. Errors are returned only via `std::vector<CompileError>`.
 
 ### Key Entities
 
@@ -245,13 +243,13 @@ fix."
 - Q: How should the parser track context for validation (break/continue/return placement, duplicate parameters)? → A: Stack-based context tracking (`std::vector<Context>` where Context = {Function, Loop, Block}) — accurate nesting, detailed error locations.
 - Q: What performance targets should the parser meet? → A: No explicit performance targets — correctness first, optimize based on profiling data later.
 - Q: Should the parser support concurrent access from multiple threads? → A: Single-threaded only — parser instances are NOT thread-safe; parallel compilation achieved by running multiple parser instances on different files.
-- Q: What memory limit should be enforced for error collection? → A: No hard limit — collect all errors until memory exhaustion (risk OOM on pathological inputs).
+- Q: What memory limit should be enforced for error collection? → A: Explicit limits enforced: recursion depth ≤1000 nested expressions, memory usage ≤512MB. When limits approached, parser reports graceful error (e.g., "expression too complex" or "memory limit exceeded") and aborts without crashing or OOM.
 - Q: What format should error messages follow and should they include help text? → A: Use existing ErrorReporter format: `ERROR [Exxxx] CATEGORY: message` with source line visualization and optional `help:` line.
 - Q: What maximum file size should the parser support? → A: No explicit limit (Option A). Parser handles arbitrary file sizes limited only by available memory.
 - Q: Should the parser include trace-level diagnostic logging for debugging? → A: No trace logging (Option A). Parser is silent except for error reporting. Debugging requires external debugger or manual instrumentation.
 - Q: Should error messages support localization (i18n) or be English only? → A: English only (Option A). All error messages, help text, and diagnostics are in English. No localization infrastructure required.
 - Q: How should the parser handle tokens produced by the lexer that it doesn't recognize? → A: Error reporting (Option B). Parser reports unknown/unexpected tokens as syntax error E0105 (unexpected token in expression) or E0401 (unexpected token at top level) with clear message. Graceful degradation.
-- Q: Should the parser implement safeguards against pathological inputs (deep nesting, massive token streams) that could cause stack overflow or OOM? → A: Soft safeguards (Option B). Monitor recursion depth and memory usage, report graceful errors instead of crashing. Prevents DoS while maintaining no hard limits for legitimate code.
+- Q: Should the parser implement safeguards against pathological inputs (deep nesting, massive token streams) that could cause stack overflow or OOM? → A: Explicit safeguards (Option B). Monitor recursion depth (limit: 1000) and memory usage (limit: 512MB), report graceful error when thresholds exceeded and abort parsing without crashing. Prevents DoS while maintaining no artificial limits for legitimate code within thresholds.
 - Q: Should duplicate name detection (variables, functions, parameters) be performed at parse time or deferred to semantic analysis? → A: Parameter-only (Option B). Detect duplicate function parameter names at parse time (E0204); defer variable shadowing and duplicate function names to semantic analysis.
 - Q: Should the Pratt Parser use explicit binding power values from the table or calculate right_bp dynamically using associativity formulas? → A: Explicit table values (Option A). Store and use exact left_bp and right_bp values from the Binding Power Table as-is. The table IS the source of truth; no runtime calculation needed.
 - Q: How should postfix operators (calls, indexing, member access, postfix ++/--) be handled in the Pratt Parser's parse_infix() function? → A: Unified infix approach (Option B). Treat postfix operators as infix operators with left_bp=10/9 and right_bp=INT_MAX (or omit right_bp check). The Pratt loop naturally handles them as left-associative operators that consume the left-hand side.
