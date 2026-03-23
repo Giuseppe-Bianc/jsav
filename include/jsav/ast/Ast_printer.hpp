@@ -81,7 +81,7 @@ namespace jsv {
         void visit_BreakStmt(const BreakStmt &node);
         // cppcheck-suppress functionConst
         void visit_ContinueStmt(const ContinueStmt &node);
-        void visit_PrintStmt(const PrintStmt &node);
+        void visit_MainStmt(const MainStmt &node);
 
         void visit_Program(const Program &node);
     };
@@ -125,7 +125,7 @@ namespace jsv {
         std::string visit_BlockStmt(const BlockStmt &node);
         static std::string visit_BreakStmt(const BreakStmt &node);
         static std::string visit_ContinueStmt(const ContinueStmt &node);
-        std::string visit_PrintStmt(const PrintStmt &node);
+        std::string visit_MainStmt(const MainStmt &node);
         std::string visit_Program(const Program &node);
     };
 

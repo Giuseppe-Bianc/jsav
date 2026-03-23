@@ -62,8 +62,8 @@ namespace jsv {
             return "BreakStmt";
         case NodeKind::ContinueStmt:
             return "ContinueStmt";
-        case NodeKind::PrintStmt:
-            return "PrintStmt";
+        case NodeKind::MainStmt:
+            return "MainStmt";
         case NodeKind::Program:
             return "Program";
         }

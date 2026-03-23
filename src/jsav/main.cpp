@@ -67,8 +67,6 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
         std::vector<ExprPtr> args;
         args.push_back(std::make_unique<Identifier>("x"));
         args.push_back(std::make_unique<IntegerLiteral>(kCallArgValue));
-
-        stmts.push_back(std::make_unique<PrintStmt>(std::make_unique<CallExpr>(std::make_unique<Identifier>("add"), std::move(args))));
     }
 
     // Grouping expression example: (a2 + b2) * 2
@@ -81,9 +79,6 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
             std::make_unique<BinaryExpr>(BinaryOp::Mul, std::move(grouping_inner), std::make_unique<IntegerLiteral>(kGroupingMultiplier)));
 
         stmts.push_back(std::make_unique<VarDecl>("result", std::optional<std::string>{"int"}, std::move(grouping_outer), false));
-
-        // print result;
-        stmts.push_back(std::make_unique<PrintStmt>(std::make_unique<Identifier>("result")));
     }
 
     return std::make_unique<Program>(std::move(stmts));

@@ -463,9 +463,9 @@ namespace jsv {
         print_line(ansi::yellow("Continue"), is_last);
     }
 
-    void AstPrinter::visit_PrintStmt(const PrintStmt &node) {
+    void AstPrinter::visit_MainStmt(const MainStmt &node) {
         const bool is_last = next_is_last_;
-        print_line(ansi::yellow("Print"), is_last);
+        print_line(ansi::yellow("Main"), is_last);
         const IndentGuard guard{*this, is_last};
         visit_child(node.expression(), true);
     }
@@ -641,7 +641,7 @@ namespace jsv {
 
     std::string SExprPrinter::visit_ContinueStmt(const ContinueStmt & /*unused*/) { return "(continue)"; }
 
-    std::string SExprPrinter::visit_PrintStmt(const PrintStmt &node) { return FORMAT("(print {})", visit(node.expression())); }
+    std::string SExprPrinter::visit_MainStmt(const MainStmt &node) { return FORMAT("(main {})", visit(node.expression())); }
 
     std::string SExprPrinter::visit_Program(const Program &node) {
         std::string result;

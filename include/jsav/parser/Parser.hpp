@@ -19,16 +19,16 @@ namespace jsv {
     public:
         explicit Parser(const std::vector<Token> &tokens);
         std::optional<StmtPtr> parse_function();
-        std::optional<std::unique_ptr<Stmt>> parse_main_function();
-        std::optional<std::unique_ptr<Stmt>> parse_if();
-        std::optional<std::unique_ptr<Stmt>> parse_var_declaration();
-        std::optional<std::unique_ptr<Stmt>> parse_return();
-        std::optional<std::unique_ptr<Stmt>> parse_while();
-        std::optional<std::unique_ptr<Stmt>> parse_for();
-        std::optional<std::unique_ptr<Stmt>> parse_break();
-        std::optional<std::unique_ptr<Stmt>> parse_continue();
-        std::optional<std::unique_ptr<Stmt>> parse_block_stmt();
-        std::optional<std::unique_ptr<Stmt>> parse_expression_stmt();
+        std::optional<StmtPtr> parse_main_function();
+        std::optional<StmtPtr> parse_if();
+        std::optional<StmtPtr> parse_var_declaration();
+        std::optional<StmtPtr> parse_return();
+        std::optional<StmtPtr> parse_while();
+        std::optional<StmtPtr> parse_for();
+        std::optional<StmtPtr> parse_break();
+        std::optional<StmtPtr> parse_continue();
+        std::optional<StmtPtr> parse_block_stmt();
+        std::optional<StmtPtr> parse_expression_stmt();
         std::optional<StmtPtr> parse_stmt();
         std::pair<std::unique_ptr<Program>, std::vector<CompileError>> parse();
         Token peek() const;

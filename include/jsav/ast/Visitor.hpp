@@ -95,8 +95,8 @@ namespace jsv {
                 return self().visit_BreakStmt(static_cast<const BreakStmt &>(node));
             case NodeKind::ContinueStmt:
                 return self().visit_ContinueStmt(static_cast<const ContinueStmt &>(node));
-            case NodeKind::PrintStmt:
-                return self().visit_PrintStmt(static_cast<const PrintStmt &>(node));
+            case NodeKind::MainStmt:
+                return self().visit_MainStmt(static_cast<const MainStmt &>(node));
 
             // --- Program ---
             case NodeKind::Program:

@@ -40,7 +40,7 @@ namespace jsv {
         BlockStmt,
         BreakStmt,
         ContinueStmt,
-        PrintStmt,
+        MainStmt,
 
         // Top-level
         Program,

@@ -105,7 +105,7 @@ namespace jsv {
         case NodeKind::BlockStmt:
         case NodeKind::BreakStmt:
         case NodeKind::ContinueStmt:
-        case NodeKind::PrintStmt:
+        case NodeKind::MainStmt:
             return true;
         default:
             return false;

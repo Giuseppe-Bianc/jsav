@@ -234,16 +234,16 @@ namespace jsv {
     // ============================================================
     // Print Statement:  print expr;  (built-in per demo)
     // ============================================================
-    class PrintStmt final : public Stmt {
+    class MainStmt final : public Stmt {
     public:
-        explicit PrintStmt(ExprPtr expression, SourceSpan loc = {}) : Stmt(NodeKind::PrintStmt, loc), expression_{std::move(expression)} {}
+        explicit MainStmt(StmtPtr body, SourceSpan loc = {}) : Stmt(NodeKind::MainStmt, loc), body_{std::move(body)} {}
 
-        [[nodiscard]] const Expr &expression() const noexcept { return *expression_; }
+        [[nodiscard]] const Stmt &expression() const noexcept { return *body_; }
 
-        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::PrintStmt; }
+        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::MainStmt; }
 
     private:
-        ExprPtr expression_;
+        StmtPtr body_;
     };
 
     // ============================================================

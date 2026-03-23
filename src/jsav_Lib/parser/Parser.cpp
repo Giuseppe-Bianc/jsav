@@ -53,6 +53,43 @@ namespace jsv {
             return parse_expression_stmt();
         }
     }
+    std::optional<StmtPtr> Parser::parse_function() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_main_function() {
+        const auto start_token = advance();
+        auto body = parse_block_stmt();
+        if(!body.has_value()) return std::nullopt;
+        const auto end_span = body.value()->location();
+        const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
+        return std::make_unique<MainStmt>(std::move(body.value()), function_span);
+    }
+    std::optional<StmtPtr> Parser::parse_if() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_var_declaration() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_return() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_while() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_for() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_break() {
+        const auto span = advance().getSpan();
+        return std::make_unique<BreakStmt>(span);
+    }
+    std::optional<StmtPtr> Parser::parse_continue() {
+        const auto span = advance().getSpan();
+        return std::make_unique<ContinueStmt>(span);
+    }
+    std::optional<StmtPtr> Parser::parse_block_stmt() {
+        const auto start_token = advance();
+        std::vector<StmtPtr> statements;
+        while(!check(TokenKind::CloseBrace) && !is_at_end()) {
+            if(auto stmt = parse_stmt()) {
+                statements.push_back(std::move(stmt.value()));
+            } else {
+                advance();
+            }
+        }
+        [[maybe_unused]] auto e = expect(TokenKind::CloseBrace, "end of block");
+        statements.shrink_to_fit();
+        return std::make_unique<BlockStmt>(std::move(statements), start_token.getSpan());
+    }
+    std::optional<StmtPtr> Parser::parse_expression_stmt() { return std::nullopt; }
 
     Token Parser::peek() const { return tokens_.at(current_); }
     Token Parser::previous() const { return tokens_.at(current_ - 1); }
