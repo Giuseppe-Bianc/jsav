@@ -181,10 +181,18 @@ auto main(int argc, const char *const argv[]) -> int {
             fmt::print("{}", diagnostic);
         }
 
-        auto program = build_manual_ast();
-
         jsv::AstPrinter tree_printer;
-        tree_printer.print(*program);
+        jsv::Parser parser{tokens};
+        const vnd::Timer parsingTimer("Parsing");
+        const auto [parsed_program, parse_errors] = parser.parse();
+        LINFO("{}", parsingTimer);
+        if(!errors.empty()) {
+            LERROR("Parser produced {} error(s)", parse_errors.size());
+            const std::string diagnostic = reporter.report_errors(parse_errors);
+            // fmt::print(stderr, "{}", diagnostic);
+            fmt::print("{}", diagnostic);
+        }
+        tree_printer.print(*parsed_program);
     } catch(const std::exception &e) {
         // Handle any other types of exceptions
         LERROR("Unhandled exception in main: {}", e.what());
