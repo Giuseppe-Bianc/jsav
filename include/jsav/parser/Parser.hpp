@@ -25,6 +25,7 @@ namespace jsv {
         bool is_at_end() const;
         Token advance();
         bool match_token(const TokenKind kind);
+        [[nodiscard]] bool expect(const TokenKind kind, std::string_view context);
     private:
         std::vector<Token> tokens_;
         std::size_t current_;
