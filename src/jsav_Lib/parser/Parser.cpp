@@ -14,7 +14,44 @@ namespace jsv {
     std::pair<std::unique_ptr<Program>, std::vector<CompileError>> Parser::parse() {
         std::vector<StmtPtr> stmts;
         stmts.reserve(tokens_.size() / 4);
+        while(!is_at_end()) {
+            if(auto stmt = parse_stmt(); stmt.has_value()) {
+                stmts.push_back(std::move(stmt.value()));
+            } else {
+                // Skip the current token to avoid infinite loop on syntax error
+                advance();
+            }
+        }
         return std::make_pair(std::make_unique<Program>(vnd_move(stmts)), vnd_move(errors_));
+    }
+
+    std::optional<StmtPtr> Parser::parse_stmt() {
+        const auto token = peek();
+        switch(token.getKind()) {
+        case TokenKind::KeywordFun:
+            return parse_function();
+        case TokenKind::KeywordMain:
+            return parse_main_function();
+        case TokenKind::KeywordIf:
+            return parse_if();
+        case TokenKind::KeywordVar:
+        case TokenKind::KeywordConst:
+            return parse_var_declaration();
+        case TokenKind::KeywordReturn:
+            return parse_return();
+        case TokenKind::KeywordWhile:
+            return parse_while();
+        case TokenKind::KeywordFor:
+            return parse_for();
+        case TokenKind::KeywordBreak:
+            return parse_break();
+        case TokenKind::KeywordContinue:
+            return parse_continue();
+        case TokenKind::OpenBrace:
+            return parse_block_stmt();
+        default:
+            return parse_expression_stmt();
+        }
     }
 
     Token Parser::peek() const { return tokens_.at(current_); }
@@ -34,28 +71,24 @@ namespace jsv {
     }
 
     [[nodiscard]] bool Parser::expect(const TokenKind kind, std::string_view context) {
-        if (match_token(kind)) {
-            return true;
-        }
-        
+        if(match_token(kind)) { return true; }
+
         const std::optional<Token> current_token = is_at_end() ? std::nullopt : std::optional{peek()};
-        
-        const std::string found_str = current_token 
-            ? std::string{tokenKindToString(current_token->getKind())}
-            : "end of input";
-        
+
+        const std::string found_str = current_token ? std::string{tokenKindToString(current_token->getKind())} : "end of input";
+
         const auto span = current_token ? current_token->getSpan() : SourceSpan{};
-        
+
         const auto help_message = FORMAT("Try adding a {}", tokenKindToString(kind));
-        
+
         errors_.push_back(CompileError::SyntaxError(
-            ErrorCode::E1004,
-            FORMAT("Expected {} in {}, found {}.", tokenKindToString(kind), context, found_str),
-            span,
-            help_message
-        ));
-        
+            ErrorCode::E1004, FORMAT("Expected {} in {}, found {}.", tokenKindToString(kind), context, found_str), span, help_message));
+
         return false;
     }
 
+    void Parser::syntax_error(const std::string_view message, const Token &token, std::optional<std::string> help,
+                              std::optional<ErrorCode> error_code) {
+        errors_.push_back(CompileError::SyntaxError(error_code, message, token.getSpan(), help));
+    }
 }  // namespace jsv
