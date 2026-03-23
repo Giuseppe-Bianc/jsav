@@ -33,4 +33,29 @@ namespace jsv {
         return false;
     }
 
+    [[nodiscard]] bool Parser::expect(const TokenKind kind, std::string_view context) {
+        if (match_token(kind)) {
+            return true;
+        }
+        
+        const std::optional<Token> current_token = is_at_end() ? std::nullopt : std::optional{peek()};
+        
+        const std::string found_str = current_token 
+            ? std::string{tokenKindToString(current_token->getKind())}
+            : "end of input";
+        
+        const auto span = current_token ? current_token->getSpan() : SourceSpan{};
+        
+        const auto help_message = FORMAT("Try adding a {}", tokenKindToString(kind));
+        
+        errors_.push_back(CompileError::SyntaxError(
+            ErrorCode::E1004,
+            FORMAT("Expected {} in {}, found {}.", tokenKindToString(kind), context, found_str),
+            span,
+            help_message
+        ));
+        
+        return false;
+    }
+
 }  // namespace jsv
