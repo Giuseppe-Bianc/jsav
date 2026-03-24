@@ -640,7 +640,7 @@ namespace jsv {
         using namespace std::string_view_literals;
 
         // Replace inside TokenKind Lexer::classify_word(...)
-        static constexpr std::array<std::pair<std::string_view, TokenKind>, 25> kTable{{
+        static constexpr std::array<std::pair<std::string_view, TokenKind>, 27> kTable{{
             {"bool"sv, TokenKind::KeywordBool},
             {"break"sv, TokenKind::KeywordBreak},
             {"char"sv, TokenKind::TypeChar},
@@ -649,6 +649,7 @@ namespace jsv {
             {"else"sv, TokenKind::KeywordElse},
             {"f32"sv, TokenKind::TypeF32},
             {"f64"sv, TokenKind::TypeF64},
+            {"false"sv, TokenKind::KeywordBool},
             {"for"sv, TokenKind::KeywordFor},
             {"fun"sv, TokenKind::KeywordFun},
             {"i16"sv, TokenKind::TypeI16},
@@ -660,6 +661,7 @@ namespace jsv {
             {"nullptr"sv, TokenKind::KeywordNullptr},
             {"return"sv, TokenKind::KeywordReturn},
             {"string"sv, TokenKind::TypeString},
+            {"true"sv, TokenKind::KeywordBool},
             {"u16"sv, TokenKind::TypeU16},
             {"u32"sv, TokenKind::TypeU32},
             {"u64"sv, TokenKind::TypeU64},
