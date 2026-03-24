@@ -76,12 +76,12 @@ namespace jsv {
             }
             std::string param_name{param_token.getText()};
             if(!expect(TokenKind::Colon, "after parameter name")) return std::nullopt;
-            auto type = parse_type();
-            if(!type) {
+            auto [type_opt, type_str] = parse_type();
+            if(!type_opt) {
                 syntax_error("Expected parameter type", peek(), {}, ErrorCode::E1003);
                 return std::nullopt;
             }
-            parameters.push_back(FuncParam{param_name, *type, param_token.getSpan()});
+            parameters.push_back(FuncParam{param_name, *type_opt, param_token.getSpan()});
             if(!check(TokenKind::CloseParen)) {
                 if(!expect(TokenKind::Comma, "between parameters")) return std::nullopt;
             }
@@ -89,16 +89,17 @@ namespace jsv {
         if(!expect(TokenKind::CloseParen, "after parameters")) return std::nullopt;
 
         // Tipo di ritorno
-        std::optional<Type> return_type;
+        std::optional<TypePtr> return_type;
         if(match_token(TokenKind::Colon)) {
-            return_type = parse_type();
-            if(!return_type) {
+            auto [ret_type_opt, ret_type_str] = parse_type();
+            if(!ret_type_opt) {
                 syntax_error("Expected return type after ':'", peek(), {}, ErrorCode::E1005);
                 return std::nullopt;
             }
+            return_type = ret_type_opt;
         } else {
-            // Default: void (o None)
-            return_type = Type::Void;
+            // Default: void
+            return_type = PrimitiveType::void_();
         }
 
         // Corpo
@@ -153,12 +154,11 @@ namespace jsv {
         // --- optional type ---
         std::optional<std::string> type_annotation;
         if(match_token(TokenKind::Colon)) {
-            auto type_token = peek();
-            auto type = parse_type();
-            if(!type) return std::nullopt;
+            auto [type_opt, type_str] = parse_type();
+            if(!type_opt) return std::nullopt;
 
-            // keep string form for AST
-            type_annotation = std::string{tokenKindToString(type_token.getKind())};
+            // use string form for AST (includes array dimensions)
+            type_annotation = std::move(type_str);
         }
 
         // --- initializer ---
@@ -224,10 +224,9 @@ namespace jsv {
             // --- optional type ---
             std::optional<std::string> type_annotation;
             if(match_token(TokenKind::Colon)) {
-                auto type_token = peek();
-                auto type = parse_type();
-                if(!type) return std::nullopt;
-                type_annotation = std::string{tokenKindToString(type_token.getKind())};
+                auto [type_opt, type_str] = parse_type();
+                if(!type_opt) return std::nullopt;
+                type_annotation = std::move(type_str);
             }
 
             // --- initializer ---
@@ -392,8 +391,56 @@ namespace jsv {
         case TokenKind::Numeric:
             {
                 const auto text = token.getText();
-                const auto value = std::strtoll(text.data(), nullptr, 10);
-                return std::make_unique<IntegerLiteral>(value, token.getSpan());
+                // Extract numeric value and type suffix
+                std::int64_t value = 0;
+                std::optional<std::string> type_suffix;
+                
+                // Find where the type suffix starts by scanning from the end
+                // Type suffixes are: d/D, f/F, u/U[width], i/I[width]
+                std::size_t suffix_start = text.size();
+                bool found_suffix = false;
+                
+                // Scan backwards to find the start of the suffix
+                for (std::size_t i = text.size(); i > 0 && !found_suffix; --i) {
+                    const char c = text[i - 1];
+                    if (c == 'd' || c == 'D' || c == 'f' || c == 'F') {
+                        suffix_start = i - 1;
+                        found_suffix = true;
+                    } else if (c == 'u' || c == 'U' || c == 'i' || c == 'I') {
+                        // Check if followed by digits (like u32, i8, u, i)
+                        if (i < text.size()) {
+                            // There are characters after u/U/i/I - check if they're digits
+                            bool all_digits_after = true;
+                            for (std::size_t j = i; j < text.size(); ++j) {
+                                if (!std::isdigit(static_cast<unsigned char>(text[j]))) {
+                                    all_digits_after = false;
+                                    break;
+                                }
+                            }
+                            if (all_digits_after) {
+                                suffix_start = i - 1;
+                                found_suffix = true;
+                            }
+                        } else {
+                            // Bare u/U/i/I at end - treat as suffix
+                            suffix_start = i - 1;
+                            found_suffix = true;
+                        }
+                    } else if (!std::isdigit(static_cast<unsigned char>(c)) && c != '.') {
+                        // Non-digit, non-dot character that's not a suffix marker - stop scanning
+                        break;
+                    }
+                }
+                
+                // Parse the numeric value from the full text (strtoll stops at non-digit)
+                value = std::strtoll(text.data(), nullptr, 10);
+                
+                // Extract type suffix if present
+                if (found_suffix && suffix_start < text.size()) {
+                    type_suffix = std::string(text.substr(suffix_start));
+                }
+                
+                return std::make_unique<IntegerLiteral>(value, token.getSpan(), std::move(type_suffix));
             }
         case TokenKind::KeywordBool:
             {
@@ -620,61 +667,104 @@ namespace jsv {
         return start_token.getSpan().merged(previous().getSpan()).value_or(start_token.getSpan());
     }
 
-    std::optional<jsv::Type> Parser::parse_type() {
+    std::pair<std::optional<TypePtr>, std::optional<std::string>> Parser::parse_type() {
         const auto token = advance();
-        jsv::Type base_type;
+        TypePtr base_type;
+        std::string type_string;
         switch(token.getKind()) {
         case TokenKind::TypeI8:
-            base_type = jsv::Type::I8;
+            base_type = PrimitiveType::i8();
+            type_string = "i8";
             break;
         case TokenKind::TypeI16:
-            base_type = jsv::Type::I16;
+            base_type = PrimitiveType::i16();
+            type_string = "i16";
             break;
         case TokenKind::TypeI32:
-            base_type = jsv::Type::I32;
+            base_type = PrimitiveType::i32();
+            type_string = "i32";
             break;
         case TokenKind::TypeI64:
-            base_type = jsv::Type::I64;
+            base_type = PrimitiveType::i64();
+            type_string = "i64";
             break;
         case TokenKind::TypeU8:
-            base_type = jsv::Type::U8;
+            base_type = PrimitiveType::u8();
+            type_string = "u8";
             break;
         case TokenKind::TypeU16:
-            base_type = jsv::Type::U16;
+            base_type = PrimitiveType::u16();
+            type_string = "u16";
             break;
         case TokenKind::TypeU32:
-            base_type = jsv::Type::U32;
+            base_type = PrimitiveType::u32();
+            type_string = "u32";
             break;
         case TokenKind::TypeU64:
-            base_type = jsv::Type::U64;
+            base_type = PrimitiveType::u64();
+            type_string = "u64";
             break;
         case TokenKind::TypeF32:
-            base_type = jsv::Type::F32;
+            base_type = PrimitiveType::f32();
+            type_string = "f32";
             break;
         case TokenKind::TypeF64:
-            base_type = jsv::Type::F64;
+            base_type = PrimitiveType::f64();
+            type_string = "f64";
             break;
         case TokenKind::TypeChar:
-            base_type = jsv::Type::Char;
+            base_type = PrimitiveType::char_();
+            type_string = "char";
             break;
         case TokenKind::TypeString:
-            base_type = jsv::Type::String;
+            base_type = PrimitiveType::string();
+            type_string = "string";
             break;
         case TokenKind::TypeBool:
-            base_type = jsv::Type::Bool;
+            base_type = PrimitiveType::bool_();
+            type_string = "bool";
             break;
         case TokenKind::IdentifierAscii:
         case TokenKind::IdentifierUnicode:
-            // Note: existing Type enum doesn't have Custom variant, use Void as fallback
-            base_type = jsv::Type::Void;
+            // Custom type
+            base_type = std::make_shared<const CustomType>(token.getText());
+            type_string = std::string(token.getText());
             break;
         default:
             syntax_error("Invalid type specification, expected primitive type or custom identifier", token,
                          "Try using a primitive type (like i32, f64) or a custom type identifier", ErrorCode::E1002);
-            return std::nullopt;
+            return {std::nullopt, std::nullopt};
         }
-        // Array dimensions not supported in current Type enum - skip for now
-        return base_type;
+
+        // Parse array dimensions: [2][3] -> [[base; 3]; 2]
+        std::vector<std::size_t> dimensions;
+        while (match_token(TokenKind::OpenBracket)) {
+            const auto dim_token = peek();
+            if (dim_token.getKind() == TokenKind::Numeric) {
+                const auto dim_value = std::strtoull(dim_token.getText().data(), nullptr, 10);
+                dimensions.push_back(dim_value);
+                advance();  // consume the numeric token
+            } else {
+                syntax_error("Expected array dimension size", dim_token,
+                            "Array dimensions must be positive integers", ErrorCode::E1002);
+                break;
+            }
+            if (!expect(TokenKind::CloseBracket, "end of array dimension")) {
+                break;
+            }
+        }
+
+        // Build type string with array dimensions: [[i8; 3]; 2]
+        if (!dimensions.empty()) {
+            std::string result = type_string;
+            // Apply dimensions from innermost to outermost (right to left)
+            for (std::size_t i = dimensions.size(); i > 0; --i) {
+                result = fmt::format("[{}; {}]", result, dimensions[i - 1]);
+            }
+            type_string = result;
+        }
+
+        return {base_type, type_string};
     }
     std::optional<std::string_view> Parser::consume_identifier() {
         auto token = peek();

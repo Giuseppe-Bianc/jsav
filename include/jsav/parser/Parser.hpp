@@ -10,6 +10,7 @@
 #include "../ast/Node.hpp"
 #include "../ast/Program.hpp"
 #include "../ast/Statements.hpp"
+#include "../ast/Type.hpp"
 #include "../error/CompileError.hpp"
 #include "../headers.hpp"
 #include "../lexer/Token.hpp"
@@ -22,7 +23,7 @@ namespace jsv {
         std::optional<ExprPtr> parse_condition(const std::string_view keyword);
         std::optional<StmtPtr> parse_for_initializer();
         [[nodiscard]] std::optional<ExprPtr> parse_identifier_or_call(const Token &token);
-        std::optional<Type> parse_type();
+        std::pair<std::optional<TypePtr>, std::optional<std::string>> parse_type();
         std::optional<StmtPtr> parse_function();
         std::optional<StmtPtr> parse_main_function();
         std::optional<StmtPtr> parse_if();

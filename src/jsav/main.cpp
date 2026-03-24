@@ -27,7 +27,7 @@ constexpr int kGroupingMultiplier = 2;
 // ============================================================
 // Helper: costruisce AST manualmente (senza parser)
 // ============================================================
-std::unique_ptr<jsv::Program> build_manual_ast() {
+/*std::unique_ptr<jsv::Program> build_manual_ast() {
     using namespace jsv;
     std::vector<StmtPtr> stmts;
 
@@ -57,9 +57,12 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
             std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<Identifier>("a"), std::make_unique<Identifier>("b"))));
 
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts));
-        std::vector<FuncParam> params{{.name = "a", .type = Type::I32, .loc = {}}, {.name = "b", .type = Type::I32, .loc = {}}};
+        std::vector<FuncParam> params{
+            {.name = "a", .type_annotation = PrimitiveType::i32(), .loc = {}},
+            {.name = "b", .type_annotation = PrimitiveType::i32(), .loc = {}}
+        };
 
-        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<Type>{Type::I32}, std::move(body)));
+        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<TypePtr>{PrimitiveType::i32()}, std::move(body)));
     }
 
     // print add(x, 8);
@@ -82,7 +85,7 @@ std::unique_ptr<jsv::Program> build_manual_ast() {
     }
 
     return std::make_unique<Program>(std::move(stmts));
-}
+}*/
 
 std::string toLower(std::string str) {
     std::ranges::transform(str, str.begin(), [](unsigned char chr) -> char { return C_C(std::tolower(C_UC(chr))); });

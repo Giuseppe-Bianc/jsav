@@ -40,7 +40,10 @@ namespace jsv {
     // cppcheck-suppress functionConst
     void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::green("Literal "), FORMAT("{}", node.value()), is_last);
+        const std::string value_str = node.type_suffix().has_value() 
+            ? fmt::format("{}{}", node.value(), *node.type_suffix())
+            : fmt::format("{}", node.value());
+        print_value(ansi::green("Literal "), value_str, is_last);
     }
 
     // cppcheck-suppress functionConst
@@ -216,10 +219,12 @@ namespace jsv {
 
     void AstPrinter::visit_ArrayLiteral(const ArrayLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::cyan("ArrayLiteral "), FORMAT("[{} elements]", node.elements().size()), is_last);
+        print_line(ansi::cyan("Array Literal"), is_last);
 
         if(!node.elements().empty()) {
             const IndentGuard guard{*this, is_last};
+            print_line(ansi::cyan("Elements:"), true);
+            const IndentGuard guard2{*this, true};
             for(std::size_t i = 0; i < node.elements().size(); ++i) {
                 const bool elem_last = (i == node.elements().size() - 1);
                 visit_child(*node.elements()[i], elem_last);
@@ -247,7 +252,7 @@ namespace jsv {
 
     void AstPrinter::visit_VarDecl(const VarDecl &node) {
         const bool is_last = next_is_last_;
-        const std::string keyword = node.is_const() ? ansi::blue_bold("Const") : ansi::blue("Var");
+        const std::string keyword = node.is_const() ? ansi::blue_bold("ConstDeclaration") : ansi::blue("VarDeclaration");
 
         if(node.num_variables() > 1) {
             // Multi-variable declaration
@@ -255,7 +260,7 @@ namespace jsv {
             const IndentGuard guard{*this, is_last};
 
             // Names
-            print_line(ansi::yellow("Names:"), false);
+            print_line(ansi::yellow("Variables:"), false);
             {
                 const IndentGuard guard2{*this, false};
                 for(std::size_t i = 0; i < node.names().size(); ++i) {
@@ -277,25 +282,34 @@ namespace jsv {
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
                     const bool init_last = (i == node.initializers().size() - 1);
                     if(node.initializers()[i]) {
-                        print_value("", FORMAT("[{}]", i), init_last);
-                        const IndentGuard guard3{*this, init_last};
-                        visit_child(*node.initializers()[i], true);
+                        visit_child(*node.initializers()[i], init_last);
                     }
                 }
             }
         } else {
             // Single variable declaration
-            print_value(keyword, FORMAT(" '{}'", node.name()), is_last);
+            print_line(keyword, is_last);
             const IndentGuard guard{*this, is_last};
 
             const auto &type_ann = node.type_annotation();
             const bool has_type = type_ann.has_value();
             const bool has_init = node.has_initializer();
 
-            if(has_type) { print_value(ansi::magenta("Type: "), *type_ann, !has_init); }
+            // Variables
+            print_line(ansi::yellow("Variables:"), false);
+            {
+                const IndentGuard guard2{*this, false};
+                print_line(node.name(), true);
+            }
 
+            // Type annotation
+            if(has_type) { 
+                print_value(ansi::magenta("Type: "), *type_ann, !has_init); 
+            }
+
+            // Initializers
             if(has_init) {
-                print_line(ansi::red("Initializer:"), true);
+                print_line(ansi::red("Initializers:"), true);
                 const IndentGuard guard2{*this, true};
                 visit_child(node.initializer(), true);
             }
@@ -327,7 +341,11 @@ namespace jsv {
                 const auto &param = node.params()[i];
                 print_value(ansi::green("Parameter '"), FORMAT("{}'", param.name), param_last);
                 const IndentGuard guard3{*this, param_last};
-                print_value(ansi::magenta("Type: "), to_string(param.type), true);
+                if(param.type_annotation) {
+                    print_value(ansi::magenta("Type: "), FORMAT("{}", param.type_annotation), true);
+                } else {
+                    print_value(ansi::magenta("Type: "), "none", true);
+                }
             }
         } else {
             print_line(ansi::green("Parameters: (none)"), !has_return);
@@ -337,7 +355,7 @@ namespace jsv {
         if(has_return) {
             print_line(ansi::magenta("Return Type:"), false);
             const IndentGuard guard2{*this, false};
-            print_line(to_string(*ret_type), true);
+            print_line(FORMAT("{}", *ret_type), true);
         }
 
         // Body
@@ -597,10 +615,17 @@ namespace jsv {
         FORMAT_TO(out, "(fn {} (", node.name());
         for(std::size_t i = 0; i < node.params().size(); ++i) {
             if(i > 0) { FORMAT_TO(out, " "); }
-            FORMAT_TO(out, "({} {})", node.params()[i].name, node.params()[i].type);
+            const auto &param = node.params()[i];
+            if(param.type_annotation) {
+                FORMAT_TO(out, "({} {})", param.name, param.type_annotation);
+            } else {
+                FORMAT_TO(out, "({})", param.name);
+            }
         }
         FORMAT_TO(out, ")");
-        if(const auto &ret_type = node.return_type(); ret_type.has_value()) { FORMAT_TO(out, " -> {}", *ret_type); }
+        if(const auto &ret_type = node.return_type(); ret_type.has_value()) {
+            FORMAT_TO(out, " -> {}", *ret_type);
+        }
         FORMAT_TO(out, " {})", visit_BlockStmt(node.body()));
         return result;
     }

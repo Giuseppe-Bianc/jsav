@@ -20,6 +20,7 @@
 #include "lexer/unicode/UnicodeData.hpp"
 #include "lexer/unicode/Utf8.hpp"
 #include "ast/Node.hpp"
+#include "ast/Type.hpp"
 #include "ast/Expressions.hpp"
 #include "ast/Statements.hpp"
 #include "ast/Program.hpp"
