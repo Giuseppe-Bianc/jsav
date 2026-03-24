@@ -433,4 +433,69 @@ namespace jsv {
     SourceSpan Parser::merged_span(const Token &start_token) const {
         return start_token.getSpan().merged(previous().getSpan()).value_or(start_token.getSpan());
     }
+
+    std::optional<jsv::Type> Parser::parse_type() {
+        const auto token = advance();
+        jsv::Type base_type;
+        switch(token.getKind()) {
+        case TokenKind::TypeI8:
+            base_type = jsv::Type::I8;
+            break;
+        case TokenKind::TypeI16:
+            base_type = jsv::Type::I16;
+            break;
+        case TokenKind::TypeI32:
+            base_type = jsv::Type::I32;
+            break;
+        case TokenKind::TypeI64:
+            base_type = jsv::Type::I64;
+            break;
+        case TokenKind::TypeU8:
+            base_type = jsv::Type::U8;
+            break;
+        case TokenKind::TypeU16:
+            base_type = jsv::Type::U16;
+            break;
+        case TokenKind::TypeU32:
+            base_type = jsv::Type::U32;
+            break;
+        case TokenKind::TypeU64:
+            base_type = jsv::Type::U64;
+            break;
+        case TokenKind::TypeF32:
+            base_type = jsv::Type::F32;
+            break;
+        case TokenKind::TypeF64:
+            base_type = jsv::Type::F64;
+            break;
+        case TokenKind::TypeChar:
+            base_type = jsv::Type::Char;
+            break;
+        case TokenKind::TypeString:
+            base_type = jsv::Type::String;
+            break;
+        case TokenKind::TypeBool:
+            base_type = jsv::Type::Bool;
+            break;
+        case TokenKind::IdentifierAscii:
+        case TokenKind::IdentifierUnicode:
+            // Note: existing Type enum doesn't have Custom variant, use Void as fallback
+            base_type = jsv::Type::Void;
+            break;
+        default:
+            syntax_error("Invalid type specification, expected primitive type or custom identifier", token,
+                         "Try using a primitive type (like i32, f64) or a custom type identifier", ErrorCode::E1002);
+            return std::nullopt;
+        }
+        // Array dimensions not supported in current Type enum - skip for now
+        return base_type;
+    }
+    std::optional<std::string_view> Parser::consume_identifier() {
+        auto token = peek();
+        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) {
+            return advance().getText();
+        }
+        syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
+        return std::nullopt;
+    }
 }  // namespace jsv

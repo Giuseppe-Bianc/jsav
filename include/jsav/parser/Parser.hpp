@@ -20,6 +20,8 @@ namespace jsv {
         explicit Parser(const std::vector<Token> &tokens);
         std::optional<ExprPtr> parse_condition(const std::string_view keyword);
         std::optional<StmtPtr> parse_for_initializer();
+
+        std::optional<Type> parse_type();
         std::optional<StmtPtr> parse_function();
         std::optional<StmtPtr> parse_main_function();
         std::optional<StmtPtr> parse_if();
@@ -68,6 +70,7 @@ namespace jsv {
         void enter_recursion();
         void exit_recursion();
         SourceSpan merged_span(const Token &start_token) const;
+        std::optional<std::string_view> consume_identifier();
     private:
         std::vector<Token> tokens_;
         std::size_t current_;
