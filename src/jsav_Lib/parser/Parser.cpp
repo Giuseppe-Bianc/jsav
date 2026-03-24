@@ -54,11 +54,68 @@ namespace jsv {
             return parse_expression_stmt();
         }
     }
-    std::optional<StmtPtr> Parser::parse_function() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_function() {
+        // Consuma 'fun'
+        const auto fun_token = advance();
+        // Nome funzione
+        auto name_token = advance();
+        if(name_token.getKind() != TokenKind::IdentifierAscii && name_token.getKind() != TokenKind::IdentifierUnicode) {
+            syntax_error("Expected function name", name_token, {}, ErrorCode::E1001);
+            return std::nullopt;
+        }
+        std::string name{name_token.getText()};
+
+        // Parametri
+        if(!expect(TokenKind::OpenParen, "after function name")) return std::nullopt;
+        std::vector<FuncParam> parameters;
+        while(!check(TokenKind::CloseParen) && !is_at_end()) {
+            auto param_token = advance();
+            if(param_token.getKind() != TokenKind::IdentifierAscii && param_token.getKind() != TokenKind::IdentifierUnicode) {
+                syntax_error("Expected parameter name", param_token, {}, ErrorCode::E1002);
+                return std::nullopt;
+            }
+            std::string param_name{param_token.getText()};
+            if(!expect(TokenKind::Colon, "after parameter name")) return std::nullopt;
+            auto type = parse_type();
+            if(!type) {
+                syntax_error("Expected parameter type", peek(), {}, ErrorCode::E1003);
+                return std::nullopt;
+            }
+            parameters.push_back(FuncParam{param_name, *type, param_token.getSpan()});
+            if(!check(TokenKind::CloseParen)) {
+                if(!expect(TokenKind::Comma, "between parameters")) return std::nullopt;
+            }
+        }
+        if(!expect(TokenKind::CloseParen, "after parameters")) return std::nullopt;
+
+        // Tipo di ritorno
+        std::optional<Type> return_type;
+        if(match_token(TokenKind::Colon)) {
+            return_type = parse_type();
+            if(!return_type) {
+                syntax_error("Expected return type after ':'", peek(), {}, ErrorCode::E1005);
+                return std::nullopt;
+            }
+        } else {
+            // Default: void (o None)
+            return_type = Type::Void;
+        }
+
+        // Corpo
+        auto body = parse_block_stmt();
+        if(!body) {
+            syntax_error("Expected function body", peek(), {}, ErrorCode::E1006);
+            return std::nullopt;
+        }
+
+        // Il corpo deve essere BlockStmt
+        auto block_body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt*>(body->release()));
+        return std::make_unique<FuncDecl>(name, std::move(parameters), return_type, std::move(block_body), fun_token.getSpan());
+    }
     std::optional<StmtPtr> Parser::parse_main_function() {
         const auto start_token = advance();
         auto body = parse_block_stmt();
-        if(!body.has_value()) return std::nullopt;
+        if(!body.has_value()) return std::nullopt; // Corrected context
         const auto end_span = body.value()->location();
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<MainStmt>(std::move(body.value()), function_span);
