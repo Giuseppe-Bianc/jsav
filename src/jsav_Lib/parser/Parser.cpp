@@ -4,9 +4,10 @@
  */
 
 #include "jsav/parser/Parser.hpp"
+#include "jsav/parser/precedence.hpp"
 
 namespace jsv {
-    Parser::Parser(const std::vector<Token> &tokens) : tokens_(tokens), current_(0) {
+    Parser::Parser(const std::vector<Token> &tokens) : tokens_(tokens), current_(0), recursion_depth_(0) {
         // Reserve space for errors to avoid reallocations
         // Typical programs have few syntax errors, 8 is a reasonable initial capacity
         errors_.reserve(8);
@@ -91,6 +92,174 @@ namespace jsv {
     }
     std::optional<StmtPtr> Parser::parse_expression_stmt() { return std::nullopt; }
 
+    std::optional<ExprPtr> Parser::parse_expr(const std::size_t min_bp) {
+        if(check_recursion_limit()) { return std::nullopt; }
+        enter_recursion();
+        auto result = parse_expr_inner(min_bp);
+        exit_recursion();
+        return result;
+    }
+
+    std::optional<ExprPtr> Parser::parse_expr_inner(const std::size_t min_bp) {
+        auto left = nud();
+        if(!left) return std::nullopt;
+        while(true) {
+            const auto &token = peek();
+            const auto [lbp, _] = binding_power(token);
+            if(lbp <= min_bp) { break; }
+            auto new_left = led(std::move(*left));
+            left = std::nullopt;
+            if(!new_left) break;
+            left = std::move(new_left);
+        }
+        return left;
+    }
+
+    std::optional<ExprPtr> Parser::nud() {
+        const auto token = advance();
+        switch(token.getKind()) {
+        case TokenKind::Numeric:
+            {
+                const auto text = token.getText();
+                const auto value = std::strtoll(text.data(), nullptr, 10);
+                return std::make_unique<IntegerLiteral>(value, token.getSpan());
+            }
+        case TokenKind::KeywordBool:
+            {
+                const auto text = token.getText();
+                const auto value = (text == "true");
+                return std::make_unique<BoolLiteral>(value, token.getSpan());
+            }
+        case TokenKind::KeywordNullptr:
+            return std::make_unique<NullLiteral>(token.getSpan());
+        case TokenKind::StringLiteral:
+            return std::make_unique<StringLiteral>(std::string{token.getText()}, token.getSpan());
+        case TokenKind::CharLiteral:
+            {
+                const auto text = token.getText();
+                const auto value = text.empty() ? '\0' : text[0];
+                return std::make_unique<CharLiteral>(value, token.getSpan());
+            }
+        case TokenKind::Minus:
+            return parse_unary(UnaryOp::Negate, token);
+        case TokenKind::Not:
+            return parse_unary(UnaryOp::Not, token);
+        case TokenKind::OpenBrace:
+            return parse_array_literal(token);
+        case TokenKind::OpenParen:
+            return parse_grouping(token);
+        case TokenKind::IdentifierAscii:
+        case TokenKind::IdentifierUnicode:
+            return std::make_unique<Identifier>(std::string{token.getText()}, token.getSpan());
+        default:
+            syntax_error("Unexpected token", token, "Expected an expression (number, string, variable, or operator)", ErrorCode::E1004);
+            return std::nullopt;
+        }
+    }
+
+    std::optional<ExprPtr> Parser::led(ExprPtr left) {
+        const auto token = advance();
+        switch(token.getKind()) {
+        case TokenKind::Plus:
+        case TokenKind::Minus:
+        case TokenKind::Star:
+        case TokenKind::Slash:
+        case TokenKind::Percent:
+        case TokenKind::EqualEqual:
+        case TokenKind::NotEqual:
+        case TokenKind::Less:
+        case TokenKind::LessEqual:
+        case TokenKind::Greater:
+        case TokenKind::GreaterEqual:
+        case TokenKind::AndAnd:
+        case TokenKind::OrOr:
+        case TokenKind::And:
+        case TokenKind::Or:
+        case TokenKind::Xor:
+        case TokenKind::ShiftLeft:
+        case TokenKind::ShiftRight:
+            return parse_binary(std::move(left), token);  // ← std::move
+        case TokenKind::Equal:
+            return parse_assignment(std::move(left), token);
+        case TokenKind::OpenParen:
+            return parse_call(std::move(left), token);
+        case TokenKind::OpenBracket:
+            return parse_array_access(std::move(left), token);
+        default:
+            syntax_error("Unexpected operator", token, "This operator is not supported in this context", ErrorCode::E1004);
+            return std::nullopt;
+        }
+    }
+
+    ExprPtr Parser::parse_unary(const UnaryOp op, const Token &token) {
+        const auto [_, rbp] = unary_binding_power(token);
+        auto expr = parse_expr(rbp);
+        if(!expr) { expr = std::make_unique<NullLiteral>(token.getSpan()); }
+        return std::make_unique<UnaryExpr>(op, std::move(expr.value()), token.getSpan());
+    }
+
+    void Parser::extract_elements(const TokenKind kind, std::vector<ExprPtr>& elements) {
+    while (!check(kind) && !is_at_end()) {
+        if (auto expr = parse_expr(0)) {
+            elements.push_back(std::move(expr.value()));
+        }
+        if (!match_token(TokenKind::Comma)) {
+            break;
+        }
+    }}
+
+    std::optional<ExprPtr> Parser::parse_array_literal([[maybe_unused]] const [[maybe_unused]] Token &start_token) {
+        std::vector<ExprPtr> elements;
+        extract_elements(TokenKind::CloseBrace, elements);
+        if(!expect(TokenKind::CloseBrace, "end of array literal")) { return std::nullopt; }
+        elements.shrink_to_fit();
+        return std::make_unique<ArrayLiteral>(std::move(elements), merged_span(start_token));
+    }
+
+    std::optional<ExprPtr> Parser::parse_binary(ExprPtr left, const Token &token) {
+        auto op_result = get_binary_op(token);
+        if(!op_result.has_value()) {
+            errors_.push_back(std::move(op_result.error()));
+            return std::nullopt;
+        }
+        const BinaryOp op = op_result.value();  // ← was missing the type
+        const auto [_, rbp] = binding_power(token);
+        auto right = parse_expr(rbp);
+        if(!right) { right = std::make_unique<NullLiteral>(token.getSpan()); }
+        const auto span = left->location().merged(right.value()->location()).value_or(token.getSpan());
+        return std::make_unique<BinaryExpr>(op, std::move(left), std::move(right.value()), span);
+    }
+    std::optional<ExprPtr> Parser::parse_grouping([[maybe_unused]] const [[maybe_unused]] Token &start_token) {
+        auto expr = parse_expr(0);
+        if(!expect(TokenKind::CloseParen, "end of grouping")) { return std::nullopt; }
+        return std::make_unique<GroupingExpr>(std::move(expr.value()), merged_span(start_token));
+    }
+
+    std::optional<ExprPtr> Parser::parse_assignment([[maybe_unused]] ExprPtr left, [[maybe_unused]] const Token &token) {
+        // TODO: implement
+        return std::nullopt;
+    }
+
+    std::optional<ExprPtr> Parser::parse_call([[maybe_unused]] ExprPtr callee, [[maybe_unused]] const Token &start_token) {
+        // TODO: implement
+        return std::nullopt;
+    }
+
+    std::optional<ExprPtr> Parser::parse_array_access([[maybe_unused]] ExprPtr array, [[maybe_unused]] const Token &start_token) {
+        // TODO: implement
+        return std::nullopt;
+    }
+
+    bool Parser::is_end_of_statement() const {
+        switch(peek().getKind()) {
+        case TokenKind::CloseBrace:
+        case TokenKind::Eof:
+        case TokenKind::Semicolon:
+            return true;
+        default:
+            return false;
+        }
+    }
     Token Parser::peek() const { return tokens_.at(current_); }
     Token Parser::previous() const { return tokens_.at(current_ - 1); }
     bool Parser::check(const TokenKind kind) const { return peek().getKind() == kind; }
@@ -107,7 +276,7 @@ namespace jsv {
         return false;
     }
 
-    [[nodiscard]] bool Parser::expect(const TokenKind kind, std::string_view context) {
+    bool Parser::expect(const TokenKind kind, std::string_view context) {
         if(match_token(kind)) { return true; }
 
         const std::optional<Token> current_token = is_at_end() ? std::nullopt : std::optional{peek()};
@@ -127,5 +296,32 @@ namespace jsv {
     void Parser::syntax_error(const std::string_view message, const Token &token, std::optional<std::string> help,
                               std::optional<ErrorCode> error_code) {
         errors_.push_back(CompileError::SyntaxError(error_code, message, token.getSpan(), help));
+    }
+
+    void Parser::report_peek_error(const std::string_view message, const std::optional<std::string> help) {
+        if(!is_at_end()) { syntax_error(message, peek(), help, ErrorCode::E1004); }
+    }
+
+    bool Parser::check_recursion_limit() {
+        if(recursion_depth_ > MAX_RECURSION_DEPTH) {
+            if(!is_at_end()) {
+                syntax_error("Maximum recursion depth exceeded", peek(), "Simplify the expression or break it into smaller parts", ErrorCode::E1001);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    void Parser::enter_recursion() { ++recursion_depth_; }
+
+    void Parser::exit_recursion() {
+        if(recursion_depth_ > 0) { --recursion_depth_; }
+    }
+    SourceSpan Parser::calculate_return_span(const Token &start, const std::optional<ExprPtr> &value) const {
+        if(value.has_value()) { return start.getSpan().merged(value.value()->location()).value_or(start.getSpan()); }
+        return start.getSpan();
+    }
+    SourceSpan Parser::merged_span(const Token &start_token) const {
+        return start_token.getSpan().merged(previous().getSpan()).value_or(start_token.getSpan());
     }
 }  // namespace jsv

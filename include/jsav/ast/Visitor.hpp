@@ -47,6 +47,8 @@ namespace jsv {
                 return self().visit_FloatLiteral(static_cast<const FloatLiteral &>(node));
             case NodeKind::StringLiteral:
                 return self().visit_StringLiteral(static_cast<const StringLiteral &>(node));
+            case NodeKind::CharLiteral:
+                return self().visit_CharLiteral(static_cast<const CharLiteral &>(node));
             case NodeKind::BoolLiteral:
                 return self().visit_BoolLiteral(static_cast<const BoolLiteral &>(node));
             case NodeKind::NullLiteral:

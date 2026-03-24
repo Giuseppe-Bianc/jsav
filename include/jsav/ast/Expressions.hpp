@@ -53,6 +53,22 @@ namespace jsv {
         std::string value_;
     };
 
+        // ============================================================
+    // String Literal:  "hello"
+    // ============================================================
+    class CharLiteral final : public Expr {
+    public:
+        explicit CharLiteral(char value, SourceSpan loc = {}) : Expr(NodeKind::CharLiteral, loc), value_{value} {}
+
+        [[nodiscard]] char value() const noexcept { return value_; }
+
+        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::CharLiteral; }
+
+    private:
+        char value_;
+    };
+
+
     // ============================================================
     // Bool Literal:  true / false
     // ============================================================

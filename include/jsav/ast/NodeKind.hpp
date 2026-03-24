@@ -15,6 +15,7 @@ namespace jsv {
         IntegerLiteral,
         FloatLiteral,
         StringLiteral,
+        CharLiteral,
         BoolLiteral,
         NullLiteral,
         Identifier,

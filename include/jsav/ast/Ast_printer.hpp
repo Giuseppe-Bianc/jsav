@@ -51,6 +51,8 @@ namespace jsv {
         // cppcheck-suppress functionConst
         void visit_StringLiteral(const StringLiteral &node);
         // cppcheck-suppress functionConst
+        void visit_CharLiteral(const CharLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_BoolLiteral(const BoolLiteral &node);
         // cppcheck-suppress functionConst
         void visit_NullLiteral(const NullLiteral &node);
@@ -100,6 +102,7 @@ namespace jsv {
         static std::string visit_IntegerLiteral(const IntegerLiteral &node);
         static std::string visit_FloatLiteral(const FloatLiteral &node);
         static std::string visit_StringLiteral(const StringLiteral &node);
+        static std::string visit_CharLiteral(const CharLiteral &node);
         static std::string visit_BoolLiteral(const BoolLiteral &node);
         static std::string visit_NullLiteral(const NullLiteral &node);
         static std::string visit_Identifier(const Identifier &node);

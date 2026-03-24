@@ -56,6 +56,12 @@ namespace jsv {
     }
 
     // cppcheck-suppress functionConst
+    void AstPrinter::visit_CharLiteral(const CharLiteral &node) {
+        const bool is_last = next_is_last_;
+        print_value(ansi::green("Literal "), FORMAT("'{}'", node.value()), is_last);
+    }
+
+    // cppcheck-suppress functionConst
     void AstPrinter::visit_BoolLiteral(const BoolLiteral &node) {
         const bool is_last = next_is_last_;
         print_value(ansi::green("Literal "), node.value() ? "true" : "false", is_last);
@@ -494,6 +500,8 @@ namespace jsv {
     std::string SExprPrinter::visit_FloatLiteral(const FloatLiteral &node) { return FORMAT("{}", node.value()); }
 
     std::string SExprPrinter::visit_StringLiteral(const StringLiteral &node) { return FORMAT("\"{}\"", node.value()); }
+
+    std::string SExprPrinter::visit_CharLiteral(const CharLiteral &node) { return FORMAT("'{}'", node.value()); }
 
     std::string SExprPrinter::visit_BoolLiteral(const BoolLiteral &node) { return node.value() ? "true" : "false"; }
 
