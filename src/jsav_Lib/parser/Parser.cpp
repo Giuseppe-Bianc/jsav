@@ -63,7 +63,27 @@ namespace jsv {
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<MainStmt>(std::move(body.value()), function_span);
     }
-    std::optional<StmtPtr> Parser::parse_if() { return std::nullopt; }
+    std::optional<ExprPtr> Parser::parse_condition(const std::string_view keyword) {
+        [[maybe_unused]] auto e = expect(TokenKind::OpenParen, fmt::format("after '{}'", keyword));
+        auto condition = parse_expr(0);
+        [[maybe_unused]] auto e2 =expect(TokenKind::CloseParen, "after the condition");
+        return condition;
+    }
+    std::optional<StmtPtr> Parser::parse_if() {
+        const auto start_token = advance();
+        auto condition = parse_condition("if");
+        if(!condition) return std::nullopt;
+        auto then_branch = parse_block_stmt();
+        if(!then_branch) return std::nullopt;
+        std::optional<StmtPtr> else_branch;
+        if(match_token(TokenKind::KeywordElse)) { else_branch = parse_stmt(); }
+        return std::make_unique<IfStmt>(
+            std::move(condition.value()),
+            std::move(then_branch.value()),
+            else_branch ? std::move(*else_branch) : nullptr,
+            merged_span(start_token)
+        );
+    }
     std::optional<StmtPtr> Parser::parse_var_declaration() { return std::nullopt; }
     std::optional<StmtPtr> Parser::parse_return() {
         const auto start_token = advance();
@@ -75,8 +95,63 @@ namespace jsv {
         );
         return stmt;
     }
-    std::optional<StmtPtr> Parser::parse_while() { return std::nullopt; }
-    std::optional<StmtPtr> Parser::parse_for() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_while() {
+        const auto start_token = advance();
+        auto condition = parse_condition("while");
+        if(!condition) return std::nullopt;
+        auto body = parse_block_stmt();
+        if(!body) return std::nullopt;
+        const auto end_span = body.value()->location();
+        const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
+        return std::make_unique<WhileStmt>(std::move(condition.value()), std::move(body.value()), function_span);
+    }
+
+    std::optional<StmtPtr> Parser::parse_for_initializer() {
+        if(match_token(TokenKind::Semicolon)) { return nullptr; }
+        std::optional<StmtPtr> stmt;
+        if(check(TokenKind::KeywordVar) || check(TokenKind::KeywordConst)) {
+            stmt = parse_var_declaration();
+        } else {
+            stmt = parse_expression_stmt();
+        }
+        [[maybe_unused]] auto e = expect(TokenKind::Semicolon, "after for loop initializer");
+        return stmt;
+    }
+    std::optional<StmtPtr> Parser::parse_for() {
+        const auto start_token = advance();
+        [[maybe_unused]] auto e1 = expect(TokenKind::OpenParen, "after 'for'");
+        auto initializer = parse_for_initializer();
+        std::optional<ExprPtr> condition;
+        if(check(TokenKind::Semicolon)) {
+            advance();
+        } else {
+            condition = parse_expr(0);
+            [[maybe_unused]] auto e2 = expect(TokenKind::Semicolon, "after for loop condition");
+        }
+        std::optional<ExprPtr> increment;
+        if(!check(TokenKind::CloseParen)) { increment = parse_expr(0); }
+        [[maybe_unused]] auto e3 = expect(TokenKind::CloseParen, "after for loop clauses");
+        auto body_stmt = parse_stmt();
+        if(!body_stmt) return std::nullopt;
+        // Assicura che il body sia sempre un BlockStmt
+        StmtPtr body_ptr;
+        if(body_stmt.value()->kind() == NodeKind::BlockStmt) {
+            body_ptr = std::move(body_stmt.value());
+        } else {
+            std::vector<StmtPtr> stmts;
+            stmts.push_back(std::move(body_stmt.value()));
+            body_ptr = std::make_unique<BlockStmt>(std::move(stmts), stmts.front() ? stmts.front()->location() : SourceSpan{});
+        }
+        const SourceSpan end_span = body_ptr ? body_ptr->location() : previous().getSpan();
+        const SourceSpan span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
+        return std::make_unique<ForStmt>(
+            initializer ? std::move(*initializer) : nullptr,
+            condition ? std::move(*condition) : nullptr,
+            increment ? std::move(*increment) : nullptr,
+            std::move(body_ptr),
+            span
+        );
+    }
     std::optional<StmtPtr> Parser::parse_break() {
         const auto span = advance().getSpan();
         return std::make_unique<BreakStmt>(span);

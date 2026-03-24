@@ -18,6 +18,8 @@ namespace jsv {
     class Parser {
     public:
         explicit Parser(const std::vector<Token> &tokens);
+        std::optional<ExprPtr> parse_condition(const std::string_view keyword);
+        std::optional<StmtPtr> parse_for_initializer();
         std::optional<StmtPtr> parse_function();
         std::optional<StmtPtr> parse_main_function();
         std::optional<StmtPtr> parse_if();
