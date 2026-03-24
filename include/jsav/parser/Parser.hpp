@@ -1,3 +1,4 @@
+
 /*
  * Created by gbian on 23/03/2026.
  * Copyright (c) 2026 All rights reserved.
@@ -20,7 +21,7 @@ namespace jsv {
         explicit Parser(const std::vector<Token> &tokens);
         std::optional<ExprPtr> parse_condition(const std::string_view keyword);
         std::optional<StmtPtr> parse_for_initializer();
-
+        [[nodiscard]] std::optional<ExprPtr> parse_identifier_or_call(const Token &token);
         std::optional<Type> parse_type();
         std::optional<StmtPtr> parse_function();
         std::optional<StmtPtr> parse_main_function();

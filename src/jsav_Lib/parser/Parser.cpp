@@ -141,7 +141,46 @@ namespace jsv {
             merged_span(start_token)
         );
     }
-    std::optional<StmtPtr> Parser::parse_var_declaration() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_var_declaration() {
+        const auto start_token = advance();  // var | const
+        const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
+
+        // --- names ---
+        std::vector<std::string> names;
+
+        do {
+            auto name = consume_identifier();
+            if(!name) return std::nullopt;
+            names.emplace_back(*name);
+        } while(match_token(TokenKind::Comma));
+
+        // --- optional type ---
+        std::optional<std::string> type_annotation;
+        if(match_token(TokenKind::Colon)) {
+            auto type_token = peek();
+            auto type = parse_type();
+            if(!type) return std::nullopt;
+
+            // keep string form for AST
+            type_annotation = std::string{tokenKindToString(type_token.getKind())};
+        }
+
+        // --- initializer ---
+        std::vector<ExprPtr> initializers;
+
+        if(match_token(TokenKind::Equal)) {
+            do {
+                auto expr = parse_expr(0);
+                if(!expr) return std::nullopt;
+                initializers.push_back(std::move(expr.value()));
+            } while(match_token(TokenKind::Comma));
+        }
+
+        match_token(TokenKind::Semicolon);
+
+        return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation), std::move(initializers), is_const,
+                                         start_token.getSpan());
+    }
     std::optional<StmtPtr> Parser::parse_return() {
         const auto start_token = advance();
         std::optional<ExprPtr> return_value;
@@ -161,6 +200,15 @@ namespace jsv {
         const auto end_span = body.value()->location();
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<WhileStmt>(std::move(condition.value()), std::move(body.value()), function_span);
+    }
+    std::optional<ExprPtr> Parser::parse_identifier_or_call(const Token &token) {
+        auto ident = std::make_unique<Identifier>(std::string{token.getText()}, token.getSpan());
+        // Se il prossimo token è '(', è una chiamata a funzione
+        if(check(TokenKind::OpenParen)) {
+            advance();  // consuma '('
+            return parse_call(std::move(ident), token);
+        }
+        return ident;
     }
 
     std::optional<StmtPtr> Parser::parse_for_initializer() {
@@ -241,7 +289,9 @@ namespace jsv {
         }
         // Consuma opzionalmente il punto e virgola
         match_token(TokenKind::Semicolon);
-        return std::make_unique<ExprStmt>(std::move(expr.value()));
+        // Usa lo span dell'espressione per ExprStmt
+        SourceSpan span = expr.value()->location();
+        return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
 
     std::optional<ExprPtr> Parser::parse_expr(const std::size_t min_bp) {
@@ -302,7 +352,7 @@ namespace jsv {
             return parse_grouping(token);
         case TokenKind::IdentifierAscii:
         case TokenKind::IdentifierUnicode:
-            return std::make_unique<Identifier>(std::string{token.getText()}, token.getSpan());
+            return parse_identifier_or_call(token);
         default:
             syntax_error("Unexpected token", token, "Expected an expression (number, string, variable, or operator)", ErrorCode::E1004);
             return std::nullopt;
@@ -403,10 +453,22 @@ namespace jsv {
 
     std::optional<ExprPtr> Parser::parse_call([[maybe_unused]] ExprPtr callee, [[maybe_unused]] const Token &start_token) {
         std::vector<ExprPtr> arguments;
-        extract_elements(TokenKind::CloseParen, arguments);
-        if(!expect(TokenKind::CloseParen, "end of function call arguments")) { return std::nullopt; }
-        arguments.shrink_to_fit();
-        return std::make_unique<CallExpr>(std::move(callee), std::move(arguments), merged_span(start_token));
+        if (!check(TokenKind::CloseParen)) {
+            do {
+                auto arg = parse_expr(0);
+                if (!arg) {
+                    syntax_error("Expected expression in function call argument", peek(), std::nullopt, std::nullopt);
+                    return std::nullopt;
+                }
+                arguments.push_back(std::move(*arg));
+            } while (match_token(TokenKind::Comma));
+        }
+        if (!expect(TokenKind::CloseParen, "after function call arguments")) {
+            return std::nullopt;
+        }
+        // Lo span della chiamata è dal callee (di solito un Identifier) fino all'ultima parentesi
+        SourceSpan call_span = merged_span(start_token);
+        return std::make_unique<CallExpr>(std::move(callee), std::move(arguments), call_span);
     }
 
     std::optional<ExprPtr> Parser::parse_array_access([[maybe_unused]] ExprPtr array, [[maybe_unused]] const Token &start_token) {
