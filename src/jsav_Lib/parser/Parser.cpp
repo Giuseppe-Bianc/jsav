@@ -65,7 +65,16 @@ namespace jsv {
     }
     std::optional<StmtPtr> Parser::parse_if() { return std::nullopt; }
     std::optional<StmtPtr> Parser::parse_var_declaration() { return std::nullopt; }
-    std::optional<StmtPtr> Parser::parse_return() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_return() {
+        const auto start_token = advance();
+        std::optional<ExprPtr> return_value;
+        if(!is_end_of_statement()) { return_value = parse_expr(0); }
+        auto stmt = std::make_unique<ReturnStmt>(
+            return_value ? std::move(*return_value) : nullptr,
+            calculate_return_span(start_token, return_value)
+        );
+        return stmt;
+    }
     std::optional<StmtPtr> Parser::parse_while() { return std::nullopt; }
     std::optional<StmtPtr> Parser::parse_for() { return std::nullopt; }
     std::optional<StmtPtr> Parser::parse_break() {
@@ -90,7 +99,18 @@ namespace jsv {
         statements.shrink_to_fit();
         return std::make_unique<BlockStmt>(std::move(statements), start_token.getSpan());
     }
-    std::optional<StmtPtr> Parser::parse_expression_stmt() { return std::nullopt; }
+    std::optional<StmtPtr> Parser::parse_expression_stmt() {
+        auto expr = parse_expr(0);
+        if (!expr) {
+            // Se non c'è un'espressione valida, segnala errore e avanza
+            syntax_error("Expected expression statement", peek(), std::nullopt, ErrorCode::E1004);
+            advance();
+            return std::nullopt;
+        }
+        // Consuma opzionalmente il punto e virgola
+        match_token(TokenKind::Semicolon);
+        return std::make_unique<ExprStmt>(std::move(expr.value()));
+    }
 
     std::optional<ExprPtr> Parser::parse_expr(const std::size_t min_bp) {
         if(check_recursion_limit()) { return std::nullopt; }
@@ -236,18 +256,32 @@ namespace jsv {
     }
 
     std::optional<ExprPtr> Parser::parse_assignment([[maybe_unused]] ExprPtr left, [[maybe_unused]] const Token &token) {
-        // TODO: implement
-        return std::nullopt;
+        auto value = parse_expr(1);
+        if(!value) { value = std::make_unique<NullLiteral>(token.getSpan()); }
+        const auto span = left->location().merged(value.value()->location()).value_or(token.getSpan());
+        const bool valid = (left->kind() == NodeKind::Identifier || left->kind() == NodeKind::IndexExpr);
+        if(!valid) {
+            errors_.push_back(CompileError::SyntaxError(ErrorCode::E1003, "Invalid left-hand side in assignment", left->location(),
+                                                        "Only variables and array elements can be assigned to. "
+                                                        "Consider using a variable name or an array access expression."));
+            return std::nullopt;
+        }
+        return std::make_unique<AssignExpr>(std::move(left), std::move(value.value()), span);
     }
 
     std::optional<ExprPtr> Parser::parse_call([[maybe_unused]] ExprPtr callee, [[maybe_unused]] const Token &start_token) {
-        // TODO: implement
-        return std::nullopt;
+        std::vector<ExprPtr> arguments;
+        extract_elements(TokenKind::CloseParen, arguments);
+        if(!expect(TokenKind::CloseParen, "end of function call arguments")) { return std::nullopt; }
+        arguments.shrink_to_fit();
+        return std::make_unique<CallExpr>(std::move(callee), std::move(arguments), merged_span(start_token));
     }
 
     std::optional<ExprPtr> Parser::parse_array_access([[maybe_unused]] ExprPtr array, [[maybe_unused]] const Token &start_token) {
-        // TODO: implement
-        return std::nullopt;
+        auto index = parse_expr(0);
+        if(!index) { index = std::make_unique<NullLiteral>(start_token.getSpan()); }
+        if(!expect(TokenKind::CloseBracket, "end of array access")) { return std::nullopt; }
+        return std::make_unique<IndexExpr>(std::move(array), std::move(index.value()), merged_span(start_token));
     }
 
     bool Parser::is_end_of_statement() const {
