@@ -43,6 +43,8 @@ namespace jsv {
     case TokenKind::Slash:         // /
     case TokenKind::Percent:       // %
         return {19, 20};
+    case TokenKind::Equal:         // = (assignment)
+        return {21, 22};
     default:
         return {0, 0};  // Not an operator
     }

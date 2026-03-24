@@ -109,13 +109,13 @@ namespace jsv {
         }
 
         // Il corpo deve essere BlockStmt
-        auto block_body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt*>(body->release()));
+        auto block_body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt *>(body->release()));
         return std::make_unique<FuncDecl>(name, std::move(parameters), return_type, std::move(block_body), fun_token.getSpan());
     }
     std::optional<StmtPtr> Parser::parse_main_function() {
         const auto start_token = advance();
         auto body = parse_block_stmt();
-        if(!body.has_value()) return std::nullopt; // Corrected context
+        if(!body.has_value()) return std::nullopt;  // Corrected context
         const auto end_span = body.value()->location();
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<MainStmt>(std::move(body.value()), function_span);
@@ -123,7 +123,7 @@ namespace jsv {
     std::optional<ExprPtr> Parser::parse_condition(const std::string_view keyword) {
         [[maybe_unused]] auto e = expect(TokenKind::OpenParen, fmt::format("after '{}'", keyword));
         auto condition = parse_expr(0);
-        [[maybe_unused]] auto e2 =expect(TokenKind::CloseParen, "after the condition");
+        [[maybe_unused]] auto e2 = expect(TokenKind::CloseParen, "after the condition");
         return condition;
     }
     std::optional<StmtPtr> Parser::parse_if() {
@@ -134,12 +134,8 @@ namespace jsv {
         if(!then_branch) return std::nullopt;
         std::optional<StmtPtr> else_branch;
         if(match_token(TokenKind::KeywordElse)) { else_branch = parse_stmt(); }
-        return std::make_unique<IfStmt>(
-            std::move(condition.value()),
-            std::move(then_branch.value()),
-            else_branch ? std::move(*else_branch) : nullptr,
-            merged_span(start_token)
-        );
+        return std::make_unique<IfStmt>(std::move(condition.value()), std::move(then_branch.value()),
+                                        else_branch ? std::move(*else_branch) : nullptr, merged_span(start_token));
     }
     std::optional<StmtPtr> Parser::parse_var_declaration() {
         const auto start_token = advance();  // var | const
@@ -185,10 +181,8 @@ namespace jsv {
         const auto start_token = advance();
         std::optional<ExprPtr> return_value;
         if(!is_end_of_statement()) { return_value = parse_expr(0); }
-        auto stmt = std::make_unique<ReturnStmt>(
-            return_value ? std::move(*return_value) : nullptr,
-            calculate_return_span(start_token, return_value)
-        );
+        auto stmt = std::make_unique<ReturnStmt>(return_value ? std::move(*return_value) : nullptr,
+                                                 calculate_return_span(start_token, return_value));
         return stmt;
     }
     std::optional<StmtPtr> Parser::parse_while() {
@@ -213,29 +207,106 @@ namespace jsv {
 
     std::optional<StmtPtr> Parser::parse_for_initializer() {
         if(match_token(TokenKind::Semicolon)) { return nullptr; }
-        std::optional<StmtPtr> stmt;
+        // For var/const declarations in for-loop context, we need to NOT consume
+        // the trailing semicolon since it's the clause separator.
         if(check(TokenKind::KeywordVar) || check(TokenKind::KeywordConst)) {
-            stmt = parse_var_declaration();
-        } else {
-            stmt = parse_expression_stmt();
+            const auto start_token = advance();  // var | const
+            const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
+
+            // --- names ---
+            std::vector<std::string> names;
+            do {
+                auto name = consume_identifier();
+                if(!name) return std::nullopt;
+                names.emplace_back(*name);
+            } while(match_token(TokenKind::Comma));
+
+            // --- optional type ---
+            std::optional<std::string> type_annotation;
+            if(match_token(TokenKind::Colon)) {
+                auto type_token = peek();
+                auto type = parse_type();
+                if(!type) return std::nullopt;
+                type_annotation = std::string{tokenKindToString(type_token.getKind())};
+            }
+
+            // --- initializer ---
+            std::vector<ExprPtr> initializers;
+            if(match_token(TokenKind::Equal)) {
+                do {
+                    auto expr = parse_expr(0);
+                    if(!expr) return std::nullopt;
+                    initializers.push_back(std::move(expr.value()));
+                } while(match_token(TokenKind::Comma));
+            }
+
+            // Do NOT consume semicolon - it's the clause separator
+            return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation), std::move(initializers), is_const,
+                                             start_token.getSpan());
         }
-        [[maybe_unused]] auto e = expect(TokenKind::Semicolon, "after for loop initializer");
-        return stmt;
+        // For expression statements in for-loop context, parse expression but do NOT
+        // consume the semicolon since it's the clause separator
+        auto expr = parse_expr(0);
+        if(!expr) {
+            syntax_error("Expected expression in for-loop initializer", peek(), std::nullopt, ErrorCode::E1004);
+            return std::nullopt;
+        }
+        // Do NOT consume semicolon - it's the clause separator
+        SourceSpan span = expr.value()->location();
+        return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
     std::optional<StmtPtr> Parser::parse_for() {
         const auto start_token = advance();
         [[maybe_unused]] auto e1 = expect(TokenKind::OpenParen, "after 'for'");
-        auto initializer = parse_for_initializer();
-        std::optional<ExprPtr> condition;
-        if(check(TokenKind::Semicolon)) {
-            advance();
+        
+        // Parse initializer - may be nullptr for empty, VarDecl, or ExprStmt
+        std::optional<StmtPtr> initializer;
+        bool initializer_was_empty = false;
+        if(!check(TokenKind::Semicolon)) {
+            initializer = parse_for_initializer();
+            if(!initializer) return std::nullopt;
+            // After a non-empty initializer (var decl or expr), the next token should be semicolon
+            // We need to consume it before parsing the condition
+            if(check(TokenKind::Semicolon)) {
+                advance();
+            } else {
+                return std::nullopt;
+            }
         } else {
-            condition = parse_expr(0);
-            [[maybe_unused]] auto e2 = expect(TokenKind::Semicolon, "after for loop condition");
+            // Empty initializer - consume the semicolon
+            advance();
+            initializer_was_empty = true;
         }
+        
+        // Parse condition
+        // If we had an empty initializer (explicit semicolon), check if condition is also empty
+        std::optional<ExprPtr> condition;
+        if(initializer_was_empty && check(TokenKind::Semicolon)) {
+            // Empty condition (for (;;))
+            advance();  // consume second semicolon
+        } else if(!check(TokenKind::CloseParen)) {
+            // Parse condition expression
+            condition = parse_expr(0);
+            if(!condition) return std::nullopt;
+            // Consume semicolon after condition
+            if(check(TokenKind::Semicolon)) {
+                advance();
+            } else if(!check(TokenKind::CloseParen)) {
+                return std::nullopt;
+            }
+        }
+        
+        // Parse increment
         std::optional<ExprPtr> increment;
-        if(!check(TokenKind::CloseParen)) { increment = parse_expr(0); }
+        if(!check(TokenKind::CloseParen)) {
+            increment = parse_expr(0);
+            if(!increment) return std::nullopt;
+        }
+        if(!check(TokenKind::CloseParen)) {
+            return std::nullopt;
+        }
         [[maybe_unused]] auto e3 = expect(TokenKind::CloseParen, "after for loop clauses");
+        
         auto body_stmt = parse_stmt();
         if(!body_stmt) return std::nullopt;
         // Assicura che il body sia sempre un BlockStmt
@@ -243,19 +314,17 @@ namespace jsv {
         if(body_stmt.value()->kind() == NodeKind::BlockStmt) {
             body_ptr = std::move(body_stmt.value());
         } else {
+            // Capture the span BEFORE moving body_stmt into the vector, as
+            // accessing stmts.front() after std::move(stmts) is undefined behaviour.
+            const SourceSpan body_span = body_stmt.value()->location();
             std::vector<StmtPtr> stmts;
             stmts.push_back(std::move(body_stmt.value()));
-            body_ptr = std::make_unique<BlockStmt>(std::move(stmts), stmts.front() ? stmts.front()->location() : SourceSpan{});
+            body_ptr = std::make_unique<BlockStmt>(std::move(stmts), body_span);
         }
         const SourceSpan end_span = body_ptr ? body_ptr->location() : previous().getSpan();
         const SourceSpan span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
-        return std::make_unique<ForStmt>(
-            initializer ? std::move(*initializer) : nullptr,
-            condition ? std::move(*condition) : nullptr,
-            increment ? std::move(*increment) : nullptr,
-            std::move(body_ptr),
-            span
-        );
+        return std::make_unique<ForStmt>(initializer ? std::move(*initializer) : nullptr, condition ? std::move(*condition) : nullptr,
+                                         increment ? std::move(*increment) : nullptr, std::move(body_ptr), span);
     }
     std::optional<StmtPtr> Parser::parse_break() {
         const auto span = advance().getSpan();
@@ -281,7 +350,7 @@ namespace jsv {
     }
     std::optional<StmtPtr> Parser::parse_expression_stmt() {
         auto expr = parse_expr(0);
-        if (!expr) {
+        if(!expr) {
             // Se non c'è un'espressione valida, segnala errore e avanza
             syntax_error("Expected expression statement", peek(), std::nullopt, ErrorCode::E1004);
             advance();
@@ -400,15 +469,12 @@ namespace jsv {
         return std::make_unique<UnaryExpr>(op, std::move(expr.value()), token.getSpan());
     }
 
-    void Parser::extract_elements(const TokenKind kind, std::vector<ExprPtr>& elements) {
-    while (!check(kind) && !is_at_end()) {
-        if (auto expr = parse_expr(0)) {
-            elements.push_back(std::move(expr.value()));
+    void Parser::extract_elements(const TokenKind kind, std::vector<ExprPtr> &elements) {
+        while(!check(kind) && !is_at_end()) {
+            if(auto expr = parse_expr(0)) { elements.push_back(std::move(expr.value())); }
+            if(!match_token(TokenKind::Comma)) { break; }
         }
-        if (!match_token(TokenKind::Comma)) {
-            break;
-        }
-    }}
+    }
 
     std::optional<ExprPtr> Parser::parse_array_literal([[maybe_unused]] const [[maybe_unused]] Token &start_token) {
         std::vector<ExprPtr> elements;
@@ -453,15 +519,15 @@ namespace jsv {
 
     std::optional<ExprPtr> Parser::parse_call([[maybe_unused]] ExprPtr callee, [[maybe_unused]] const Token &start_token) {
         std::vector<ExprPtr> arguments;
-        if (!check(TokenKind::CloseParen)) {
+        if(!check(TokenKind::CloseParen)) {
             do {
                 auto arg = parse_expr(0);
-                if (!arg) {
+                if(!arg) {
                     syntax_error("Expected expression in function call argument", peek(), std::nullopt, std::nullopt);
                     return std::nullopt;
                 }
                 arguments.push_back(std::move(*arg));
-            } while (match_token(TokenKind::Comma));
+            } while(match_token(TokenKind::Comma));
         }
         if (!expect(TokenKind::CloseParen, "after function call arguments")) {
             return std::nullopt;
@@ -533,7 +599,8 @@ namespace jsv {
     bool Parser::check_recursion_limit() {
         if(recursion_depth_ > MAX_RECURSION_DEPTH) {
             if(!is_at_end()) {
-                syntax_error("Maximum recursion depth exceeded", peek(), "Simplify the expression or break it into smaller parts", ErrorCode::E1001);
+                syntax_error("Maximum recursion depth exceeded", peek(), "Simplify the expression or break it into smaller parts",
+                             ErrorCode::E1001);
             }
             return true;
         }
