@@ -185,8 +185,8 @@ namespace jsv {
         const auto start_token = advance();
         std::optional<ExprPtr> return_value;
         if(!is_end_of_statement()) { return_value = parse_expr(0); }
-        auto stmt = std::make_unique<ReturnStmt>(return_value ? std::move(*return_value) : nullptr,
-                                                 calculate_return_span(start_token, return_value));
+        const auto span = calculate_return_span(start_token, return_value);
+        auto stmt = std::make_unique<ReturnStmt>(return_value ? std::move(*return_value) : nullptr, span);
         return stmt;
     }
     std::optional<StmtPtr> Parser::parse_while() {
