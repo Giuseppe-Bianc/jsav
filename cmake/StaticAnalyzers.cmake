@@ -16,7 +16,7 @@ macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
             set(SUPPRESS_DIR "*:${CMAKE_CURRENT_BINARY_DIR}/_deps/*.h")
             message(STATUS "  Suppressing warnings from: ${SUPPRESS_DIR}")
             message(STATUS "  Enabling checks: style, performance, warning, portability")
-            message(STATUS "  Active suppressions: cppcheckError, internalAstError, unmatchedSuppression, passedByValue, syntaxError, preprocessorErrorDirective")
+            message(STATUS "  Active suppressions: cppcheckError, internalAstError, unmatchedSuppression, passedByValue, syntaxError, preprocessorErrorDirective, duplInheritedMember")
             set(CMAKE_CXX_CPPCHECK
                     ${CPPCHECK}
                     --template=${CPPCHECK_TEMPLATE}
@@ -34,6 +34,8 @@ macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
                     --suppress=preprocessorErrorDirective
                     # ignores static_assert type failures
                     --suppress=knownConditionTrueFalse
+                    # LLVM-style RTTI pattern intentionally uses classof in derived classes
+                    --suppress=duplInheritedMember
                     --inconclusive
                     --suppress=${SUPPRESS_DIR}
             )
