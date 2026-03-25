@@ -532,7 +532,7 @@ namespace jsv {
         }
     }
 
-    std::optional<ExprPtr> Parser::parse_array_literal([[maybe_unused]] const [[maybe_unused]] Token &start_token) {
+    std::optional<ExprPtr> Parser::parse_array_literal([[maybe_unused]] const Token &start_token) {
         std::vector<ExprPtr> elements;
         extract_elements(TokenKind::CloseBrace, elements);
         if(!expect(TokenKind::CloseBrace, "end of array literal")) { return std::nullopt; }
@@ -553,7 +553,8 @@ namespace jsv {
         const auto span = left->location().merged(right.value()->location()).value_or(token.getSpan());
         return std::make_unique<BinaryExpr>(op, std::move(left), std::move(right.value()), span);
     }
-    std::optional<ExprPtr> Parser::parse_grouping([[maybe_unused]] const [[maybe_unused]] Token &start_token) {
+
+    std::optional<ExprPtr> Parser::parse_grouping([[maybe_unused]] const Token &start_token) {
         auto expr = parse_expr(0);
         if(!expect(TokenKind::CloseParen, "end of grouping")) { return std::nullopt; }
         return std::make_unique<GroupingExpr>(std::move(expr.value()), merged_span(start_token));
@@ -770,7 +771,9 @@ namespace jsv {
     }
     std::optional<std::string_view> Parser::consume_identifier() {
         auto token = peek();
-        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) { return advance().getText(); }
+        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) {
+            return advance().getText(); 
+        }
         syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
         return std::nullopt;
     }
