@@ -47,7 +47,7 @@ namespace jsv {
         // Expression helpers
         void extract_elements(const TokenKind kind, std::vector<ExprPtr> &elements);
         [[nodiscard]] ExprPtr parse_unary(UnaryOp op, const Token &token);
-        [[nodiscard]] ExprPtr parse_postfix_unary(ExprPtr operand, UnaryOp op, const Token &token);
+        [[nodiscard]] static ExprPtr parse_postfix_unary(ExprPtr operand, UnaryOp op, const Token &token);
         [[nodiscard]] std::optional<ExprPtr> parse_array_literal(const Token &start_token);
         [[nodiscard]] std::optional<ExprPtr> parse_binary(ExprPtr left, const Token &token);
         [[nodiscard]] std::optional<ExprPtr> parse_grouping(const Token &start_token);
@@ -64,8 +64,8 @@ namespace jsv {
         [[nodiscard]] bool expect(const TokenKind kind, std::string_view context);
         void syntax_error(std::string_view message, const Token &token, std::optional<std::string> help,
                           std::optional<ErrorCode> error_code);
-        void report_peek_error(std::string_view message, std::optional<std::string> help);
-        [[nodiscard]] SourceSpan calculate_return_span(const Token &start, const std::optional<ExprPtr> &value) const;
+        void report_peek_error(std::string_view message, const std::optional<std::string> &help);
+        [[nodiscard]] static SourceSpan calculate_return_span(const Token &start, const std::optional<ExprPtr> &value);
 
         // Recursion control
         [[nodiscard]] bool check_recursion_limit();
