@@ -771,9 +771,7 @@ namespace jsv {
     }
     std::optional<std::string_view> Parser::consume_identifier() {
         auto token = peek();
-        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) {
-            return advance().getText(); 
-        }
+        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) { return advance().getText(); }
         syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
         return std::nullopt;
     }
