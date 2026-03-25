@@ -48,8 +48,8 @@ namespace jsv {
         Vector,  // Vec<T> - dynamic array with element type
 
         // Special types
-        Void,    // No value (function return type)
-        NullPtr, // Null pointer type
+        Void,     // No value (function return type)
+        NullPtr,  // Null pointer type
     };
 
     /**
@@ -121,8 +121,8 @@ namespace jsv {
          * @return true if this is a built-in primitive type.
          */
         [[nodiscard]] constexpr bool is_primitive() const noexcept {
-            return kind_ >= TypeKind::I8 && kind_ <= TypeKind::NullPtr &&
-                   kind_ != TypeKind::Custom && kind_ != TypeKind::Array && kind_ != TypeKind::Vector;
+            return kind_ >= TypeKind::I8 && kind_ <= TypeKind::NullPtr && kind_ != TypeKind::Custom && kind_ != TypeKind::Array &&
+                   kind_ != TypeKind::Vector;
         }
 
         /**
@@ -130,41 +130,32 @@ namespace jsv {
          * @return true if this is any integer type.
          */
         [[nodiscard]] constexpr bool is_integer() const noexcept {
-            return (kind_ >= TypeKind::I8 && kind_ <= TypeKind::I64) ||
-                   (kind_ >= TypeKind::U8 && kind_ <= TypeKind::U64);
+            return (kind_ >= TypeKind::I8 && kind_ <= TypeKind::I64) || (kind_ >= TypeKind::U8 && kind_ <= TypeKind::U64);
         }
 
         /**
          * @brief Check if this is a signed integer type.
          * @return true if this is I8, I16, I32, or I64.
          */
-        [[nodiscard]] constexpr bool is_signed_integer() const noexcept {
-            return kind_ >= TypeKind::I8 && kind_ <= TypeKind::I64;
-        }
+        [[nodiscard]] constexpr bool is_signed_integer() const noexcept { return kind_ >= TypeKind::I8 && kind_ <= TypeKind::I64; }
 
         /**
          * @brief Check if this is an unsigned integer type.
          * @return true if this is U8, U16, U32, or U64.
          */
-        [[nodiscard]] constexpr bool is_unsigned_integer() const noexcept {
-            return kind_ >= TypeKind::U8 && kind_ <= TypeKind::U64;
-        }
+        [[nodiscard]] constexpr bool is_unsigned_integer() const noexcept { return kind_ >= TypeKind::U8 && kind_ <= TypeKind::U64; }
 
         /**
          * @brief Check if this is a floating-point type.
          * @return true if this is F32 or F64.
          */
-        [[nodiscard]] constexpr bool is_floating_point() const noexcept {
-            return kind_ == TypeKind::F32 || kind_ == TypeKind::F64;
-        }
+        [[nodiscard]] constexpr bool is_floating_point() const noexcept { return kind_ == TypeKind::F32 || kind_ == TypeKind::F64; }
 
         /**
          * @brief Check if this is a numeric type (integer or floating-point).
          * @return true if this supports numeric operations.
          */
-        [[nodiscard]] constexpr bool is_numeric() const noexcept {
-            return is_integer() || is_floating_point();
-        }
+        [[nodiscard]] constexpr bool is_numeric() const noexcept { return is_integer() || is_floating_point(); }
 
         /**
          * @brief Get string representation of the type.
@@ -184,9 +175,7 @@ namespace jsv {
          * @param other The type to compare with.
          * @return true if types are not equal.
          */
-        [[nodiscard]] constexpr bool operator!=(const TypeBase &other) const noexcept {
-            return !(*this == other);
-        }
+        [[nodiscard]] constexpr bool operator!=(const TypeBase &other) const noexcept { return !(*this == other); }
 
     protected:
         /**
@@ -378,11 +367,11 @@ namespace jsv {
          * @return true if n is a PrimitiveType.
          */
         [[nodiscard]] static constexpr bool classof(const TypeBase *n) {
-            return n->kind() == TypeKind::I8 || n->kind() == TypeKind::I16 || n->kind() == TypeKind::I32 ||
-                   n->kind() == TypeKind::I64 || n->kind() == TypeKind::U8 || n->kind() == TypeKind::U16 ||
-                   n->kind() == TypeKind::U32 || n->kind() == TypeKind::U64 || n->kind() == TypeKind::F32 ||
-                   n->kind() == TypeKind::F64 || n->kind() == TypeKind::Char || n->kind() == TypeKind::String ||
-                   n->kind() == TypeKind::Bool || n->kind() == TypeKind::Void || n->kind() == TypeKind::NullPtr;
+            return n->kind() == TypeKind::I8 || n->kind() == TypeKind::I16 || n->kind() == TypeKind::I32 || n->kind() == TypeKind::I64 ||
+                   n->kind() == TypeKind::U8 || n->kind() == TypeKind::U16 || n->kind() == TypeKind::U32 || n->kind() == TypeKind::U64 ||
+                   n->kind() == TypeKind::F32 || n->kind() == TypeKind::F64 || n->kind() == TypeKind::Char ||
+                   n->kind() == TypeKind::String || n->kind() == TypeKind::Bool || n->kind() == TypeKind::Void ||
+                   n->kind() == TypeKind::NullPtr;
         }
     };
 
@@ -395,8 +384,7 @@ namespace jsv {
          * @brief Construct a custom type.
          * @param name Custom type name.
          */
-        explicit CustomType(std::string_view name)
-            : TypeBase{TypeKind::Custom}, name_{std::make_shared<const std::string>(name)} {}
+        explicit CustomType(std::string_view name) : TypeBase{TypeKind::Custom}, name_{std::make_shared<const std::string>(name)} {}
 
         /**
          * @brief Get the custom type name.
@@ -427,9 +415,7 @@ namespace jsv {
          * @param n Type to check.
          * @return true if n is a CustomType.
          */
-        [[nodiscard]] static constexpr bool classof(const TypeBase *n) {
-            return n->kind() == TypeKind::Custom;
-        }
+        [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Custom; }
 
     private:
         std::shared_ptr<const std::string> name_;
@@ -446,7 +432,7 @@ namespace jsv {
          * @param size_expr Compile-time constant expression for array size.
          */
         ArrayType(std::shared_ptr<const TypeBase> element_type, std::shared_ptr<const Expr> size_expr)
-            : TypeBase{TypeKind::Array}, element_type_{std::move(element_type)}, size_expr_{std::move(size_expr)} {
+          : TypeBase{TypeKind::Array}, element_type_{std::move(element_type)}, size_expr_{std::move(size_expr)} {
             assert(element_type_ && "Element type cannot be null");
             assert(size_expr_ && "Size expression cannot be null");
         }
@@ -479,8 +465,7 @@ namespace jsv {
             // PERF: static_cast after kind() check avoids RTTI overhead of dynamic_cast
             const auto *other_array = static_cast<const ArrayType *>(&other);
             // Compare element types and use pointer equality for expressions
-            return *element_type_ == *other_array->element_type_ &&
-                   (size_expr_ == other_array->size_expr_);
+            return *element_type_ == *other_array->element_type_ && (size_expr_ == other_array->size_expr_);
         }
 
         /**
@@ -488,9 +473,7 @@ namespace jsv {
          * @param n Type to check.
          * @return true if n is an ArrayType.
          */
-        [[nodiscard]] static constexpr bool classof(const TypeBase *n) {
-            return n->kind() == TypeKind::Array;
-        }
+        [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Array; }
 
     private:
         std::shared_ptr<const TypeBase> element_type_;
@@ -507,7 +490,7 @@ namespace jsv {
          * @param element_type Type of vector elements.
          */
         explicit VectorType(std::shared_ptr<const TypeBase> element_type)
-            : TypeBase{TypeKind::Vector}, element_type_{std::move(element_type)} {
+          : TypeBase{TypeKind::Vector}, element_type_{std::move(element_type)} {
             assert(element_type_ && "Element type cannot be null");
         }
 
@@ -540,9 +523,7 @@ namespace jsv {
          * @param n Type to check.
          * @return true if n is a VectorType.
          */
-        [[nodiscard]] static constexpr bool classof(const TypeBase *n) {
-            return n->kind() == TypeKind::Vector;
-        }
+        [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Vector; }
 
     private:
         std::shared_ptr<const TypeBase> element_type_;
@@ -559,13 +540,9 @@ namespace jsv {
 // std::formatter  (C++23 <format>)
 // -------------------------------------------------------------------------
 namespace std {
-    template <>
-    struct formatter<jsv::TypePtr> : formatter<std::string_view> {
-        template <typename FormatContext>
-        auto format(const jsv::TypePtr &type, FormatContext &ctx) const {
-            if(type) {
-                return formatter<std::string_view>::format(type->to_string(), ctx);
-            }
+    template <> struct formatter<jsv::TypePtr> : formatter<std::string_view> {
+        template <typename FormatContext> auto format(const jsv::TypePtr &type, FormatContext &ctx) const {
+            if(type) { return formatter<std::string_view>::format(type->to_string(), ctx); }
             return formatter<std::string_view>::format("none", ctx);
         }
     };
@@ -574,13 +551,9 @@ namespace std {
 // -------------------------------------------------------------------------
 // fmt::formatter  (fmtlib)
 // -------------------------------------------------------------------------
-template <>
-struct fmt::formatter<jsv::TypePtr> : fmt::formatter<std::string_view> {
-    template <typename FormatContext>
-    auto format(const jsv::TypePtr &type, FormatContext &ctx) const {
-        if(type) {
-            return fmt::formatter<std::string_view>::format(type->to_string(), ctx);
-        }
+template <> struct fmt::formatter<jsv::TypePtr> : fmt::formatter<std::string_view> {
+    template <typename FormatContext> auto format(const jsv::TypePtr &type, FormatContext &ctx) const {
+        if(type) { return fmt::formatter<std::string_view>::format(type->to_string(), ctx); }
         return fmt::formatter<std::string_view>::format("none", ctx);
     }
 };

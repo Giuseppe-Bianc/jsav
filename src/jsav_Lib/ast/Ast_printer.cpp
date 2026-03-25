@@ -40,9 +40,8 @@ namespace jsv {
     // cppcheck-suppress functionConst
     void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
         const bool is_last = next_is_last_;
-        const std::string value_str = node.type_suffix().has_value() 
-            ? fmt::format("{}{}", node.value(), *node.type_suffix())
-            : fmt::format("{}", node.value());
+        const std::string value_str = node.type_suffix().has_value() ? fmt::format("{}{}", node.value(), *node.type_suffix())
+                                                                     : fmt::format("{}", node.value());
         print_value(ansi::green("Literal "), value_str, is_last);
     }
 
@@ -288,9 +287,7 @@ namespace jsv {
                 const IndentGuard guard2{*this, true};
                 for(std::size_t i = 0; i < node.initializers().size(); ++i) {
                     const bool init_last = (i == node.initializers().size() - 1);
-                    if(node.initializers()[i]) {
-                        visit_child(*node.initializers()[i], init_last);
-                    }
+                    if(node.initializers()[i]) { visit_child(*node.initializers()[i], init_last); }
                 }
             }
         } else {
@@ -310,9 +307,7 @@ namespace jsv {
             }
 
             // Type annotation
-            if(has_type) { 
-                print_value(ansi::magenta("Type: "), *type_ann, !has_init); 
-            }
+            if(has_type) { print_value(ansi::magenta("Type: "), *type_ann, !has_init); }
 
             // Initializers
             if(has_init) {
@@ -625,7 +620,8 @@ namespace jsv {
         // Single variable declaration (backward compatible)
         std::string result;
         // PERF: reserve estimated size to avoid reallocations
-        const std::size_t estimated_size = 32 + node.name().size() + (node.type_annotation().has_value() ? node.type_annotation()->size() : 0);
+        const std::size_t estimated_size = 32 + node.name().size() +
+                                           (node.type_annotation().has_value() ? node.type_annotation()->size() : 0);
         result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());
@@ -652,9 +648,7 @@ namespace jsv {
             }
         }
         FORMAT_TO(out, ")");
-        if(const auto &ret_type = node.return_type(); ret_type.has_value()) {
-            FORMAT_TO(out, " -> {}", *ret_type);
-        }
+        if(const auto &ret_type = node.return_type(); ret_type.has_value()) { FORMAT_TO(out, " -> {}", *ret_type); }
         FORMAT_TO(out, " {})", visit_BlockStmt(node.body()));
         return result;
     }

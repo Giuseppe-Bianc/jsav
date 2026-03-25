@@ -13,16 +13,12 @@ namespace jsv {
     // ============================================================
     // PrimitiveType::to_string
     // ============================================================
-    [[nodiscard]] std::string PrimitiveType::to_string() const {
-        return std::string{type_kind_name(kind())};
-    }
+    [[nodiscard]] std::string PrimitiveType::to_string() const { return std::string{type_kind_name(kind())}; }
 
     // ============================================================
     // CustomType::to_string
     // ============================================================
-    [[nodiscard]] std::string CustomType::to_string() const {
-        return std::string{*name_};
-    }
+    [[nodiscard]] std::string CustomType::to_string() const { return std::string{*name_}; }
 
     // ============================================================
     // ArrayType::to_string
@@ -45,9 +41,7 @@ namespace jsv {
     // ============================================================
     // VectorType::to_string
     // ============================================================
-    [[nodiscard]] std::string VectorType::to_string() const {
-        return FORMAT("Vec<{}>", element_type_);
-    }
+    [[nodiscard]] std::string VectorType::to_string() const { return FORMAT("Vec<{}>", element_type_); }
 
 }  // namespace jsv
 

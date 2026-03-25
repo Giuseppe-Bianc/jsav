@@ -16,7 +16,7 @@ namespace jsv {
     }
 
     CompileError CompileError::SyntaxError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
-                                        std::optional<std::string> help) {
+                                           std::optional<std::string> help) {
         return {Kind::SyntaxError, vnd_move(code), message, span, vnd_move(help)};
     }
 
@@ -74,7 +74,7 @@ namespace jsv {
     std::string_view CompileError::message() const {
         switch(kind_) {
         case Kind::LexerError:
-            case Kind::SyntaxError:
+        case Kind::SyntaxError:
             /*case Kind::TypeError:
             case Kind::IrGeneratorError:
             case Kind::AsmGeneratorError:*/
@@ -97,7 +97,7 @@ namespace jsv {
     std::optional<const std::string *> CompileError::help() const {
         switch(kind_) {
         case Kind::LexerError:
-            case Kind::SyntaxError:
+        case Kind::SyntaxError:
             /*case Kind::TypeError:
             case Kind::IrGeneratorError:*/
             return help_ ? std::optional<const std::string *>(&(*help_)) : std::nullopt;
@@ -115,7 +115,7 @@ namespace jsv {
     void CompileError::set_message(std::string_view new_message) {
         switch(kind_) {
         case Kind::LexerError:
-            case Kind::SyntaxError:
+        case Kind::SyntaxError:
             /*case Kind::TypeError:
             case Kind::IrGeneratorError:
             case Kind::AsmGeneratorError:*/
@@ -127,7 +127,7 @@ namespace jsv {
     void CompileError::set_span(SourceSpan new_span) {
         switch(kind_) {
         case Kind::LexerError:
-            case Kind::SyntaxError:
+        case Kind::SyntaxError:
             /*case Kind::TypeError:
             case Kind::IrGeneratorError:*/
             span_ = vnd_move(new_span);
@@ -140,7 +140,7 @@ namespace jsv {
     void CompileError::set_help(std::optional<std::string> new_help) {
         switch(kind_) {
         case Kind::LexerError:
-            case Kind::SyntaxError:
+        case Kind::SyntaxError:
             /*case Kind::TypeError:
             case Kind::IrGeneratorError:*/
             help_ = vnd_move(new_help);

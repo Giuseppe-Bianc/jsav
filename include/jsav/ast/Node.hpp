@@ -23,7 +23,7 @@ namespace jsv {
 
         Node(const Node &) = delete;
         Node &operator=(const Node &) = delete;
-        Node(Node &&) noexcept = default;  // PERF: noexcept enables vector move optimization
+        Node(Node &&) noexcept = default;             // PERF: noexcept enables vector move optimization
         Node &operator=(Node &&) noexcept = default;  // PERF: noexcept enables vector move optimization
 
         [[nodiscard]] constexpr NodeKind kind() const noexcept { return kind_; }
@@ -32,7 +32,7 @@ namespace jsv {
 
         [[nodiscard]] std::string_view kind_name() const noexcept;
 
-        [[nodiscard]] static constexpr bool classof(const Node* /*n*/) noexcept { return true; }
+        [[nodiscard]] static constexpr bool classof(const Node * /*n*/) noexcept { return true; }
 
     private:
         NodeKind kind_;

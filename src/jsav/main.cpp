@@ -62,7 +62,8 @@ constexpr int kGroupingMultiplier = 2;
             {.name = "b", .type_annotation = PrimitiveType::i32(), .loc = {}}
         };
 
-        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<TypePtr>{PrimitiveType::i32()}, std::move(body)));
+        stmts.push_back(std::make_unique<FuncDecl>("add", std::move(params), std::optional<TypePtr>{PrimitiveType::i32()},
+std::move(body)));
     }
 
     // print add(x, 8);

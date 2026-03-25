@@ -257,7 +257,7 @@ namespace jsv {
     std::optional<StmtPtr> Parser::parse_for() {
         const auto start_token = advance();
         [[maybe_unused]] auto e1 = expect(TokenKind::OpenParen, "after 'for'");
-        
+
         // Parse initializer - may be nullptr for empty, VarDecl, or ExprStmt
         std::optional<StmtPtr> initializer;
         bool initializer_was_empty = false;
@@ -276,7 +276,7 @@ namespace jsv {
             advance();
             initializer_was_empty = true;
         }
-        
+
         // Parse condition
         // If we had an empty initializer (explicit semicolon), check if condition is also empty
         std::optional<ExprPtr> condition;
@@ -294,18 +294,16 @@ namespace jsv {
                 return std::nullopt;
             }
         }
-        
+
         // Parse increment
         std::optional<ExprPtr> increment;
         if(!check(TokenKind::CloseParen)) {
             increment = parse_expr(0);
             if(!increment) return std::nullopt;
         }
-        if(!check(TokenKind::CloseParen)) {
-            return std::nullopt;
-        }
+        if(!check(TokenKind::CloseParen)) { return std::nullopt; }
         [[maybe_unused]] auto e3 = expect(TokenKind::CloseParen, "after for loop clauses");
-        
+
         auto body_stmt = parse_stmt();
         if(!body_stmt) return std::nullopt;
         // Assicura che il body sia sempre un BlockStmt
@@ -394,30 +392,30 @@ namespace jsv {
                 // Extract numeric value and type suffix
                 std::int64_t value = 0;
                 std::optional<std::string> type_suffix;
-                
+
                 // Find where the type suffix starts by scanning from the end
                 // Type suffixes are: d/D, f/F, u/U[width], i/I[width]
                 std::size_t suffix_start = text.size();
                 bool found_suffix = false;
-                
+
                 // Scan backwards to find the start of the suffix
-                for (std::size_t i = text.size(); i > 0 && !found_suffix; --i) {
+                for(std::size_t i = text.size(); i > 0 && !found_suffix; --i) {
                     const char c = text[i - 1];
-                    if (c == 'd' || c == 'D' || c == 'f' || c == 'F') {
+                    if(c == 'd' || c == 'D' || c == 'f' || c == 'F') {
                         suffix_start = i - 1;
                         found_suffix = true;
-                    } else if (c == 'u' || c == 'U' || c == 'i' || c == 'I') {
+                    } else if(c == 'u' || c == 'U' || c == 'i' || c == 'I') {
                         // Check if followed by digits (like u32, i8, u, i)
-                        if (i < text.size()) {
+                        if(i < text.size()) {
                             // There are characters after u/U/i/I - check if they're digits
                             bool all_digits_after = true;
-                            for (std::size_t j = i; j < text.size(); ++j) {
-                                if (!std::isdigit(static_cast<unsigned char>(text[j]))) {
+                            for(std::size_t j = i; j < text.size(); ++j) {
+                                if(!std::isdigit(static_cast<unsigned char>(text[j]))) {
                                     all_digits_after = false;
                                     break;
                                 }
                             }
-                            if (all_digits_after) {
+                            if(all_digits_after) {
                                 suffix_start = i - 1;
                                 found_suffix = true;
                             }
@@ -426,20 +424,18 @@ namespace jsv {
                             suffix_start = i - 1;
                             found_suffix = true;
                         }
-                    } else if (!std::isdigit(static_cast<unsigned char>(c)) && c != '.') {
+                    } else if(!std::isdigit(static_cast<unsigned char>(c)) && c != '.') {
                         // Non-digit, non-dot character that's not a suffix marker - stop scanning
                         break;
                     }
                 }
-                
+
                 // Parse the numeric value from the full text (strtoll stops at non-digit)
                 value = std::strtoll(text.data(), nullptr, 10);
-                
+
                 // Extract type suffix if present
-                if (found_suffix && suffix_start < text.size()) {
-                    type_suffix = std::string(text.substr(suffix_start));
-                }
-                
+                if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
+
                 return std::make_unique<IntegerLiteral>(value, token.getSpan(), std::move(type_suffix));
             }
         case TokenKind::KeywordBool:
@@ -589,9 +585,7 @@ namespace jsv {
                 arguments.push_back(std::move(*arg));
             } while(match_token(TokenKind::Comma));
         }
-        if (!expect(TokenKind::CloseParen, "after function call arguments")) {
-            return std::nullopt;
-        }
+        if(!expect(TokenKind::CloseParen, "after function call arguments")) { return std::nullopt; }
         // Lo span della chiamata è dal callee (di solito un Identifier) fino all'ultima parentesi
         SourceSpan call_span = merged_span(start_token);
         return std::make_unique<CallExpr>(std::move(callee), std::move(arguments), call_span);
@@ -751,29 +745,24 @@ namespace jsv {
 
         // Parse array dimensions: [2][3] -> [[base; 3]; 2]
         std::vector<std::size_t> dimensions;
-        while (match_token(TokenKind::OpenBracket)) {
+        while(match_token(TokenKind::OpenBracket)) {
             const auto dim_token = peek();
-            if (dim_token.getKind() == TokenKind::Numeric) {
+            if(dim_token.getKind() == TokenKind::Numeric) {
                 const auto dim_value = std::strtoull(dim_token.getText().data(), nullptr, 10);
                 dimensions.push_back(dim_value);
                 advance();  // consume the numeric token
             } else {
-                syntax_error("Expected array dimension size", dim_token,
-                            "Array dimensions must be positive integers", ErrorCode::E1002);
+                syntax_error("Expected array dimension size", dim_token, "Array dimensions must be positive integers", ErrorCode::E1002);
                 break;
             }
-            if (!expect(TokenKind::CloseBracket, "end of array dimension")) {
-                break;
-            }
+            if(!expect(TokenKind::CloseBracket, "end of array dimension")) { break; }
         }
 
         // Build type string with array dimensions: [[i8; 3]; 2]
-        if (!dimensions.empty()) {
+        if(!dimensions.empty()) {
             std::string result = type_string;
             // Apply dimensions from innermost to outermost (right to left)
-            for (std::size_t i = dimensions.size(); i > 0; --i) {
-                result = fmt::format("[{}; {}]", result, dimensions[i - 1]);
-            }
+            for(std::size_t i = dimensions.size(); i > 0; --i) { result = fmt::format("[{}; {}]", result, dimensions[i - 1]); }
             type_string = result;
         }
 
@@ -781,9 +770,7 @@ namespace jsv {
     }
     std::optional<std::string_view> Parser::consume_identifier() {
         auto token = peek();
-        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) {
-            return advance().getText();
-        }
+        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) { return advance().getText(); }
         syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
         return std::nullopt;
     }

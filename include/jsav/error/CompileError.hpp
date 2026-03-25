@@ -30,24 +30,24 @@ namespace jsv {
         static CompileError SyntaxError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
                                         std::optional<std::string> help);
 
-    /*static CompileError TypeError(
-        std::optional<ErrorCode> code,
-        std::string_view message,
-        SourceSpan span,
-        std::optional<std::string> help
-    );
+        /*static CompileError TypeError(
+            std::optional<ErrorCode> code,
+            std::string_view message,
+            SourceSpan span,
+            std::optional<std::string> help
+        );
 
-    static CompileError IrGeneratorError(
-        std::optional<ErrorCode> code,
-        std::string_view message,
-        SourceSpan span,
-        std::optional<std::string> help
-    );
+        static CompileError IrGeneratorError(
+            std::optional<ErrorCode> code,
+            std::string_view message,
+            SourceSpan span,
+            std::optional<std::string> help
+        );
 
-    static CompileError AsmGeneratorError(
-        std::optional<ErrorCode> code,
-        std::string_view message
-    );*/
+        static CompileError AsmGeneratorError(
+            std::optional<ErrorCode> code,
+            std::string_view message
+        );*/
 
         // --- Accessors ---
 

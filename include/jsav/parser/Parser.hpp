@@ -45,7 +45,7 @@ namespace jsv {
         [[nodiscard]] std::optional<ExprPtr> led(ExprPtr left);
 
         // Expression helpers
-        void extract_elements(const TokenKind kind, std::vector<ExprPtr>& elements);
+        void extract_elements(const TokenKind kind, std::vector<ExprPtr> &elements);
         [[nodiscard]] ExprPtr parse_unary(UnaryOp op, const Token &token);
         [[nodiscard]] ExprPtr parse_postfix_unary(ExprPtr operand, UnaryOp op, const Token &token);
         [[nodiscard]] std::optional<ExprPtr> parse_array_literal(const Token &start_token);
@@ -65,8 +65,7 @@ namespace jsv {
         void syntax_error(std::string_view message, const Token &token, std::optional<std::string> help,
                           std::optional<ErrorCode> error_code);
         void report_peek_error(std::string_view message, std::optional<std::string> help);
-        [[nodiscard]] SourceSpan calculate_return_span(const Token& start,
-                                                    const std::optional<ExprPtr>& value) const;
+        [[nodiscard]] SourceSpan calculate_return_span(const Token &start, const std::optional<ExprPtr> &value) const;
 
         // Recursion control
         [[nodiscard]] bool check_recursion_limit();
@@ -74,6 +73,7 @@ namespace jsv {
         void exit_recursion();
         SourceSpan merged_span(const Token &start_token) const;
         std::optional<std::string_view> consume_identifier();
+
     private:
         std::vector<Token> tokens_;
         std::size_t current_;
