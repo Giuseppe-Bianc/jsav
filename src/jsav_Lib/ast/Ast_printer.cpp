@@ -84,7 +84,14 @@ namespace jsv {
 
     void AstPrinter::visit_UnaryExpr(const UnaryExpr &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::cyan("UnaryExpr "), FORMAT("'{}'", unary_op_symbol(node.op())), is_last);
+        const std::string_view op_str = unary_op_symbol(node.op());
+        std::string position;
+        if(node.op() == UnaryOp::PreInc || node.op() == UnaryOp::PreDec) {
+            position = " (prefix)";
+        } else if(node.op() == UnaryOp::PostInc || node.op() == UnaryOp::PostDec) {
+            position = " (postfix)";
+        }
+        print_value(ansi::cyan("UnaryExpr "), FORMAT("'{}'{}", op_str, position), is_last);
         const IndentGuard guard{*this, is_last};
 
         print_line(ansi::cyan("Operand:"), true);
@@ -528,7 +535,13 @@ namespace jsv {
     std::string SExprPrinter::visit_Identifier(const Identifier &node) { return node.name(); }
 
     std::string SExprPrinter::visit_UnaryExpr(const UnaryExpr &node) {
-        return FORMAT("({} {})", unary_op_symbol(node.op()), visit(node.operand()));
+        const std::string_view op_str = unary_op_symbol(node.op());
+        if(node.op() == UnaryOp::PreInc || node.op() == UnaryOp::PreDec) {
+            return FORMAT("({} prefix {})", op_str, visit(node.operand()));
+        } else if(node.op() == UnaryOp::PostInc || node.op() == UnaryOp::PostDec) {
+            return FORMAT("({} postfix {})", op_str, visit(node.operand()));
+        }
+        return FORMAT("({} {})", op_str, visit(node.operand()));
     }
 
     std::string SExprPrinter::visit_BinaryExpr(const BinaryExpr &node) {

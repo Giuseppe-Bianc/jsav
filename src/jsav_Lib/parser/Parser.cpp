@@ -462,6 +462,10 @@ namespace jsv {
             return parse_unary(UnaryOp::Negate, token);
         case TokenKind::Not:
             return parse_unary(UnaryOp::Not, token);
+        case TokenKind::PlusPlus:
+            return parse_unary(UnaryOp::PreInc, token);
+        case TokenKind::MinusMinus:
+            return parse_unary(UnaryOp::PreDec, token);
         case TokenKind::OpenBrace:
             return parse_array_literal(token);
         case TokenKind::OpenParen:
@@ -503,6 +507,10 @@ namespace jsv {
             return parse_call(std::move(left), token);
         case TokenKind::OpenBracket:
             return parse_array_access(std::move(left), token);
+        case TokenKind::PlusPlus:
+            return parse_postfix_unary(std::move(left), UnaryOp::PostInc, token);
+        case TokenKind::MinusMinus:
+            return parse_postfix_unary(std::move(left), UnaryOp::PostDec, token);
         default:
             syntax_error("Unexpected operator", token, "This operator is not supported in this context", ErrorCode::E1004);
             return std::nullopt;
@@ -514,6 +522,11 @@ namespace jsv {
         auto expr = parse_expr(rbp);
         if(!expr) { expr = std::make_unique<NullLiteral>(token.getSpan()); }
         return std::make_unique<UnaryExpr>(op, std::move(expr.value()), token.getSpan());
+    }
+
+    ExprPtr Parser::parse_postfix_unary(ExprPtr operand, const UnaryOp op, const Token &token) {
+        const auto span = operand->location().merged(token.getSpan()).value_or(token.getSpan());
+        return std::make_unique<UnaryExpr>(op, std::move(operand), span);
     }
 
     void Parser::extract_elements(const TokenKind kind, std::vector<ExprPtr> &elements) {

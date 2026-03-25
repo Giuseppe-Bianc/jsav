@@ -45,6 +45,10 @@ namespace jsv {
         return {19, 20};
     case TokenKind::Equal:         // = (assignment)
         return {21, 22};
+    case TokenKind::PlusPlus:      // ++ (postfix)
+        return {23, 24};
+    case TokenKind::MinusMinus:    // -- (postfix)
+        return {23, 24};
     default:
         return {0, 0};  // Not an operator
     }

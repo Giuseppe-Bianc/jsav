@@ -47,6 +47,7 @@ namespace jsv {
         // Expression helpers
         void extract_elements(const TokenKind kind, std::vector<ExprPtr>& elements);
         [[nodiscard]] ExprPtr parse_unary(UnaryOp op, const Token &token);
+        [[nodiscard]] ExprPtr parse_postfix_unary(ExprPtr operand, UnaryOp op, const Token &token);
         [[nodiscard]] std::optional<ExprPtr> parse_array_literal(const Token &start_token);
         [[nodiscard]] std::optional<ExprPtr> parse_binary(ExprPtr left, const Token &token);
         [[nodiscard]] std::optional<ExprPtr> parse_grouping(const Token &start_token);
