@@ -53,7 +53,8 @@ namespace jsv {
         }
 
         // Parse the numeric value from the full text using string_view::substr to ensure proper bounds
-        value = std::strtoll(std::string(text).c_str(), nullptr, kDecimalRadix);
+        const std::string text_str(text);
+        value = std::strtoll(text_str.c_str(), nullptr, kDecimalRadix);
 
         // Extract type suffix if present
         if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
