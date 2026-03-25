@@ -20,7 +20,8 @@ namespace jsv {
                 stmts.push_back(std::move(stmt.value()));
             } else {
                 // Skip the current token to avoid infinite loop on syntax error
-                advance();
+                // Only advance if not at end to avoid out-of-bounds access
+                if(!is_at_end()) { advance(); }
             }
         }
         return std::make_pair(std::make_unique<Program>(vnd_move(stmts)), vnd_move(errors_));
@@ -338,7 +339,8 @@ namespace jsv {
             if(auto stmt = parse_stmt()) {
                 statements.push_back(std::move(stmt.value()));
             } else {
-                advance();
+                // Only advance if we're not at end to avoid out-of-bounds access
+                if(!is_at_end()) { advance(); }
             }
         }
         [[maybe_unused]] auto e = expect(TokenKind::CloseBrace, "end of block");
@@ -350,7 +352,7 @@ namespace jsv {
         if(!expr) {
             // Se non c'è un'espressione valida, segnala errore e avanza
             syntax_error("Expected expression statement", peek(), std::nullopt, ErrorCode::E1004);
-            advance();
+            if(!is_at_end()) { advance(); }
             return std::nullopt;
         }
         // Consuma opzionalmente il punto e virgola
