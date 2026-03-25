@@ -32,6 +32,8 @@ namespace jsv {
 
         [[nodiscard]] std::string_view kind_name() const noexcept;
 
+        [[nodiscard]] static constexpr bool classof(const Node* /*n*/) noexcept { return true; }
+
     private:
         NodeKind kind_;
         SourceSpan loc_;

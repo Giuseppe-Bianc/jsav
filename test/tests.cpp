@@ -4755,7 +4755,7 @@ TEST_CASE("ErrorCode severity() tests", "[error][severity_func]") {
 
 TEST_CASE("ErrorCode phase() tests", "[error][phase_func]") {
     REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
-    REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Lexer);
+    REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Parser);
     REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
 }
 
@@ -5003,37 +5003,35 @@ TEST_CASE("numeric_code() function comprehensive coverage", "[error][numeric_cod
 }
 
 TEST_CASE("phase() function coverage", "[error][phase]") {
-    // All error codes currently return Lexer phase (fallback)
-    // because other phases are commented out in the implementation
     SECTION("Lexer phase for E0001-E0010") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E0005) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E0010) == jsv::CompilerPhase::Lexer);
     }
 
-    SECTION("Lexer phase for E1001-E1015 (Parser range, returns Lexer)") {
-        REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Lexer);
-        REQUIRE(jsv::phase(jsv::ErrorCode::E1013) == jsv::CompilerPhase::Lexer);
-        REQUIRE(jsv::phase(jsv::ErrorCode::E1015) == jsv::CompilerPhase::Lexer);
+    SECTION("Parser phase for E1001-E1015") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Parser);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E1013) == jsv::CompilerPhase::Parser);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E1015) == jsv::CompilerPhase::Parser);
     }
 
-    SECTION("Lexer phase for E2001-E2032 (Semantic range, returns Lexer)") {
+    SECTION("Lexer phase for E2001-E2032 (Semantic range, not yet implemented)") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E2023) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E2032) == jsv::CompilerPhase::Lexer);
     }
 
-    SECTION("Lexer phase for E3001-E3008 (IR range, returns Lexer)") {
+    SECTION("Lexer phase for E3001-E3008 (IR range, not yet implemented)") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E3001) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E3008) == jsv::CompilerPhase::Lexer);
     }
 
-    SECTION("Lexer phase for E4001-E4005 (CodeGen range, returns Lexer)") {
+    SECTION("Lexer phase for E4001-E4005 (CodeGen range, not yet implemented)") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E4001) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E4005) == jsv::CompilerPhase::Lexer);
     }
 
-    SECTION("Lexer phase for E5001-E5005 (System range, returns Lexer)") {
+    SECTION("Lexer phase for E5001-E5005 (System range, not yet implemented)") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E5001) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E5003) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E5005) == jsv::CompilerPhase::Lexer);
@@ -7344,6 +7342,2529 @@ let z = @3;)";
         REQUIRE(stripped.find("[E0008]") != std::string::npos);
         REQUIRE(stripped.find("/* This comment") != std::string::npos);
         REQUIRE(stripped.find("... (error spans lines 2-6)") != std::string::npos);
+    }
+}
+
+// ============================================================================
+// SECTION: AST and Parser Tests
+// ============================================================================
+
+// -----------------------------------------------------------------------------
+// NodeKind Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("NodeKind enumeration covers all node types", "[NodeKind][AST]") {
+    SECTION("Expression kinds are properly defined") {
+        STATIC_REQUIRE(static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::IntegerLiteral) <
+                       static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::ExprStmt));
+    }
+
+    SECTION("Statement kinds are properly defined") {
+        STATIC_REQUIRE(static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::ExprStmt) <
+                       static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::Program));
+    }
+}
+
+TEST_CASE("node_kind_name returns correct string for all node kinds", "[NodeKind][AST]") {
+    SECTION("Expression node kinds") {
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::IntegerLiteral) == "IntegerLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::FloatLiteral) == "FloatLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::StringLiteral) == "StringLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::CharLiteral) == "CharLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::BoolLiteral) == "BoolLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::NullLiteral) == "NullLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::Identifier) == "Identifier");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::UnaryExpr) == "UnaryExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::BinaryExpr) == "BinaryExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::TernaryExpr) == "TernaryExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::CallExpr) == "CallExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::IndexExpr) == "IndexExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::MemberExpr) == "MemberExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::AssignExpr) == "AssignExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::CastExpr) == "CastExpr");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::ArrayLiteral) == "ArrayLiteral");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::GroupingExpr) == "GroupingExpr");
+    }
+
+    SECTION("Statement node kinds") {
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::ExprStmt) == "ExprStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::VarDecl) == "VarDecl");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::FuncDecl) == "FuncDecl");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::ReturnStmt) == "ReturnStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::IfStmt) == "IfStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::WhileStmt) == "WhileStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::ForStmt) == "ForStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::BlockStmt) == "BlockStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::BreakStmt) == "BreakStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::ContinueStmt) == "ContinueStmt");
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::MainStmt) == "MainStmt");
+    }
+
+    SECTION("Program node kind") {
+        REQUIRE(jsv::node_kind_name(jsv::NodeKind::Program) == "Program");
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Operator Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("unary_op_symbol returns correct symbol for all operators", "[UnaryOp][AST]") {
+    SECTION("Negate operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Negate) == "-"); }
+    SECTION("Not operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Not) == "!"); }
+    SECTION("Bitwise not operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::BitNot) == "~"); }
+    SECTION("Pre-increment operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PreInc) == "++"); }
+    SECTION("Pre-decrement operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PreDec) == "--"); }
+    SECTION("Post-increment operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PostInc) == "++"); }
+    SECTION("Post-decrement operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PostDec) == "--"); }
+}
+
+TEST_CASE("binary_op_symbol returns correct symbol for all operators", "[BinaryOp][AST]") {
+    SECTION("Arithmetic operators") {
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Add) == "+");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Sub) == "-");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Mul) == "*");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Div) == "/");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Mod) == "%");
+    }
+
+    SECTION("Comparison operators") {
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Eq) == "==");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Neq) == "!=");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Lt) == "<");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Gt) == ">");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Le) == "<=");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Ge) == ">=");
+    }
+
+    SECTION("Logical operators") {
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::And) == "&&");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Or) == "||");
+    }
+
+    SECTION("Bitwise operators") {
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::BitAnd) == "&");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::BitOr) == "|");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::BitXor) == "^");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Shl) == "<<");
+        REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Shr) == ">>");
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Type System Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("type_kind_name returns correct string for all type kinds", "[TypeKind][AST]") {
+    SECTION("Signed integer types") {
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::I8) == "i8");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::I16) == "i16");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::I32) == "i32");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::I64) == "i64");
+    }
+
+    SECTION("Unsigned integer types") {
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::U8) == "u8");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::U16) == "u16");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::U32) == "u32");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::U64) == "u64");
+    }
+
+    SECTION("Floating-point types") {
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::F32) == "f32");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::F64) == "f64");
+    }
+
+    SECTION("Other primitive types") {
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::Char) == "char");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::String) == "string");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::Bool) == "bool");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::Void) == "void");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::NullPtr) == "nullptr");
+    }
+
+    SECTION("Compound and custom types") {
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::Custom) == "custom");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::Array) == "array");
+        REQUIRE(jsv::type_kind_name(jsv::TypeKind::Vector) == "vector");
+    }
+}
+
+TEST_CASE("PrimitiveType singleton instances work correctly", "[PrimitiveType][AST]") {
+    SECTION("Integer type singletons") {
+        REQUIRE(jsv::PrimitiveType::i8()->kind() == jsv::TypeKind::I8);
+        REQUIRE(jsv::PrimitiveType::i16()->kind() == jsv::TypeKind::I16);
+        REQUIRE(jsv::PrimitiveType::i32()->kind() == jsv::TypeKind::I32);
+        REQUIRE(jsv::PrimitiveType::i64()->kind() == jsv::TypeKind::I64);
+    }
+
+    SECTION("Unsigned integer type singletons") {
+        REQUIRE(jsv::PrimitiveType::u8()->kind() == jsv::TypeKind::U8);
+        REQUIRE(jsv::PrimitiveType::u16()->kind() == jsv::TypeKind::U16);
+        REQUIRE(jsv::PrimitiveType::u32()->kind() == jsv::TypeKind::U32);
+        REQUIRE(jsv::PrimitiveType::u64()->kind() == jsv::TypeKind::U64);
+    }
+
+    SECTION("Floating-point type singletons") {
+        REQUIRE(jsv::PrimitiveType::f32()->kind() == jsv::TypeKind::F32);
+        REQUIRE(jsv::PrimitiveType::f64()->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("Other primitive type singletons") {
+        REQUIRE(jsv::PrimitiveType::char_()->kind() == jsv::TypeKind::Char);
+        REQUIRE(jsv::PrimitiveType::string()->kind() == jsv::TypeKind::String);
+        REQUIRE(jsv::PrimitiveType::bool_()->kind() == jsv::TypeKind::Bool);
+        REQUIRE(jsv::PrimitiveType::void_()->kind() == jsv::TypeKind::Void);
+        REQUIRE(jsv::PrimitiveType::nullptr_()->kind() == jsv::TypeKind::NullPtr);
+    }
+
+    SECTION("Singleton instances are truly singletons (same pointer)") {
+        REQUIRE(jsv::PrimitiveType::i32().get() == jsv::PrimitiveType::i32().get());
+        REQUIRE(jsv::PrimitiveType::f64().get() == jsv::PrimitiveType::f64().get());
+        REQUIRE(jsv::PrimitiveType::bool_().get() == jsv::PrimitiveType::bool_().get());
+    }
+}
+
+TEST_CASE("PrimitiveType type predicates work correctly", "[PrimitiveType][AST]") {
+    SECTION("Integer type predicates") {
+        REQUIRE(jsv::PrimitiveType::i32()->is_integer());
+        REQUIRE(jsv::PrimitiveType::i32()->is_signed_integer());
+        REQUIRE(!jsv::PrimitiveType::i32()->is_unsigned_integer());
+        REQUIRE(!jsv::PrimitiveType::i32()->is_floating_point());
+        REQUIRE(jsv::PrimitiveType::i32()->is_numeric());
+        REQUIRE(jsv::PrimitiveType::i32()->is_primitive());
+    }
+
+    SECTION("Unsigned integer type predicates") {
+        REQUIRE(jsv::PrimitiveType::u32()->is_integer());
+        REQUIRE(!jsv::PrimitiveType::u32()->is_signed_integer());
+        REQUIRE(jsv::PrimitiveType::u32()->is_unsigned_integer());
+        REQUIRE(!jsv::PrimitiveType::u32()->is_floating_point());
+        REQUIRE(jsv::PrimitiveType::u32()->is_numeric());
+        REQUIRE(jsv::PrimitiveType::u32()->is_primitive());
+    }
+
+    SECTION("Floating-point type predicates") {
+        REQUIRE(!jsv::PrimitiveType::f64()->is_integer());
+        REQUIRE(!jsv::PrimitiveType::f64()->is_signed_integer());
+        REQUIRE(!jsv::PrimitiveType::f64()->is_unsigned_integer());
+        REQUIRE(jsv::PrimitiveType::f64()->is_floating_point());
+        REQUIRE(jsv::PrimitiveType::f64()->is_numeric());
+        REQUIRE(jsv::PrimitiveType::f64()->is_primitive());
+    }
+
+    SECTION("Non-numeric type predicates") {
+        REQUIRE(!jsv::PrimitiveType::string()->is_integer());
+        REQUIRE(!jsv::PrimitiveType::string()->is_numeric());
+        REQUIRE(jsv::PrimitiveType::string()->is_primitive());
+        REQUIRE(!jsv::PrimitiveType::bool_()->is_integer());
+        REQUIRE(!jsv::PrimitiveType::bool_()->is_numeric());
+        REQUIRE(jsv::PrimitiveType::bool_()->is_primitive());
+    }
+}
+
+TEST_CASE("PrimitiveType to_string returns correct strings", "[PrimitiveType][AST]") {
+    SECTION("Integer type strings") {
+        REQUIRE(jsv::PrimitiveType::i8()->to_string() == "i8");
+        REQUIRE(jsv::PrimitiveType::i16()->to_string() == "i16");
+        REQUIRE(jsv::PrimitiveType::i32()->to_string() == "i32");
+        REQUIRE(jsv::PrimitiveType::i64()->to_string() == "i64");
+    }
+
+    SECTION("Unsigned integer type strings") {
+        REQUIRE(jsv::PrimitiveType::u8()->to_string() == "u8");
+        REQUIRE(jsv::PrimitiveType::u16()->to_string() == "u16");
+        REQUIRE(jsv::PrimitiveType::u32()->to_string() == "u32");
+        REQUIRE(jsv::PrimitiveType::u64()->to_string() == "u64");
+    }
+
+    SECTION("Floating-point type strings") {
+        REQUIRE(jsv::PrimitiveType::f32()->to_string() == "f32");
+        REQUIRE(jsv::PrimitiveType::f64()->to_string() == "f64");
+    }
+
+    SECTION("Other primitive type strings") {
+        REQUIRE(jsv::PrimitiveType::char_()->to_string() == "char");
+        REQUIRE(jsv::PrimitiveType::string()->to_string() == "string");
+        REQUIRE(jsv::PrimitiveType::bool_()->to_string() == "bool");
+        REQUIRE(jsv::PrimitiveType::void_()->to_string() == "void");
+        REQUIRE(jsv::PrimitiveType::nullptr_()->to_string() == "nullptr");
+    }
+}
+
+TEST_CASE("PrimitiveType equality comparison works correctly", "[PrimitiveType][AST]") {
+    SECTION("Same types are equal") {
+        REQUIRE(*jsv::PrimitiveType::i32() == *jsv::PrimitiveType::i32());
+        REQUIRE(*jsv::PrimitiveType::f64() == *jsv::PrimitiveType::f64());
+        REQUIRE(*jsv::PrimitiveType::bool_() == *jsv::PrimitiveType::bool_());
+    }
+
+    SECTION("Different types are not equal") {
+        REQUIRE(!(*jsv::PrimitiveType::i32() == *jsv::PrimitiveType::f64()));
+        REQUIRE(!(*jsv::PrimitiveType::i32() == *jsv::PrimitiveType::i64()));
+        REQUIRE(!(*jsv::PrimitiveType::bool_() == *jsv::PrimitiveType::string()));
+    }
+
+    SECTION("Inequality operator works correctly") {
+        REQUIRE(!(*jsv::PrimitiveType::i32() != *jsv::PrimitiveType::i32()));
+        REQUIRE(*jsv::PrimitiveType::i32() != *jsv::PrimitiveType::f64());
+    }
+}
+
+TEST_CASE("CustomType creation and comparison", "[CustomType][AST]") {
+    SECTION("CustomType with simple name") {
+        const jsv::CustomType my_type("MyType");
+        REQUIRE(my_type.kind() == jsv::TypeKind::Custom);
+        REQUIRE(my_type.name() == "MyType");
+        REQUIRE(my_type.to_string() == "MyType");
+    }
+
+    SECTION("CustomType with qualified name") {
+        const jsv::CustomType qualified_type("ns::MyType");
+        REQUIRE(qualified_type.name() == "ns::MyType");
+        REQUIRE(qualified_type.to_string() == "ns::MyType");
+    }
+
+    SECTION("CustomType equality comparison") {
+        const jsv::CustomType type1("MyType");
+        const jsv::CustomType type2("MyType");
+        const jsv::CustomType type3("OtherType");
+
+        REQUIRE(type1 == type2);
+        REQUIRE(type1 != type3);
+        REQUIRE(!(type1 == type3));
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Expression AST Node Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Basic integer literal") {
+        const SourceSpan span;
+        IntegerLiteral lit(42, span);
+        REQUIRE(lit.value() == 42);
+        REQUIRE(lit.kind() == NodeKind::IntegerLiteral);
+        REQUIRE(IntegerLiteral::classof(&lit));
+    }
+
+    SECTION("Integer literal with type suffix") {
+        const SourceSpan span;
+        const std::string suffix = "i32";
+        IntegerLiteral lit(42, span, suffix);
+        REQUIRE(lit.value() == 42);
+        REQUIRE(lit.type_suffix().has_value());
+        REQUIRE(lit.type_suffix().value() == "i32");
+    }
+
+    SECTION("Integer literal without type suffix") {
+        const SourceSpan span;
+        IntegerLiteral lit(42, span);
+        REQUIRE(lit.type_suffix().has_value() == false);
+    }
+
+    SECTION("Negative integer literal") {
+        const SourceSpan span;
+        IntegerLiteral lit(-100, span);
+        REQUIRE(lit.value() == -100);
+    }
+
+    SECTION("Large integer literal") {
+        const SourceSpan span;
+        IntegerLiteral lit(9223372036854775807LL, span);  // max int64
+        REQUIRE(lit.value() == 9223372036854775807LL);
+    }
+
+    SECTION("Zero integer literal") {
+        const SourceSpan span;
+        IntegerLiteral lit(0, span);
+        REQUIRE(lit.value() == 0);
+    }
+}
+
+TEST_CASE("FloatLiteral node creation and accessors", "[FloatLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Basic float literal") {
+        const SourceSpan span;
+        FloatLiteral lit(3.14, span);
+        REQUIRE(lit.value() == 3.14);
+        REQUIRE(lit.kind() == NodeKind::FloatLiteral);
+        REQUIRE(FloatLiteral::classof(&lit));
+    }
+
+    SECTION("Negative float literal") {
+        const SourceSpan span;
+        FloatLiteral lit(-2.71, span);
+        REQUIRE(lit.value() == -2.71);
+    }
+
+    SECTION("Zero float literal") {
+        const SourceSpan span;
+        FloatLiteral lit(0.0, span);
+        REQUIRE(lit.value() == 0.0);
+    }
+
+    SECTION("Very small float literal") {
+        const SourceSpan span;
+        FloatLiteral lit(1.23e-10, span);
+        REQUIRE(lit.value() == 1.23e-10);
+    }
+
+    SECTION("Very large float literal") {
+        const SourceSpan span;
+        FloatLiteral lit(1.23e100, span);
+        REQUIRE(lit.value() == 1.23e100);
+    }
+}
+
+TEST_CASE("StringLiteral node creation and accessors", "[StringLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Basic string literal") {
+        const SourceSpan span;
+        StringLiteral lit("hello", span);
+        REQUIRE(lit.value() == "hello");
+        REQUIRE(lit.kind() == NodeKind::StringLiteral);
+        REQUIRE(StringLiteral::classof(&lit));
+    }
+
+    SECTION("Empty string literal") {
+        const SourceSpan span;
+        StringLiteral lit("", span);
+        REQUIRE(lit.value().empty());
+    }
+
+    SECTION("String literal with special characters") {
+        const SourceSpan span;
+        StringLiteral lit("hello\nworld\t!", span);
+        REQUIRE(lit.value() == "hello\nworld\t!");
+    }
+
+    SECTION("String literal with Unicode") {
+        const SourceSpan span;
+        StringLiteral lit("你好，世界", span);
+        REQUIRE(lit.value() == "你好，世界");
+    }
+}
+
+TEST_CASE("CharLiteral node creation and accessors", "[CharLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Basic char literal") {
+        const SourceSpan span;
+        CharLiteral lit('a', span);
+        REQUIRE(lit.value() == 'a');
+        REQUIRE(lit.kind() == NodeKind::CharLiteral);
+        REQUIRE(CharLiteral::classof(&lit));
+    }
+
+    SECTION("Numeric char literal") {
+        const SourceSpan span;
+        CharLiteral lit('5', span);
+        REQUIRE(lit.value() == '5');
+    }
+
+    SECTION("Special character literal") {
+        const SourceSpan span;
+        CharLiteral lit('\n', span);
+        REQUIRE(lit.value() == '\n');
+    }
+
+    SECTION("Null character literal") {
+        const SourceSpan span;
+        CharLiteral lit('\0', span);
+        REQUIRE(lit.value() == '\0');
+    }
+}
+
+TEST_CASE("BoolLiteral node creation and accessors", "[BoolLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("True literal") {
+        const SourceSpan span;
+        BoolLiteral lit(true, span);
+        REQUIRE(lit.value() == true);
+        REQUIRE(lit.kind() == NodeKind::BoolLiteral);
+        REQUIRE(BoolLiteral::classof(&lit));
+    }
+
+    SECTION("False literal") {
+        const SourceSpan span;
+        BoolLiteral lit(false, span);
+        REQUIRE(lit.value() == false);
+        REQUIRE(lit.kind() == NodeKind::BoolLiteral);
+    }
+}
+
+TEST_CASE("NullLiteral node creation and accessors", "[NullLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Basic null literal") {
+        const SourceSpan span;
+        NullLiteral lit(span);
+        REQUIRE(lit.kind() == NodeKind::NullLiteral);
+        REQUIRE(NullLiteral::classof(&lit));
+    }
+}
+
+TEST_CASE("Identifier node creation and accessors", "[Identifier][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Basic identifier") {
+        const SourceSpan span;
+        Identifier ident("x", span);
+        REQUIRE(ident.name() == "x");
+        REQUIRE(ident.kind() == NodeKind::Identifier);
+        REQUIRE(Identifier::classof(&ident));
+    }
+
+    SECTION("Long identifier") {
+        const SourceSpan span;
+        Identifier ident("myVariableName", span);
+        REQUIRE(ident.name() == "myVariableName");
+    }
+
+    SECTION("Unicode identifier") {
+        const SourceSpan span;
+        Identifier ident("变量", span);
+        REQUIRE(ident.name() == "变量");
+    }
+
+    SECTION("Identifier with underscores") {
+        const SourceSpan span;
+        Identifier ident("_my_var_", span);
+        REQUIRE(ident.name() == "_my_var_");
+    }
+}
+
+TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Negate expression") {
+        const SourceSpan span;
+        auto operand = std::make_unique<IntegerLiteral>(42, span);
+        UnaryExpr expr(UnaryOp::Negate, std::move(operand), span);
+        REQUIRE(expr.op() == UnaryOp::Negate);
+        REQUIRE(expr.operand().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.kind() == NodeKind::UnaryExpr);
+        REQUIRE(UnaryExpr::classof(&expr));
+    }
+
+    SECTION("Not expression") {
+        const SourceSpan span;
+        auto operand = std::make_unique<BoolLiteral>(true, span);
+        UnaryExpr expr(UnaryOp::Not, std::move(operand), span);
+        REQUIRE(expr.op() == UnaryOp::Not);
+        REQUIRE(expr.operand().kind() == NodeKind::BoolLiteral);
+    }
+
+    SECTION("Pre-increment expression") {
+        const SourceSpan span;
+        auto operand = std::make_unique<Identifier>("i", span);
+        UnaryExpr expr(UnaryOp::PreInc, std::move(operand), span);
+        REQUIRE(expr.op() == UnaryOp::PreInc);
+    }
+
+    SECTION("Post-decrement expression") {
+        const SourceSpan span;
+        auto operand = std::make_unique<Identifier>("i", span);
+        UnaryExpr expr(UnaryOp::PostDec, std::move(operand), span);
+        REQUIRE(expr.op() == UnaryOp::PostDec);
+    }
+}
+
+TEST_CASE("BinaryExpr node creation and accessors", "[BinaryExpr][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Addition expression") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<IntegerLiteral>(10, span);
+        auto rhs = std::make_unique<IntegerLiteral>(5, span);
+        BinaryExpr expr(BinaryOp::Add, std::move(lhs), std::move(rhs), span);
+        REQUIRE(expr.op() == BinaryOp::Add);
+        REQUIRE(expr.lhs().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.rhs().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.kind() == NodeKind::BinaryExpr);
+        REQUIRE(BinaryExpr::classof(&expr));
+    }
+
+    SECTION("Comparison expression") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<IntegerLiteral>(10, span);
+        auto rhs = std::make_unique<IntegerLiteral>(5, span);
+        BinaryExpr expr(BinaryOp::Gt, std::move(lhs), std::move(rhs), span);
+        REQUIRE(expr.op() == BinaryOp::Gt);
+    }
+
+    SECTION("Logical AND expression") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<BoolLiteral>(true, span);
+        auto rhs = std::make_unique<BoolLiteral>(false, span);
+        BinaryExpr expr(BinaryOp::And, std::move(lhs), std::move(rhs), span);
+        REQUIRE(expr.op() == BinaryOp::And);
+    }
+}
+
+TEST_CASE("ArrayLiteral node creation and accessors", "[ArrayLiteral][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Empty array literal") {
+        const SourceSpan span;
+        std::vector<ExprPtr> elements;
+        ArrayLiteral lit(std::move(elements), span);
+        REQUIRE(lit.elements().empty());
+        REQUIRE(lit.kind() == NodeKind::ArrayLiteral);
+        REQUIRE(ArrayLiteral::classof(&lit));
+    }
+
+    SECTION("Array literal with elements") {
+        const SourceSpan span;
+        std::vector<ExprPtr> elements;
+        elements.push_back(std::make_unique<IntegerLiteral>(1, span));
+        elements.push_back(std::make_unique<IntegerLiteral>(2, span));
+        elements.push_back(std::make_unique<IntegerLiteral>(3, span));
+        ArrayLiteral lit(std::move(elements), span);
+        REQUIRE(lit.elements().size() == 3);
+        REQUIRE(lit.elements()[0]->kind() == NodeKind::IntegerLiteral);
+    }
+}
+
+TEST_CASE("CallExpr node creation and accessors", "[CallExpr][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Function call with no arguments") {
+        const SourceSpan span;
+        auto callee = std::make_unique<Identifier>("foo", span);
+        std::vector<ExprPtr> args;
+        CallExpr expr(std::move(callee), std::move(args), span);
+        REQUIRE(expr.callee().kind() == NodeKind::Identifier);
+        REQUIRE(expr.args().empty());
+        REQUIRE(expr.kind() == NodeKind::CallExpr);
+        REQUIRE(CallExpr::classof(&expr));
+    }
+
+    SECTION("Function call with arguments") {
+        const SourceSpan span;
+        auto callee = std::make_unique<Identifier>("add", span);
+        std::vector<ExprPtr> args;
+        args.push_back(std::make_unique<IntegerLiteral>(1, span));
+        args.push_back(std::make_unique<IntegerLiteral>(2, span));
+        CallExpr expr(std::move(callee), std::move(args), span);
+        REQUIRE(expr.args().size() == 2);
+    }
+}
+
+TEST_CASE("IndexExpr node creation and accessors", "[IndexExpr][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Array access expression") {
+        const SourceSpan span;
+        auto object = std::make_unique<Identifier>("arr", span);
+        auto index = std::make_unique<IntegerLiteral>(0, span);
+        IndexExpr expr(std::move(object), std::move(index), span);
+        REQUIRE(expr.object().kind() == NodeKind::Identifier);
+        REQUIRE(expr.index().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.kind() == NodeKind::IndexExpr);
+        REQUIRE(IndexExpr::classof(&expr));
+    }
+}
+
+TEST_CASE("GroupingExpr node creation and accessors", "[GroupingExpr][AST][Expressions]") {
+    using namespace jsv;
+
+    SECTION("Parenthesized expression") {
+        const SourceSpan span;
+        auto expr_inner = std::make_unique<IntegerLiteral>(42, span);
+        GroupingExpr expr(std::move(expr_inner), span);
+        REQUIRE(expr.expression().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.kind() == NodeKind::GroupingExpr);
+        REQUIRE(GroupingExpr::classof(&expr));
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Statement AST Node Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("ExprStmt node creation and accessors", "[ExprStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Expression statement") {
+        const SourceSpan span;
+        auto expr = std::make_unique<IntegerLiteral>(42, span);
+        ExprStmt stmt(std::move(expr), span);
+        REQUIRE(stmt.expression().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(stmt.kind() == NodeKind::ExprStmt);
+        REQUIRE(ExprStmt::classof(&stmt));
+    }
+}
+
+TEST_CASE("VarDecl node creation and accessors", "[VarDecl][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Single variable declaration") {
+        const SourceSpan span;
+        auto init = std::make_unique<IntegerLiteral>(42, span);
+        VarDecl decl("x", std::optional<std::string>("i32"), std::move(init), false, span);
+        REQUIRE(decl.names().size() == 1);
+        REQUIRE(decl.name() == "x");
+        REQUIRE(decl.type_annotation().has_value());
+        REQUIRE(decl.type_annotation().value() == "i32");
+        REQUIRE(!decl.is_const());
+        REQUIRE(decl.kind() == NodeKind::VarDecl);
+        REQUIRE(VarDecl::classof(&decl));
+    }
+
+    SECTION("Const variable declaration") {
+        const SourceSpan span;
+        auto init = std::make_unique<IntegerLiteral>(42, span);
+        VarDecl decl("x", std::optional<std::string>("i32"), std::move(init), true, span);
+        REQUIRE(decl.is_const());
+    }
+
+    SECTION("Variable declaration without type") {
+        const SourceSpan span;
+        auto init = std::make_unique<IntegerLiteral>(42, span);
+        VarDecl decl("x", std::nullopt, std::move(init), false, span);
+        REQUIRE(!decl.type_annotation().has_value());
+    }
+
+    SECTION("Multi-variable declaration") {
+        const SourceSpan span;
+        std::vector<std::string> names = {"a", "b", "c"};
+        std::vector<ExprPtr> initializers;
+        initializers.push_back(std::make_unique<IntegerLiteral>(1, span));
+        initializers.push_back(std::make_unique<IntegerLiteral>(2, span));
+        initializers.push_back(std::make_unique<IntegerLiteral>(3, span));
+        VarDecl decl(std::move(names), std::optional<std::string>("i32"), std::move(initializers), false, span);
+        REQUIRE(decl.names().size() == 3);
+        REQUIRE(decl.num_variables() == 3);
+    }
+}
+
+TEST_CASE("BlockStmt node creation and accessors", "[BlockStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Empty block") {
+        const SourceSpan span;
+        std::vector<StmtPtr> statements;
+        BlockStmt block(std::move(statements), span);
+        REQUIRE(block.statements().empty());
+        REQUIRE(block.kind() == NodeKind::BlockStmt);
+        REQUIRE(BlockStmt::classof(&block));
+    }
+
+    SECTION("Block with statements") {
+        const SourceSpan span;
+        std::vector<StmtPtr> statements;
+        auto expr = std::make_unique<IntegerLiteral>(42, span);
+        statements.push_back(std::make_unique<ExprStmt>(std::move(expr), span));
+        BlockStmt block(std::move(statements), span);
+        REQUIRE(block.statements().size() == 1);
+    }
+}
+
+TEST_CASE("IfStmt node creation and accessors", "[IfStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("If statement without else") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        std::vector<StmtPtr> then_stmts;
+        auto then_branch = std::make_unique<BlockStmt>(std::move(then_stmts), span);
+        IfStmt stmt(std::move(condition), std::move(then_branch), nullptr, span);
+        REQUIRE(stmt.condition().kind() == NodeKind::BoolLiteral);
+        REQUIRE(!stmt.has_else());
+        REQUIRE(stmt.kind() == NodeKind::IfStmt);
+        REQUIRE(IfStmt::classof(&stmt));
+    }
+
+    SECTION("If statement with else") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        std::vector<StmtPtr> then_stmts;
+        auto then_branch = std::make_unique<BlockStmt>(std::move(then_stmts), span);
+        std::vector<StmtPtr> else_stmts;
+        auto else_branch = std::make_unique<BlockStmt>(std::move(else_stmts), span);
+        IfStmt stmt(std::move(condition), std::move(then_branch), std::move(else_branch), span);
+        REQUIRE(stmt.has_else());
+    }
+}
+
+TEST_CASE("WhileStmt node creation and accessors", "[WhileStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("While statement") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        WhileStmt stmt(std::move(condition), std::move(body), span);
+        REQUIRE(stmt.condition().kind() == NodeKind::BoolLiteral);
+        REQUIRE(stmt.body().kind() == NodeKind::BlockStmt);
+        REQUIRE(stmt.kind() == NodeKind::WhileStmt);
+        REQUIRE(WhileStmt::classof(&stmt));
+    }
+}
+
+TEST_CASE("ForStmt node creation and accessors", "[ForStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("For statement with all components") {
+        const SourceSpan span;
+        auto init_expr = std::make_unique<IntegerLiteral>(0, span);
+        auto init = std::make_unique<ExprStmt>(std::move(init_expr), span);
+        auto condition = std::make_unique<BinaryExpr>(BinaryOp::Lt,
+                                                       std::make_unique<Identifier>("i", span),
+                                                       std::make_unique<IntegerLiteral>(10, span), span);
+        auto increment = std::make_unique<UnaryExpr>(UnaryOp::PreInc, std::make_unique<Identifier>("i", span), span);
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        ForStmt stmt(std::move(init), std::move(condition), std::move(increment), std::move(body), span);
+        REQUIRE(stmt.has_init());
+        REQUIRE(stmt.has_condition());
+        REQUIRE(stmt.has_increment());
+        REQUIRE(stmt.kind() == NodeKind::ForStmt);
+        REQUIRE(ForStmt::classof(&stmt));
+    }
+
+    SECTION("For statement with empty initializer") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        ForStmt stmt(nullptr, std::move(condition), nullptr, std::move(body), span);
+        REQUIRE(!stmt.has_init());
+        REQUIRE(stmt.has_condition());
+        REQUIRE(!stmt.has_increment());
+    }
+}
+
+TEST_CASE("ReturnStmt node creation and accessors", "[ReturnStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Return with value") {
+        const SourceSpan span;
+        auto value = std::make_unique<IntegerLiteral>(42, span);
+        ReturnStmt stmt(std::move(value), span);
+        REQUIRE(stmt.has_value());
+        REQUIRE(stmt.value().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(stmt.kind() == NodeKind::ReturnStmt);
+        REQUIRE(ReturnStmt::classof(&stmt));
+    }
+
+    SECTION("Return without value") {
+        const SourceSpan span;
+        ReturnStmt stmt(nullptr, span);
+        REQUIRE(!stmt.has_value());
+    }
+}
+
+TEST_CASE("BreakStmt and ContinueStmt node creation", "[BreakStmt][ContinueStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Break statement") {
+        const SourceSpan span;
+        BreakStmt stmt(span);
+        REQUIRE(stmt.kind() == NodeKind::BreakStmt);
+        REQUIRE(BreakStmt::classof(&stmt));
+    }
+
+    SECTION("Continue statement") {
+        const SourceSpan span;
+        ContinueStmt stmt(span);
+        REQUIRE(stmt.kind() == NodeKind::ContinueStmt);
+        REQUIRE(ContinueStmt::classof(&stmt));
+    }
+}
+
+TEST_CASE("FuncDecl node creation and accessors", "[FuncDecl][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Function declaration with no parameters") {
+        const SourceSpan span;
+        std::vector<FuncParam> params;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        FuncDecl decl("foo", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        REQUIRE(decl.name() == "foo");
+        REQUIRE(decl.params().empty());
+        REQUIRE(decl.return_type().has_value());
+        REQUIRE(decl.kind() == NodeKind::FuncDecl);
+        REQUIRE(FuncDecl::classof(&decl));
+    }
+
+    SECTION("Function declaration with parameters") {
+        const SourceSpan span;
+        std::vector<FuncParam> params;
+        params.push_back(FuncParam{"x", PrimitiveType::i32(), span});
+        params.push_back(FuncParam{"y", PrimitiveType::i32(), span});
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        FuncDecl decl("add", std::move(params), PrimitiveType::i32(), std::move(body), span);
+        REQUIRE(decl.name() == "add");
+        REQUIRE(decl.params().size() == 2);
+        REQUIRE(decl.params()[0].name == "x");
+        REQUIRE(decl.params()[0].type_annotation->kind() == jsv::TypeKind::I32);
+    }
+}
+
+TEST_CASE("MainStmt node creation and accessors", "[MainStmt][AST][Statements]") {
+    using namespace jsv;
+
+    SECTION("Main function statement") {
+        const SourceSpan span;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        MainStmt stmt(std::move(body), span);
+        REQUIRE(stmt.expression().kind() == NodeKind::BlockStmt);
+        REQUIRE(stmt.kind() == NodeKind::MainStmt);
+        REQUIRE(MainStmt::classof(&stmt));
+    }
+}
+
+TEST_CASE("Program node creation and accessors", "[Program][AST]") {
+    using namespace jsv;
+
+    SECTION("Empty program") {
+        const SourceSpan span;
+        std::vector<StmtPtr> statements;
+        Program program(std::move(statements), span);
+        REQUIRE(program.statements().empty());
+        REQUIRE(program.kind() == NodeKind::Program);
+        REQUIRE(Program::classof(&program));
+    }
+
+    SECTION("Program with statements") {
+        const SourceSpan span;
+        std::vector<StmtPtr> statements;
+        auto expr = std::make_unique<IntegerLiteral>(42, span);
+        statements.push_back(std::make_unique<ExprStmt>(std::move(expr), span));
+        Program program(std::move(statements), span);
+        REQUIRE(program.statements().size() == 1);
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Node Casting and Type Checking Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("node_isa type checking works correctly", "[Node][AST][TypeChecking]") {
+    using namespace jsv;
+
+    SECTION("node_isa for expressions") {
+        const SourceSpan span;
+        IntegerLiteral lit(42, span);
+        REQUIRE(node_isa<IntegerLiteral>(&lit));
+        REQUIRE(node_isa<Expr>(&lit));
+        REQUIRE(node_isa<Node>(&lit));
+        REQUIRE(!node_isa<Stmt>(&lit));
+        REQUIRE(!node_isa<StringLiteral>(&lit));
+    }
+
+    SECTION("node_isa for statements") {
+        const SourceSpan span;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        BlockStmt* block = body.get();
+        REQUIRE(node_isa<BlockStmt>(block));
+        REQUIRE(node_isa<Stmt>(block));
+        REQUIRE(node_isa<Node>(block));
+        REQUIRE(!node_isa<Expr>(block));
+    }
+}
+
+TEST_CASE("node_cast works correctly for valid casts", "[Node][AST][TypeChecking]") {
+    using namespace jsv;
+
+    SECTION("node_cast from Node to IntegerLiteral") {
+        const SourceSpan span;
+        auto lit = std::make_unique<IntegerLiteral>(42, span);
+        Node* node = lit.get();
+        auto* int_lit = node_cast<IntegerLiteral>(node);
+        REQUIRE(int_lit != nullptr);
+        REQUIRE(int_lit->value() == 42);
+    }
+
+    SECTION("node_cast from Expr to IntegerLiteral") {
+        const SourceSpan span;
+        auto lit = std::make_unique<IntegerLiteral>(42, span);
+        Expr* expr = lit.get();
+        auto* int_lit = node_cast<IntegerLiteral>(expr);
+        REQUIRE(int_lit != nullptr);
+        REQUIRE(int_lit->value() == 42);
+    }
+}
+
+TEST_CASE("node_dyn_cast works correctly", "[Node][AST][TypeChecking]") {
+    using namespace jsv;
+
+    SECTION("node_dyn_cast successful cast") {
+        const SourceSpan span;
+        auto lit = std::make_unique<IntegerLiteral>(42, span);
+        Node* node = lit.get();
+        auto* int_lit = node_dyn_cast<IntegerLiteral>(node);
+        REQUIRE(int_lit != nullptr);
+        REQUIRE(int_lit->value() == 42);
+    }
+
+    SECTION("node_dyn_cast failed cast returns nullptr") {
+        const SourceSpan span;
+        auto lit = std::make_unique<IntegerLiteral>(42, span);
+        Node* node = lit.get();
+        auto* string_lit = node_dyn_cast<StringLiteral>(node);
+        REQUIRE(string_lit == nullptr);
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Parser Basic Tests
+// -----------------------------------------------------------------------------
+
+TEST_CASE("Parser empty input", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Empty token stream") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().empty());
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser single expression statement", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse integer literal expression") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto* expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<IntegerLiteral>(&expr_stmt->expression()));
+    }
+}
+
+TEST_CASE("Parser variable declaration", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse var declaration with initializer") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto* var_decl = node_dyn_cast<VarDecl>(program->statements()[0].get());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->name() == "x");
+        REQUIRE(var_decl->type_annotation().has_value());
+        REQUIRE(var_decl->type_annotation().value() == "i32");
+        REQUIRE(var_decl->has_initializer());
+    }
+}
+
+TEST_CASE("Parser function declaration", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse simple function") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        if(!errors.empty()) {
+            for(const auto& err : errors) {
+                std::cerr << "Error: " << err.message() << std::endl;
+                INFO("Error: " << err.message());
+            }
+        }
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->name() == "foo");
+        REQUIRE(func_decl->params().empty());
+        REQUIRE(func_decl->return_type().has_value());
+    }
+}
+
+TEST_CASE("Parser if statement", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse if statement with else") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordElse, "else", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto* if_stmt = node_dyn_cast<IfStmt>(program->statements()[0].get());
+        REQUIRE(if_stmt != nullptr);
+        REQUIRE(if_stmt->has_else());
+    }
+}
+
+TEST_CASE("Parser while loop", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse while loop") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordWhile, "while", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto* while_stmt = node_dyn_cast<WhileStmt>(program->statements()[0].get());
+        REQUIRE(while_stmt != nullptr);
+    }
+}
+
+TEST_CASE("Parser for loop", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse for loop") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+
+        auto* for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE(for_stmt->has_init());
+        REQUIRE(for_stmt->has_condition());
+        REQUIRE(for_stmt->has_increment());
+    }
+}
+
+TEST_CASE("Parser error handling", "[Parser]") {
+    using namespace jsv;
+
+    SECTION("Parse invalid syntax reports error") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        // Missing condition
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+        REQUIRE(errors[0].error_code() == ErrorCode::E1004);  // Syntax error
+    }
+}
+
+// -----------------------------------------------------------------------------
+// AST Expressions - Corner Cases and Edge Cases
+// -----------------------------------------------------------------------------
+
+TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Minimum int64 value") {
+        const SourceSpan span;
+        IntegerLiteral lit(std::numeric_limits<std::int64_t>::min(), span);
+        REQUIRE(lit.value() == std::numeric_limits<std::int64_t>::min());
+    }
+
+    SECTION("Maximum int64 value") {
+        const SourceSpan span;
+        IntegerLiteral lit(std::numeric_limits<std::int64_t>::max(), span);
+        REQUIRE(lit.value() == std::numeric_limits<std::int64_t>::max());
+    }
+
+    SECTION("Integer literal with empty suffix") {
+        const SourceSpan span;
+        IntegerLiteral lit(42, span, "");
+        REQUIRE(lit.value() == 42);
+        REQUIRE(lit.type_suffix().has_value());
+        REQUIRE(lit.type_suffix().value().empty());
+    }
+
+    SECTION("Integer literal with complex suffix") {
+        const SourceSpan span;
+        IntegerLiteral lit(100, span, "u64");
+        REQUIRE(lit.type_suffix().value() == "u64");
+    }
+
+    SECTION("Integer literal location span") {
+        SourceSpan span;
+        span.start = SourceLocation{1, 1, 0};
+        span.end = SourceLocation{1, 5, 4};
+        IntegerLiteral lit(42, span);
+        REQUIRE(lit.location().start.line == 1);
+        REQUIRE(lit.location().start.column == 1);
+    }
+}
+
+TEST_CASE("FloatLiteral corner cases and edge cases", "[FloatLiteral][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Positive infinity representation") {
+        const SourceSpan span;
+        FloatLiteral lit(std::numeric_limits<double>::infinity(), span);
+        REQUIRE(std::isinf(lit.value()));
+    }
+
+    SECTION("NaN representation") {
+        const SourceSpan span;
+        FloatLiteral lit(std::numeric_limits<double>::quiet_NaN(), span);
+        REQUIRE(std::isnan(lit.value()));
+    }
+
+    SECTION("Denormalized float literal") {
+        const SourceSpan span;
+        FloatLiteral lit(std::numeric_limits<double>::denorm_min(), span);
+        REQUIRE(lit.value() == std::numeric_limits<double>::denorm_min());
+    }
+
+    SECTION("Float literal with negative zero") {
+        const SourceSpan span;
+        FloatLiteral lit(-0.0, span);
+        REQUIRE(lit.value() == -0.0);
+        REQUIRE(std::signbit(lit.value()));
+    }
+
+    SECTION("Float literal maximum finite value") {
+        const SourceSpan span;
+        FloatLiteral lit(std::numeric_limits<double>::max(), span);
+        REQUIRE(lit.value() == std::numeric_limits<double>::max());
+    }
+
+    SECTION("Float literal minimum positive normalized value") {
+        const SourceSpan span;
+        FloatLiteral lit(std::numeric_limits<double>::min(), span);
+        REQUIRE(lit.value() == std::numeric_limits<double>::min());
+    }
+}
+
+TEST_CASE("StringLiteral corner cases and edge cases", "[StringLiteral][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("String with embedded null character") {
+        const SourceSpan span;
+        StringLiteral lit(std::string("hello\0world", 11), span);
+        REQUIRE(lit.value().size() == 11);
+    }
+
+    SECTION("String with only whitespace") {
+        const SourceSpan span;
+        StringLiteral lit("   \t\n", span);
+        REQUIRE(lit.value() == "   \t\n");
+    }
+
+    SECTION("String exceeding typical buffer sizes") {
+        const SourceSpan span;
+        std::string long_string(10000, 'a');
+        StringLiteral lit(long_string, span);
+        REQUIRE(lit.value().size() == 10000);
+    }
+
+    SECTION("String with only Unicode characters") {
+        const SourceSpan span;
+        StringLiteral lit("🎉🚀✨", span);
+        REQUIRE(lit.value() == "🎉🚀✨");
+    }
+
+    SECTION("String with mixed ASCII and Unicode") {
+        const SourceSpan span;
+        StringLiteral lit("Hello 世界 🌍", span);
+        REQUIRE(lit.value() == "Hello 世界 🌍");
+    }
+
+    SECTION("String with RTL characters") {
+        const SourceSpan span;
+        StringLiteral lit("مرحبا بالعالم", span);
+        REQUIRE(lit.value() == "مرحبا بالعالم");
+    }
+}
+
+TEST_CASE("UnaryExpr corner cases and edge cases", "[UnaryExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Nested unary operators") {
+        const SourceSpan span;
+        auto inner = std::make_unique<IntegerLiteral>(5, span);
+        auto outer = std::make_unique<UnaryExpr>(UnaryOp::Negate, std::move(inner), span);
+        UnaryExpr expr(UnaryOp::Not, std::move(outer), span);
+        
+        REQUIRE(expr.op() == UnaryOp::Not);
+        REQUIRE(expr.operand().kind() == NodeKind::UnaryExpr);
+        auto& inner_unary = static_cast<const UnaryExpr&>(expr.operand());
+        REQUIRE(inner_unary.op() == UnaryOp::Negate);
+    }
+
+    SECTION("Unary operator on complex expression") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<IntegerLiteral>(10, span);
+        auto rhs = std::make_unique<IntegerLiteral>(5, span);
+        auto binary = std::make_unique<BinaryExpr>(BinaryOp::Add, std::move(lhs), std::move(rhs), span);
+        UnaryExpr expr(UnaryOp::Negate, std::move(binary), span);
+        
+        REQUIRE(expr.operand().kind() == NodeKind::BinaryExpr);
+    }
+
+    SECTION("All unary operators covered") {
+        const SourceSpan span;
+        auto operand = std::make_unique<Identifier>("x", span);
+        
+        UnaryOp ops[] = {UnaryOp::Negate, UnaryOp::Not, UnaryOp::PreInc, UnaryOp::PreDec, 
+                         UnaryOp::PostInc, UnaryOp::PostDec};
+        
+        for(const auto op : ops) {
+            auto op_operand = std::make_unique<Identifier>("x", span);
+            UnaryExpr expr(op, std::move(op_operand), span);
+            REQUIRE(expr.op() == op);
+        }
+    }
+}
+
+TEST_CASE("BinaryExpr corner cases and edge cases", "[BinaryExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Deeply nested binary expressions") {
+        const SourceSpan span;
+        ExprPtr expr = std::make_unique<IntegerLiteral>(0, span);
+        expr = std::make_unique<BinaryExpr>(BinaryOp::Add,
+                std::make_unique<IntegerLiteral>(1, span), std::move(expr), span);
+        expr = std::make_unique<BinaryExpr>(BinaryOp::Mul,
+                std::make_unique<IntegerLiteral>(2, span), std::move(expr), span);
+        expr = std::make_unique<BinaryExpr>(BinaryOp::Sub,
+                std::make_unique<IntegerLiteral>(3, span), std::move(expr), span);
+
+        REQUIRE(expr->kind() == NodeKind::BinaryExpr);
+    }
+
+    SECTION("Binary expression with same operand types") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<IntegerLiteral>(10, span);
+        auto rhs = std::make_unique<IntegerLiteral>(20, span);
+        BinaryExpr expr(BinaryOp::Div, std::move(lhs), std::move(rhs), span);
+        
+        REQUIRE(expr.lhs().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.rhs().kind() == NodeKind::IntegerLiteral);
+    }
+
+    SECTION("Binary expression with different operand types") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<IntegerLiteral>(10, span);
+        auto rhs = std::make_unique<FloatLiteral>(3.14, span);
+        BinaryExpr expr(BinaryOp::Mul, std::move(lhs), std::move(rhs), span);
+        
+        REQUIRE(expr.lhs().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.rhs().kind() == NodeKind::FloatLiteral);
+    }
+
+    SECTION("All binary operators covered") {
+        const SourceSpan span;
+        auto lhs = std::make_unique<IntegerLiteral>(10, span);
+        auto rhs = std::make_unique<IntegerLiteral>(5, span);
+        
+        BinaryOp ops[] = {BinaryOp::Add, BinaryOp::Sub, BinaryOp::Mul, BinaryOp::Div, BinaryOp::Mod,
+                         BinaryOp::Eq, BinaryOp::Neq, BinaryOp::Lt, BinaryOp::Gt, BinaryOp::Le, BinaryOp::Ge,
+                         BinaryOp::And, BinaryOp::Or, BinaryOp::BitAnd, BinaryOp::BitOr, BinaryOp::BitXor,
+                         BinaryOp::Shl, BinaryOp::Shr};
+        
+        for(const auto op : ops) {
+            auto op_lhs = std::make_unique<IntegerLiteral>(10, span);
+            auto op_rhs = std::make_unique<IntegerLiteral>(5, span);
+            BinaryExpr expr(op, std::move(op_lhs), std::move(op_rhs), span);
+            REQUIRE(expr.op() == op);
+        }
+    }
+}
+
+TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Function call with many arguments") {
+        const SourceSpan span;
+        std::vector<ExprPtr> args;
+        for(int i = 0; i < 100; ++i) {
+            args.push_back(std::make_unique<IntegerLiteral>(i, span));
+        }
+        auto callee = std::make_unique<Identifier>("func", span);
+        CallExpr expr(std::move(callee), std::move(args), span);
+        
+        REQUIRE(expr.args().size() == 100);
+    }
+
+    SECTION("Function call with single argument") {
+        const SourceSpan span;
+        std::vector<ExprPtr> args;
+        args.push_back(std::make_unique<IntegerLiteral>(42, span));
+        auto callee = std::make_unique<Identifier>("func", span);
+        CallExpr expr(std::move(callee), std::move(args), span);
+        
+        REQUIRE(expr.args().size() == 1);
+    }
+
+    SECTION("Nested function calls") {
+        const SourceSpan span;
+        auto inner_callee = std::make_unique<Identifier>("inner", span);
+        std::vector<ExprPtr> inner_args;
+        inner_args.push_back(std::make_unique<IntegerLiteral>(1, span));
+        auto inner_call = std::make_unique<CallExpr>(std::move(inner_callee), std::move(inner_args), span);
+        
+        auto outer_callee = std::make_unique<Identifier>("outer", span);
+        std::vector<ExprPtr> outer_args;
+        outer_args.push_back(std::move(inner_call));
+        CallExpr expr(std::move(outer_callee), std::move(outer_args), span);
+        
+        REQUIRE(expr.args().size() == 1);
+        REQUIRE(expr.args()[0]->kind() == NodeKind::CallExpr);
+    }
+
+    SECTION("Function call with Unicode name") {
+        const SourceSpan span;
+        std::vector<ExprPtr> args;
+        auto callee = std::make_unique<Identifier>("函数", span);
+        CallExpr expr(std::move(callee), std::move(args), span);
+        
+        REQUIRE(expr.callee().kind() == NodeKind::Identifier);
+    }
+}
+
+TEST_CASE("IndexExpr corner cases and edge cases", "[IndexExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Multi-dimensional array access") {
+        const SourceSpan span;
+        auto array = std::make_unique<Identifier>("matrix", span);
+        auto index = std::make_unique<IntegerLiteral>(0, span);
+        auto first_index = std::make_unique<IndexExpr>(std::move(array), std::move(index), span);
+        
+        auto second_index = std::make_unique<IntegerLiteral>(1, span);
+        IndexExpr expr(std::move(first_index), std::move(second_index), span);
+        
+        REQUIRE(expr.index().kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.object().kind() == NodeKind::IndexExpr);
+    }
+
+    SECTION("Array access with complex index") {
+        const SourceSpan span;
+        auto array = std::make_unique<Identifier>("arr", span);
+        auto index_expr = std::make_unique<BinaryExpr>(BinaryOp::Add,
+                std::make_unique<IntegerLiteral>(1, span),
+                std::make_unique<IntegerLiteral>(2, span), span);
+        IndexExpr expr(std::move(array), std::move(index_expr), span);
+        
+        REQUIRE(expr.index().kind() == NodeKind::BinaryExpr);
+    }
+}
+
+TEST_CASE("TernaryExpr corner cases and edge cases", "[TernaryExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Nested ternary expressions") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BinaryExpr>(BinaryOp::Gt,
+                std::make_unique<IntegerLiteral>(10, span),
+                std::make_unique<IntegerLiteral>(5, span), span);
+        auto then_expr = std::make_unique<IntegerLiteral>(1, span);
+        auto else_expr = std::make_unique<TernaryExpr>(
+                std::make_unique<BinaryExpr>(BinaryOp::Eq,
+                        std::make_unique<IntegerLiteral>(10, span),
+                        std::make_unique<IntegerLiteral>(10, span), span),
+                std::make_unique<IntegerLiteral>(2, span),
+                std::make_unique<IntegerLiteral>(3, span), span);
+        
+        TernaryExpr expr(std::move(condition), std::move(then_expr), std::move(else_expr), span);
+        REQUIRE(expr.kind() == NodeKind::TernaryExpr);
+    }
+
+    SECTION("Ternary with complex branches") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        auto then_expr = std::make_unique<BinaryExpr>(BinaryOp::Add,
+                std::make_unique<IntegerLiteral>(1, span),
+                std::make_unique<IntegerLiteral>(2, span), span);
+        auto else_expr = std::make_unique<CallExpr>(
+                std::make_unique<Identifier>("func", span),
+                std::vector<ExprPtr>{}, span);
+        
+        TernaryExpr expr(std::move(condition), std::move(then_expr), std::move(else_expr), span);
+        REQUIRE(expr.then_expr().kind() == NodeKind::BinaryExpr);
+        REQUIRE(expr.else_expr().kind() == NodeKind::CallExpr);
+    }
+}
+
+TEST_CASE("AssignExpr corner cases and edge cases", "[AssignExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Chained assignment") {
+        const SourceSpan span;
+        auto rhs = std::make_unique<IntegerLiteral>(42, span);
+        auto target = std::make_unique<Identifier>("b", span);
+        auto inner_assign = std::make_unique<AssignExpr>(std::move(target), std::move(rhs), span);
+
+        auto outer_target = std::make_unique<Identifier>("a", span);
+        AssignExpr expr(std::move(outer_target), std::move(inner_assign), span);
+
+        REQUIRE(expr.target().kind() == NodeKind::Identifier);
+        REQUIRE(expr.value().kind() == NodeKind::AssignExpr);
+    }
+
+    SECTION("Array element assignment") {
+        const SourceSpan span;
+        auto array = std::make_unique<Identifier>("arr", span);
+        auto index = std::make_unique<IntegerLiteral>(0, span);
+        auto array_access = std::make_unique<IndexExpr>(std::move(array), std::move(index), span);
+        auto value = std::make_unique<IntegerLiteral>(100, span);
+
+        AssignExpr expr(std::move(array_access), std::move(value), span);
+        REQUIRE(expr.target().kind() == NodeKind::IndexExpr);
+    }
+}
+
+TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Cast with primitive type") {
+        const SourceSpan span;
+        auto expr_operand = std::make_unique<IntegerLiteral>(42, span);
+        CastExpr expr("f64", std::move(expr_operand), span);
+
+        REQUIRE(expr.target_type() == "f64");
+        REQUIRE(expr.operand().kind() == NodeKind::IntegerLiteral);
+    }
+
+    SECTION("Cast with custom type") {
+        const SourceSpan span;
+        auto expr_operand = std::make_unique<IntegerLiteral>(42, span);
+        CastExpr expr("MyType", std::move(expr_operand), span);
+
+        REQUIRE(expr.target_type() == "MyType");
+    }
+
+    SECTION("Nested casts") {
+        const SourceSpan span;
+        auto inner_operand = std::make_unique<IntegerLiteral>(42, span);
+        auto inner_cast = std::make_unique<CastExpr>("f32", std::move(inner_operand), span);
+
+        CastExpr expr("i64", std::move(inner_cast), span);
+
+        REQUIRE(expr.operand().kind() == NodeKind::CastExpr);
+    }
+}
+
+TEST_CASE("MemberExpr corner cases and edge cases", "[MemberExpr][AST][Expressions][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Chained member access") {
+        const SourceSpan span;
+        auto obj = std::make_unique<Identifier>("a", span);
+        auto first_member = std::make_unique<MemberExpr>(std::move(obj), "b", span);
+        auto second_member = std::make_unique<MemberExpr>(std::move(first_member), "c", span);
+
+        REQUIRE(second_member->member() == "c");
+        REQUIRE(second_member->object().kind() == NodeKind::MemberExpr);
+    }
+
+    SECTION("Member access on complex object") {
+        const SourceSpan span;
+        auto callee = std::make_unique<Identifier>("func", span);
+        std::vector<ExprPtr> args;
+        auto call = std::make_unique<CallExpr>(std::move(callee), std::move(args), span);
+        auto member = std::make_unique<MemberExpr>(std::move(call), "result", span);
+
+        REQUIRE(member->object().kind() == NodeKind::CallExpr);
+    }
+
+    SECTION("Member access with Unicode name") {
+        const SourceSpan span;
+        auto obj = std::make_unique<Identifier>("oggetto", span);
+        auto member = std::make_unique<MemberExpr>(std::move(obj), "属性", span);
+
+        REQUIRE(member->member() == "属性");
+    }
+}
+
+// -----------------------------------------------------------------------------
+// AST Statements - Corner Cases and Edge Cases
+// -----------------------------------------------------------------------------
+
+TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Multiple variables with single type annotation") {
+        const SourceSpan span;
+        std::vector<std::string> names = {"a", "b", "c"};
+        std::optional<std::string> type = "i32";
+        std::vector<ExprPtr> initializers;
+        initializers.push_back(std::make_unique<IntegerLiteral>(1, span));
+        initializers.push_back(std::make_unique<IntegerLiteral>(2, span));
+        initializers.push_back(std::make_unique<IntegerLiteral>(3, span));
+        
+        VarDecl decl(std::move(names), type, std::move(initializers), false, span);
+        
+        REQUIRE(decl.names().size() == 3);
+        REQUIRE(decl.initializers().size() == 3);
+        REQUIRE(decl.type_annotation().has_value());
+    }
+
+    SECTION("Const variable declaration") {
+        const SourceSpan span;
+        std::vector<std::string> names = {"x"};
+        std::vector<ExprPtr> initializers;
+        initializers.push_back(std::make_unique<IntegerLiteral>(42, span));
+        
+        VarDecl decl(std::move(names), std::nullopt, std::move(initializers), true, span);
+        
+        REQUIRE(decl.is_const());
+    }
+
+    SECTION("Variable without initializer") {
+        const SourceSpan span;
+        std::vector<std::string> names = {"x"};
+        VarDecl decl(std::move(names), std::nullopt, {}, false, span);
+        
+        REQUIRE(decl.initializers().empty());
+    }
+
+    SECTION("Variable with type annotation") {
+        const SourceSpan span;
+        std::vector<std::string> names = {"x"};
+        std::optional<std::string> type = "i64";
+        
+        VarDecl decl(std::move(names), type, {}, false, span);
+        
+        REQUIRE(decl.type_annotation().has_value());
+        REQUIRE(decl.type_annotation().value() == "i64");
+    }
+
+    SECTION("Variable with array type annotation") {
+        const SourceSpan span;
+        std::vector<std::string> names = {"arr"};
+        std::optional<std::string> type = "i32[10]";
+        
+        VarDecl decl(std::move(names), type, {}, false, span);
+        
+        REQUIRE(decl.type_annotation().value() == "i32[10]");
+    }
+}
+
+TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Empty block") {
+        const SourceSpan span;
+        std::vector<StmtPtr> statements;
+        BlockStmt block(std::move(statements), span);
+        
+        REQUIRE(block.statements().empty());
+    }
+
+    SECTION("Block with many statements") {
+        const SourceSpan span;
+        std::vector<StmtPtr> statements;
+        for(int i = 0; i < 100; ++i) {
+            auto expr = std::make_unique<IntegerLiteral>(i, span);
+            statements.push_back(std::make_unique<ExprStmt>(std::move(expr), span));
+        }
+        
+        BlockStmt block(std::move(statements), span);
+        REQUIRE(block.statements().size() == 100);
+    }
+
+    SECTION("Nested blocks") {
+        const SourceSpan span;
+        std::vector<StmtPtr> inner_stmts;
+        inner_stmts.push_back(std::make_unique<ExprStmt>(
+                std::make_unique<IntegerLiteral>(1, span), span));
+        auto inner_block = std::make_unique<BlockStmt>(std::move(inner_stmts), span);
+        
+        std::vector<StmtPtr> outer_stmts;
+        outer_stmts.push_back(std::move(inner_block));
+        BlockStmt outer_block(std::move(outer_stmts), span);
+        
+        REQUIRE(outer_block.statements().size() == 1);
+        REQUIRE(outer_block.statements()[0]->kind() == NodeKind::BlockStmt);
+    }
+}
+
+TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("If without else") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        std::vector<StmtPtr> then_stmts;
+        auto then_branch = std::make_unique<BlockStmt>(std::move(then_stmts), span);
+        
+        IfStmt stmt(std::move(condition), std::move(then_branch), nullptr, span);
+        
+        REQUIRE(!stmt.has_else());
+    }
+
+    SECTION("If with else block") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(false, span);
+        std::vector<StmtPtr> then_stmts;
+        auto then_branch = std::make_unique<BlockStmt>(std::move(then_stmts), span);
+        std::vector<StmtPtr> else_stmts;
+        auto else_branch = std::make_unique<BlockStmt>(std::move(else_stmts), span);
+        
+        IfStmt stmt(std::move(condition), std::move(then_branch), std::move(else_branch), span);
+        
+        REQUIRE(stmt.has_else());
+    }
+
+    SECTION("Nested if statements") {
+        const SourceSpan span;
+        auto outer_condition = std::make_unique<BoolLiteral>(true, span);
+        std::vector<StmtPtr> outer_then_stmts;
+        
+        auto inner_condition = std::make_unique<BoolLiteral>(false, span);
+        std::vector<StmtPtr> inner_then_stmts;
+        auto inner_then = std::make_unique<BlockStmt>(std::move(inner_then_stmts), span);
+        auto inner_if = std::make_unique<IfStmt>(
+                std::move(inner_condition), std::move(inner_then), nullptr, span);
+        
+        outer_then_stmts.push_back(std::move(inner_if));
+        auto outer_then = std::make_unique<BlockStmt>(std::move(outer_then_stmts), span);
+
+        IfStmt stmt(std::move(outer_condition), std::move(outer_then), nullptr, span);
+
+        REQUIRE(stmt.then_branch().kind() == NodeKind::BlockStmt);
+    }
+}
+
+TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("For loop with all components empty") {
+        const SourceSpan span;
+        ForStmt stmt(nullptr, nullptr, nullptr,
+                     std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
+
+        REQUIRE(!stmt.has_init());
+        REQUIRE(!stmt.has_condition());
+        REQUIRE(!stmt.has_increment());
+    }
+
+    SECTION("For loop with only condition") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+
+        ForStmt stmt(nullptr, std::move(condition), nullptr,
+                     std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
+
+        REQUIRE(!stmt.has_init());
+        REQUIRE(stmt.has_condition());
+        REQUIRE(!stmt.has_increment());
+    }
+
+    SECTION("For loop with complex initializer") {
+        const SourceSpan span;
+        auto init_expr = std::make_unique<BinaryExpr>(BinaryOp::Add,
+                std::make_unique<IntegerLiteral>(1, span),
+                std::make_unique<IntegerLiteral>(2, span), span);
+        auto init_stmt = std::make_unique<ExprStmt>(std::move(init_expr), span);
+
+        ForStmt stmt(std::move(init_stmt), nullptr, nullptr,
+                     std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
+
+        REQUIRE(stmt.has_init());
+    }
+}
+
+TEST_CASE("WhileStmt corner cases and edge cases", "[WhileStmt][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Infinite while loop") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BoolLiteral>(true, span);
+        auto body = std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span);
+
+        WhileStmt stmt(std::move(condition), std::move(body), span);
+
+        REQUIRE(stmt.condition().kind() == NodeKind::BoolLiteral);
+    }
+
+    SECTION("While with complex condition") {
+        const SourceSpan span;
+        auto condition = std::make_unique<BinaryExpr>(BinaryOp::And,
+                std::make_unique<BoolLiteral>(true, span),
+                std::make_unique<BoolLiteral>(false, span), span);
+        auto body = std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span);
+
+        WhileStmt stmt(std::move(condition), std::move(body), span);
+
+        REQUIRE(stmt.condition().kind() == NodeKind::BinaryExpr);
+    }
+}
+
+TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Return without value") {
+        const SourceSpan span;
+        ReturnStmt stmt(nullptr, span);
+
+        REQUIRE(!stmt.has_value());
+    }
+
+    SECTION("Return with simple value") {
+        const SourceSpan span;
+        auto value = std::make_unique<IntegerLiteral>(42, span);
+        ReturnStmt stmt(std::move(value), span);
+
+        REQUIRE(stmt.has_value());
+        REQUIRE(stmt.value().kind() == NodeKind::IntegerLiteral);
+    }
+
+    SECTION("Return with complex expression") {
+        const SourceSpan span;
+        auto value = std::make_unique<BinaryExpr>(BinaryOp::Mul,
+                std::make_unique<IntegerLiteral>(10, span),
+                std::make_unique<IntegerLiteral>(5, span), span);
+        ReturnStmt stmt(std::move(value), span);
+
+        REQUIRE(stmt.value().kind() == NodeKind::BinaryExpr);
+    }
+}
+
+TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Function with many parameters") {
+        const SourceSpan span;
+        std::vector<FuncParam> params;
+        for(int i = 0; i < 50; ++i) {
+            params.push_back(FuncParam{fmt::format("param{}", i), PrimitiveType::i32(), span});
+        }
+        
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        
+        FuncDecl decl("func", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        
+        REQUIRE(decl.params().size() == 50);
+    }
+
+    SECTION("Function without return type annotation") {
+        const SourceSpan span;
+        std::vector<FuncParam> params;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        
+        FuncDecl decl("func", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        
+        REQUIRE(decl.return_type().has_value());
+    }
+
+    SECTION("Function with Unicode name") {
+        const SourceSpan span;
+        std::vector<FuncParam> params;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        
+        FuncDecl decl("函数", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        
+        REQUIRE(decl.name() == "函数");
+    }
+
+    SECTION("Function returning array type") {
+        const SourceSpan span;
+        std::vector<FuncParam> params;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+        auto return_type = std::make_shared<const CustomType>("i32[10]");
+        
+        FuncDecl decl("func", std::move(params), return_type, std::move(body), span);
+        
+        REQUIRE(decl.return_type().has_value());
+    }
+}
+
+TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Main with empty body") {
+        const SourceSpan span;
+        std::vector<StmtPtr> body_stmts;
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+
+        MainStmt stmt(std::move(body), span);
+
+        REQUIRE(static_cast<const BlockStmt&>(stmt.expression()).statements().empty());
+    }
+
+    SECTION("Main with many statements") {
+        const SourceSpan span;
+        std::vector<StmtPtr> body_stmts;
+        for(int i = 0; i < 100; ++i) {
+            body_stmts.push_back(std::make_unique<ExprStmt>(
+                    std::make_unique<IntegerLiteral>(i, span), span));
+        }
+        auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
+
+        MainStmt stmt(std::move(body), span);
+
+        REQUIRE(static_cast<const BlockStmt&>(stmt.expression()).statements().size() == 100);
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Parser - Corner Cases and Edge Cases
+// -----------------------------------------------------------------------------
+
+TEST_CASE("Parser corner cases - empty and minimal inputs", "[Parser][CornerCases]") {
+    using namespace jsv;
+
+    SECTION("Parse only EOF token") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().empty());
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse single whitespace token") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - error recovery", "[Parser][CornerCases][ErrorRecovery]") {
+    using namespace jsv;
+
+    SECTION("Parse with unexpected token in middle") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});  // Unexpected operator
+        tokens.emplace_back(TokenKind::Numeric, "5", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Parse with consecutive statements") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "y", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - deeply nested structures", "[Parser][CornerCases][Nesting]") {
+    using namespace jsv;
+
+    SECTION("Parse deeply nested grouping expressions") {
+        std::vector<Token> tokens;
+        // (((((42)))))
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse deeply nested binary expressions") {
+        std::vector<Token> tokens;
+        // 1 + 2 + 3 + 4 + 5
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "3", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "4", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "5", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - unary operators", "[Parser][CornerCases][Unary]") {
+    using namespace jsv;
+
+    SECTION("Parse consecutive unary operators") {
+        std::vector<Token> tokens;
+        // ---5
+        tokens.emplace_back(TokenKind::Minus, "-", SourceSpan{});
+        tokens.emplace_back(TokenKind::Minus, "-", SourceSpan{});
+        tokens.emplace_back(TokenKind::Minus, "-", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "5", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse mixed unary operators") {
+        std::vector<Token> tokens;
+        // !-true
+        tokens.emplace_back(TokenKind::Not, "!", SourceSpan{});
+        tokens.emplace_back(TokenKind::Minus, "-", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse postfix unary operators") {
+        std::vector<Token> tokens;
+        // i++--
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::MinusMinus, "--", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - array literals", "[Parser][CornerCases][Array]") {
+    using namespace jsv;
+
+    SECTION("Parse empty array literal") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse array with single element") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse nested array literals - not yet supported") {
+        std::vector<Token> tokens;
+        // {{1, 2}, {3, 4}}
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "3", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "4", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Nested arrays produce errors - feature not yet implemented
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Parse array with trailing comma - not yet supported") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Trailing commas produce errors - feature not yet implemented
+        REQUIRE(!errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - function calls", "[Parser][CornerCases][Call]") {
+    using namespace jsv;
+
+    SECTION("Parse function call with no arguments") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse nested function calls") {
+        std::vector<Token> tokens;
+        // outer(inner(1))
+        tokens.emplace_back(TokenKind::IdentifierAscii, "outer", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "inner", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse function call with many arguments") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        for(int i = 0; i < 10; ++i) {
+            tokens.emplace_back(TokenKind::Numeric, fmt::format("{}", i).c_str(), SourceSpan{});
+            if(i < 9) {
+                tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+            }
+        }
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - member access", "[Parser][CornerCases][Member]") {
+    using namespace jsv;
+
+    SECTION("Parse chained member access - not yet supported") {
+        std::vector<Token> tokens;
+        // a.b.c.d
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Dot, ".", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Dot, ".", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
+        tokens.emplace_back(TokenKind::Dot, ".", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "d", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Member access with dot notation produces errors - feature not yet implemented
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Parse member access on function call - not yet supported") {
+        std::vector<Token> tokens;
+        // func().member
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Dot, ".", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "member", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Member access produces errors - feature not yet implemented
+        REQUIRE(!errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - assignment expressions", "[Parser][CornerCases][Assignment]") {
+    using namespace jsv;
+
+    SECTION("Parse chained assignment") {
+        std::vector<Token> tokens;
+        // a = b = c = 42
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Parse compound assignment patterns") {
+        std::vector<Token> tokens;
+        // x = y = 1 + 2
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "y", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser corner cases - control flow", "[Parser][CornerCases][ControlFlow]") {
+    using namespace jsv;
+
+    SECTION("Parse if without braces single statement - not yet supported") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // If without braces produces errors - feature not yet implemented
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Parse nested control flow - with for loop not yet supported") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordWhile, "while", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "false", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Nested control flow with empty for(;;) produces errors - feature not yet fully implemented
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Parse nested if-while control flow") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordWhile, "while", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "false", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser error cases - unclosed constructs", "[Parser][ErrorCases]") {
+    using namespace jsv;
+
+    SECTION("Unclosed parenthesis") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Unclosed brace") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Unclosed array literal") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Unclosed function call") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+}
+
+TEST_CASE("Parser error cases - malformed declarations", "[Parser][ErrorCases]") {
+    using namespace jsv;
+
+    SECTION("Function without name") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Variable without name") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Function without parameter types") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "f", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(!errors.empty());
     }
 }
 
