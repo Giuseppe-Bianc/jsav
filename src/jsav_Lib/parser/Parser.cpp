@@ -56,9 +56,7 @@ namespace jsv {
         value = std::strtoll(std::string(text).c_str(), nullptr, kDecimalRadix);
 
         // Extract type suffix if present
-        if(found_suffix && suffix_start < text.size()) {
-            type_suffix = std::string(text.substr(suffix_start));
-        }
+        if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
 
         return {value, type_suffix};
     }
@@ -360,7 +358,7 @@ namespace jsv {
 
         auto body_stmt = parse_stmt();
         if(!body_stmt) { return std::nullopt; }
-        
+
         // Assicura che il body sia sempre un BlockStmt
         StmtPtr body_ptr;
         if(body_stmt.value()->kind() == NodeKind::BlockStmt) {
