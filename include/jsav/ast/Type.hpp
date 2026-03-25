@@ -56,6 +56,10 @@ namespace jsv {
      * @brief Get the string representation of a TypeKind.
      * @param kind The type kind to convert to string.
      * @return String view of the type kind name.
+     *
+     * @note Uses snake_case naming (exception to project camelCase convention)
+     *       to reflect its role as a type subsystem utility that mirrors
+     *       the TypeKind enum naming structure.
      */
     [[nodiscard]] constexpr std::string_view type_kind_name(TypeKind kind) noexcept {
         switch(kind) {
@@ -119,10 +123,36 @@ namespace jsv {
         /**
          * @brief Check if this is a primitive type (not compound or custom).
          * @return true if this is a built-in primitive type.
+         *
+         * @note Explicit enumeration of primitive kinds avoids fragility of enum
+         *       ordering assumptions. Compound types (Array, Vector) and Custom
+         *       are excluded. Void and NullPtr are considered primitive for type
+         *       checking purposes.
          */
         [[nodiscard]] constexpr bool is_primitive() const noexcept {
-            return kind_ >= TypeKind::I8 && kind_ <= TypeKind::NullPtr && kind_ != TypeKind::Custom && kind_ != TypeKind::Array &&
-                   kind_ != TypeKind::Vector;
+            switch(kind_) {
+            case TypeKind::I8:
+            case TypeKind::I16:
+            case TypeKind::I32:
+            case TypeKind::I64:
+            case TypeKind::U8:
+            case TypeKind::U16:
+            case TypeKind::U32:
+            case TypeKind::U64:
+            case TypeKind::F32:
+            case TypeKind::F64:
+            case TypeKind::Char:
+            case TypeKind::String:
+            case TypeKind::Bool:
+            case TypeKind::Void:
+            case TypeKind::NullPtr:
+                return true;
+            case TypeKind::Custom:
+            case TypeKind::Array:
+            case TypeKind::Vector:
+                return false;
+            }
+            return false;  // Unreachable, but satisfies compiler warnings
         }
 
         /**
@@ -175,7 +205,7 @@ namespace jsv {
          * @param other The type to compare with.
          * @return true if types are not equal.
          */
-        [[nodiscard]] constexpr bool operator!=(const TypeBase &other) const noexcept { return !(*this == other); }
+        [[nodiscard]] bool operator!=(const TypeBase &other) const noexcept { return !(*this == other); }
 
     protected:
         /**
@@ -200,11 +230,23 @@ namespace jsv {
     class PrimitiveType final : public TypeBase {
     public:
         /**
+         * @brief Private tag type to restrict construction to singleton factories.
+         *
+         * This tag prevents external code from constructing PrimitiveType instances
+         * directly, ensuring all instances are created through the controlled
+         * singleton factory methods (i8(), i16(), etc.).
+         */
+        struct PrivateTag {
+            explicit PrivateTag() = default;
+        };
+
+        /**
          * @brief Construct a primitive type.
+         * @param tag Private tag to restrict construction.
          * @param kind The primitive type kind.
          * @pre kind must be a primitive type (not Custom, Array, or Vector).
          */
-        explicit constexpr PrimitiveType(TypeKind kind) : TypeBase{kind} {
+        explicit constexpr PrimitiveType(PrivateTag, TypeKind kind) : TypeBase{kind} {
             assert(kind != TypeKind::Custom && "Use CustomType for custom types");
             assert(kind != TypeKind::Array && "Use ArrayType for array types");
             assert(kind != TypeKind::Vector && "Use VectorType for vector types");
@@ -215,7 +257,7 @@ namespace jsv {
          * @return Shared pointer to I8 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> i8() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::I8));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::I8);
             return instance;
         }
 
@@ -224,7 +266,7 @@ namespace jsv {
          * @return Shared pointer to I16 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> i16() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::I16));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::I16);
             return instance;
         }
 
@@ -233,7 +275,7 @@ namespace jsv {
          * @return Shared pointer to I32 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> i32() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::I32));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::I32);
             return instance;
         }
 
@@ -242,7 +284,7 @@ namespace jsv {
          * @return Shared pointer to I64 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> i64() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::I64));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::I64);
             return instance;
         }
 
@@ -251,7 +293,7 @@ namespace jsv {
          * @return Shared pointer to U8 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> u8() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::U8));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::U8);
             return instance;
         }
 
@@ -260,7 +302,7 @@ namespace jsv {
          * @return Shared pointer to U16 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> u16() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::U16));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::U16);
             return instance;
         }
 
@@ -269,7 +311,7 @@ namespace jsv {
          * @return Shared pointer to U32 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> u32() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::U32));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::U32);
             return instance;
         }
 
@@ -278,7 +320,7 @@ namespace jsv {
          * @return Shared pointer to U64 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> u64() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::U64));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::U64);
             return instance;
         }
 
@@ -287,7 +329,7 @@ namespace jsv {
          * @return Shared pointer to F32 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> f32() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::F32));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::F32);
             return instance;
         }
 
@@ -296,7 +338,7 @@ namespace jsv {
          * @return Shared pointer to F64 type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> f64() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::F64));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::F64);
             return instance;
         }
 
@@ -305,7 +347,7 @@ namespace jsv {
          * @return Shared pointer to Char type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> char_() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::Char));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::Char);
             return instance;
         }
 
@@ -314,7 +356,7 @@ namespace jsv {
          * @return Shared pointer to String type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> string() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::String));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::String);
             return instance;
         }
 
@@ -323,7 +365,7 @@ namespace jsv {
          * @return Shared pointer to Bool type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> bool_() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::Bool));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::Bool);
             return instance;
         }
 
@@ -332,7 +374,7 @@ namespace jsv {
          * @return Shared pointer to Void type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> void_() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::Void));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::Void);
             return instance;
         }
 
@@ -341,7 +383,7 @@ namespace jsv {
          * @return Shared pointer to NullPtr type.
          */
         [[nodiscard]] static std::shared_ptr<const PrimitiveType> nullptr_() {
-            static const auto instance = std::shared_ptr<const PrimitiveType>(new PrimitiveType(TypeKind::NullPtr));
+            static const auto instance = std::make_shared<const PrimitiveType>(PrivateTag{}, TypeKind::NullPtr);
             return instance;
         }
 
