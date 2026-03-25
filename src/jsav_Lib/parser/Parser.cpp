@@ -2,15 +2,18 @@
  * Created by gbian on 23/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/parser/Parser.hpp"
 #include "jsav/parser/precedence.hpp"
 
 namespace jsv {
+    constexpr std::size_t kInitialErrorCapacity = 8;
+    constexpr int kDecimalRadix = 10;
+
     Parser::Parser(const std::vector<Token> &tokens) : tokens_(tokens), current_(0), recursion_depth_(0) {
         // Reserve space for errors to avoid reallocations
         // Typical programs have few syntax errors, 8 is a reasonable initial capacity
-        errors_.reserve(8);
+        errors_.reserve(kInitialErrorCapacity);
     }
     std::pair<std::unique_ptr<Program>, std::vector<CompileError>> Parser::parse() {
         std::vector<StmtPtr> stmts;
@@ -24,7 +27,7 @@ namespace jsv {
                 if(!is_at_end()) { advance(); }
             }
         }
-        return std::make_pair(std::make_unique<Program>(vnd_move(stmts)), vnd_move(errors_));
+        return {std::make_unique<Program>(vnd_move(stmts)), vnd_move(errors_)};
     }
 
     std::optional<StmtPtr> Parser::parse_stmt() {
@@ -59,35 +62,35 @@ namespace jsv {
         // Consuma 'fun'
         const auto fun_token = advance();
         // Nome funzione
-        auto name_token = advance();
+        const auto name_token = advance();
         if(name_token.getKind() != TokenKind::IdentifierAscii && name_token.getKind() != TokenKind::IdentifierUnicode) {
             syntax_error("Expected function name", name_token, {}, ErrorCode::E1001);
             return std::nullopt;
         }
-        std::string name{name_token.getText()};
+        const std::string name{name_token.getText()};
 
         // Parametri
-        if(!expect(TokenKind::OpenParen, "after function name")) return std::nullopt;
+        if(!expect(TokenKind::OpenParen, "after function name")) { return std::nullopt; }
         std::vector<FuncParam> parameters;
         while(!check(TokenKind::CloseParen) && !is_at_end()) {
-            auto param_token = advance();
+            const auto param_token = advance();
             if(param_token.getKind() != TokenKind::IdentifierAscii && param_token.getKind() != TokenKind::IdentifierUnicode) {
                 syntax_error("Expected parameter name", param_token, {}, ErrorCode::E1002);
                 return std::nullopt;
             }
-            std::string param_name{param_token.getText()};
-            if(!expect(TokenKind::Colon, "after parameter name")) return std::nullopt;
+            const std::string param_name{param_token.getText()};
+            if(!expect(TokenKind::Colon, "after parameter name")) { return std::nullopt; }
             auto [type_opt, type_str] = parse_type();
             if(!type_opt) {
                 syntax_error("Expected parameter type", peek(), {}, ErrorCode::E1003);
                 return std::nullopt;
             }
-            parameters.push_back(FuncParam{param_name, *type_opt, param_token.getSpan()});
+            parameters.emplace_back(FuncParam{.name = param_name, .type_annotation = *type_opt, .loc = param_token.getSpan()});
             if(!check(TokenKind::CloseParen)) {
-                if(!expect(TokenKind::Comma, "between parameters")) return std::nullopt;
+                if(!expect(TokenKind::Comma, "between parameters")) { return std::nullopt; }
             }
         }
-        if(!expect(TokenKind::CloseParen, "after parameters")) return std::nullopt;
+        if(!expect(TokenKind::CloseParen, "after parameters")) { return std::nullopt; }
 
         // Tipo di ritorno
         std::optional<TypePtr> return_type;
@@ -117,23 +120,23 @@ namespace jsv {
     std::optional<StmtPtr> Parser::parse_main_function() {
         const auto start_token = advance();
         auto body = parse_block_stmt();
-        if(!body.has_value()) return std::nullopt;  // Corrected context
+        if(!body.has_value()) { return std::nullopt; }
         const auto end_span = body.value()->location();
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<MainStmt>(std::move(body.value()), function_span);
     }
     std::optional<ExprPtr> Parser::parse_condition(const std::string_view keyword) {
-        [[maybe_unused]] auto e = expect(TokenKind::OpenParen, fmt::format("after '{}'", keyword));
+        [[maybe_unused]] const auto expect_open = expect(TokenKind::OpenParen, FORMAT("after '{}'", keyword));
         auto condition = parse_expr(0);
-        [[maybe_unused]] auto e2 = expect(TokenKind::CloseParen, "after the condition");
+        [[maybe_unused]] const auto expect_close = expect(TokenKind::CloseParen, "after the condition");
         return condition;
     }
     std::optional<StmtPtr> Parser::parse_if() {
         const auto start_token = advance();
         auto condition = parse_condition("if");
-        if(!condition) return std::nullopt;
+        if(!condition) { return std::nullopt; }
         auto then_branch = parse_block_stmt();
-        if(!then_branch) return std::nullopt;
+        if(!then_branch) { return std::nullopt; }
         std::optional<StmtPtr> else_branch;
         if(match_token(TokenKind::KeywordElse)) { else_branch = parse_stmt(); }
         return std::make_unique<IfStmt>(std::move(condition.value()), std::move(then_branch.value()),
@@ -147,8 +150,8 @@ namespace jsv {
         std::vector<std::string> names;
 
         do {
-            auto name = consume_identifier();
-            if(!name) return std::nullopt;
+            const auto name = consume_identifier();
+            if(!name) { return std::nullopt; }
             names.emplace_back(*name);
         } while(match_token(TokenKind::Comma));
 
@@ -156,7 +159,7 @@ namespace jsv {
         std::optional<std::string> type_annotation;
         if(match_token(TokenKind::Colon)) {
             auto [type_opt, type_str] = parse_type();
-            if(!type_opt) return std::nullopt;
+            if(!type_opt) { return std::nullopt; }
 
             // use string form for AST (includes array dimensions)
             type_annotation = std::move(type_str);
@@ -168,7 +171,7 @@ namespace jsv {
         if(match_token(TokenKind::Equal)) {
             do {
                 auto expr = parse_expr(0);
-                if(!expr) return std::nullopt;
+                if(!expr) { return std::nullopt; }
                 initializers.push_back(std::move(expr.value()));
             } while(match_token(TokenKind::Comma));
         }
@@ -189,9 +192,9 @@ namespace jsv {
     std::optional<StmtPtr> Parser::parse_while() {
         const auto start_token = advance();
         auto condition = parse_condition("while");
-        if(!condition) return std::nullopt;
+        if(!condition) { return std::nullopt; }
         auto body = parse_block_stmt();
-        if(!body) return std::nullopt;
+        if(!body) { return std::nullopt; }
         const auto end_span = body.value()->location();
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<WhileStmt>(std::move(condition.value()), std::move(body.value()), function_span);
@@ -217,8 +220,8 @@ namespace jsv {
             // --- names ---
             std::vector<std::string> names;
             do {
-                auto name = consume_identifier();
-                if(!name) return std::nullopt;
+                const auto name = consume_identifier();
+                if(!name) { return std::nullopt; }
                 names.emplace_back(*name);
             } while(match_token(TokenKind::Comma));
 
@@ -226,7 +229,7 @@ namespace jsv {
             std::optional<std::string> type_annotation;
             if(match_token(TokenKind::Colon)) {
                 auto [type_opt, type_str] = parse_type();
-                if(!type_opt) return std::nullopt;
+                if(!type_opt) { return std::nullopt; }
                 type_annotation = std::move(type_str);
             }
 
@@ -235,7 +238,7 @@ namespace jsv {
             if(match_token(TokenKind::Equal)) {
                 do {
                     auto expr = parse_expr(0);
-                    if(!expr) return std::nullopt;
+                    if(!expr) { return std::nullopt; }
                     initializers.push_back(std::move(expr.value()));
                 } while(match_token(TokenKind::Comma));
             }
@@ -252,19 +255,19 @@ namespace jsv {
             return std::nullopt;
         }
         // Do NOT consume semicolon - it's the clause separator
-        SourceSpan span = expr.value()->location();
+        const SourceSpan span = expr.value()->location();
         return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
     std::optional<StmtPtr> Parser::parse_for() {
         const auto start_token = advance();
-        [[maybe_unused]] auto e1 = expect(TokenKind::OpenParen, "after 'for'");
+        [[maybe_unused]] const auto expect_open = expect(TokenKind::OpenParen, "after 'for'");
 
         // Parse initializer - may be nullptr for empty, VarDecl, or ExprStmt
         std::optional<StmtPtr> initializer;
         bool initializer_was_empty = false;
         if(!check(TokenKind::Semicolon)) {
             initializer = parse_for_initializer();
-            if(!initializer) return std::nullopt;
+            if(!initializer) { return std::nullopt; }
             // After a non-empty initializer (var decl or expr), the next token should be semicolon
             // We need to consume it before parsing the condition
             if(check(TokenKind::Semicolon)) {
@@ -287,7 +290,7 @@ namespace jsv {
         } else if(!check(TokenKind::CloseParen)) {
             // Parse condition expression
             condition = parse_expr(0);
-            if(!condition) return std::nullopt;
+            if(!condition) { return std::nullopt; }
             // Consume semicolon after condition
             if(check(TokenKind::Semicolon)) {
                 advance();
@@ -300,13 +303,13 @@ namespace jsv {
         std::optional<ExprPtr> increment;
         if(!check(TokenKind::CloseParen)) {
             increment = parse_expr(0);
-            if(!increment) return std::nullopt;
+            if(!increment) { return std::nullopt; }
         }
         if(!check(TokenKind::CloseParen)) { return std::nullopt; }
-        [[maybe_unused]] auto e3 = expect(TokenKind::CloseParen, "after for loop clauses");
+        [[maybe_unused]] const auto expect_close = expect(TokenKind::CloseParen, "after for loop clauses");
 
         auto body_stmt = parse_stmt();
-        if(!body_stmt) return std::nullopt;
+        if(!body_stmt) { return std::nullopt; }
         // Assicura che il body sia sempre un BlockStmt
         StmtPtr body_ptr;
         if(body_stmt.value()->kind() == NodeKind::BlockStmt) {
@@ -343,7 +346,7 @@ namespace jsv {
                 if(!is_at_end()) { advance(); }
             }
         }
-        [[maybe_unused]] auto e = expect(TokenKind::CloseBrace, "end of block");
+        [[maybe_unused]] const auto expect_brace = expect(TokenKind::CloseBrace, "end of block");
         statements.shrink_to_fit();
         return std::make_unique<BlockStmt>(std::move(statements), start_token.getSpan());
     }
@@ -358,7 +361,7 @@ namespace jsv {
         // Consuma opzionalmente il punto e virgola
         match_token(TokenKind::Semicolon);
         // Usa lo span dell'espressione per ExprStmt
-        SourceSpan span = expr.value()->location();
+        const SourceSpan span = expr.value()->location();
         return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
 
@@ -372,14 +375,14 @@ namespace jsv {
 
     std::optional<ExprPtr> Parser::parse_expr_inner(const std::size_t min_bp) {
         auto left = nud();
-        if(!left) return std::nullopt;
+        if(!left) { return std::nullopt; }
         while(true) {
             const auto &token = peek();
             const auto [lbp, _] = binding_power(token);
             if(lbp <= min_bp) { break; }
             auto new_left = led(std::move(*left));
             left = std::nullopt;
-            if(!new_left) break;
+            if(!new_left) { break; }
             left = std::move(new_left);
         }
         return left;
@@ -401,39 +404,39 @@ namespace jsv {
                 bool found_suffix = false;
 
                 // Scan backwards to find the start of the suffix
-                for(std::size_t i = text.size(); i > 0 && !found_suffix; --i) {
-                    const char c = text[i - 1];
-                    if(c == 'd' || c == 'D' || c == 'f' || c == 'F') {
-                        suffix_start = i - 1;
+                for(std::size_t index = text.size(); index > 0 && !found_suffix; --index) {
+                    const char current_char = text[index - 1];
+                    if(current_char == 'd' || current_char == 'D' || current_char == 'f' || current_char == 'F') {
+                        suffix_start = index - 1;
                         found_suffix = true;
-                    } else if(c == 'u' || c == 'U' || c == 'i' || c == 'I') {
+                    } else if(current_char == 'u' || current_char == 'U' || current_char == 'i' || current_char == 'I') {
                         // Check if followed by digits (like u32, i8, u, i)
-                        if(i < text.size()) {
+                        if(index < text.size()) {
                             // There are characters after u/U/i/I - check if they're digits
                             bool all_digits_after = true;
-                            for(std::size_t j = i; j < text.size(); ++j) {
-                                if(!std::isdigit(static_cast<unsigned char>(text[j]))) {
+                            for(std::size_t j = index; j < text.size(); ++j) {
+                                if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) {
                                     all_digits_after = false;
                                     break;
                                 }
                             }
                             if(all_digits_after) {
-                                suffix_start = i - 1;
+                                suffix_start = index - 1;
                                 found_suffix = true;
                             }
                         } else {
                             // Bare u/U/i/I at end - treat as suffix
-                            suffix_start = i - 1;
+                            suffix_start = index - 1;
                             found_suffix = true;
                         }
-                    } else if(!std::isdigit(static_cast<unsigned char>(c)) && c != '.') {
+                    } else if(std::isdigit(static_cast<unsigned char>(current_char)) == 0 && current_char != '.') {
                         // Non-digit, non-dot character that's not a suffix marker - stop scanning
                         break;
                     }
                 }
 
                 // Parse the numeric value from the full text (strtoll stops at non-digit)
-                value = std::strtoll(text.data(), nullptr, 10);
+                value = std::strtoll(text.data(), nullptr, kDecimalRadix);
 
                 // Extract type suffix if present
                 if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
@@ -515,16 +518,16 @@ namespace jsv {
         }
     }
 
-    ExprPtr Parser::parse_unary(const UnaryOp op, const Token &token) {
+    ExprPtr Parser::parse_unary(const UnaryOp operation, const Token &token) {
         const auto [_, rbp] = unary_binding_power(token);
         auto expr = parse_expr(rbp);
         if(!expr) { expr = std::make_unique<NullLiteral>(token.getSpan()); }
-        return std::make_unique<UnaryExpr>(op, std::move(expr.value()), token.getSpan());
+        return std::make_unique<UnaryExpr>(operation, std::move(expr.value()), token.getSpan());
     }
 
-    ExprPtr Parser::parse_postfix_unary(ExprPtr operand, const UnaryOp op, const Token &token) {
+    ExprPtr Parser::parse_postfix_unary(ExprPtr operand, const UnaryOp operation, const Token &token) {
         const auto span = operand->location().merged(token.getSpan()).value_or(token.getSpan());
-        return std::make_unique<UnaryExpr>(op, std::move(operand), span);
+        return std::make_unique<UnaryExpr>(operation, std::move(operand), span);
     }
 
     void Parser::extract_elements(const TokenKind kind, std::vector<ExprPtr> &elements) {
@@ -543,17 +546,17 @@ namespace jsv {
     }
 
     std::optional<ExprPtr> Parser::parse_binary(ExprPtr left, const Token &token) {
-        auto op_result = get_binary_op(token);
+        const auto op_result = get_binary_op(token);
         if(!op_result.has_value()) {
             errors_.push_back(std::move(op_result.error()));
             return std::nullopt;
         }
-        const BinaryOp op = op_result.value();  // ← was missing the type
+        const BinaryOp operation = op_result.value();
         const auto [_, rbp] = binding_power(token);
         auto right = parse_expr(rbp);
         if(!right) { right = std::make_unique<NullLiteral>(token.getSpan()); }
         const auto span = left->location().merged(right.value()->location()).value_or(token.getSpan());
-        return std::make_unique<BinaryExpr>(op, std::move(left), std::move(right.value()), span);
+        return std::make_unique<BinaryExpr>(operation, std::move(left), std::move(right.value()), span);
     }
 
     std::optional<ExprPtr> Parser::parse_grouping([[maybe_unused]] const Token &start_token) {
@@ -579,18 +582,19 @@ namespace jsv {
     std::optional<ExprPtr> Parser::parse_call([[maybe_unused]] ExprPtr callee, [[maybe_unused]] const Token &start_token) {
         std::vector<ExprPtr> arguments;
         if(!check(TokenKind::CloseParen)) {
-            do {
+            while(!is_at_end()) {
                 auto arg = parse_expr(0);
                 if(!arg) {
                     syntax_error("Expected expression in function call argument", peek(), std::nullopt, std::nullopt);
                     return std::nullopt;
                 }
                 arguments.push_back(std::move(*arg));
-            } while(match_token(TokenKind::Comma));
+                if(!match_token(TokenKind::Comma)) { break; }
+            }
         }
         if(!expect(TokenKind::CloseParen, "after function call arguments")) { return std::nullopt; }
         // Lo span della chiamata è dal callee (di solito un Identifier) fino all'ultima parentesi
-        SourceSpan call_span = merged_span(start_token);
+        const SourceSpan call_span = merged_span(start_token);
         return std::make_unique<CallExpr>(std::move(callee), std::move(arguments), call_span);
     }
 
@@ -646,7 +650,7 @@ namespace jsv {
 
     void Parser::syntax_error(const std::string_view message, const Token &token, std::optional<std::string> help,
                               std::optional<ErrorCode> error_code) {
-        errors_.push_back(CompileError::SyntaxError(error_code, message, token.getSpan(), help));
+        errors_.push_back(CompileError::SyntaxError(error_code, message, token.getSpan(), std::move(help)));
     }
 
     void Parser::report_peek_error(const std::string_view message, const std::optional<std::string> help) {
@@ -751,7 +755,7 @@ namespace jsv {
         while(match_token(TokenKind::OpenBracket)) {
             const auto dim_token = peek();
             if(dim_token.getKind() == TokenKind::Numeric) {
-                const auto dim_value = std::strtoull(dim_token.getText().data(), nullptr, 10);
+                const auto dim_value = std::strtoull(dim_token.getText().data(), nullptr, kDecimalRadix);
                 dimensions.push_back(dim_value);
                 advance();  // consume the numeric token
             } else {
@@ -765,16 +769,20 @@ namespace jsv {
         if(!dimensions.empty()) {
             std::string result = type_string;
             // Apply dimensions from innermost to outermost (right to left)
-            for(std::size_t i = dimensions.size(); i > 0; --i) { result = fmt::format("[{}; {}]", result, dimensions[i - 1]); }
+            for(std::size_t dimension_index = dimensions.size(); dimension_index > 0; --dimension_index) {
+                result = FORMAT("[{}; {}]", result, dimensions[dimension_index - 1]);
+            }
             type_string = result;
         }
 
         return {base_type, type_string};
     }
     std::optional<std::string_view> Parser::consume_identifier() {
-        auto token = peek();
+        const auto token = peek();
         if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) { return advance().getText(); }
         syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
         return std::nullopt;
     }
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)

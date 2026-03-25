@@ -40,8 +40,12 @@ namespace jsv {
     // cppcheck-suppress functionConst
     void AstPrinter::visit_IntegerLiteral(const IntegerLiteral &node) {
         const bool is_last = next_is_last_;
-        const std::string value_str = node.type_suffix().has_value() ? fmt::format("{}{}", node.value(), *node.type_suffix())
-                                                                     : fmt::format("{}", node.value());
+        std::string value_str;
+        if(const auto &type_suffix = node.type_suffix(); type_suffix.has_value()) {
+            value_str = FORMAT("{}{}", node.value(), *type_suffix);
+        } else {
+            value_str = FORMAT("{}", node.value());
+        }
         print_value(ansi::green("Literal "), value_str, is_last);
     }
 
@@ -621,7 +625,7 @@ namespace jsv {
         std::string result;
         // PERF: reserve estimated size to avoid reallocations
         const std::size_t estimated_size = 32 + node.name().size() +
-                                           (node.type_annotation().has_value() ? node.type_annotation()->size() : 0);
+                                           (node.type_annotation().has_value() ? node.type_annotation().value().size() : 0);
         result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());
