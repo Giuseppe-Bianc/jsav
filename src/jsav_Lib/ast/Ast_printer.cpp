@@ -541,8 +541,12 @@ namespace jsv {
 
     std::string SExprPrinter::visit_CallExpr(const CallExpr &node) {
         std::string result;
-        const auto out = std::back_inserter(result);
-        FORMAT_TO(out, "(call {}", visit(node.callee()));
+        const auto callee_str = visit(node.callee());
+        // PERF: reserve estimated size to avoid reallocations
+        const std::size_t estimated_size = 8 + callee_str.size() + (node.args().size() * 16);
+        result.reserve(estimated_size);
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "(call {}", callee_str);
         for(const auto &arg : node.args()) { FORMAT_TO(out, " {}", visit(*arg)); }
         FORMAT_TO(out, ")");
         return result;
@@ -564,6 +568,9 @@ namespace jsv {
 
     std::string SExprPrinter::visit_ArrayLiteral(const ArrayLiteral &node) {
         std::string result;
+        // PERF: reserve estimated size to avoid reallocations
+        const std::size_t estimated_size = 2 + (node.elements().size() * 12);
+        result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "[");
         for(std::size_t i = 0; i < node.elements().size(); ++i) {
@@ -583,6 +590,9 @@ namespace jsv {
         // Multi-variable declaration: var a, b: i64 = 10, 20;
         if(node.num_variables() > 1) {
             std::string result;
+            // PERF: reserve estimated size to avoid reallocations
+            const std::size_t estimated_size = 16 + (node.names().size() * 8) + (node.initializers().size() * 16);
+            result.reserve(estimated_size);
             auto out = std::back_inserter(result);
             FORMAT_TO(out, "({}", node.is_const() ? "const" : "var");
             for(const auto &varname : node.names()) { FORMAT_TO(out, " {}", varname); }
@@ -601,6 +611,9 @@ namespace jsv {
 
         // Single variable declaration (backward compatible)
         std::string result;
+        // PERF: reserve estimated size to avoid reallocations
+        const std::size_t estimated_size = 32 + node.name().size() + (node.type_annotation().has_value() ? node.type_annotation()->size() : 0);
+        result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());
         if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { FORMAT_TO(out, " : {}", *type_ann); }
@@ -611,6 +624,9 @@ namespace jsv {
 
     std::string SExprPrinter::visit_FuncDecl(const FuncDecl &node) {
         std::string result;
+        // PERF: reserve estimated size to avoid reallocations
+        const std::size_t estimated_size = 64 + (node.params().size() * 24) + (node.return_type().has_value() ? 16 : 0);
+        result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "(fn {} (", node.name());
         for(std::size_t i = 0; i < node.params().size(); ++i) {

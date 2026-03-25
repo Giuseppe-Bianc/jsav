@@ -23,8 +23,8 @@ namespace jsv {
 
         Node(const Node &) = delete;
         Node &operator=(const Node &) = delete;
-        Node(Node &&) = default;
-        Node &operator=(Node &&) = default;
+        Node(Node &&) noexcept = default;  // PERF: noexcept enables vector move optimization
+        Node &operator=(Node &&) noexcept = default;  // PERF: noexcept enables vector move optimization
 
         [[nodiscard]] constexpr NodeKind kind() const noexcept { return kind_; }
         [[nodiscard]] constexpr SourceSpan location() const noexcept { return loc_; }

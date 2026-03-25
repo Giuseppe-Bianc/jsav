@@ -57,7 +57,48 @@ namespace jsv {
      * @param kind The type kind to convert to string.
      * @return String view of the type kind name.
      */
-    [[nodiscard]] std::string_view type_kind_name(TypeKind kind) noexcept;
+    [[nodiscard]] constexpr std::string_view type_kind_name(TypeKind kind) noexcept {
+        switch(kind) {
+        case TypeKind::I8:
+            return "i8";
+        case TypeKind::I16:
+            return "i16";
+        case TypeKind::I32:
+            return "i32";
+        case TypeKind::I64:
+            return "i64";
+        case TypeKind::U8:
+            return "u8";
+        case TypeKind::U16:
+            return "u16";
+        case TypeKind::U32:
+            return "u32";
+        case TypeKind::U64:
+            return "u64";
+        case TypeKind::F32:
+            return "f32";
+        case TypeKind::F64:
+            return "f64";
+        case TypeKind::Char:
+            return "char";
+        case TypeKind::String:
+            return "string";
+        case TypeKind::Bool:
+            return "bool";
+        case TypeKind::Custom:
+            return "custom";
+        case TypeKind::Array:
+            return "array";
+        case TypeKind::Vector:
+            return "vector";
+        case TypeKind::Void:
+            return "void";
+        case TypeKind::NullPtr:
+            return "nullptr";
+        default:
+            return "unknown";
+        }
+    }
 
     // ============================================================
     // Base TypeBase class - abstract base for all type variants
@@ -376,8 +417,8 @@ namespace jsv {
          */
         [[nodiscard]] bool operator==(const TypeBase &other) const noexcept override {
             if(other.kind() != kind()) { return false; }
-            const auto *other_custom = dynamic_cast<const CustomType *>(&other);
-            assert(other_custom && "Type kind check passed but cast failed");
+            // PERF: static_cast after kind() check avoids RTTI overhead of dynamic_cast
+            const auto *other_custom = static_cast<const CustomType *>(&other);
             return *name_ == *other_custom->name_;
         }
 
@@ -435,8 +476,8 @@ namespace jsv {
          */
         [[nodiscard]] bool operator==(const TypeBase &other) const noexcept override {
             if(other.kind() != kind()) { return false; }
-            const auto *other_array = dynamic_cast<const ArrayType *>(&other);
-            assert(other_array && "Type kind check passed but cast failed");
+            // PERF: static_cast after kind() check avoids RTTI overhead of dynamic_cast
+            const auto *other_array = static_cast<const ArrayType *>(&other);
             // Compare element types and use pointer equality for expressions
             return *element_type_ == *other_array->element_type_ &&
                    (size_expr_ == other_array->size_expr_);
@@ -489,8 +530,8 @@ namespace jsv {
          */
         [[nodiscard]] bool operator==(const TypeBase &other) const noexcept override {
             if(other.kind() != kind()) { return false; }
-            const auto *other_vector = dynamic_cast<const VectorType *>(&other);
-            assert(other_vector && "Type kind check passed but cast failed");
+            // PERF: static_cast after kind() check avoids RTTI overhead of dynamic_cast
+            const auto *other_vector = static_cast<const VectorType *>(&other);
             return *element_type_ == *other_vector->element_type_;
         }
 

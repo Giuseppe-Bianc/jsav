@@ -42,33 +42,33 @@ namespace jsv {
             switch(node.kind()) {
             // --- Expressions ---
             case NodeKind::IntegerLiteral:
-                return self().visit_IntegerLiteral(static_cast<const IntegerLiteral &>(node));
+                [[likely]] return self().visit_IntegerLiteral(static_cast<const IntegerLiteral &>(node));
             case NodeKind::FloatLiteral:
                 return self().visit_FloatLiteral(static_cast<const FloatLiteral &>(node));
             case NodeKind::StringLiteral:
-                return self().visit_StringLiteral(static_cast<const StringLiteral &>(node));
+                [[likely]] return self().visit_StringLiteral(static_cast<const StringLiteral &>(node));
             case NodeKind::CharLiteral:
                 return self().visit_CharLiteral(static_cast<const CharLiteral &>(node));
             case NodeKind::BoolLiteral:
                 return self().visit_BoolLiteral(static_cast<const BoolLiteral &>(node));
             case NodeKind::NullLiteral:
-                return self().visit_NullLiteral(static_cast<const NullLiteral &>(node));
+                [[unlikely]] return self().visit_NullLiteral(static_cast<const NullLiteral &>(node));
             case NodeKind::Identifier:
-                return self().visit_Identifier(static_cast<const Identifier &>(node));
+                [[likely]] return self().visit_Identifier(static_cast<const Identifier &>(node));
             case NodeKind::UnaryExpr:
                 return self().visit_UnaryExpr(static_cast<const UnaryExpr &>(node));
             case NodeKind::BinaryExpr:
-                return self().visit_BinaryExpr(static_cast<const BinaryExpr &>(node));
+                [[likely]] return self().visit_BinaryExpr(static_cast<const BinaryExpr &>(node));
             case NodeKind::TernaryExpr:
                 return self().visit_TernaryExpr(static_cast<const TernaryExpr &>(node));
             case NodeKind::CallExpr:
-                return self().visit_CallExpr(static_cast<const CallExpr &>(node));
+                [[likely]] return self().visit_CallExpr(static_cast<const CallExpr &>(node));
             case NodeKind::IndexExpr:
                 return self().visit_IndexExpr(static_cast<const IndexExpr &>(node));
             case NodeKind::MemberExpr:
-                return self().visit_MemberExpr(static_cast<const MemberExpr &>(node));
+                [[likely]] return self().visit_MemberExpr(static_cast<const MemberExpr &>(node));
             case NodeKind::AssignExpr:
-                return self().visit_AssignExpr(static_cast<const AssignExpr &>(node));
+                [[likely]] return self().visit_AssignExpr(static_cast<const AssignExpr &>(node));
             case NodeKind::CastExpr:
                 return self().visit_CastExpr(static_cast<const CastExpr &>(node));
             case NodeKind::ArrayLiteral:
@@ -78,31 +78,31 @@ namespace jsv {
 
             // --- Statements ---
             case NodeKind::ExprStmt:
-                return self().visit_ExprStmt(static_cast<const ExprStmt &>(node));
+                [[likely]] return self().visit_ExprStmt(static_cast<const ExprStmt &>(node));
             case NodeKind::VarDecl:
-                return self().visit_VarDecl(static_cast<const VarDecl &>(node));
+                [[likely]] return self().visit_VarDecl(static_cast<const VarDecl &>(node));
             case NodeKind::FuncDecl:
-                return self().visit_FuncDecl(static_cast<const FuncDecl &>(node));
+                [[likely]] return self().visit_FuncDecl(static_cast<const FuncDecl &>(node));
             case NodeKind::ReturnStmt:
-                return self().visit_ReturnStmt(static_cast<const ReturnStmt &>(node));
+                [[likely]] return self().visit_ReturnStmt(static_cast<const ReturnStmt &>(node));
             case NodeKind::IfStmt:
-                return self().visit_IfStmt(static_cast<const IfStmt &>(node));
+                [[likely]] return self().visit_IfStmt(static_cast<const IfStmt &>(node));
             case NodeKind::WhileStmt:
-                return self().visit_WhileStmt(static_cast<const WhileStmt &>(node));
+                [[likely]] return self().visit_WhileStmt(static_cast<const WhileStmt &>(node));
             case NodeKind::ForStmt:
-                return self().visit_ForStmt(static_cast<const ForStmt &>(node));
+                [[likely]] return self().visit_ForStmt(static_cast<const ForStmt &>(node));
             case NodeKind::BlockStmt:
-                return self().visit_BlockStmt(static_cast<const BlockStmt &>(node));
+                [[likely]] return self().visit_BlockStmt(static_cast<const BlockStmt &>(node));
             case NodeKind::BreakStmt:
-                return self().visit_BreakStmt(static_cast<const BreakStmt &>(node));
+                [[unlikely]] return self().visit_BreakStmt(static_cast<const BreakStmt &>(node));
             case NodeKind::ContinueStmt:
-                return self().visit_ContinueStmt(static_cast<const ContinueStmt &>(node));
+                [[unlikely]] return self().visit_ContinueStmt(static_cast<const ContinueStmt &>(node));
             case NodeKind::MainStmt:
-                return self().visit_MainStmt(static_cast<const MainStmt &>(node));
+                [[unlikely]] return self().visit_MainStmt(static_cast<const MainStmt &>(node));
 
             // --- Program ---
             case NodeKind::Program:
-                return self().visit_Program(static_cast<const Program &>(node));
+                [[likely]] return self().visit_Program(static_cast<const Program &>(node));
             }
 
             throw std::runtime_error(FORMAT("Unknown NodeKind: {}", C_I(node.kind())));

@@ -16,6 +16,8 @@ namespace jsv {
         friend class Visitor<AstPrinter>;
 
     public:
+        AstPrinter() = default;
+
         void print(const Node &node);
 
     private:
