@@ -9193,7 +9193,9 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
         const SourceSpan span;
         std::vector<FuncParam> params;
         params.reserve(50);
-        for(int i = 0; i < 50; ++i) { params.push_back(FuncParam{.name = fmt::format("param{}", i), .type_annotation = PrimitiveType::i32(), .loc = span}); }
+        for(int i = 0; i < 50; ++i) {
+            params.push_back(FuncParam{.name = fmt::format("param{}", i), .type_annotation = PrimitiveType::i32(), .loc = span});
+        }
 
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
