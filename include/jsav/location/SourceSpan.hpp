@@ -44,9 +44,9 @@ namespace jsv {
         /// Only merges if spans are from the same file.
         void merge(const SourceSpan &other) noexcept;
 
-        /// Creates a new span that combines this span with another.
+        /// Creates a new source span that combines this span with another.
         /// Returns std::nullopt if spans are from different files.
-        [[nodiscard]] std::optional<SourceSpan> merged(const SourceSpan &other) const;
+        [[nodiscard]] std::optional<SourceSpan> merged(const SourceSpan &other) const noexcept;
 
         /// Lexicographic ordering: file_path (by value) → start → end.
         [[nodiscard]] std::strong_ordering operator<=>(const SourceSpan &other) const noexcept;

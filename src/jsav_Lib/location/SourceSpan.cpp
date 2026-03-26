@@ -22,7 +22,7 @@ namespace jsv {
     // Immutable merge
     // -------------------------------------------------------------------------
 
-    std::optional<SourceSpan> SourceSpan::merged(const SourceSpan &other) const {
+    std::optional<SourceSpan> SourceSpan::merged(const SourceSpan &other) const noexcept {
         if(file_path != other.file_path) { return std::nullopt; }
         return SourceSpan{file_path, (start < other.start) ? start : other.start, (end > other.end) ? end : other.end};
     }

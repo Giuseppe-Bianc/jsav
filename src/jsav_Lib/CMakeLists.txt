@@ -35,8 +35,12 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/ast/Visitor.hpp
         ast/Ast_printer.cpp
         ../../include/jsav/ast/Ast_printer.hpp
+        ast/Type.cpp
+        ../../include/jsav/ast/Type.hpp
         util/AnsiStyles.cpp
         ../../include/jsav/util/AnsiStyles.hpp
+        parser/Parser.cpp
+        ../../include/jsav/parser/Parser.hpp
         #[[lexer/Token.cpp
                 lexer/Tokenizer.cpp
                 lexer/TokenizerUtility.cpp

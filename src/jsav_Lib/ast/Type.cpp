@@ -1,50 +1,53 @@
 /*
- * Created by gbian on 19/03/2026.
+ * Created by gbian on 24 marzo 2026.
  * Copyright (c) 2026 All rights reserved.
  */
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 
 #include "jsav/ast/Type.hpp"
+#include "jsav/ast/Expressions.hpp"
 
 namespace jsv {
 
-    // Type implementation (if needed for non-inline methods)
+    // Note: type_kind_name constexpr definition moved to header for cross-TU visibility
+
+    // ============================================================
+    // PrimitiveType::to_string
+    // ============================================================
+    [[nodiscard]] std::string PrimitiveType::to_string() const { return std::string{type_kind_name(kind())}; }
+
+    // ============================================================
+    // CustomType::to_string
+    // ============================================================
+    [[nodiscard]] std::string CustomType::to_string() const { return std::string{*name_}; }
+
+    // ============================================================
+    // ArrayType::to_string
+    // ============================================================
+    [[nodiscard]] std::string ArrayType::to_string() const {
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "[{}; ", element_type_->to_string());
+        if(size_expr_) {
+            // Try to extract the size value from IntegerLiteral using kind() check
+            if(size_expr_->kind() == NodeKind::IntegerLiteral) {
+                const auto *int_lit = dynamic_cast<const IntegerLiteral *>(size_expr_.get());
+                FORMAT_TO(out, "{}", int_lit->value());
+            } else {
+                FORMAT_TO(out, "<expr>");
+            }
+        } else {
+            FORMAT_TO(out, "unknown");
+        }
+        FORMAT_TO(out, "]");
+        return result;
+    }
+
+    // ============================================================
+    // VectorType::to_string
+    // ============================================================
+    [[nodiscard]] std::string VectorType::to_string() const { return FORMAT("Vec<{}>", element_type_->to_string()); }
 
 }  // namespace jsv
-
-// -------------------------------------------------------------------------
-// std::hash
-// -------------------------------------------------------------------------
-
-namespace std {
-
-    std::size_t hash<jsv::Type>::operator()(const jsv::Type &type) const noexcept {
-        std::size_t seed = 0;
-        jsv::hash_combine(seed, static_cast<std::size_t>(type.kind()));
-
-        switch(type.kind()) {
-        case jsv::TypeKind::Custom:
-            jsv::hash_combine(seed, std::hash<std::string>{}(type.custom_name()));
-            break;
-        case jsv::TypeKind::Array:
-        case jsv::TypeKind::Vector:
-            if(type.element_type_) { jsv::hash_combine(seed, std::hash<jsv::Type>{}(*type.element_type_)); }
-            break;
-        default:
-            break;
-        }
-
-        return seed;
-    }
-
-    std::size_t hash<jsv::Parameter>::operator()(const jsv::Parameter &param) const noexcept {
-        std::size_t seed = 0;
-        jsv::hash_combine(seed, std::hash<std::string>{}(param.name));
-        jsv::hash_combine(seed, std::hash<jsv::Type>{}(param.type_annotation));
-        jsv::hash_combine(seed, std::hash<jsv::SourceSpan>{}(param.span));
-        return seed;
-    }
-
-}  // namespace std
 
 // NOLINTEND(*-include-cleaner, *-identifier-length)

@@ -45,9 +45,9 @@ namespace jsv {
     /// where in the compilation pipeline the error originated.
     // ---------------------------------------------------------------------------
     enum class CompilerPhase : uint8_t {
-        Lexer = 0,  ///< Lexical analysis phase (tokenization)
-        /*Parser = 1,
-        Semantic = 2,
+        Lexer = 0,   ///< Lexical analysis phase (tokenization)
+        Parser = 1,  ///< Parsing phase (syntax analysis)
+        /*Semantic = 2,
         IrGeneration = 3,
         CodeGeneration = 4,
         System = 5,*/

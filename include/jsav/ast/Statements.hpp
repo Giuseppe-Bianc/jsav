@@ -8,6 +8,7 @@
 // clang-format off
 #include "jsav/ast/Node.hpp"
 #include "jsav/ast/Expressions.hpp"
+#include "jsav/ast/Type.hpp"
 // clang-format on
 
 namespace jsv {
@@ -84,42 +85,25 @@ namespace jsv {
         std::vector<StmtPtr> statements_;
     };
 
-    enum class Type {
-        I8,
-        I16,
-        I32,
-        I64,
-        U8,
-        U16,
-        U32,
-        U64,
-        F32,
-        F64,
-        Char,
-        String,
-        Bool,
-        Void
-    };
-
     // ============================================================
     // Function Declaration:  fn foo(a: int, b: int) -> int { ... }
     // ============================================================
     struct FuncParam {
-        std::string name;
-        Type type;
-        SourceSpan loc;
+        std::string name;         ///< Parameter name
+        TypePtr type_annotation;  ///< Type annotation (e.g., PrimitiveType::i32(), CustomType("MyType"))
+        SourceSpan loc;           ///< Source location for error reporting
     };
 
     class FuncDecl final : public Stmt {
     public:
-        FuncDecl(std::string name, std::vector<FuncParam> params, std::optional<Type> return_type, std::unique_ptr<BlockStmt> body,
+        FuncDecl(std::string name, std::vector<FuncParam> params, std::optional<TypePtr> return_type, std::unique_ptr<BlockStmt> body,
                  SourceSpan loc = {})
           : Stmt(NodeKind::FuncDecl, loc), name_{std::move(name)}, params_{std::move(params)}, return_type_{std::move(return_type)},
             body_{std::move(body)} {}
 
         [[nodiscard]] const std::string &name() const noexcept { return name_; }
         [[nodiscard]] const std::vector<FuncParam> &params() const noexcept { return params_; }
-        [[nodiscard]] const std::optional<Type> &return_type() const noexcept { return return_type_; }
+        [[nodiscard]] const std::optional<TypePtr> &return_type() const noexcept { return return_type_; }
         [[nodiscard]] const BlockStmt &body() const noexcept { return *body_; }
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::FuncDecl; }
@@ -127,7 +111,7 @@ namespace jsv {
     private:
         std::string name_;
         std::vector<FuncParam> params_;
-        std::optional<Type> return_type_;
+        std::optional<TypePtr> return_type_;
         std::unique_ptr<BlockStmt> body_;
     };
 
@@ -232,43 +216,20 @@ namespace jsv {
     };
 
     // ============================================================
-    // Print Statement:  print expr;  (built-in per demo)
+    // Main Statement:  main { ... }  (program entry point)
     // ============================================================
-    class PrintStmt final : public Stmt {
+    class MainStmt final : public Stmt {
     public:
-        explicit PrintStmt(ExprPtr expression, SourceSpan loc = {}) : Stmt(NodeKind::PrintStmt, loc), expression_{std::move(expression)} {}
+        explicit MainStmt(StmtPtr body, SourceSpan loc = {}) : Stmt(NodeKind::MainStmt, loc), body_{std::move(body)} {}
 
-        [[nodiscard]] const Expr &expression() const noexcept { return *expression_; }
+        [[nodiscard]] bool has_body() const noexcept { return body_ != nullptr; }
+        [[nodiscard]] const Stmt &body() const noexcept { return *body_; }
+        [[nodiscard]] Stmt &body() noexcept { return *body_; }
 
-        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::PrintStmt; }
+        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::MainStmt; }
 
     private:
-        ExprPtr expression_;
+        StmtPtr body_;
     };
-
-    // ============================================================
-    // Type to string conversion
-    // ============================================================
-    [[nodiscard]] std::string_view to_string(Type type) noexcept;
 
 }  // namespace jsv
-
-// -------------------------------------------------------------------------
-// std::formatter  (C++23 <format>)
-// -------------------------------------------------------------------------
-namespace std {
-    template <> struct formatter<jsv::Type> : formatter<std::string_view> {
-        template <typename FormatContext> auto format(jsv::Type type, FormatContext &ctx) const {
-            return formatter<std::string_view>::format(to_string(type), ctx);
-        }
-    };
-}  // namespace std
-
-// -------------------------------------------------------------------------
-// fmt::formatter  (fmtlib)
-// -------------------------------------------------------------------------
-template <> struct fmt::formatter<jsv::Type> : fmt::formatter<std::string_view> {
-    template <typename FormatContext> auto format(jsv::Type type, FormatContext &ctx) const {
-        return fmt::formatter<std::string_view>::format(to_string(type), ctx);
-    }
-};

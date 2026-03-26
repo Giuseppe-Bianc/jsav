@@ -14,14 +14,17 @@ namespace jsv {
     // ============================================================
     class IntegerLiteral final : public Expr {
     public:
-        explicit IntegerLiteral(std::int64_t value, SourceSpan loc = {}) : Expr(NodeKind::IntegerLiteral, loc), value_{value} {}
+        explicit IntegerLiteral(std::int64_t value, SourceSpan loc = {}, std::optional<std::string> type_suffix = std::nullopt)
+          : Expr(NodeKind::IntegerLiteral, loc), value_{value}, type_suffix_{std::move(type_suffix)} {}
 
         [[nodiscard]] std::int64_t value() const noexcept { return value_; }
+        [[nodiscard]] const std::optional<std::string> &type_suffix() const noexcept { return type_suffix_; }
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::IntegerLiteral; }
 
     private:
         std::int64_t value_;
+        std::optional<std::string> type_suffix_;
     };
     // ============================================================
     // Float Literal:  3.14
@@ -51,6 +54,21 @@ namespace jsv {
 
     private:
         std::string value_;
+    };
+
+    // ============================================================
+    // String Literal:  "hello"
+    // ============================================================
+    class CharLiteral final : public Expr {
+    public:
+        explicit CharLiteral(char value, SourceSpan loc = {}) : Expr(NodeKind::CharLiteral, loc), value_{value} {}
+
+        [[nodiscard]] char value() const noexcept { return value_; }
+
+        [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::CharLiteral; }
+
+    private:
+        char value_;
     };
 
     // ============================================================

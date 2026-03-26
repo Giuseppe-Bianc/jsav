@@ -233,10 +233,9 @@ namespace jsv {
                 output += format_spanned_error("LEX", error);
                 break;
 
-                // --- Future kinds (currently commented-out in CompileError.hpp) ---
-                // case CompileError::Kind::SyntaxError:
-                //     output += format_spanned_error("SYNTAX", error);
-                //     break;
+            case CompileError::Kind::SyntaxError:
+                output += format_spanned_error("SYNTAX", error);
+                break;
                 // case CompileError::Kind::TypeError:
                 //     output += format_spanned_error("TYPE", error);
                 //     break;

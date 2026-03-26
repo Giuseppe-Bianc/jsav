@@ -44,6 +44,8 @@ target_link_libraries(
 jsav_configure_linker(tests)
 
 set_target_properties(tests PROPERTIES CXX_SCAN_FOR_MODULES OFF)
+# Enable /bigobj flag for MSVC to handle large test files
+target_compile_options(tests PRIVATE $<$<CXX_COMPILER_ID:MSVC>:/bigobj>)
 if (WIN32 AND BUILD_SHARED_LIBS)
     add_custom_command(
             TARGET tests

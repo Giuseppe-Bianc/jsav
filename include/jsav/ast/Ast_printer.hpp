@@ -16,6 +16,24 @@ namespace jsv {
         friend class Visitor<AstPrinter>;
 
     public:
+        /**
+         * @brief Default constructor for AstPrinter.
+         *
+         * Constructs an AstPrinter with default initial state, ready to print AST nodes.
+         */
+        AstPrinter() = default;
+
+        /**
+         * @brief Prints the AST node in a tree-like Unicode format.
+         *
+         * @param node The root AST node to print. The entire subtree will be traversed
+         *             and printed to standard output with proper indentation.
+         *
+         * @code
+         * AstPrinter printer;
+         * printer.print(myAstNode);
+         * @endcode
+         */
         void print(const Node &node);
 
     private:
@@ -51,6 +69,8 @@ namespace jsv {
         // cppcheck-suppress functionConst
         void visit_StringLiteral(const StringLiteral &node);
         // cppcheck-suppress functionConst
+        void visit_CharLiteral(const CharLiteral &node);
+        // cppcheck-suppress functionConst
         void visit_BoolLiteral(const BoolLiteral &node);
         // cppcheck-suppress functionConst
         void visit_NullLiteral(const NullLiteral &node);
@@ -81,7 +101,7 @@ namespace jsv {
         void visit_BreakStmt(const BreakStmt &node);
         // cppcheck-suppress functionConst
         void visit_ContinueStmt(const ContinueStmt &node);
-        void visit_PrintStmt(const PrintStmt &node);
+        void visit_MainStmt(const MainStmt &node);
 
         void visit_Program(const Program &node);
     };
@@ -100,6 +120,7 @@ namespace jsv {
         static std::string visit_IntegerLiteral(const IntegerLiteral &node);
         static std::string visit_FloatLiteral(const FloatLiteral &node);
         static std::string visit_StringLiteral(const StringLiteral &node);
+        static std::string visit_CharLiteral(const CharLiteral &node);
         static std::string visit_BoolLiteral(const BoolLiteral &node);
         static std::string visit_NullLiteral(const NullLiteral &node);
         static std::string visit_Identifier(const Identifier &node);
@@ -125,7 +146,7 @@ namespace jsv {
         std::string visit_BlockStmt(const BlockStmt &node);
         static std::string visit_BreakStmt(const BreakStmt &node);
         static std::string visit_ContinueStmt(const ContinueStmt &node);
-        std::string visit_PrintStmt(const PrintStmt &node);
+        std::string visit_MainStmt(const MainStmt &node);
         std::string visit_Program(const Program &node);
     };
 
