@@ -8,86 +8,192 @@
 
 namespace jsv {
     constexpr std::size_t kInitialErrorCapacity = 8;
-    constexpr int kDecimalRadix = 10;
 
-    // Helper function to check if all characters from index to end are digits
-    static bool all_digits_from(std::string_view text, std::size_t start_index) {
+    static bool all_digits_from(std::string_view text, std::size_t start_index) noexcept {
         for(std::size_t j = start_index; j < text.size(); ++j) {
-            if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) { return false; }
+            if(std::isdigit(C_UC(text[j])) == 0) { return false; }
         }
         return true;
     }
 
-    // Helper function to find the start of type suffix in numeric literal
-    // Returns the index where the suffix starts, or text.size() if no suffix found
-    static std::size_t find_suffix_start(std::string_view text) {
+    static std::size_t find_suffix_start(std::string_view text) noexcept {
         std::size_t suffix_start = text.size();
         bool found_suffix = false;
 
-        // Scan backwards to find the start of the suffix
         for(std::size_t index = text.size(); index > 0 && !found_suffix; --index) {
             const char current_char = text[index - 1];
-
-            // Check for single-character suffixes (d/D, f/F)
             if(current_char == 'd' || current_char == 'D' || current_char == 'f' || current_char == 'F') {
                 suffix_start = index - 1;
                 found_suffix = true;
-            }
-            // Check for multi-character suffixes (u/U/i/I followed by optional digits)
-            else if(current_char == 'u' || current_char == 'U' || current_char == 'i' || current_char == 'I') {
+            } else if(current_char == 'u' || current_char == 'U' || current_char == 'i' || current_char == 'I') {
                 if(index < text.size()) {
-                    // Check if followed by digits (like u32, i8)
                     if(all_digits_from(text, index)) {
                         suffix_start = index - 1;
                         found_suffix = true;
                     }
                 } else {
-                    // Bare u/U/i/I at end - treat as suffix
                     suffix_start = index - 1;
                     found_suffix = true;
                 }
-            }
-            // Stop scanning on non-digit, non-dot, non-suffix characters
-            else if(std::isdigit(static_cast<unsigned char>(current_char)) == 0 && current_char != '.') {
+            } else if(std::isdigit(C_UC(current_char)) == 0 && current_char != '.') {
                 break;
             }
         }
         return suffix_start;
     }
 
-    // Helper function to extract type suffix from numeric literal text
-    // FIX: AddressSanitizer - ensure null-terminated string for strtoll
     static std::pair<std::int64_t, std::optional<std::string>> parse_numeric_literal(std::string_view text) {
-        std::int64_t value = 0;
-        std::optional<std::string> type_suffix;
-
-        // Handle empty string - early return to prevent undefined behavior
         if(text.empty()) { return {0, std::nullopt}; }
 
-        // Find where the type suffix starts
         const std::size_t suffix_start = find_suffix_start(text);
 
-        // Extract only the numeric part (before suffix) to avoid parsing issues
-        const std::string numeric_part = std::string(text.substr(0, suffix_start));
+        std::int64_t value = 0;
+        std::from_chars(text.data(), text.data() + suffix_start, value);
 
-        // Only parse if we have a valid numeric part (not empty and not just ".")
-        if(!numeric_part.empty() && numeric_part != ".") {
-            // FIX: Use c_str() on a temporary std::string for null-terminated buffer
-            // This prevents AddressSanitizer buffer over-read errors
-            value = std::strtoll(numeric_part.c_str(), nullptr, kDecimalRadix);
-        }
-
-        // Extract type suffix if present
+        std::optional<std::string> type_suffix;
         if(suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
 
-        return {value, type_suffix};
+        return {value, std::move(type_suffix)};
     }
 
-    Parser::Parser(const std::vector<Token> &tokens) : tokens_(tokens), current_(0), recursion_depth_(0) {
+    struct ForInitResult {
+        std::optional<StmtPtr> stmt;
+        bool was_empty{false};
+    };
+
+    static std::optional<std::vector<std::string>> parse_for_var_names(Parser &parser) {
+        std::vector<std::string> names;
+        while(true) {
+            const auto name = parser.consume_identifier();
+            if(!name) { return std::nullopt; }
+            names.emplace_back(*name);
+            if(!parser.match_token(TokenKind::Comma)) { break; }
+        }
+        return names;
+    }
+
+    static std::optional<std::optional<std::string>> parse_for_type_annotation(Parser &parser) {
+        if(!parser.match_token(TokenKind::Colon)) { return std::optional<std::string>{}; }
+        auto [type_opt, type_str] = parser.parse_type();
+        if(!type_opt) { return std::nullopt; }
+        return type_str;
+    }
+
+    static std::optional<std::vector<ExprPtr>> parse_for_initializers(Parser &parser) {
+        if(!parser.match_token(TokenKind::Equal)) { return std::vector<ExprPtr>{}; }
+        std::vector<ExprPtr> initializers;
+        while(true) {
+            auto expr = parser.parse_expr(0);
+            if(!expr) { return std::nullopt; }
+            initializers.push_back(std::move(expr.value()));
+            if(!parser.match_token(TokenKind::Comma)) { break; }
+        }
+        return initializers;
+    }
+
+    static StmtPtr make_for_var_decl(const Token &start_token, std::vector<std::string> &&names,
+                                     std::optional<std::string> &&type_annotation, std::vector<ExprPtr> &&initializers) {
+        const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
+        return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation), std::move(initializers), is_const,
+                                         start_token.getSpan());
+    }
+
+    // SAFETY: returns std::nullopt on error; otherwise a ForInitResult.
+    static std::optional<ForInitResult> parse_for_initializer_clause(Parser &parser) {
+        ForInitResult result{};
+
+        if(!parser.check(TokenKind::Semicolon)) {
+            result.stmt = parser.parse_for_initializer();
+            if(!result.stmt) { return std::nullopt; }
+            if(!parser.check(TokenKind::Semicolon)) { return std::nullopt; }
+            parser.advance();
+        } else {
+            parser.advance();
+            result.was_empty = true;
+        }
+
+        return result;  // NRVO
+    }
+
+    static std::optional<std::optional<ExprPtr>> parse_for_condition_clause(Parser &parser, bool initializer_was_empty) {
+        std::optional<ExprPtr> condition;
+
+        if(initializer_was_empty && parser.check(TokenKind::Semicolon)) {
+            parser.advance();
+            return std::optional<ExprPtr>{};  // empty condition — infinite loop
+        }
+
+        if(!parser.check(TokenKind::CloseParen)) {
+            condition = parser.parse_expr(0);
+            if(!condition) { return std::nullopt; }
+
+            if(!parser.check(TokenKind::Semicolon)) {
+                if(!parser.check(TokenKind::CloseParen)) { return std::nullopt; }
+            } else {
+                parser.advance();
+            }
+        }
+
+        return condition;
+    }
+
+    static std::optional<ExprPtr> parse_for_increment_clause(Parser &parser) {
+        if(parser.check(TokenKind::CloseParen)) { return std::optional<ExprPtr>{}; }
+        return parser.parse_expr(0);
+    }
+
+    static StmtPtr make_for_body_block(StmtPtr &&body_stmt) {
+        if(body_stmt->kind() == NodeKind::BlockStmt) { return std::move(body_stmt); }
+        const SourceSpan body_span = body_stmt->location();
+        std::vector<StmtPtr> stmts;
+        stmts.push_back(std::move(body_stmt));
+        return std::make_unique<BlockStmt>(std::move(stmts), body_span);
+    }
+
+    Parser::Parser(std::span<const Token> tokens) : tokens_{tokens}, current_{0}, recursion_depth_{0} {
         // Reserve space for errors to avoid reallocations
         // Typical programs have few syntax errors, 8 is a reasonable initial capacity
         errors_.reserve(kInitialErrorCapacity);
     }
+
+    [[nodiscard]] const Token &Parser::peek() const noexcept {
+        assert(current_ < tokens_.size() && "peek() past end of token stream");
+        return tokens_[current_];
+    }
+
+    [[nodiscard]] const Token &Parser::previous() const noexcept {
+        assert(current_ > 0 && "previous() called before any advance()");
+        return tokens_[current_ - 1];
+    }
+
+    const Token &Parser::advance() noexcept {
+        if(!is_at_end()) { ++current_; }
+        return previous();
+    }
+
+    [[nodiscard]] bool Parser::is_at_end() const noexcept { return check(TokenKind::Eof); }
+
+    [[nodiscard]] bool Parser::check(const TokenKind kind) const noexcept { return peek().getKind() == kind; }
+
+    [[nodiscard]] bool Parser::is_end_of_statement() const noexcept {
+        switch(peek().getKind()) {
+        case TokenKind::CloseBrace:
+        case TokenKind::Eof:
+        case TokenKind::Semicolon:
+            return true;
+        default:
+            return false;
+        }
+    }
+
+    bool Parser::match_token(const TokenKind kind) noexcept {
+        if(check(kind)) {
+            advance();
+            return true;
+        }
+        return false;
+    }
+
     std::pair<std::unique_ptr<Program>, std::vector<CompileError>> Parser::parse() {
         std::vector<StmtPtr> stmts;
         stmts.reserve(tokens_.size() / 4);
@@ -104,8 +210,7 @@ namespace jsv {
     }
 
     std::optional<StmtPtr> Parser::parse_stmt() {
-        const auto token = peek();
-        switch(token.getKind()) {
+        switch(peek().getKind()) {
         case TokenKind::KeywordFun:
             return parse_function();
         case TokenKind::KeywordMain:
@@ -133,20 +238,20 @@ namespace jsv {
     }
     std::optional<StmtPtr> Parser::parse_function() {
         // Consuma 'fun'
-        const auto fun_token = advance();
+        const auto &fun_token = advance();
         // Nome funzione
-        const auto name_token = advance();
+        const auto &name_token = advance();
         if(name_token.getKind() != TokenKind::IdentifierAscii && name_token.getKind() != TokenKind::IdentifierUnicode) {
             syntax_error("Expected function name", name_token, {}, ErrorCode::E1001);
             return std::nullopt;
         }
         const std::string name{name_token.getText()};
 
-        // Parametri
         if(!expect(TokenKind::OpenParen, "after function name")) { return std::nullopt; }
+
         std::vector<FuncParam> parameters;
         while(!check(TokenKind::CloseParen) && !is_at_end()) {
-            const auto param_token = advance();
+            const auto &param_token = advance();  // PERF: reference
             if(param_token.getKind() != TokenKind::IdentifierAscii && param_token.getKind() != TokenKind::IdentifierUnicode) {
                 syntax_error("Expected parameter name", param_token, {}, ErrorCode::E1002);
                 return std::nullopt;
@@ -186,12 +291,13 @@ namespace jsv {
             return std::nullopt;
         }
 
-        // Il corpo deve essere BlockStmt
-        auto block_body = std::unique_ptr<BlockStmt>(dynamic_cast<BlockStmt *>(body->release()));
+        assert((*body)->kind() == NodeKind::BlockStmt && "parse_block_stmt must return NodeKind::BlockStmt");
+        auto block_body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt *>(body->release()));
+
         return std::make_unique<FuncDecl>(name, std::move(parameters), return_type, std::move(block_body), fun_token.getSpan());
     }
     std::optional<StmtPtr> Parser::parse_main_function() {
-        const auto start_token = advance();
+        const auto &start_token = advance();  // PERF: reference
         auto body = parse_block_stmt();
         if(!body.has_value()) { return std::nullopt; }
         const auto end_span = body.value()->location();
@@ -204,8 +310,9 @@ namespace jsv {
         [[maybe_unused]] const auto expect_close = expect(TokenKind::CloseParen, "after the condition");
         return condition;
     }
+
     std::optional<StmtPtr> Parser::parse_if() {
-        const auto start_token = advance();
+        const auto &start_token = advance();  // PERF: reference
         auto condition = parse_condition("if");
         if(!condition) { return std::nullopt; }
         auto then_branch = parse_block_stmt();
@@ -215,13 +322,12 @@ namespace jsv {
         return std::make_unique<IfStmt>(std::move(condition.value()), std::move(then_branch.value()),
                                         else_branch ? std::move(*else_branch) : nullptr, merged_span(start_token));
     }
+
     std::optional<StmtPtr> Parser::parse_var_declaration() {
-        const auto start_token = advance();  // var | const
+        const auto &start_token = advance();  // PERF: reference — var | const
         const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
 
-        // --- names ---
         std::vector<std::string> names;
-
         while(true) {
             const auto name = consume_identifier();
             if(!name) { return std::nullopt; }
@@ -229,19 +335,14 @@ namespace jsv {
             if(!match_token(TokenKind::Comma)) { break; }
         }
 
-        // --- optional type ---
         std::optional<std::string> type_annotation;
         if(match_token(TokenKind::Colon)) {
             auto [type_opt, type_str] = parse_type();
             if(!type_opt) { return std::nullopt; }
-
-            // use string form for AST (includes array dimensions)
             type_annotation = std::move(type_str);
         }
 
-        // --- initializer ---
         std::vector<ExprPtr> initializers;
-
         if(match_token(TokenKind::Equal)) {
             while(true) {
                 auto expr = parse_expr(0);
@@ -252,20 +353,19 @@ namespace jsv {
         }
 
         match_token(TokenKind::Semicolon);
-
         return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation), std::move(initializers), is_const,
                                          start_token.getSpan());
     }
     std::optional<StmtPtr> Parser::parse_return() {
-        const auto start_token = advance();
+        const auto &start_token = advance();  // PERF: reference
         std::optional<ExprPtr> return_value;
         if(!is_end_of_statement()) { return_value = parse_expr(0); }
         const auto span = Parser::calculate_return_span(start_token, return_value);
-        auto stmt = std::make_unique<ReturnStmt>(return_value ? std::move(*return_value) : nullptr, span);
-        return stmt;
+        return std::make_unique<ReturnStmt>(return_value ? std::move(*return_value) : nullptr, span);
     }
+
     std::optional<StmtPtr> Parser::parse_while() {
-        const auto start_token = advance();
+        const auto &start_token = advance();  // PERF: reference
         auto condition = parse_condition("while");
         if(!condition) { return std::nullopt; }
         auto body = parse_block_stmt();
@@ -274,198 +374,72 @@ namespace jsv {
         const auto function_span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
         return std::make_unique<WhileStmt>(std::move(condition.value()), std::move(body.value()), function_span);
     }
+
     std::optional<ExprPtr> Parser::parse_identifier_or_call(const Token &token) {
         auto ident = std::make_unique<Identifier>(std::string{token.getText()}, token.getSpan());
-        // Se il prossimo token è '(', è una chiamata a funzione
         if(check(TokenKind::OpenParen)) {
-            advance();  // consuma '('
+            advance();
             return parse_call(std::move(ident), token);
         }
         return ident;
     }
 
-    // Helper function to parse variable names for for-loop initializers
-    // Returns nullopt if parsing fails, empty vector if no names found
-    static std::optional<std::vector<std::string>> parse_for_var_names(Parser *parser) {
-        std::vector<std::string> names;
-        while(true) {
-            const auto name = parser->consume_identifier();
-            if(!name) { return std::nullopt; }
-            names.emplace_back(*name);
-            if(!parser->match_token(TokenKind::Comma)) { break; }
-        }
-        return names;
-    }
-
-    // Helper function to parse type annotation for for-loop initializers
-    // Returns nullopt if parsing fails, empty optional if no type annotation
-    static std::optional<std::optional<std::string>> parse_for_type_annotation(Parser *parser) {
-        if(!parser->match_token(TokenKind::Colon)) { return std::optional<std::string>{}; }
-        auto [type_opt, type_str] = parser->parse_type();
-        if(!type_opt) { return std::nullopt; }
-        return type_str;
-    }
-
-    // Helper function to parse initializer expressions for for-loop initializers
-    // Returns nullopt if parsing fails, empty vector if no initializers
-    static std::optional<std::vector<ExprPtr>> parse_for_initializers(Parser *parser) {
-        if(!parser->match_token(TokenKind::Equal)) { return std::vector<ExprPtr>{}; }
-
-        std::vector<ExprPtr> initializers;
-        while(true) {
-            auto expr = parser->parse_expr(0);
-            if(!expr) { return std::nullopt; }
-            initializers.push_back(std::move(expr.value()));
-            if(!parser->match_token(TokenKind::Comma)) { break; }
-        }
-        return initializers;
-    }
-
-    // Helper function to create variable declaration for for-loop
-    static StmtPtr make_for_var_decl(const Token &start_token, std::vector<std::string> &&names,
-                                     std::optional<std::string> &&type_annotation, std::vector<ExprPtr> &&initializers) {
-        const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
-        return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation), std::move(initializers), is_const,
-                                         start_token.getSpan());
-    }
-
     std::optional<StmtPtr> Parser::parse_for_initializer() {
         if(match_token(TokenKind::Semicolon)) { return nullptr; }
 
-        // Handle var/const declarations
         if(check(TokenKind::KeywordVar) || check(TokenKind::KeywordConst)) {
-            const auto start_token = advance();  // var | const
+            const auto &start_token = advance();  // var | const
 
-            // Parse variable names
-            auto names = parse_for_var_names(this);
+            auto names = parse_for_var_names(*this);
             if(!names) { return std::nullopt; }
 
-            // Parse optional type annotation
-            auto type_annotation = parse_for_type_annotation(this);
+            auto type_annotation = parse_for_type_annotation(*this);
             if(!type_annotation) { return std::nullopt; }
 
-            // Parse initializer expressions
-            auto initializers = parse_for_initializers(this);
+            auto initializers = parse_for_initializers(*this);
             if(!initializers) { return std::nullopt; }
 
-            // Create variable declaration (do NOT consume semicolon - it's the clause separator)
             return make_for_var_decl(start_token, std::move(*names), std::move(*type_annotation), std::move(*initializers));
         }
 
-        // Handle expression statements
         auto expr = parse_expr(0);
         if(!expr) {
             syntax_error("Expected expression in for-loop initializer", peek(), std::nullopt, ErrorCode::E1004);
             return std::nullopt;
         }
-
-        // Create expression statement (do NOT consume semicolon - it's the clause separator)
         const SourceSpan span = expr.value()->location();
         return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
-    // Helper function to parse for-loop initializer clause
-    // Returns pair of (initializer statement, whether it was empty)
-    static std::optional<std::pair<std::optional<StmtPtr>, bool>> parse_for_initializer_clause(Parser *parser) {
-        std::optional<StmtPtr> initializer;
-        bool initializer_was_empty = false;
-
-        if(!parser->check(TokenKind::Semicolon)) {
-            initializer = parser->parse_for_initializer();
-            if(!initializer) { return std::nullopt; }
-            // After a non-empty initializer, consume semicolon
-            if(!parser->check(TokenKind::Semicolon)) { return std::nullopt; }
-            parser->advance();
-        } else {
-            // Empty initializer - consume the semicolon
-            parser->advance();
-            initializer_was_empty = true;
-        }
-
-        return std::make_pair(std::move(initializer), initializer_was_empty);
-    }
-
-    // Helper function to parse for-loop condition clause
-    static std::optional<std::optional<ExprPtr>> parse_for_condition_clause(Parser *parser, bool initializer_was_empty) {
-        std::optional<ExprPtr> condition;
-
-        if(initializer_was_empty && parser->check(TokenKind::Semicolon)) {
-            // Empty condition (for (;;))
-            parser->advance();  // consume second semicolon
-            return std::optional<ExprPtr>{};
-        }
-
-        if(!parser->check(TokenKind::CloseParen)) {
-            condition = parser->parse_expr(0);
-            if(!condition) { return std::nullopt; }
-
-            if(!parser->check(TokenKind::Semicolon)) {
-                if(!parser->check(TokenKind::CloseParen)) { return std::nullopt; }
-            } else {
-                parser->advance();
-            }
-        }
-
-        return condition;
-    }
-
-    // Helper function to parse for-loop increment clause
-    static std::optional<ExprPtr> parse_for_increment_clause(Parser *parser) {
-        std::optional<ExprPtr> increment;
-
-        if(!parser->check(TokenKind::CloseParen)) {
-            increment = parser->parse_expr(0);
-            if(!increment) { return std::nullopt; }
-        }
-
-        return increment;
-    }
-
-    // Helper function to ensure for-loop body is a block statement
-    static StmtPtr make_for_body_block(StmtPtr &&body_stmt) {
-        if(body_stmt->kind() == NodeKind::BlockStmt) { return std::move(body_stmt); }
-
-        // Wrap non-block statements in a BlockStmt
-        const SourceSpan body_span = body_stmt->location();
-        std::vector<StmtPtr> stmts;
-        stmts.push_back(std::move(body_stmt));
-        return std::make_unique<BlockStmt>(std::move(stmts), body_span);
-    }
 
     std::optional<StmtPtr> Parser::parse_for() {
-        const auto start_token = advance();
+        const auto &start_token = advance();  // PERF: reference
         [[maybe_unused]] const auto expect_open = expect(TokenKind::OpenParen, "after 'for'");
 
         // Parse initializer clause
-        auto initializer_result = parse_for_initializer_clause(this);
-        if(!initializer_result) { return std::nullopt; }
-        auto [initializer, initializer_was_empty] = std::move(*initializer_result);
+        auto init_result = parse_for_initializer_clause(*this);
+        if(!init_result) { return std::nullopt; }
+        // PERF: structured binding on aggregate — no copies, fields moved/read directly
+        auto [initializer, initializer_was_empty] = std::move(*init_result);
 
         // Parse condition clause
-        auto condition_opt = parse_for_condition_clause(this, initializer_was_empty);
+        auto condition_opt = parse_for_condition_clause(*this, initializer_was_empty);
         if(!condition_opt) { return std::nullopt; }
-
-        // Convert optional<optional<ExprPtr>> to optional<ExprPtr>
         std::optional<ExprPtr> condition = std::move(*condition_opt);
 
         // Parse increment clause
-        auto increment = parse_for_increment_clause(this);
-        if(!increment) { return std::nullopt; }
+        auto increment = parse_for_increment_clause(*this);
+        if(!increment && !check(TokenKind::CloseParen)) { return std::nullopt; }
 
         if(!check(TokenKind::CloseParen)) { return std::nullopt; }
         [[maybe_unused]] const auto expect_close = expect(TokenKind::CloseParen, "after for loop clauses");
 
-        // Parse body statement
         auto body_stmt = parse_stmt();
         if(!body_stmt) { return std::nullopt; }
 
-        // Ensure body is a BlockStmt
         auto body_ptr = make_for_body_block(std::move(body_stmt.value()));
-
-        // Compute source span for the for-loop
         const SourceSpan end_span = body_ptr->location();
         const SourceSpan span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
 
-        // Convert optionals to raw pointers (nullptr if empty)
         StmtPtr initializer_ptr = initializer ? std::move(*initializer) : nullptr;
         ExprPtr condition_ptr = condition ? std::move(*condition) : nullptr;
         ExprPtr increment_ptr = increment ? std::move(*increment) : nullptr;
@@ -473,40 +447,39 @@ namespace jsv {
         return std::make_unique<ForStmt>(std::move(initializer_ptr), std::move(condition_ptr), std::move(increment_ptr),
                                          std::move(body_ptr), span);
     }
+
     std::optional<StmtPtr> Parser::parse_break() {
-        const auto span = advance().getSpan();
+        const SourceSpan span = advance().getSpan();
         return std::make_unique<BreakStmt>(span);
     }
+
     std::optional<StmtPtr> Parser::parse_continue() {
-        const auto span = advance().getSpan();
+        const SourceSpan span = advance().getSpan();
         return std::make_unique<ContinueStmt>(span);
     }
+
     std::optional<StmtPtr> Parser::parse_block_stmt() {
-        const auto start_token = advance();
+        const auto &start_token = advance();  // PERF: reference
         std::vector<StmtPtr> statements;
         while(!check(TokenKind::CloseBrace) && !is_at_end()) {
             if(auto stmt = parse_stmt()) {
                 statements.push_back(std::move(stmt.value()));
             } else {
-                // Only advance if we're not at end to avoid out-of-bounds access
                 if(!is_at_end()) { advance(); }
             }
         }
         [[maybe_unused]] const auto expect_brace = expect(TokenKind::CloseBrace, "end of block");
-        statements.shrink_to_fit();
         return std::make_unique<BlockStmt>(std::move(statements), start_token.getSpan());
     }
+
     std::optional<StmtPtr> Parser::parse_expression_stmt() {
         auto expr = parse_expr(0);
         if(!expr) {
-            // Se non c'è un'espressione valida, segnala errore e avanza
             syntax_error("Expected expression statement", peek(), std::nullopt, ErrorCode::E1004);
             if(!is_at_end()) { advance(); }
             return std::nullopt;
         }
-        // Consuma opzionalmente il punto e virgola
         match_token(TokenKind::Semicolon);
-        // Usa lo span dell'espressione per ExprStmt
         const SourceSpan span = expr.value()->location();
         return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
@@ -524,7 +497,7 @@ namespace jsv {
         if(!left) { return std::nullopt; }
         while(true) {
             const auto &token = peek();
-            const auto [lbp, _] = binding_power(token);
+            const auto [lbp, rbp_unused] = binding_power(token);
             if(lbp <= min_bp) { break; }
             auto new_left = led(std::move(*left));
             left = std::nullopt;
@@ -535,18 +508,16 @@ namespace jsv {
     }
 
     std::optional<ExprPtr> Parser::nud() {
-        const auto token = advance();
+        const auto &token = advance();
         switch(token.getKind()) {
         case TokenKind::Numeric:
             {
-                const auto text = token.getText();
-                const auto [value, type_suffix] = parse_numeric_literal(text);
+                const auto [value, type_suffix] = parse_numeric_literal(token.getText());
                 return std::make_unique<IntegerLiteral>(value, token.getSpan(), type_suffix);
             }
         case TokenKind::KeywordBool:
             {
-                const auto text = token.getText();
-                const auto value = (text == "true");
+                const bool value = (token.getText() == "true");
                 return std::make_unique<BoolLiteral>(value, token.getSpan());
             }
         case TokenKind::KeywordNullptr:
@@ -556,7 +527,7 @@ namespace jsv {
         case TokenKind::CharLiteral:
             {
                 const auto text = token.getText();
-                const auto value = text.empty() ? '\0' : text[0];
+                const char value = text.empty() ? '\0' : text[0];
                 return std::make_unique<CharLiteral>(value, token.getSpan());
             }
         case TokenKind::Minus:
@@ -581,7 +552,7 @@ namespace jsv {
     }
 
     std::optional<ExprPtr> Parser::led(ExprPtr left) {
-        const auto token = advance();
+        const auto &token = advance();  // PERF: reference
         switch(token.getKind()) {
         case TokenKind::Plus:
         case TokenKind::Minus:
@@ -601,7 +572,7 @@ namespace jsv {
         case TokenKind::Xor:
         case TokenKind::ShiftLeft:
         case TokenKind::ShiftRight:
-            return parse_binary(std::move(left), token);  // ← std::move
+            return parse_binary(std::move(left), token);
         case TokenKind::Equal:
             return parse_assignment(std::move(left), token);
         case TokenKind::OpenParen:
@@ -619,7 +590,7 @@ namespace jsv {
     }
 
     ExprPtr Parser::parse_unary(const UnaryOp operation, const Token &token) {
-        const auto [_, rbp] = unary_binding_power(token);
+        const auto [lbp_unused, rbp] = unary_binding_power(token);
         auto expr = parse_expr(rbp);
         if(!expr) { expr = std::make_unique<NullLiteral>(token.getSpan()); }
         return std::make_unique<UnaryExpr>(operation, std::move(expr.value()), token.getSpan());
@@ -637,11 +608,10 @@ namespace jsv {
         }
     }
 
-    std::optional<ExprPtr> Parser::parse_array_literal([[maybe_unused]] const Token &start_token) {
+    std::optional<ExprPtr> Parser::parse_array_literal(const Token &start_token) {
         std::vector<ExprPtr> elements;
         extract_elements(TokenKind::CloseBrace, elements);
         if(!expect(TokenKind::CloseBrace, "end of array literal")) { return std::nullopt; }
-        elements.shrink_to_fit();
         return std::make_unique<ArrayLiteral>(std::move(elements), merged_span(start_token));
     }
 
@@ -652,21 +622,21 @@ namespace jsv {
             return std::nullopt;
         }
         const BinaryOp operation = op_result.value();
-        const auto [_, rbp] = binding_power(token);
+        const auto [lbp_unused, rbp] = binding_power(token);
         auto right = parse_expr(rbp);
         if(!right) { right = std::make_unique<NullLiteral>(token.getSpan()); }
         const auto span = left->location().merged(right.value()->location()).value_or(token.getSpan());
         return std::make_unique<BinaryExpr>(operation, std::move(left), std::move(right.value()), span);
     }
 
-    std::optional<ExprPtr> Parser::parse_grouping([[maybe_unused]] const Token &start_token) {
+    std::optional<ExprPtr> Parser::parse_grouping(const Token &start_token) {
         auto expr = parse_expr(0);
         if(!expect(TokenKind::CloseParen, "end of grouping")) { return std::nullopt; }
         if(!expr) { return std::nullopt; }
         return std::make_unique<GroupingExpr>(std::move(expr.value()), merged_span(start_token));
     }
 
-    std::optional<ExprPtr> Parser::parse_assignment([[maybe_unused]] ExprPtr left, [[maybe_unused]] const Token &token) {
+    std::optional<ExprPtr> Parser::parse_assignment(ExprPtr left, const Token &token) {
         auto value = parse_expr(1);
         if(!value) { value = std::make_unique<NullLiteral>(token.getSpan()); }
         const auto span = left->location().merged(value.value()->location()).value_or(token.getSpan());
@@ -680,7 +650,7 @@ namespace jsv {
         return std::make_unique<AssignExpr>(std::move(left), std::move(value.value()), span);
     }
 
-    std::optional<ExprPtr> Parser::parse_call([[maybe_unused]] ExprPtr callee, [[maybe_unused]] const Token &start_token) {
+    std::optional<ExprPtr> Parser::parse_call(ExprPtr callee, const Token &start_token) {
         std::vector<ExprPtr> arguments;
         if(!check(TokenKind::CloseParen)) {
             while(!is_at_end()) {
@@ -699,53 +669,24 @@ namespace jsv {
         return std::make_unique<CallExpr>(std::move(callee), std::move(arguments), call_span);
     }
 
-    std::optional<ExprPtr> Parser::parse_array_access([[maybe_unused]] ExprPtr array, [[maybe_unused]] const Token &start_token) {
+    std::optional<ExprPtr> Parser::parse_array_access(ExprPtr array, const Token &start_token) {
         auto index = parse_expr(0);
         if(!index) { index = std::make_unique<NullLiteral>(start_token.getSpan()); }
         if(!expect(TokenKind::CloseBracket, "end of array access")) { return std::nullopt; }
         return std::make_unique<IndexExpr>(std::move(array), std::move(index.value()), merged_span(start_token));
     }
 
-    bool Parser::is_end_of_statement() const {
-        switch(peek().getKind()) {
-        case TokenKind::CloseBrace:
-        case TokenKind::Eof:
-        case TokenKind::Semicolon:
-            return true;
-        default:
-            return false;
-        }
-    }
-    Token Parser::peek() const { return tokens_.at(current_); }
-    Token Parser::previous() const { return tokens_.at(current_ - 1); }
-    bool Parser::check(const TokenKind kind) const { return peek().getKind() == kind; }
-    bool Parser::is_at_end() const { return check(TokenKind::Eof); }
-    Token Parser::advance() {
-        if(!is_at_end()) { ++current_; }
-        return previous();
-    }
-    bool Parser::match_token(const TokenKind kind) {
-        if(check(kind)) {
-            advance();
-            return true;
-        }
-        return false;
-    }
-
-    bool Parser::expect(const TokenKind kind, std::string_view context) {
+    bool Parser::expect(const TokenKind kind, const std::string_view context) {
         if(match_token(kind)) { return true; }
 
-        const std::optional<Token> current_token = is_at_end() ? std::nullopt : std::optional{peek()};
+        const Token *const current_token_ptr = is_at_end() ? nullptr : &peek();
 
-        const std::string found_str = current_token ? std::string{tokenKindToString(current_token->getKind())} : "end of input";
-
-        const auto span = current_token ? current_token->getSpan() : SourceSpan{};
-
+        const std::string found_str = current_token_ptr ? std::string{tokenKindToString(current_token_ptr->getKind())} : "end of input";
+        const SourceSpan span = current_token_ptr ? current_token_ptr->getSpan() : SourceSpan{};
         const auto help_message = FORMAT("Try adding a {}", tokenKindToString(kind));
 
         errors_.push_back(CompileError::SyntaxError(
             ErrorCode::E1004, FORMAT("Expected {} in {}, found {}.", tokenKindToString(kind), context, found_str), span, help_message));
-
         return false;
     }
 
@@ -769,21 +710,31 @@ namespace jsv {
         return false;
     }
 
-    void Parser::enter_recursion() { ++recursion_depth_; }
+    void Parser::enter_recursion() noexcept { ++recursion_depth_; }
 
-    void Parser::exit_recursion() {
+    void Parser::exit_recursion() noexcept {
         if(recursion_depth_ > 0) { --recursion_depth_; }
     }
     SourceSpan Parser::calculate_return_span(const Token &start, const std::optional<ExprPtr> &value) {
         if(value.has_value()) { return start.getSpan().merged(value.value()->location()).value_or(start.getSpan()); }
         return start.getSpan();
     }
-    SourceSpan Parser::merged_span(const Token &start_token) const {
+    SourceSpan Parser::merged_span(const Token &start_token) const noexcept {
         return start_token.getSpan().merged(previous().getSpan()).value_or(start_token.getSpan());
     }
 
+    std::optional<std::string_view> Parser::consume_identifier() {
+        const auto &token = peek();
+        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) {
+            advance();               // move past the identifier
+            return token.getText();  // token reference still valid — tokens_ is stable
+        }
+        syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
+        return std::nullopt;
+    }
+
     std::pair<std::optional<TypePtr>, std::optional<std::string>> Parser::parse_type() {
-        const auto token = advance();
+        const auto &token = advance();  // PERF: reference
         TypePtr base_type;
         std::string type_string;
         switch(token.getKind()) {
@@ -841,7 +792,6 @@ namespace jsv {
             break;
         case TokenKind::IdentifierAscii:
         case TokenKind::IdentifierUnicode:
-            // Custom type
             base_type = std::make_shared<const CustomType>(token.getText());
             type_string = std::string(token.getText());
             break;
@@ -851,21 +801,18 @@ namespace jsv {
             return {std::nullopt, std::nullopt};
         }
 
-        // Parse array dimensions: [2][3] -> ArrayType(ArrayType(base, 3), 2)
         std::vector<std::size_t> dimensions;
         while(match_token(TokenKind::OpenBracket)) {
-            const auto dim_token = peek();
+            const auto &dim_token = peek();  // PERF: reference
             if(dim_token.getKind() == TokenKind::Numeric) {
-                const auto dim_text = dim_token.getText();
-                // FIX: Use parse_numeric_literal for consistent suffix handling
-                const auto [dim_value, _] = parse_numeric_literal(dim_text);
+                const auto [dim_value, dim_suffix_unused] = parse_numeric_literal(dim_token.getText());
                 if(dim_value <= 0) {
                     syntax_error("Array dimension must be positive", dim_token, "Provide a positive integer greater than 0",
                                  ErrorCode::E1002);
                     break;
                 }
                 dimensions.push_back(static_cast<std::size_t>(dim_value));
-                advance();  // consume the numeric token
+                advance();
             } else {
                 syntax_error("Expected array dimension size", dim_token, "Array dimensions must be positive integers", ErrorCode::E1002);
                 break;
@@ -873,29 +820,17 @@ namespace jsv {
             if(!expect(TokenKind::CloseBracket, "end of array dimension")) { break; }
         }
 
-        // Build ArrayType hierarchy for array dimensions: [i8; 3] -> [[i8; 3]; 2]
         TypePtr result_type = base_type;
         if(!dimensions.empty()) {
-            // Apply dimensions from outermost to innermost (left to right)
-            // For [[i8; 3]; 2]: first create [i8; 3], then wrap in [result; 2]
             for(const auto dim : dimensions) {
-                // Create a literal expression for the size (required by ArrayType)
-                // Note: In a full implementation, this would be a compile-time constant expression
                 auto size_literal = std::make_shared<IntegerLiteral>(static_cast<std::int64_t>(dim), token.getSpan(), std::nullopt);
                 result_type = std::make_shared<const ArrayType>(result_type, size_literal);
             }
-            // Rebuild type_string from the ArrayType hierarchy
             type_string = result_type->to_string();
         }
 
-        return {result_type, type_string};
+        return {result_type, std::move(type_string)};
     }
-    std::optional<std::string_view> Parser::consume_identifier() {
-        const auto token = peek();
-        if(token.getKind() == TokenKind::IdentifierAscii || token.getKind() == TokenKind::IdentifierUnicode) { return advance().getText(); }
-        syntax_error("Expected identifier", peek(), "Provide a valid variable or function name", ErrorCode::E1005);
-        return std::nullopt;
-    }
-}  // namespace jsv
 
+}  // namespace jsv
 // NOLINTEND(*-include-cleaner, *-identifier-length)
