@@ -9556,14 +9556,20 @@ TEST_CASE("Parser corner cases - function calls", "[Parser][CornerCases][Call]")
 
     SECTION("Parse function call with many arguments") {
         std::vector<Token> tokens;
+
+        // Le stringhe dinamiche devono sopravvivere ai token.
+        // reserve() impedisce riallocazioni che invaliderebbero le string_view.
+        std::vector<std::string> arg_texts;
+        arg_texts.reserve(10);
+
         tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
         tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
         for(int i = 0; i < 10; ++i) {
-            tokens.emplace_back(TokenKind::Numeric, fmt::format("{}", i).c_str(), SourceSpan{});
+            arg_texts.push_back(fmt::format("{}", i));
+            tokens.emplace_back(TokenKind::Numeric, arg_texts.back(), SourceSpan{});
             if(i < 9) { tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{}); }
         }
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
