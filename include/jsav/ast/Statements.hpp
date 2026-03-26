@@ -96,8 +96,8 @@ namespace jsv {
 
     class FuncDecl final : public Stmt {
     public:
-        FuncDecl(std::string name, const std::vector<FuncParam> &params, std::optional<TypePtr> return_type, std::unique_ptr<BlockStmt> body,
-                 SourceSpan loc = {})
+        FuncDecl(std::string name, const std::vector<FuncParam> &params, std::optional<TypePtr> return_type,
+                 std::unique_ptr<BlockStmt> body, SourceSpan loc = {})
           : Stmt(NodeKind::FuncDecl, loc), name_{std::move(name)}, params_{std::move(params)}, return_type_{std::move(return_type)},
             body_{std::move(body)} {}
 
