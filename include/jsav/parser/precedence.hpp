@@ -12,19 +12,19 @@
 namespace jsv {
 
     /**
-    * @brief Get the binding power for a token (Pratt parsing).
-    *
-    * Returns left and right binding powers used for operator precedence parsing.
-    * Higher values indicate higher precedence. Right > Left creates left-associativity.
-    *
-    * @param token The token to get binding power for.
-    * @return std::pair<std::size_t, std::size_t> {lbp, rbp} where lbp is left binding power
-    *         and rbp is right binding power. Returns {0, 0} for non-operators.
-    *
-    * @code
-    * auto [lbp, rbp] = bindingPower(plusToken);  // Returns {17, 18}
-    * @endcode
-    */
+     * @brief Get the binding power for a token (Pratt parsing).
+     *
+     * Returns left and right binding powers used for operator precedence parsing.
+     * Higher values indicate higher precedence. Right > Left creates left-associativity.
+     *
+     * @param token The token to get binding power for.
+     * @return std::pair<std::size_t, std::size_t> {lbp, rbp} where lbp is left binding power
+     *         and rbp is right binding power. Returns {0, 0} for non-operators.
+     *
+     * @code
+     * auto [lbp, rbp] = bindingPower(plusToken);  // Returns {17, 18}
+     * @endcode
+     */
     [[nodiscard]] inline std::pair<std::size_t, std::size_t> binding_power(const Token &token) {
         switch(token.getKind()) {
         case TokenKind::OrOr:  // ||
@@ -57,7 +57,7 @@ namespace jsv {
             return {19, 20};
         case TokenKind::Equal:  // = (assignment)
             return {21, 22};
-        case TokenKind::PlusPlus:  // ++ (postfix)
+        case TokenKind::PlusPlus:    // ++ (postfix)
         case TokenKind::MinusMinus:  // -- (postfix)
             return {23, 24};
         default:
