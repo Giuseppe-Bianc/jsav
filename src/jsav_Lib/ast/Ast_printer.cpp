@@ -624,8 +624,8 @@ namespace jsv {
         // Single variable declaration (backward compatible)
         std::string result;
         // PERF: reserve estimated size to avoid reallocations
-        const std::size_t estimated_size = 32 + node.name().size() +
-                                           (node.type_annotation().has_value() ? node.type_annotation().value().size() : 0);
+        const std::size_t type_ann_size = node.type_annotation().has_value() ? node.type_annotation()->size() : 0;
+        const std::size_t estimated_size = 32 + node.name().size() + type_ann_size;
         result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());

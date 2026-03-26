@@ -31,7 +31,7 @@ namespace jsv {
         if(size_expr_) {
             // Try to extract the size value from IntegerLiteral using kind() check
             if(size_expr_->kind() == NodeKind::IntegerLiteral) {
-                const auto *int_lit = static_cast<const IntegerLiteral *>(size_expr_.get());
+                const auto *int_lit = dynamic_cast<const IntegerLiteral *>(size_expr_.get());
                 result += FORMAT("{}", int_lit->value());
             } else {
                 result += "<expr>";

@@ -7652,7 +7652,7 @@ TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral][AST][E
     SECTION("Integer literal with type suffix") {
         const SourceSpan span;
         const std::string suffix = "i32";
-        IntegerLiteral lit(42, span, suffix);
+        const IntegerLiteral lit(42, span, suffix);
         REQUIRE(lit.value() == 42);
         REQUIRE(lit.type_suffix().has_value());
         REQUIRE(lit.type_suffix().value() == "i32");
@@ -7660,25 +7660,25 @@ TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral][AST][E
 
     SECTION("Integer literal without type suffix") {
         const SourceSpan span;
-        IntegerLiteral lit(42, span);
+        const IntegerLiteral lit(42, span);
         REQUIRE(lit.type_suffix().has_value() == false);
     }
 
     SECTION("Negative integer literal") {
         const SourceSpan span;
-        IntegerLiteral lit(-100, span);
+        const IntegerLiteral lit(-100, span);
         REQUIRE(lit.value() == -100);
     }
 
     SECTION("Large integer literal") {
         const SourceSpan span;
-        IntegerLiteral lit(9223372036854775807LL, span);  // max int64
+        const IntegerLiteral lit(9223372036854775807LL, span);  // max int64
         REQUIRE(lit.value() == 9223372036854775807LL);
     }
 
     SECTION("Zero integer literal") {
         const SourceSpan span;
-        IntegerLiteral lit(0, span);
+        const IntegerLiteral lit(0, span);
         REQUIRE(lit.value() == 0);
     }
 }
@@ -7696,25 +7696,25 @@ TEST_CASE("FloatLiteral node creation and accessors", "[FloatLiteral][AST][Expre
 
     SECTION("Negative float literal") {
         const SourceSpan span;
-        FloatLiteral lit(-2.71, span);
+        const FloatLiteral lit(-2.71, span);
         REQUIRE(lit.value() == -2.71);
     }
 
     SECTION("Zero float literal") {
         const SourceSpan span;
-        FloatLiteral lit(0.0, span);
+        const FloatLiteral lit(0.0, span);
         REQUIRE(lit.value() == 0.0);
     }
 
     SECTION("Very small float literal") {
         const SourceSpan span;
-        FloatLiteral lit(1.23e-10, span);
+        const FloatLiteral lit(1.23e-10, span);
         REQUIRE(lit.value() == 1.23e-10);
     }
 
     SECTION("Very large float literal") {
         const SourceSpan span;
-        FloatLiteral lit(1.23e100, span);
+        const FloatLiteral lit(1.23e100, span);
         REQUIRE(lit.value() == 1.23e100);
     }
 }
@@ -7732,19 +7732,19 @@ TEST_CASE("StringLiteral node creation and accessors", "[StringLiteral][AST][Exp
 
     SECTION("Empty string literal") {
         const SourceSpan span;
-        StringLiteral lit("", span);
+        const StringLiteral lit("", span);
         REQUIRE(lit.value().empty());
     }
 
     SECTION("String literal with special characters") {
         const SourceSpan span;
-        StringLiteral lit("hello\nworld\t!", span);
+        const StringLiteral lit("hello\nworld\t!", span);
         REQUIRE(lit.value() == "hello\nworld\t!");
     }
 
     SECTION("String literal with Unicode") {
         const SourceSpan span;
-        StringLiteral lit("你好，世界", span);
+        const StringLiteral lit("你好，世界", span);
         REQUIRE(lit.value() == "你好，世界");
     }
 }
@@ -7754,7 +7754,7 @@ TEST_CASE("CharLiteral node creation and accessors", "[CharLiteral][AST][Express
 
     SECTION("Basic char literal") {
         const SourceSpan span;
-        CharLiteral lit('a', span);
+        const CharLiteral lit('a', span);
         REQUIRE(lit.value() == 'a');
         REQUIRE(lit.kind() == NodeKind::CharLiteral);
         REQUIRE(CharLiteral::classof(&lit));
@@ -7762,19 +7762,19 @@ TEST_CASE("CharLiteral node creation and accessors", "[CharLiteral][AST][Express
 
     SECTION("Numeric char literal") {
         const SourceSpan span;
-        CharLiteral lit('5', span);
+        const CharLiteral lit('5', span);
         REQUIRE(lit.value() == '5');
     }
 
     SECTION("Special character literal") {
         const SourceSpan span;
-        CharLiteral lit('\n', span);
+        const CharLiteral lit('\n', span);
         REQUIRE(lit.value() == '\n');
     }
 
     SECTION("Null character literal") {
         const SourceSpan span;
-        CharLiteral lit('\0', span);
+        const CharLiteral lit('\0', span);
         REQUIRE(lit.value() == '\0');
     }
 }
@@ -7792,7 +7792,7 @@ TEST_CASE("BoolLiteral node creation and accessors", "[BoolLiteral][AST][Express
 
     SECTION("False literal") {
         const SourceSpan span;
-        BoolLiteral lit(false, span);
+        const BoolLiteral lit(false, span);
         REQUIRE(lit.value() == false);
         REQUIRE(lit.kind() == NodeKind::BoolLiteral);
     }
@@ -7822,19 +7822,19 @@ TEST_CASE("Identifier node creation and accessors", "[Identifier][AST][Expressio
 
     SECTION("Long identifier") {
         const SourceSpan span;
-        Identifier ident("myVariableName", span);
+        const Identifier ident("myVariableName", span);
         REQUIRE(ident.name() == "myVariableName");
     }
 
     SECTION("Unicode identifier") {
         const SourceSpan span;
-        Identifier ident("变量", span);
+        const Identifier ident("变量", span);
         REQUIRE(ident.name() == "变量");
     }
 
     SECTION("Identifier with underscores") {
         const SourceSpan span;
-        Identifier ident("_my_var_", span);
+        const Identifier ident("_my_var_", span);
         REQUIRE(ident.name() == "_my_var_");
     }
 }
@@ -7845,7 +7845,7 @@ TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr][AST][Expressions
     SECTION("Negate expression") {
         const SourceSpan span;
         auto operand = std::make_unique<IntegerLiteral>(42, span);
-        UnaryExpr expr(UnaryOp::Negate, std::move(operand), span);
+        const UnaryExpr expr(UnaryOp::Negate, std::move(operand), span);
         REQUIRE(expr.op() == UnaryOp::Negate);
         REQUIRE(expr.operand().kind() == NodeKind::IntegerLiteral);
         REQUIRE(expr.kind() == NodeKind::UnaryExpr);
@@ -7855,7 +7855,7 @@ TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr][AST][Expressions
     SECTION("Not expression") {
         const SourceSpan span;
         auto operand = std::make_unique<BoolLiteral>(true, span);
-        UnaryExpr expr(UnaryOp::Not, std::move(operand), span);
+        const UnaryExpr expr(UnaryOp::Not, std::move(operand), span);
         REQUIRE(expr.op() == UnaryOp::Not);
         REQUIRE(expr.operand().kind() == NodeKind::BoolLiteral);
     }
@@ -7863,14 +7863,14 @@ TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr][AST][Expressions
     SECTION("Pre-increment expression") {
         const SourceSpan span;
         auto operand = std::make_unique<Identifier>("i", span);
-        UnaryExpr expr(UnaryOp::PreInc, std::move(operand), span);
+        const UnaryExpr expr(UnaryOp::PreInc, std::move(operand), span);
         REQUIRE(expr.op() == UnaryOp::PreInc);
     }
 
     SECTION("Post-decrement expression") {
         const SourceSpan span;
         auto operand = std::make_unique<Identifier>("i", span);
-        UnaryExpr expr(UnaryOp::PostDec, std::move(operand), span);
+        const UnaryExpr expr(UnaryOp::PostDec, std::move(operand), span);
         REQUIRE(expr.op() == UnaryOp::PostDec);
     }
 }
@@ -7894,7 +7894,7 @@ TEST_CASE("BinaryExpr node creation and accessors", "[BinaryExpr][AST][Expressio
         const SourceSpan span;
         auto lhs = std::make_unique<IntegerLiteral>(10, span);
         auto rhs = std::make_unique<IntegerLiteral>(5, span);
-        BinaryExpr expr(BinaryOp::Gt, std::move(lhs), std::move(rhs), span);
+        const BinaryExpr expr(BinaryOp::Gt, std::move(lhs), std::move(rhs), span);
         REQUIRE(expr.op() == BinaryOp::Gt);
     }
 
@@ -7902,7 +7902,7 @@ TEST_CASE("BinaryExpr node creation and accessors", "[BinaryExpr][AST][Expressio
         const SourceSpan span;
         auto lhs = std::make_unique<BoolLiteral>(true, span);
         auto rhs = std::make_unique<BoolLiteral>(false, span);
-        BinaryExpr expr(BinaryOp::And, std::move(lhs), std::move(rhs), span);
+        const BinaryExpr expr(BinaryOp::And, std::move(lhs), std::move(rhs), span);
         REQUIRE(expr.op() == BinaryOp::And);
     }
 }
@@ -7925,7 +7925,7 @@ TEST_CASE("ArrayLiteral node creation and accessors", "[ArrayLiteral][AST][Expre
         elements.push_back(std::make_unique<IntegerLiteral>(1, span));
         elements.push_back(std::make_unique<IntegerLiteral>(2, span));
         elements.push_back(std::make_unique<IntegerLiteral>(3, span));
-        ArrayLiteral lit(std::move(elements), span);
+        const ArrayLiteral lit(std::move(elements), span);
         REQUIRE(lit.elements().size() == 3);
         REQUIRE(lit.elements()[0]->kind() == NodeKind::IntegerLiteral);
     }
@@ -7951,7 +7951,7 @@ TEST_CASE("CallExpr node creation and accessors", "[CallExpr][AST][Expressions]"
         std::vector<ExprPtr> args;
         args.push_back(std::make_unique<IntegerLiteral>(1, span));
         args.push_back(std::make_unique<IntegerLiteral>(2, span));
-        CallExpr expr(std::move(callee), std::move(args), span);
+        const CallExpr expr(std::move(callee), std::move(args), span);
         REQUIRE(expr.args().size() == 2);
     }
 }
@@ -8020,14 +8020,14 @@ TEST_CASE("VarDecl node creation and accessors", "[VarDecl][AST][Statements]") {
     SECTION("Const variable declaration") {
         const SourceSpan span;
         auto init = std::make_unique<IntegerLiteral>(42, span);
-        VarDecl decl("x", std::optional<std::string>("i32"), std::move(init), true, span);
+        const VarDecl decl("x", std::optional<std::string>("i32"), std::move(init), true, span);
         REQUIRE(decl.is_const());
     }
 
     SECTION("Variable declaration without type") {
         const SourceSpan span;
         auto init = std::make_unique<IntegerLiteral>(42, span);
-        VarDecl decl("x", std::nullopt, std::move(init), false, span);
+        const VarDecl decl("x", std::nullopt, std::move(init), false, span);
         REQUIRE(!decl.type_annotation().has_value());
     }
 
@@ -8038,7 +8038,7 @@ TEST_CASE("VarDecl node creation and accessors", "[VarDecl][AST][Statements]") {
         initializers.push_back(std::make_unique<IntegerLiteral>(1, span));
         initializers.push_back(std::make_unique<IntegerLiteral>(2, span));
         initializers.push_back(std::make_unique<IntegerLiteral>(3, span));
-        VarDecl decl(std::move(names), std::optional<std::string>("i32"), std::move(initializers), false, span);
+        const VarDecl decl(std::move(names), std::optional<std::string>("i32"), std::move(initializers), false, span);
         REQUIRE(decl.names().size() == 3);
         REQUIRE(decl.num_variables() == 3);
     }
@@ -8061,7 +8061,7 @@ TEST_CASE("BlockStmt node creation and accessors", "[BlockStmt][AST][Statements]
         std::vector<StmtPtr> statements;
         auto expr = std::make_unique<IntegerLiteral>(42, span);
         statements.push_back(std::make_unique<ExprStmt>(std::move(expr), span));
-        BlockStmt block(std::move(statements), span);
+        const BlockStmt block(std::move(statements), span);
         REQUIRE(block.statements().size() == 1);
     }
 }
@@ -8088,7 +8088,7 @@ TEST_CASE("IfStmt node creation and accessors", "[IfStmt][AST][Statements]") {
         auto then_branch = std::make_unique<BlockStmt>(std::move(then_stmts), span);
         std::vector<StmtPtr> else_stmts;
         auto else_branch = std::make_unique<BlockStmt>(std::move(else_stmts), span);
-        IfStmt stmt(std::move(condition), std::move(then_branch), std::move(else_branch), span);
+        const IfStmt stmt(std::move(condition), std::move(then_branch), std::move(else_branch), span);
         REQUIRE(stmt.has_else());
     }
 }
@@ -8134,7 +8134,7 @@ TEST_CASE("ForStmt node creation and accessors", "[ForStmt][AST][Statements]") {
         auto condition = std::make_unique<BoolLiteral>(true, span);
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
-        ForStmt stmt(nullptr, std::move(condition), nullptr, std::move(body), span);
+        const ForStmt stmt(nullptr, std::move(condition), nullptr, std::move(body), span);
         REQUIRE(!stmt.has_init());
         REQUIRE(stmt.has_condition());
         REQUIRE(!stmt.has_increment());
@@ -8156,7 +8156,7 @@ TEST_CASE("ReturnStmt node creation and accessors", "[ReturnStmt][AST][Statement
 
     SECTION("Return without value") {
         const SourceSpan span;
-        ReturnStmt stmt(nullptr, span);
+        const ReturnStmt stmt(nullptr, span);
         REQUIRE(!stmt.has_value());
     }
 }
@@ -8198,11 +8198,11 @@ TEST_CASE("FuncDecl node creation and accessors", "[FuncDecl][AST][Statements]")
     SECTION("Function declaration with parameters") {
         const SourceSpan span;
         std::vector<FuncParam> params;
-        params.push_back(FuncParam{"x", PrimitiveType::i32(), span});
-        params.push_back(FuncParam{"y", PrimitiveType::i32(), span});
+        params.push_back(FuncParam{.name = "x", .type_annotation = PrimitiveType::i32(), .loc = span});
+        params.push_back(FuncParam{.name = "y", .type_annotation = PrimitiveType::i32(), .loc = span});
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
-        FuncDecl decl("add", std::move(params), PrimitiveType::i32(), std::move(body), span);
+        const FuncDecl decl("add", std::move(params), PrimitiveType::i32(), std::move(body), span);
         REQUIRE(decl.name() == "add");
         REQUIRE(decl.params().size() == 2);
         REQUIRE(decl.params()[0].name == "x");
@@ -8241,7 +8241,7 @@ TEST_CASE("Program node creation and accessors", "[Program][AST]") {
         std::vector<StmtPtr> statements;
         auto expr = std::make_unique<IntegerLiteral>(42, span);
         statements.push_back(std::make_unique<ExprStmt>(std::move(expr), span));
-        Program program(std::move(statements), span);
+        const Program program(std::move(statements), span);
         REQUIRE(program.statements().size() == 1);
     }
 }
@@ -8255,7 +8255,7 @@ TEST_CASE("node_isa type checking works correctly", "[Node][AST][TypeChecking]")
 
     SECTION("node_isa for expressions") {
         const SourceSpan span;
-        IntegerLiteral lit(42, span);
+        const IntegerLiteral lit(42, span);
         REQUIRE(node_isa<IntegerLiteral>(&lit));
         REQUIRE(node_isa<Expr>(&lit));
         REQUIRE(node_isa<Node>(&lit));
@@ -8410,12 +8410,6 @@ TEST_CASE("Parser function declaration", "[Parser]") {
 
         REQUIRE(program != nullptr);
         REQUIRE(program->statements().size() == 1);
-        if(!errors.empty()) {
-            for(const auto &err : errors) {
-                std::cerr << "Error: " << err.message() << std::endl;
-                INFO("Error: " << err.message());
-            }
-        }
         REQUIRE(errors.empty());
 
         auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
@@ -8549,19 +8543,19 @@ TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][E
 
     SECTION("Minimum int64 value") {
         const SourceSpan span;
-        IntegerLiteral lit(std::numeric_limits<std::int64_t>::min(), span);
+        const IntegerLiteral lit(std::numeric_limits<std::int64_t>::min(), span);
         REQUIRE(lit.value() == std::numeric_limits<std::int64_t>::min());
     }
 
     SECTION("Maximum int64 value") {
         const SourceSpan span;
-        IntegerLiteral lit(std::numeric_limits<std::int64_t>::max(), span);
+        const IntegerLiteral lit(std::numeric_limits<std::int64_t>::max(), span);
         REQUIRE(lit.value() == std::numeric_limits<std::int64_t>::max());
     }
 
     SECTION("Integer literal with empty suffix") {
         const SourceSpan span;
-        IntegerLiteral lit(42, span, "");
+        const IntegerLiteral lit(42, span, "");
         REQUIRE(lit.value() == 42);
         REQUIRE(lit.type_suffix().has_value());
         REQUIRE(lit.type_suffix().value().empty());
@@ -8569,7 +8563,7 @@ TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][E
 
     SECTION("Integer literal with complex suffix") {
         const SourceSpan span;
-        IntegerLiteral lit(100, span, "u64");
+        const IntegerLiteral lit(100, span, "u64");
         REQUIRE(lit.type_suffix().value() == "u64");
     }
 
@@ -8577,7 +8571,7 @@ TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][E
         SourceSpan span;
         span.start = SourceLocation{1, 1, 0};
         span.end = SourceLocation{1, 5, 4};
-        IntegerLiteral lit(42, span);
+        const IntegerLiteral lit(42, span);
         REQUIRE(lit.location().start.line == 1);
         REQUIRE(lit.location().start.column == 1);
     }
@@ -8588,38 +8582,38 @@ TEST_CASE("FloatLiteral corner cases and edge cases", "[FloatLiteral][AST][Expre
 
     SECTION("Positive infinity representation") {
         const SourceSpan span;
-        FloatLiteral lit(std::numeric_limits<double>::infinity(), span);
+        const FloatLiteral lit(std::numeric_limits<double>::infinity(), span);
         REQUIRE(std::isinf(lit.value()));
     }
 
     SECTION("NaN representation") {
         const SourceSpan span;
-        FloatLiteral lit(std::numeric_limits<double>::quiet_NaN(), span);
+        const FloatLiteral lit(std::numeric_limits<double>::quiet_NaN(), span);
         REQUIRE(std::isnan(lit.value()));
     }
 
     SECTION("Denormalized float literal") {
         const SourceSpan span;
-        FloatLiteral lit(std::numeric_limits<double>::denorm_min(), span);
+        const FloatLiteral lit(std::numeric_limits<double>::denorm_min(), span);
         REQUIRE(lit.value() == std::numeric_limits<double>::denorm_min());
     }
 
     SECTION("Float literal with negative zero") {
         const SourceSpan span;
-        FloatLiteral lit(-0.0, span);
+        const FloatLiteral lit(-0.0, span);
         REQUIRE(lit.value() == -0.0);
         REQUIRE(std::signbit(lit.value()));
     }
 
     SECTION("Float literal maximum finite value") {
         const SourceSpan span;
-        FloatLiteral lit(std::numeric_limits<double>::max(), span);
+        const FloatLiteral lit(std::numeric_limits<double>::max(), span);
         REQUIRE(lit.value() == std::numeric_limits<double>::max());
     }
 
     SECTION("Float literal minimum positive normalized value") {
         const SourceSpan span;
-        FloatLiteral lit(std::numeric_limits<double>::min(), span);
+        const FloatLiteral lit(std::numeric_limits<double>::min(), span);
         REQUIRE(lit.value() == std::numeric_limits<double>::min());
     }
 }
@@ -8629,38 +8623,38 @@ TEST_CASE("StringLiteral corner cases and edge cases", "[StringLiteral][AST][Exp
 
     SECTION("String with embedded null character") {
         const SourceSpan span;
-        StringLiteral lit(std::string("hello\0world", 11), span);
+        const StringLiteral lit(std::string("hello\0world", 11), span);
         REQUIRE(lit.value().size() == 11);
     }
 
     SECTION("String with only whitespace") {
         const SourceSpan span;
-        StringLiteral lit("   \t\n", span);
+        const StringLiteral lit("   \t\n", span);
         REQUIRE(lit.value() == "   \t\n");
     }
 
     SECTION("String exceeding typical buffer sizes") {
         const SourceSpan span;
-        std::string long_string(10000, 'a');
-        StringLiteral lit(long_string, span);
+        const std::string long_string(10000, 'a');
+        const StringLiteral lit(long_string, span);
         REQUIRE(lit.value().size() == 10000);
     }
 
     SECTION("String with only Unicode characters") {
         const SourceSpan span;
-        StringLiteral lit("🎉🚀✨", span);
+        const StringLiteral lit("🎉🚀✨", span);
         REQUIRE(lit.value() == "🎉🚀✨");
     }
 
     SECTION("String with mixed ASCII and Unicode") {
         const SourceSpan span;
-        StringLiteral lit("Hello 世界 🌍", span);
+        const StringLiteral lit("Hello 世界 🌍", span);
         REQUIRE(lit.value() == "Hello 世界 🌍");
     }
 
     SECTION("String with RTL characters") {
         const SourceSpan span;
-        StringLiteral lit("مرحبا بالعالم", span);
+        const StringLiteral lit("مرحبا بالعالم", span);
         REQUIRE(lit.value() == "مرحبا بالعالم");
     }
 }
@@ -8676,7 +8670,7 @@ TEST_CASE("UnaryExpr corner cases and edge cases", "[UnaryExpr][AST][Expressions
 
         REQUIRE(expr.op() == UnaryOp::Not);
         REQUIRE(expr.operand().kind() == NodeKind::UnaryExpr);
-        auto &inner_unary = static_cast<const UnaryExpr &>(expr.operand());
+        auto &inner_unary = dynamic_cast<const UnaryExpr &>(expr.operand());
         REQUIRE(inner_unary.op() == UnaryOp::Negate);
     }
 
@@ -8694,11 +8688,12 @@ TEST_CASE("UnaryExpr corner cases and edge cases", "[UnaryExpr][AST][Expressions
         const SourceSpan span;
         auto operand = std::make_unique<Identifier>("x", span);
 
-        UnaryOp ops[] = {UnaryOp::Negate, UnaryOp::Not, UnaryOp::PreInc, UnaryOp::PreDec, UnaryOp::PostInc, UnaryOp::PostDec};
+        const std::array<UnaryOp, 6> ops = {UnaryOp::Negate, UnaryOp::Not,     UnaryOp::PreInc,
+                                            UnaryOp::PreDec, UnaryOp::PostInc, UnaryOp::PostDec};
 
         for(const auto op : ops) {
             auto op_operand = std::make_unique<Identifier>("x", span);
-            UnaryExpr expr(op, std::move(op_operand), span);
+            const UnaryExpr expr(op, std::move(op_operand), span);
             REQUIRE(expr.op() == op);
         }
     }
@@ -8742,14 +8737,15 @@ TEST_CASE("BinaryExpr corner cases and edge cases", "[BinaryExpr][AST][Expressio
         auto lhs = std::make_unique<IntegerLiteral>(10, span);
         auto rhs = std::make_unique<IntegerLiteral>(5, span);
 
-        BinaryOp ops[] = {BinaryOp::Add, BinaryOp::Sub,    BinaryOp::Mul,   BinaryOp::Div,    BinaryOp::Mod, BinaryOp::Eq,
-                          BinaryOp::Neq, BinaryOp::Lt,     BinaryOp::Gt,    BinaryOp::Le,     BinaryOp::Ge,  BinaryOp::And,
-                          BinaryOp::Or,  BinaryOp::BitAnd, BinaryOp::BitOr, BinaryOp::BitXor, BinaryOp::Shl, BinaryOp::Shr};
+        const std::array<BinaryOp, 36> ops = {BinaryOp::Add,    BinaryOp::Sub, BinaryOp::Mul, BinaryOp::Div,    BinaryOp::Mod,
+                                              BinaryOp::Eq,     BinaryOp::Neq, BinaryOp::Lt,  BinaryOp::Gt,     BinaryOp::Le,
+                                              BinaryOp::Ge,     BinaryOp::And, BinaryOp::Or,  BinaryOp::BitAnd, BinaryOp::BitOr,
+                                              BinaryOp::BitXor, BinaryOp::Shl, BinaryOp::Shr};
 
         for(const auto op : ops) {
             auto op_lhs = std::make_unique<IntegerLiteral>(10, span);
             auto op_rhs = std::make_unique<IntegerLiteral>(5, span);
-            BinaryExpr expr(op, std::move(op_lhs), std::move(op_rhs), span);
+            const BinaryExpr expr(op, std::move(op_lhs), std::move(op_rhs), span);
             REQUIRE(expr.op() == op);
         }
     }
@@ -8761,9 +8757,10 @@ TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][
     SECTION("Function call with many arguments") {
         const SourceSpan span;
         std::vector<ExprPtr> args;
+        args.reserve(100);
         for(int i = 0; i < 100; ++i) { args.push_back(std::make_unique<IntegerLiteral>(i, span)); }
         auto callee = std::make_unique<Identifier>("func", span);
-        CallExpr expr(std::move(callee), std::move(args), span);
+        const CallExpr expr(std::move(callee), std::move(args), span);
 
         REQUIRE(expr.args().size() == 100);
     }
@@ -8773,7 +8770,7 @@ TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][
         std::vector<ExprPtr> args;
         args.push_back(std::make_unique<IntegerLiteral>(42, span));
         auto callee = std::make_unique<Identifier>("func", span);
-        CallExpr expr(std::move(callee), std::move(args), span);
+        const CallExpr expr(std::move(callee), std::move(args), span);
 
         REQUIRE(expr.args().size() == 1);
     }
@@ -8788,7 +8785,7 @@ TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][
         auto outer_callee = std::make_unique<Identifier>("outer", span);
         std::vector<ExprPtr> outer_args;
         outer_args.push_back(std::move(inner_call));
-        CallExpr expr(std::move(outer_callee), std::move(outer_args), span);
+        const CallExpr expr(std::move(outer_callee), std::move(outer_args), span);
 
         REQUIRE(expr.args().size() == 1);
         REQUIRE(expr.args()[0]->kind() == NodeKind::CallExpr);
@@ -8798,7 +8795,7 @@ TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][
         const SourceSpan span;
         std::vector<ExprPtr> args;
         auto callee = std::make_unique<Identifier>("函数", span);
-        CallExpr expr(std::move(callee), std::move(args), span);
+        const CallExpr expr(std::move(callee), std::move(args), span);
 
         REQUIRE(expr.callee().kind() == NodeKind::Identifier);
     }
@@ -8814,7 +8811,7 @@ TEST_CASE("IndexExpr corner cases and edge cases", "[IndexExpr][AST][Expressions
         auto first_index = std::make_unique<IndexExpr>(std::move(array), std::move(index), span);
 
         auto second_index = std::make_unique<IntegerLiteral>(1, span);
-        IndexExpr expr(std::move(first_index), std::move(second_index), span);
+        const IndexExpr expr(std::move(first_index), std::move(second_index), span);
 
         REQUIRE(expr.index().kind() == NodeKind::IntegerLiteral);
         REQUIRE(expr.object().kind() == NodeKind::IndexExpr);
@@ -8825,7 +8822,7 @@ TEST_CASE("IndexExpr corner cases and edge cases", "[IndexExpr][AST][Expressions
         auto array = std::make_unique<Identifier>("arr", span);
         auto index_expr = std::make_unique<BinaryExpr>(BinaryOp::Add, std::make_unique<IntegerLiteral>(1, span),
                                                        std::make_unique<IntegerLiteral>(2, span), span);
-        IndexExpr expr(std::move(array), std::move(index_expr), span);
+        const IndexExpr expr(std::move(array), std::move(index_expr), span);
 
         REQUIRE(expr.index().kind() == NodeKind::BinaryExpr);
     }
@@ -8844,7 +8841,7 @@ TEST_CASE("TernaryExpr corner cases and edge cases", "[TernaryExpr][AST][Express
                                          std::make_unique<IntegerLiteral>(10, span), span),
             std::make_unique<IntegerLiteral>(2, span), std::make_unique<IntegerLiteral>(3, span), span);
 
-        TernaryExpr expr(std::move(condition), std::move(then_expr), std::move(else_expr), span);
+        const TernaryExpr expr(std::move(condition), std::move(then_expr), std::move(else_expr), span);
         REQUIRE(expr.kind() == NodeKind::TernaryExpr);
     }
 
@@ -8855,7 +8852,7 @@ TEST_CASE("TernaryExpr corner cases and edge cases", "[TernaryExpr][AST][Express
                                                       std::make_unique<IntegerLiteral>(2, span), span);
         auto else_expr = std::make_unique<CallExpr>(std::make_unique<Identifier>("func", span), std::vector<ExprPtr>{}, span);
 
-        TernaryExpr expr(std::move(condition), std::move(then_expr), std::move(else_expr), span);
+        const TernaryExpr expr(std::move(condition), std::move(then_expr), std::move(else_expr), span);
         REQUIRE(expr.then_expr().kind() == NodeKind::BinaryExpr);
         REQUIRE(expr.else_expr().kind() == NodeKind::CallExpr);
     }
@@ -8871,7 +8868,7 @@ TEST_CASE("AssignExpr corner cases and edge cases", "[AssignExpr][AST][Expressio
         auto inner_assign = std::make_unique<AssignExpr>(std::move(target), std::move(rhs), span);
 
         auto outer_target = std::make_unique<Identifier>("a", span);
-        AssignExpr expr(std::move(outer_target), std::move(inner_assign), span);
+        const AssignExpr expr(std::move(outer_target), std::move(inner_assign), span);
 
         REQUIRE(expr.target().kind() == NodeKind::Identifier);
         REQUIRE(expr.value().kind() == NodeKind::AssignExpr);
@@ -8884,7 +8881,7 @@ TEST_CASE("AssignExpr corner cases and edge cases", "[AssignExpr][AST][Expressio
         auto array_access = std::make_unique<IndexExpr>(std::move(array), std::move(index), span);
         auto value = std::make_unique<IntegerLiteral>(100, span);
 
-        AssignExpr expr(std::move(array_access), std::move(value), span);
+        const AssignExpr expr(std::move(array_access), std::move(value), span);
         REQUIRE(expr.target().kind() == NodeKind::IndexExpr);
     }
 }
@@ -8895,7 +8892,7 @@ TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr][AST][Expressions][
     SECTION("Cast with primitive type") {
         const SourceSpan span;
         auto expr_operand = std::make_unique<IntegerLiteral>(42, span);
-        CastExpr expr("f64", std::move(expr_operand), span);
+        const CastExpr expr("f64", std::move(expr_operand), span);
 
         REQUIRE(expr.target_type() == "f64");
         REQUIRE(expr.operand().kind() == NodeKind::IntegerLiteral);
@@ -8904,7 +8901,7 @@ TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr][AST][Expressions][
     SECTION("Cast with custom type") {
         const SourceSpan span;
         auto expr_operand = std::make_unique<IntegerLiteral>(42, span);
-        CastExpr expr("MyType", std::move(expr_operand), span);
+        const CastExpr expr("MyType", std::move(expr_operand), span);
 
         REQUIRE(expr.target_type() == "MyType");
     }
@@ -8914,7 +8911,7 @@ TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr][AST][Expressions][
         auto inner_operand = std::make_unique<IntegerLiteral>(42, span);
         auto inner_cast = std::make_unique<CastExpr>("f32", std::move(inner_operand), span);
 
-        CastExpr expr("i64", std::move(inner_cast), span);
+        const CastExpr expr("i64", std::move(inner_cast), span);
 
         REQUIRE(expr.operand().kind() == NodeKind::CastExpr);
     }
@@ -8962,13 +8959,13 @@ TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][Cor
     SECTION("Multiple variables with single type annotation") {
         const SourceSpan span;
         std::vector<std::string> names = {"a", "b", "c"};
-        std::optional<std::string> type = "i32";
+        const std::optional<std::string> type = "i32";
         std::vector<ExprPtr> initializers;
         initializers.push_back(std::make_unique<IntegerLiteral>(1, span));
         initializers.push_back(std::make_unique<IntegerLiteral>(2, span));
         initializers.push_back(std::make_unique<IntegerLiteral>(3, span));
 
-        VarDecl decl(std::move(names), type, std::move(initializers), false, span);
+        const VarDecl decl(std::move(names), type, std::move(initializers), false, span);
 
         REQUIRE(decl.names().size() == 3);
         REQUIRE(decl.initializers().size() == 3);
@@ -8981,7 +8978,7 @@ TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][Cor
         std::vector<ExprPtr> initializers;
         initializers.push_back(std::make_unique<IntegerLiteral>(42, span));
 
-        VarDecl decl(std::move(names), std::nullopt, std::move(initializers), true, span);
+        const VarDecl decl(std::move(names), std::nullopt, std::move(initializers), true, span);
 
         REQUIRE(decl.is_const());
     }
@@ -8989,7 +8986,7 @@ TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][Cor
     SECTION("Variable without initializer") {
         const SourceSpan span;
         std::vector<std::string> names = {"x"};
-        VarDecl decl(std::move(names), std::nullopt, {}, false, span);
+        const VarDecl decl(std::move(names), std::nullopt, {}, false, span);
 
         REQUIRE(decl.initializers().empty());
     }
@@ -8997,9 +8994,9 @@ TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][Cor
     SECTION("Variable with type annotation") {
         const SourceSpan span;
         std::vector<std::string> names = {"x"};
-        std::optional<std::string> type = "i64";
+        const std::optional<std::string> type = "i64";
 
-        VarDecl decl(std::move(names), type, {}, false, span);
+        const VarDecl decl(std::move(names), type, {}, false, span);
 
         REQUIRE(decl.type_annotation().has_value());
         REQUIRE(decl.type_annotation().value() == "i64");
@@ -9008,9 +9005,9 @@ TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][Cor
     SECTION("Variable with array type annotation") {
         const SourceSpan span;
         std::vector<std::string> names = {"arr"};
-        std::optional<std::string> type = "i32[10]";
+        const std::optional<std::string> type = "i32[10]";
 
-        VarDecl decl(std::move(names), type, {}, false, span);
+        const VarDecl decl(std::move(names), type, {}, false, span);
 
         REQUIRE(decl.type_annotation().value() == "i32[10]");
     }
@@ -9022,7 +9019,7 @@ TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt][AST][Statements]
     SECTION("Empty block") {
         const SourceSpan span;
         std::vector<StmtPtr> statements;
-        BlockStmt block(std::move(statements), span);
+        const BlockStmt block(std::move(statements), span);
 
         REQUIRE(block.statements().empty());
     }
@@ -9035,7 +9032,7 @@ TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt][AST][Statements]
             statements.push_back(std::make_unique<ExprStmt>(std::move(expr), span));
         }
 
-        BlockStmt block(std::move(statements), span);
+        const BlockStmt block(std::move(statements), span);
         REQUIRE(block.statements().size() == 100);
     }
 
@@ -9047,7 +9044,7 @@ TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt][AST][Statements]
 
         std::vector<StmtPtr> outer_stmts;
         outer_stmts.push_back(std::move(inner_block));
-        BlockStmt outer_block(std::move(outer_stmts), span);
+        const BlockStmt outer_block(std::move(outer_stmts), span);
 
         REQUIRE(outer_block.statements().size() == 1);
         REQUIRE(outer_block.statements()[0]->kind() == NodeKind::BlockStmt);
@@ -9063,7 +9060,7 @@ TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt][AST][Statements][Corne
         std::vector<StmtPtr> then_stmts;
         auto then_branch = std::make_unique<BlockStmt>(std::move(then_stmts), span);
 
-        IfStmt stmt(std::move(condition), std::move(then_branch), nullptr, span);
+        const IfStmt stmt(std::move(condition), std::move(then_branch), nullptr, span);
 
         REQUIRE(!stmt.has_else());
     }
@@ -9076,7 +9073,7 @@ TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt][AST][Statements][Corne
         std::vector<StmtPtr> else_stmts;
         auto else_branch = std::make_unique<BlockStmt>(std::move(else_stmts), span);
 
-        IfStmt stmt(std::move(condition), std::move(then_branch), std::move(else_branch), span);
+        const IfStmt stmt(std::move(condition), std::move(then_branch), std::move(else_branch), span);
 
         REQUIRE(stmt.has_else());
     }
@@ -9094,7 +9091,7 @@ TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt][AST][Statements][Corne
         outer_then_stmts.push_back(std::move(inner_if));
         auto outer_then = std::make_unique<BlockStmt>(std::move(outer_then_stmts), span);
 
-        IfStmt stmt(std::move(outer_condition), std::move(outer_then), nullptr, span);
+        const IfStmt stmt(std::move(outer_condition), std::move(outer_then), nullptr, span);
 
         REQUIRE(stmt.then_branch().kind() == NodeKind::BlockStmt);
     }
@@ -9105,7 +9102,7 @@ TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt][AST][Statements][Cor
 
     SECTION("For loop with all components empty") {
         const SourceSpan span;
-        ForStmt stmt(nullptr, nullptr, nullptr, std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
+        const ForStmt stmt(nullptr, nullptr, nullptr, std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
 
         REQUIRE(!stmt.has_init());
         REQUIRE(!stmt.has_condition());
@@ -9116,7 +9113,7 @@ TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt][AST][Statements][Cor
         const SourceSpan span;
         auto condition = std::make_unique<BoolLiteral>(true, span);
 
-        ForStmt stmt(nullptr, std::move(condition), nullptr, std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
+        const ForStmt stmt(nullptr, std::move(condition), nullptr, std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
 
         REQUIRE(!stmt.has_init());
         REQUIRE(stmt.has_condition());
@@ -9129,7 +9126,7 @@ TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt][AST][Statements][Cor
                                                       std::make_unique<IntegerLiteral>(2, span), span);
         auto init_stmt = std::make_unique<ExprStmt>(std::move(init_expr), span);
 
-        ForStmt stmt(std::move(init_stmt), nullptr, nullptr, std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
+        const ForStmt stmt(std::move(init_stmt), nullptr, nullptr, std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span), span);
 
         REQUIRE(stmt.has_init());
     }
@@ -9143,7 +9140,7 @@ TEST_CASE("WhileStmt corner cases and edge cases", "[WhileStmt][AST][Statements]
         auto condition = std::make_unique<BoolLiteral>(true, span);
         auto body = std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span);
 
-        WhileStmt stmt(std::move(condition), std::move(body), span);
+        const WhileStmt stmt(std::move(condition), std::move(body), span);
 
         REQUIRE(stmt.condition().kind() == NodeKind::BoolLiteral);
     }
@@ -9154,7 +9151,7 @@ TEST_CASE("WhileStmt corner cases and edge cases", "[WhileStmt][AST][Statements]
                                                       std::make_unique<BoolLiteral>(false, span), span);
         auto body = std::make_unique<BlockStmt>(std::vector<StmtPtr>{}, span);
 
-        WhileStmt stmt(std::move(condition), std::move(body), span);
+        const WhileStmt stmt(std::move(condition), std::move(body), span);
 
         REQUIRE(stmt.condition().kind() == NodeKind::BinaryExpr);
     }
@@ -9165,7 +9162,7 @@ TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt][AST][Statement
 
     SECTION("Return without value") {
         const SourceSpan span;
-        ReturnStmt stmt(nullptr, span);
+        const ReturnStmt stmt(nullptr, span);
 
         REQUIRE(!stmt.has_value());
     }
@@ -9173,7 +9170,7 @@ TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt][AST][Statement
     SECTION("Return with simple value") {
         const SourceSpan span;
         auto value = std::make_unique<IntegerLiteral>(42, span);
-        ReturnStmt stmt(std::move(value), span);
+        const ReturnStmt stmt(std::move(value), span);
 
         REQUIRE(stmt.has_value());
         REQUIRE(stmt.value().kind() == NodeKind::IntegerLiteral);
@@ -9183,7 +9180,7 @@ TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt][AST][Statement
         const SourceSpan span;
         auto value = std::make_unique<BinaryExpr>(BinaryOp::Mul, std::make_unique<IntegerLiteral>(10, span),
                                                   std::make_unique<IntegerLiteral>(5, span), span);
-        ReturnStmt stmt(std::move(value), span);
+        const ReturnStmt stmt(std::move(value), span);
 
         REQUIRE(stmt.value().kind() == NodeKind::BinaryExpr);
     }
@@ -9195,12 +9192,13 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
     SECTION("Function with many parameters") {
         const SourceSpan span;
         std::vector<FuncParam> params;
-        for(int i = 0; i < 50; ++i) { params.push_back(FuncParam{fmt::format("param{}", i), PrimitiveType::i32(), span}); }
+        params.reserve(50);
+        for(int i = 0; i < 50; ++i) { params.push_back(FuncParam{.name = fmt::format("param{}", i), .type_annotation = PrimitiveType::i32(), .loc = span}); }
 
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 
-        FuncDecl decl("func", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        const FuncDecl decl("func", std::move(params), PrimitiveType::void_(), std::move(body), span);
 
         REQUIRE(decl.params().size() == 50);
     }
@@ -9211,7 +9209,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 
-        FuncDecl decl("func", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        const FuncDecl decl("func", std::move(params), PrimitiveType::void_(), std::move(body), span);
 
         REQUIRE(decl.return_type().has_value());
     }
@@ -9222,7 +9220,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 
-        FuncDecl decl("函数", std::move(params), PrimitiveType::void_(), std::move(body), span);
+        const FuncDecl decl("函数", std::move(params), PrimitiveType::void_(), std::move(body), span);
 
         REQUIRE(decl.name() == "函数");
     }
@@ -9234,7 +9232,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
         auto return_type = std::make_shared<const CustomType>("i32[10]");
 
-        FuncDecl decl("func", std::move(params), return_type, std::move(body), span);
+        const FuncDecl decl("func", std::move(params), return_type, std::move(body), span);
 
         REQUIRE(decl.return_type().has_value());
     }
@@ -9248,20 +9246,21 @@ TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][C
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 
-        MainStmt stmt(std::move(body), span);
+        const MainStmt stmt(std::move(body), span);
 
-        REQUIRE(static_cast<const BlockStmt &>(stmt.expression()).statements().empty());
+        REQUIRE(dynamic_cast<const BlockStmt &>(stmt.expression()).statements().empty());
     }
 
     SECTION("Main with many statements") {
         const SourceSpan span;
         std::vector<StmtPtr> body_stmts;
+        body_stmts.reserve(100);
         for(int i = 0; i < 100; ++i) { body_stmts.push_back(std::make_unique<ExprStmt>(std::make_unique<IntegerLiteral>(i, span), span)); }
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 
-        MainStmt stmt(std::move(body), span);
+        const MainStmt stmt(std::move(body), span);
 
-        REQUIRE(static_cast<const BlockStmt &>(stmt.expression()).statements().size() == 100);
+        REQUIRE(dynamic_cast<const BlockStmt &>(stmt.expression()).statements().size() == 100);
     }
 }
 

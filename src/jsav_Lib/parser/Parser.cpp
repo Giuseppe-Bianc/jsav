@@ -2,13 +2,63 @@
  * Created by gbian on 23/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 #include "jsav/parser/Parser.hpp"
 #include "jsav/parser/precedence.hpp"
 
 namespace jsv {
     constexpr std::size_t kInitialErrorCapacity = 8;
     constexpr int kDecimalRadix = 10;
+
+    // Helper function to check if all characters from index to end are digits
+    static bool all_digits_from(std::string_view text, std::size_t start_index) {
+        for(std::size_t j = start_index; j < text.size(); ++j) {
+            if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Helper function to find the start of type suffix in numeric literal
+    // Returns the index where the suffix starts, or text.size() if no suffix found
+    static std::size_t find_suffix_start(std::string_view text) {
+        std::size_t suffix_start = text.size();
+        bool found_suffix = false;
+
+        // Scan backwards to find the start of the suffix
+        for(std::size_t index = text.size(); index > 0 && !found_suffix; --index) {
+            const char current_char = text[index - 1];
+            
+            // Check for single-character suffixes (d/D, f/F)
+            if(current_char == 'd' || current_char == 'D' || 
+               current_char == 'f' || current_char == 'F') {
+                suffix_start = index - 1;
+                found_suffix = true;
+            } 
+            // Check for multi-character suffixes (u/U/i/I followed by optional digits)
+            else if(current_char == 'u' || current_char == 'U' || 
+                    current_char == 'i' || current_char == 'I') {
+                if(index < text.size()) {
+                    // Check if followed by digits (like u32, i8)
+                    if(all_digits_from(text, index)) {
+                        suffix_start = index - 1;
+                        found_suffix = true;
+                    }
+                } else {
+                    // Bare u/U/i/I at end - treat as suffix
+                    suffix_start = index - 1;
+                    found_suffix = true;
+                }
+            } 
+            // Stop scanning on non-digit, non-dot, non-suffix characters
+            else if(std::isdigit(static_cast<unsigned char>(current_char)) == 0 && 
+                    current_char != '.') {
+                break;
+            }
+        }
+        return suffix_start;
+    }
 
     // Helper function to extract type suffix from numeric literal text
     // FIX: AddressSanitizer - ensure null-terminated string for strtoll
@@ -19,45 +69,10 @@ namespace jsv {
         // Handle empty string - early return to prevent undefined behavior
         if(text.empty()) { return {0, std::nullopt}; }
 
-        // Find where the type suffix starts by scanning from the end
-        // Type suffixes are: d/D, f/F, u/U[width], i/I[width]
-        std::size_t suffix_start = text.size();
-        bool found_suffix = false;
+        // Find where the type suffix starts
+        const std::size_t suffix_start = find_suffix_start(text);
 
-        // Scan backwards to find the start of the suffix
-        for(std::size_t index = text.size(); index > 0 && !found_suffix; --index) {
-            const char current_char = text[index - 1];
-            if(current_char == 'd' || current_char == 'D' || current_char == 'f' || current_char == 'F') {
-                suffix_start = index - 1;
-                found_suffix = true;
-            } else if(current_char == 'u' || current_char == 'U' || current_char == 'i' || current_char == 'I') {
-                // Check if followed by digits (like u32, i8, u, i)
-                if(index < text.size()) {
-                    // There are characters after u/U/i/I - check if they're digits
-                    bool all_digits_after = true;
-                    for(std::size_t j = index; j < text.size(); ++j) {
-                        if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) {
-                            all_digits_after = false;
-                            break;
-                        }
-                    }
-                    if(all_digits_after) {
-                        suffix_start = index - 1;
-                        found_suffix = true;
-                    }
-                } else {
-                    // Bare u/U/i/I at end - treat as suffix
-                    suffix_start = index - 1;
-                    found_suffix = true;
-                }
-            } else if(std::isdigit(static_cast<unsigned char>(current_char)) == 0 && current_char != '.') {
-                // Non-digit, non-dot character that's not a suffix marker - stop scanning
-                break;
-            }
-        }
-
-        // FIX: Extract only the numeric part (before suffix) to avoid parsing issues
-        // strtoll on "12i8" would stop at 'i', but on "i8" it's undefined behavior
+        // Extract only the numeric part (before suffix) to avoid parsing issues
         const std::string numeric_part = std::string(text.substr(0, suffix_start));
 
         // Only parse if we have a valid numeric part (not empty and not just ".")
@@ -68,7 +83,9 @@ namespace jsv {
         }
 
         // Extract type suffix if present
-        if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
+        if(suffix_start < text.size()) { 
+            type_suffix = std::string(text.substr(suffix_start)); 
+        }
 
         return {value, type_suffix};
     }
@@ -274,119 +291,202 @@ namespace jsv {
         return ident;
     }
 
+    // Helper function to parse variable names for for-loop initializers
+    // Returns nullopt if parsing fails, empty vector if no names found
+    static std::optional<std::vector<std::string>> parse_for_var_names(Parser* parser) {
+        std::vector<std::string> names;
+        while(true) {
+            const auto name = parser->consume_identifier();
+            if(!name) { return std::nullopt; }
+            names.emplace_back(*name);
+            if(!parser->match_token(TokenKind::Comma)) { break; }
+        }
+        return names;
+    }
+
+    // Helper function to parse type annotation for for-loop initializers
+    // Returns nullopt if parsing fails, empty optional if no type annotation
+    static std::optional<std::optional<std::string>> parse_for_type_annotation(Parser* parser) {
+        if(!parser->match_token(TokenKind::Colon)) {
+            return std::optional<std::string>{};
+        }
+        auto [type_opt, type_str] = parser->parse_type();
+        if(!type_opt) { return std::nullopt; }
+        return type_str;
+    }
+
+    // Helper function to parse initializer expressions for for-loop initializers
+    // Returns nullopt if parsing fails, empty vector if no initializers
+    static std::optional<std::vector<ExprPtr>> parse_for_initializers(Parser* parser) {
+        if(!parser->match_token(TokenKind::Equal)) {
+            return std::vector<ExprPtr>{};
+        }
+        
+        std::vector<ExprPtr> initializers;
+        while(true) {
+            auto expr = parser->parse_expr(0);
+            if(!expr) { return std::nullopt; }
+            initializers.push_back(std::move(expr.value()));
+            if(!parser->match_token(TokenKind::Comma)) { break; }
+        }
+        return initializers;
+    }
+
+    // Helper function to create variable declaration for for-loop
+    static StmtPtr make_for_var_decl(const Token& start_token, std::vector<std::string>&& names,
+                                     std::optional<std::string>&& type_annotation,
+                                     std::vector<ExprPtr>&& initializers) {
+        const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
+        return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation),
+                                         std::move(initializers), is_const, start_token.getSpan());
+    }
+
     std::optional<StmtPtr> Parser::parse_for_initializer() {
         if(match_token(TokenKind::Semicolon)) { return nullptr; }
-        // For var/const declarations in for-loop context, we need to NOT consume
-        // the trailing semicolon since it's the clause separator.
+        
+        // Handle var/const declarations
         if(check(TokenKind::KeywordVar) || check(TokenKind::KeywordConst)) {
             const auto start_token = advance();  // var | const
-            const bool is_const = start_token.getKind() == TokenKind::KeywordConst;
 
-            // --- names ---
-            std::vector<std::string> names;
-            while(true) {
-                const auto name = consume_identifier();
-                if(!name) { return std::nullopt; }
-                names.emplace_back(*name);
-                if(!match_token(TokenKind::Comma)) { break; }
-            }
+            // Parse variable names
+            auto names = parse_for_var_names(this);
+            if(!names) { return std::nullopt; }
 
-            // --- optional type ---
-            std::optional<std::string> type_annotation;
-            if(match_token(TokenKind::Colon)) {
-                auto [type_opt, type_str] = parse_type();
-                if(!type_opt) { return std::nullopt; }
-                type_annotation = std::move(type_str);
-            }
+            // Parse optional type annotation
+            auto type_annotation = parse_for_type_annotation(this);
+            if(!type_annotation) { return std::nullopt; }
 
-            // --- initializer ---
-            std::vector<ExprPtr> initializers;
-            if(match_token(TokenKind::Equal)) {
-                while(true) {
-                    auto expr = parse_expr(0);
-                    if(!expr) { return std::nullopt; }
-                    initializers.push_back(std::move(expr.value()));
-                    if(!match_token(TokenKind::Comma)) { break; }
-                }
-            }
+            // Parse initializer expressions
+            auto initializers = parse_for_initializers(this);
+            if(!initializers) { return std::nullopt; }
 
-            // Do NOT consume semicolon - it's the clause separator
-            return std::make_unique<VarDecl>(std::move(names), std::move(type_annotation), std::move(initializers), is_const,
-                                             start_token.getSpan());
+            // Create variable declaration (do NOT consume semicolon - it's the clause separator)
+            return make_for_var_decl(start_token, std::move(*names), 
+                                     std::move(*type_annotation), std::move(*initializers));
         }
-        // For expression statements in for-loop context, parse expression but do NOT
-        // consume the semicolon since it's the clause separator
+        
+        // Handle expression statements
         auto expr = parse_expr(0);
         if(!expr) {
             syntax_error("Expected expression in for-loop initializer", peek(), std::nullopt, ErrorCode::E1004);
             return std::nullopt;
         }
-        // Do NOT consume semicolon - it's the clause separator
+        
+        // Create expression statement (do NOT consume semicolon - it's the clause separator)
         const SourceSpan span = expr.value()->location();
         return std::make_unique<ExprStmt>(std::move(expr.value()), span);
     }
+    // Helper function to parse for-loop initializer clause
+    // Returns pair of (initializer statement, whether it was empty)
+    static std::optional<std::pair<std::optional<StmtPtr>, bool>> parse_for_initializer_clause(Parser* parser) {
+        std::optional<StmtPtr> initializer;
+        bool initializer_was_empty = false;
+        
+        if(!parser->check(TokenKind::Semicolon)) {
+            initializer = parser->parse_for_initializer();
+            if(!initializer) { return std::nullopt; }
+            // After a non-empty initializer, consume semicolon
+            if(!parser->check(TokenKind::Semicolon)) { return std::nullopt; }
+            parser->advance();
+        } else {
+            // Empty initializer - consume the semicolon
+            parser->advance();
+            initializer_was_empty = true;
+        }
+        
+        return std::make_pair(std::move(initializer), initializer_was_empty);
+    }
+
+    // Helper function to parse for-loop condition clause
+    static std::optional<std::optional<ExprPtr>> parse_for_condition_clause(Parser* parser, bool initializer_was_empty) {
+        std::optional<ExprPtr> condition;
+        
+        if(initializer_was_empty && parser->check(TokenKind::Semicolon)) {
+            // Empty condition (for (;;))
+            parser->advance();  // consume second semicolon
+            return std::optional<ExprPtr>{};
+        } 
+        
+        if(!parser->check(TokenKind::CloseParen)) {
+            condition = parser->parse_expr(0);
+            if(!condition) { return std::nullopt; }
+            
+            if(!parser->check(TokenKind::Semicolon)) {
+                if(!parser->check(TokenKind::CloseParen)) { return std::nullopt; }
+            } else {
+                parser->advance();
+            }
+        }
+        
+        return condition;
+    }
+
+    // Helper function to parse for-loop increment clause
+    static std::optional<ExprPtr> parse_for_increment_clause(Parser* parser) {
+        std::optional<ExprPtr> increment;
+        
+        if(!parser->check(TokenKind::CloseParen)) {
+            increment = parser->parse_expr(0);
+            if(!increment) { return std::nullopt; }
+        }
+        
+        return increment;
+    }
+
+    // Helper function to ensure for-loop body is a block statement
+    static StmtPtr make_for_body_block(StmtPtr&& body_stmt) {
+        if(body_stmt->kind() == NodeKind::BlockStmt) {
+            return std::move(body_stmt);
+        }
+        
+        // Wrap non-block statements in a BlockStmt
+        const SourceSpan body_span = body_stmt->location();
+        std::vector<StmtPtr> stmts;
+        stmts.push_back(std::move(body_stmt));
+        return std::make_unique<BlockStmt>(std::move(stmts), body_span);
+    }
+
     std::optional<StmtPtr> Parser::parse_for() {
         const auto start_token = advance();
         [[maybe_unused]] const auto expect_open = expect(TokenKind::OpenParen, "after 'for'");
 
-        // Parse initializer - may be nullptr for empty, VarDecl, or ExprStmt
-        std::optional<StmtPtr> initializer;
-        bool initializer_was_empty = false;
-        if(!check(TokenKind::Semicolon)) {
-            initializer = parse_for_initializer();
-            if(!initializer) { return std::nullopt; }
-            // After a non-empty initializer (var decl or expr), consume semicolon
-            if(!check(TokenKind::Semicolon)) { return std::nullopt; }
-            advance();
-        } else {
-            // Empty initializer - consume the semicolon
-            advance();
-            initializer_was_empty = true;
-        }
+        // Parse initializer clause
+        auto initializer_result = parse_for_initializer_clause(this);
+        if(!initializer_result) { return std::nullopt; }
+        auto [initializer, initializer_was_empty] = std::move(*initializer_result);
 
-        // Parse condition
-        std::optional<ExprPtr> condition;
-        if(initializer_was_empty && check(TokenKind::Semicolon)) {
-            // Empty condition (for (;;))
-            advance();  // consume second semicolon
-        } else if(!check(TokenKind::CloseParen)) {
-            condition = parse_expr(0);
-            if(!condition) { return std::nullopt; }
-            if(!check(TokenKind::Semicolon)) {
-                if(!check(TokenKind::CloseParen)) { return std::nullopt; }
-            } else {
-                advance();
-            }
-        }
+        // Parse condition clause
+        auto condition_opt = parse_for_condition_clause(this, initializer_was_empty);
+        if(!condition_opt) { return std::nullopt; }
+        
+        // Convert optional<optional<ExprPtr>> to optional<ExprPtr>
+        std::optional<ExprPtr> condition = std::move(*condition_opt);
 
-        // Parse increment
-        std::optional<ExprPtr> increment;
-        if(!check(TokenKind::CloseParen)) {
-            increment = parse_expr(0);
-            if(!increment) { return std::nullopt; }
-        }
+        // Parse increment clause
+        auto increment = parse_for_increment_clause(this);
+        if(!increment) { return std::nullopt; }
+        
         if(!check(TokenKind::CloseParen)) { return std::nullopt; }
         [[maybe_unused]] const auto expect_close = expect(TokenKind::CloseParen, "after for loop clauses");
 
+        // Parse body statement
         auto body_stmt = parse_stmt();
         if(!body_stmt) { return std::nullopt; }
 
-        // Assicura che il body sia sempre un BlockStmt
-        StmtPtr body_ptr;
-        if(body_stmt.value()->kind() == NodeKind::BlockStmt) {
-            body_ptr = std::move(body_stmt.value());
-        } else {
-            // Capture the span BEFORE moving body_stmt into the vector, as
-            // accessing stmts.front() after std::move(stmts) is undefined behaviour.
-            const SourceSpan body_span = body_stmt.value()->location();
-            std::vector<StmtPtr> stmts;
-            stmts.push_back(std::move(body_stmt.value()));
-            body_ptr = std::make_unique<BlockStmt>(std::move(stmts), body_span);
-        }
-        const SourceSpan end_span = body_ptr ? body_ptr->location() : previous().getSpan();
+        // Ensure body is a BlockStmt
+        auto body_ptr = make_for_body_block(std::move(body_stmt.value()));
+        
+        // Compute source span for the for-loop
+        const SourceSpan end_span = body_ptr->location();
         const SourceSpan span = start_token.getSpan().merged(end_span).value_or(start_token.getSpan());
-        return std::make_unique<ForStmt>(initializer ? std::move(*initializer) : nullptr, condition ? std::move(*condition) : nullptr,
-                                         increment ? std::move(*increment) : nullptr, std::move(body_ptr), span);
+        
+        // Convert optionals to raw pointers (nullptr if empty)
+        StmtPtr initializer_ptr = initializer ? std::move(*initializer) : nullptr;
+        ExprPtr condition_ptr = condition ? std::move(*condition) : nullptr;
+        ExprPtr increment_ptr = increment ? std::move(*increment) : nullptr;
+        
+        return std::make_unique<ForStmt>(std::move(initializer_ptr), std::move(condition_ptr),
+                                         std::move(increment_ptr), std::move(body_ptr), span);
     }
     std::optional<StmtPtr> Parser::parse_break() {
         const auto span = advance().getSpan();
@@ -456,7 +556,7 @@ namespace jsv {
             {
                 const auto text = token.getText();
                 const auto [value, type_suffix] = parse_numeric_literal(text);
-                return std::make_unique<IntegerLiteral>(value, token.getSpan(), std::move(type_suffix));
+                return std::make_unique<IntegerLiteral>(value, token.getSpan(), type_suffix);
             }
         case TokenKind::KeywordBool:
             {
@@ -793,8 +893,7 @@ namespace jsv {
         if(!dimensions.empty()) {
             // Apply dimensions from outermost to innermost (left to right)
             // For [[i8; 3]; 2]: first create [i8; 3], then wrap in [result; 2]
-            for(std::size_t dimension_index = 0; dimension_index < dimensions.size(); ++dimension_index) {
-                const auto dim = dimensions[dimension_index];
+            for(const auto dim : dimensions) {
                 // Create a literal expression for the size (required by ArrayType)
                 // Note: In a full implementation, this would be a compile-time constant expression
                 auto size_literal = std::make_shared<IntegerLiteral>(static_cast<std::int64_t>(dim), token.getSpan(), std::nullopt);
@@ -814,4 +913,4 @@ namespace jsv {
     }
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length)
