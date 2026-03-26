@@ -100,7 +100,7 @@ namespace jsv {
         case TypeKind::NullPtr:
             return "nullptr";
         default:
-            return "unknown";
+            std::unreachable();
         }
     }
 
@@ -159,21 +159,39 @@ namespace jsv {
          * @brief Check if this is an integer type (signed or unsigned).
          * @return true if this is any integer type.
          */
-        [[nodiscard]] constexpr bool is_integer() const noexcept {
-            return (kind_ >= TypeKind::I8 && kind_ <= TypeKind::I64) || (kind_ >= TypeKind::U8 && kind_ <= TypeKind::U64);
-        }
+        [[nodiscard]] constexpr bool is_integer() const noexcept { return is_signed_integer() || is_unsigned_integer(); }
 
         /**
          * @brief Check if this is a signed integer type.
          * @return true if this is I8, I16, I32, or I64.
          */
-        [[nodiscard]] constexpr bool is_signed_integer() const noexcept { return kind_ >= TypeKind::I8 && kind_ <= TypeKind::I64; }
+        [[nodiscard]] constexpr bool is_signed_integer() const noexcept {
+            switch(kind_) {
+            case TypeKind::I8:
+            case TypeKind::I16:
+            case TypeKind::I32:
+            case TypeKind::I64:
+                return true;
+            default:
+                return false;
+            }
+        }
 
         /**
          * @brief Check if this is an unsigned integer type.
          * @return true if this is U8, U16, U32, or U64.
          */
-        [[nodiscard]] constexpr bool is_unsigned_integer() const noexcept { return kind_ >= TypeKind::U8 && kind_ <= TypeKind::U64; }
+        [[nodiscard]] constexpr bool is_unsigned_integer() const noexcept {
+            switch(kind_) {
+            case TypeKind::U8:
+            case TypeKind::U16:
+            case TypeKind::U32:
+            case TypeKind::U64:
+                return true;
+            default:
+                return false;
+            }
+        }
 
         /**
          * @brief Check if this is a floating-point type.

@@ -88,7 +88,7 @@ namespace jsv {
     void AstPrinter::visit_UnaryExpr(const UnaryExpr &node) {
         const bool is_last = next_is_last_;
         const std::string_view op_str = unary_op_symbol(node.op());
-        std::string position;
+        std::string_view position;
         if(node.op() == UnaryOp::PreInc || node.op() == UnaryOp::PreDec) {
             position = " (prefix)";
         } else if(node.op() == UnaryOp::PostInc || node.op() == UnaryOp::PostDec) {
@@ -497,7 +497,7 @@ namespace jsv {
         const bool is_last = next_is_last_;
         print_line(ansi::yellow("Main"), is_last);
         const IndentGuard guard{*this, is_last};
-        visit_child(node.expression(), true);
+        visit_child(node.body(), true);
     }
 
     void AstPrinter::visit_Program(const Program &node) {
@@ -623,13 +623,14 @@ namespace jsv {
 
         // Single variable declaration (backward compatible)
         std::string result;
+        const auto &type_ann = node.type_annotation();
         // PERF: reserve estimated size to avoid reallocations
-        const std::size_t type_ann_size = node.type_annotation().has_value() ? node.type_annotation()->size() : 0;
+        const std::size_t type_ann_size = type_ann.has_value() ? type_ann->size() : 0;
         const std::size_t estimated_size = 32 + node.name().size() + type_ann_size;
         result.reserve(estimated_size);
         auto out = std::back_inserter(result);
         FORMAT_TO(out, "({} {}", node.is_const() ? "const" : "var", node.name());
-        if(const auto &type_ann = node.type_annotation(); type_ann.has_value()) { FORMAT_TO(out, " : {}", *type_ann); }
+        if(type_ann.has_value()) { FORMAT_TO(out, " : {}", *type_ann); }
         if(node.has_initializer()) { FORMAT_TO(out, " {}", visit(node.initializer())); }
         FORMAT_TO(out, ")");
         return result;
@@ -701,7 +702,7 @@ namespace jsv {
 
     std::string SExprPrinter::visit_ContinueStmt(const ContinueStmt & /*unused*/) { return "(continue)"; }
 
-    std::string SExprPrinter::visit_MainStmt(const MainStmt &node) { return FORMAT("(main {})", visit(node.expression())); }
+    std::string SExprPrinter::visit_MainStmt(const MainStmt &node) { return FORMAT("(main {})", visit(node.body())); }
 
     std::string SExprPrinter::visit_Program(const Program &node) {
         std::string result;

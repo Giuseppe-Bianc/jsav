@@ -11,8 +11,20 @@
 
 namespace jsv {
 
-    /// Get the binding power for a token (left and right binding powers for Pratt parsing)
-    /// Returns {lbp, rbp} where lbp is left binding power and rbp is right binding power
+    /**
+    * @brief Get the binding power for a token (Pratt parsing).
+    *
+    * Returns left and right binding powers used for operator precedence parsing.
+    * Higher values indicate higher precedence. Right > Left creates left-associativity.
+    *
+    * @param token The token to get binding power for.
+    * @return std::pair<std::size_t, std::size_t> {lbp, rbp} where lbp is left binding power
+    *         and rbp is right binding power. Returns {0, 0} for non-operators.
+    *
+    * @code
+    * auto [lbp, rbp] = bindingPower(plusToken);  // Returns {17, 18}
+    * @endcode
+    */
     [[nodiscard]] inline std::pair<std::size_t, std::size_t> binding_power(const Token &token) {
         switch(token.getKind()) {
         case TokenKind::OrOr:  // ||
@@ -46,7 +58,6 @@ namespace jsv {
         case TokenKind::Equal:  // = (assignment)
             return {21, 22};
         case TokenKind::PlusPlus:  // ++ (postfix)
-            return {23, 24};
         case TokenKind::MinusMinus:  // -- (postfix)
             return {23, 24};
         default:
@@ -54,14 +65,27 @@ namespace jsv {
         }
     }
 
-    /// Get the right binding power for unary operators
-    /// Returns {lbp, rbp} - for unary operators, lbp is typically 0
+    /**
+     * @brief Get the binding power for unary prefix operators.
+     *
+     * For unary operators, lbp is always 0 (they don't have a left operand).
+     * The rbp determines how tightly the operator binds to its operand.
+     *
+     * @param token The token to get unary binding power for.
+     * @return std::pair<std::size_t, std::size_t> {0, rbp} for unary operators,
+     *         {0, 0} for non-unary operators.
+     *
+     * @code
+     * auto [lbp, rbp] = unaryBindingPower(minusToken);  // Returns {0, 22}
+     * @endcode
+     */
     [[nodiscard]] inline std::pair<std::size_t, std::size_t> unary_binding_power(const Token &token) {
         switch(token.getKind()) {
         case TokenKind::Minus:  // - (Negate)
             return {0, 22};
         case TokenKind::Not:  // ! (Not)
             return {0, 21};
+        // TODO: Add bitwise NOT when TokenKind::Tilde is implemented
         // case TokenKind::Tilde:         // ~ (BitNot)
         //     return {0, 23};
         case TokenKind::PlusPlus:  // ++ (PreInc/PostInc)
@@ -73,7 +97,23 @@ namespace jsv {
         }
     }
 
-    /// Convert a token to a binary operator, or return an error if not valid
+    /**
+     * @brief Convert a token to its corresponding BinaryOp enum value.
+     *
+     * Maps operator tokens to the BinaryOp enum for use in AST construction.
+     * Returns an error if the token is not a valid binary operator.
+     *
+     * @param token The token to convert.
+     * @return std::expected<BinaryOp, CompileError> The BinaryOp on success,
+     *         or a SyntaxError if the token is not a binary operator.
+     *
+     * @code
+     * auto result = get_binary_op(plusToken);
+     * if (result) {
+     *     BinaryOp op = *result;  // BinaryOp::Add
+     * }
+     * @endcode
+     */
     [[nodiscard]] inline std::expected<BinaryOp, CompileError> get_binary_op(const Token &token) {
         switch(token.getKind()) {
         case TokenKind::Plus:

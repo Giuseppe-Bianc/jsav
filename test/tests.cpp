@@ -8218,7 +8218,7 @@ TEST_CASE("MainStmt node creation and accessors", "[MainStmt][AST][Statements]")
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
         MainStmt stmt(std::move(body), span);
-        REQUIRE(stmt.expression().kind() == NodeKind::BlockStmt);
+        REQUIRE(stmt.body().kind() == NodeKind::BlockStmt);
         REQUIRE(stmt.kind() == NodeKind::MainStmt);
         REQUIRE(MainStmt::classof(&stmt));
     }
@@ -9250,7 +9250,7 @@ TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][C
 
         const MainStmt stmt(std::move(body), span);
 
-        REQUIRE(dynamic_cast<const BlockStmt &>(stmt.expression()).statements().empty());
+        REQUIRE(dynamic_cast<const BlockStmt &>(stmt.body()).statements().empty());
     }
 
     SECTION("Main with many statements") {
@@ -9262,7 +9262,7 @@ TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][C
 
         const MainStmt stmt(std::move(body), span);
 
-        REQUIRE(dynamic_cast<const BlockStmt &>(stmt.expression()).statements().size() == 100);
+        REQUIRE(dynamic_cast<const BlockStmt &>(stmt.body()).statements().size() == 100);
     }
 }
 

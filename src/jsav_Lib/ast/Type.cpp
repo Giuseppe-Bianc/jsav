@@ -25,28 +25,28 @@ namespace jsv {
     // ArrayType::to_string
     // ============================================================
     [[nodiscard]] std::string ArrayType::to_string() const {
-        std::string result = "[";
-        result += element_type_->to_string();
-        result += "; ";
+        std::string result;
+        auto out = std::back_inserter(result);
+        FORMAT_TO(out, "[{}; ", element_type_->to_string());
         if(size_expr_) {
             // Try to extract the size value from IntegerLiteral using kind() check
             if(size_expr_->kind() == NodeKind::IntegerLiteral) {
                 const auto *int_lit = dynamic_cast<const IntegerLiteral *>(size_expr_.get());
-                result += FORMAT("{}", int_lit->value());
+                FORMAT_TO(out, "{}", int_lit->value());
             } else {
-                result += "<expr>";
+                FORMAT_TO(out, "<expr>");
             }
         } else {
-            result += "unknown";
+            FORMAT_TO(out, "unknown");
         }
-        result += "]";
+        FORMAT_TO(out, "]");
         return result;
     }
 
     // ============================================================
     // VectorType::to_string
     // ============================================================
-    [[nodiscard]] std::string VectorType::to_string() const { return FORMAT("Vec<{}>", element_type_); }
+    [[nodiscard]] std::string VectorType::to_string() const { return FORMAT("Vec<{}>", element_type_->to_string()); }
 
 }  // namespace jsv
 

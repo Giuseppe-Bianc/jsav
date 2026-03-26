@@ -16,8 +16,24 @@ namespace jsv {
         friend class Visitor<AstPrinter>;
 
     public:
+        /**
+         * @brief Default constructor for AstPrinter.
+         *
+         * Constructs an AstPrinter with default initial state, ready to print AST nodes.
+         */
         AstPrinter() = default;
 
+        /**
+         * @brief Prints the AST node in a tree-like Unicode format.
+         *
+         * @param node The root AST node to print. The entire subtree will be traversed
+         *             and printed to standard output with proper indentation.
+         *
+         * @code
+         * AstPrinter printer;
+         * printer.print(myAstNode);
+         * @endcode
+         */
         void print(const Node &node);
 
     private:

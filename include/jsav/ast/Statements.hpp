@@ -89,9 +89,9 @@ namespace jsv {
     // Function Declaration:  fn foo(a: int, b: int) -> int { ... }
     // ============================================================
     struct FuncParam {
-        std::string name;
+        std::string name;         ///< Parameter name
         TypePtr type_annotation;  ///< Type annotation (e.g., PrimitiveType::i32(), CustomType("MyType"))
-        SourceSpan loc;
+        SourceSpan loc;           ///< Source location for error reporting
     };
 
     class FuncDecl final : public Stmt {
@@ -216,13 +216,15 @@ namespace jsv {
     };
 
     // ============================================================
-    // Print Statement:  print expr;  (built-in per demo)
+    // Main Statement:  main { ... }  (program entry point)
     // ============================================================
     class MainStmt final : public Stmt {
     public:
         explicit MainStmt(StmtPtr body, SourceSpan loc = {}) : Stmt(NodeKind::MainStmt, loc), body_{std::move(body)} {}
 
-        [[nodiscard]] const Stmt &expression() const noexcept { return *body_; }
+        [[nodiscard]] bool has_body() const noexcept { return body_ != nullptr; }
+        [[nodiscard]] const Stmt &body() const noexcept { return *body_; }
+        [[nodiscard]] Stmt &body() noexcept { return *body_; }
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::MainStmt; }
 

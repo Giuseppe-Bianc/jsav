@@ -32,6 +32,20 @@ namespace jsv {
 
         [[nodiscard]] std::string_view kind_name() const noexcept;
 
+        /**
+         * @brief LLVM-style RTTI check for Node type.
+         *
+         * Always returns true since any Node pointer is trivially a Node.
+         * This serves as the base case for the node_isa/node_cast system.
+         *
+         * @param n Pointer to the node to check (unused, always valid for Node).
+         * @return Always returns true.
+         *
+         * @code
+         * Node* node = ...;
+         * assert(node_isa<Node>(node)); // Always true for non-null
+         * @endcode
+         */
         [[nodiscard]] static constexpr bool classof(const Node * /*n*/) noexcept { return true; }
 
     private:
