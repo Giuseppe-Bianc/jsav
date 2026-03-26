@@ -59,7 +59,7 @@ namespace jsv {
         // FIX: Extract only the numeric part (before suffix) to avoid parsing issues
         // strtoll on "12i8" would stop at 'i', but on "i8" it's undefined behavior
         const std::string numeric_part = std::string(text.substr(0, suffix_start));
-        
+
         // Only parse if we have a valid numeric part (not empty and not just ".")
         if(!numeric_part.empty() && numeric_part != ".") {
             // FIX: Use c_str() on a temporary std::string for null-terminated buffer
@@ -68,9 +68,7 @@ namespace jsv {
         }
 
         // Extract type suffix if present
-        if(found_suffix && suffix_start < text.size()) { 
-            type_suffix = std::string(text.substr(suffix_start)); 
-        }
+        if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
 
         return {value, type_suffix};
     }
@@ -777,8 +775,8 @@ namespace jsv {
                 // FIX: Use parse_numeric_literal for consistent suffix handling
                 const auto [dim_value, _] = parse_numeric_literal(dim_text);
                 if(dim_value <= 0) {
-                    syntax_error("Array dimension must be positive", dim_token,
-                                 "Provide a positive integer greater than 0", ErrorCode::E1002);
+                    syntax_error("Array dimension must be positive", dim_token, "Provide a positive integer greater than 0",
+                                 ErrorCode::E1002);
                     break;
                 }
                 dimensions.push_back(static_cast<std::size_t>(dim_value));
