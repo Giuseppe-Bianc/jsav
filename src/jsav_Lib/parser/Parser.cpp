@@ -11,9 +11,13 @@ namespace jsv {
     constexpr int kDecimalRadix = 10;
 
     // Helper function to extract type suffix from numeric literal text
+    // FIX: AddressSanitizer - ensure null-terminated string for strtoll
     static std::pair<std::int64_t, std::optional<std::string>> parse_numeric_literal(std::string_view text) {
         std::int64_t value = 0;
         std::optional<std::string> type_suffix;
+
+        // Handle empty string - early return to prevent undefined behavior
+        if(text.empty()) { return {0, std::nullopt}; }
 
         // Find where the type suffix starts by scanning from the end
         // Type suffixes are: d/D, f/F, u/U[width], i/I[width]
@@ -52,12 +56,21 @@ namespace jsv {
             }
         }
 
-        // Parse the numeric value from the full text using string_view::substr to ensure proper bounds
-        const std::string text_str(text);
-        value = std::strtoll(text_str.c_str(), nullptr, kDecimalRadix);
+        // FIX: Extract only the numeric part (before suffix) to avoid parsing issues
+        // strtoll on "12i8" would stop at 'i', but on "i8" it's undefined behavior
+        const std::string numeric_part = std::string(text.substr(0, suffix_start));
+        
+        // Only parse if we have a valid numeric part (not empty and not just ".")
+        if(!numeric_part.empty() && numeric_part != ".") {
+            // FIX: Use c_str() on a temporary std::string for null-terminated buffer
+            // This prevents AddressSanitizer buffer over-read errors
+            value = std::strtoll(numeric_part.c_str(), nullptr, kDecimalRadix);
+        }
 
         // Extract type suffix if present
-        if(found_suffix && suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
+        if(found_suffix && suffix_start < text.size()) { 
+            type_suffix = std::string(text.substr(suffix_start)); 
+        }
 
         return {value, type_suffix};
     }
@@ -755,14 +768,20 @@ namespace jsv {
             return {std::nullopt, std::nullopt};
         }
 
-        // Parse array dimensions: [2][3] -> [[base; 3]; 2]
+        // Parse array dimensions: [2][3] -> ArrayType(ArrayType(base, 3), 2)
         std::vector<std::size_t> dimensions;
         while(match_token(TokenKind::OpenBracket)) {
             const auto dim_token = peek();
             if(dim_token.getKind() == TokenKind::Numeric) {
                 const auto dim_text = dim_token.getText();
-                const auto dim_value = std::strtoull(std::string(dim_text).c_str(), nullptr, kDecimalRadix);
-                dimensions.push_back(dim_value);
+                // FIX: Use parse_numeric_literal for consistent suffix handling
+                const auto [dim_value, _] = parse_numeric_literal(dim_text);
+                if(dim_value <= 0) {
+                    syntax_error("Array dimension must be positive", dim_token,
+                                 "Provide a positive integer greater than 0", ErrorCode::E1002);
+                    break;
+                }
+                dimensions.push_back(static_cast<std::size_t>(dim_value));
                 advance();  // consume the numeric token
             } else {
                 syntax_error("Expected array dimension size", dim_token, "Array dimensions must be positive integers", ErrorCode::E1002);
@@ -771,17 +790,23 @@ namespace jsv {
             if(!expect(TokenKind::CloseBracket, "end of array dimension")) { break; }
         }
 
-        // Build type string with array dimensions: [[i8; 3]; 2]
+        // Build ArrayType hierarchy for array dimensions: [i8; 3] -> [[i8; 3]; 2]
+        TypePtr result_type = base_type;
         if(!dimensions.empty()) {
-            std::string result = type_string;
-            // Apply dimensions from innermost to outermost (right to left)
-            for(std::size_t dimension_index = dimensions.size(); dimension_index > 0; --dimension_index) {
-                result = FORMAT("[{}; {}]", result, dimensions[dimension_index - 1]);
+            // Apply dimensions from outermost to innermost (left to right)
+            // For [[i8; 3]; 2]: first create [i8; 3], then wrap in [result; 2]
+            for(std::size_t dimension_index = 0; dimension_index < dimensions.size(); ++dimension_index) {
+                const auto dim = dimensions[dimension_index];
+                // Create a literal expression for the size (required by ArrayType)
+                // Note: In a full implementation, this would be a compile-time constant expression
+                auto size_literal = std::make_shared<IntegerLiteral>(static_cast<std::int64_t>(dim), token.getSpan(), std::nullopt);
+                result_type = std::make_shared<const ArrayType>(result_type, size_literal);
             }
-            type_string = result;
+            // Rebuild type_string from the ArrayType hierarchy
+            type_string = result_type->to_string();
         }
 
-        return {base_type, type_string};
+        return {result_type, type_string};
     }
     std::optional<std::string_view> Parser::consume_identifier() {
         const auto token = peek();

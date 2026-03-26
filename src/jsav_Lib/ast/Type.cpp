@@ -5,6 +5,7 @@
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 
 #include "jsav/ast/Type.hpp"
+#include "jsav/ast/Expressions.hpp"
 
 namespace jsv {
 
@@ -28,9 +29,13 @@ namespace jsv {
         result += element_type_->to_string();
         result += "; ";
         if(size_expr_) {
-            // For now, we just indicate that there's a size expression
-            // In a full implementation, you'd evaluate or print the expression
-            result += "<expr>";
+            // Try to extract the size value from IntegerLiteral using kind() check
+            if(size_expr_->kind() == NodeKind::IntegerLiteral) {
+                const auto *int_lit = static_cast<const IntegerLiteral *>(size_expr_.get());
+                result += FORMAT("{}", int_lit->value());
+            } else {
+                result += "<expr>";
+            }
         } else {
             result += "unknown";
         }
