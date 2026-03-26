@@ -25,7 +25,7 @@ namespace jsv {
      * auto [lbp, rbp] = bindingPower(plusToken);  // Returns {17, 18}
      * @endcode
      */
-    [[nodiscard]] inline std::pair<std::size_t, std::size_t> binding_power(const Token &token) {
+    [[nodiscard]] constexpr inline std::pair<std::size_t, std::size_t> binding_power(const Token &token) {
         switch(token.getKind()) {
         case TokenKind::OrOr:  // ||
             return {1, 2};
@@ -79,7 +79,7 @@ namespace jsv {
      * auto [lbp, rbp] = unaryBindingPower(minusToken);  // Returns {0, 22}
      * @endcode
      */
-    [[nodiscard]] inline std::pair<std::size_t, std::size_t> unary_binding_power(const Token &token) {
+    [[nodiscard]] constexpr inline std::pair<std::size_t, std::size_t> unary_binding_power(const Token &token) {
         switch(token.getKind()) {
         case TokenKind::Minus:  // - (Negate)
             return {0, 22};

@@ -281,7 +281,7 @@ namespace jsv {
         Token &operator=(Token &&other) noexcept = default;
         [[nodiscard]] auto operator<=>(const Token &other) const noexcept = default;
 
-        [[nodiscard]] TokenKind getKind() const { return m_kind; }
+        [[nodiscard]] constexpr TokenKind getKind() const { return m_kind; }
         [[nodiscard]] std::string_view getText() const { return m_text; }
         [[nodiscard]] const SourceSpan &getSpan() const { return m_span; }
 
