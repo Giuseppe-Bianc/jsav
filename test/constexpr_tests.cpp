@@ -944,144 +944,114 @@ TEST_CASE("SizeSystem_kSI_kIEC_AreConstexprConstructed", "[SizeSystem][constexpr
     STATIC_REQUIRE(iec_copy.base == 1024.0L);
 }
 
-TEST_CASE("binding_power: OrOr returns lowest precedence {1, 2}",
-          "[binding_power][operator][logical][T-BP-001]") {
+TEST_CASE("binding_power: OrOr returns lowest precedence {1, 2}", "[binding_power][operator][logical][T-BP-001]") {
     constexpr jsv::Token token(jsv::TokenKind::OrOr, "||",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                               jsv::SourceLocation(1, 3, 2)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 1);
     STATIC_REQUIRE(bp.second == 2);
 }
 
-TEST_CASE("binding_power: AndAnd returns precedence {3, 4}",
-          "[binding_power][operator][logical][T-BP-002]") {
+TEST_CASE("binding_power: AndAnd returns precedence {3, 4}", "[binding_power][operator][logical][T-BP-002]") {
     constexpr jsv::Token token(jsv::TokenKind::AndAnd, "&&",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(2, 3, 15),
-                                               jsv::SourceLocation(2, 5, 17)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(2, 3, 15), jsv::SourceLocation(2, 5, 17)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 3);
     STATIC_REQUIRE(bp.second == 4);
 }
 
-TEST_CASE("binding_power: Or returns precedence {5, 6}",
-          "[binding_power][operator][bitwise][T-BP-003]") {
+TEST_CASE("binding_power: Or returns precedence {5, 6}", "[binding_power][operator][bitwise][T-BP-003]") {
     constexpr jsv::Token token(jsv::TokenKind::Or, "|",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(3, 1, 30),
-                                               jsv::SourceLocation(3, 2, 31)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(3, 1, 30), jsv::SourceLocation(3, 2, 31)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 5);
     STATIC_REQUIRE(bp.second == 6);
 }
 
-TEST_CASE("binding_power: Xor returns precedence {7, 8}",
-          "[binding_power][operator][bitwise][T-BP-004]") {
+TEST_CASE("binding_power: Xor returns precedence {7, 8}", "[binding_power][operator][bitwise][T-BP-004]") {
     constexpr jsv::Token token(jsv::TokenKind::Xor, "^",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(4, 2, 45),
-                                               jsv::SourceLocation(4, 3, 46)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(4, 2, 45), jsv::SourceLocation(4, 3, 46)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 7);
     STATIC_REQUIRE(bp.second == 8);
 }
 
-TEST_CASE("binding_power: And returns precedence {9, 10}",
-          "[binding_power][operator][bitwise][T-BP-005]") {
+TEST_CASE("binding_power: And returns precedence {9, 10}", "[binding_power][operator][bitwise][T-BP-005]") {
     constexpr jsv::Token token(jsv::TokenKind::And, "&",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 1, 60),
-                                               jsv::SourceLocation(5, 2, 61)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 1, 60), jsv::SourceLocation(5, 2, 61)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 9);
     STATIC_REQUIRE(bp.second == 10);
 }
 
-TEST_CASE("binding_power: EqualEqual returns precedence {11, 12}",
-          "[binding_power][operator][equality][T-BP-006]") {
-    constexpr jsv::Token token(jsv::TokenKind::EqualEqual, "==",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(6, 1, 75),
-                                               jsv::SourceLocation(6, 3, 77)));
+TEST_CASE("binding_power: EqualEqual returns precedence {11, 12}", "[binding_power][operator][equality][T-BP-006]") {
+    constexpr jsv::Token token(jsv::TokenKind::EqualEqual,
+                               "==", jsv::SourceSpan(filename, jsv::SourceLocation(6, 1, 75), jsv::SourceLocation(6, 3, 77)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 11);
     STATIC_REQUIRE(bp.second == 12);
 }
 
-TEST_CASE("binding_power: NotEqual returns precedence {11, 12}",
-          "[binding_power][operator][equality][T-BP-007]") {
-    constexpr jsv::Token token(jsv::TokenKind::NotEqual, "!=",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(6, 5, 79),
-                                               jsv::SourceLocation(6, 7, 81)));
+TEST_CASE("binding_power: NotEqual returns precedence {11, 12}", "[binding_power][operator][equality][T-BP-007]") {
+    constexpr jsv::Token token(jsv::TokenKind::NotEqual,
+                               "!=", jsv::SourceSpan(filename, jsv::SourceLocation(6, 5, 79), jsv::SourceLocation(6, 7, 81)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 11);
     STATIC_REQUIRE(bp.second == 12);
 }
 
-TEST_CASE("binding_power: Equality operators have identical precedence",
-          "[binding_power][operator][equality][T-BP-008]") {
-    constexpr jsv::Token eq(jsv::TokenKind::EqualEqual, "==",
-                            jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                            jsv::SourceLocation(1, 3, 2)));
-    constexpr jsv::Token neq(jsv::TokenKind::NotEqual, "!=",
-                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 4, 3),
-                                             jsv::SourceLocation(1, 6, 5)));
+TEST_CASE("binding_power: Equality operators have identical precedence", "[binding_power][operator][equality][T-BP-008]") {
+    constexpr jsv::Token eq(jsv::TokenKind::EqualEqual,
+                            "==", jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2)));
+    constexpr jsv::Token neq(jsv::TokenKind::NotEqual,
+                             "!=", jsv::SourceSpan(filename, jsv::SourceLocation(1, 4, 3), jsv::SourceLocation(1, 6, 5)));
     constexpr auto bp_eq = jsv::binding_power(eq);
     constexpr auto bp_neq = jsv::binding_power(neq);
     STATIC_REQUIRE(bp_eq.first == bp_neq.first);
     STATIC_REQUIRE(bp_eq.second == bp_neq.second);
 }
 
-TEST_CASE("binding_power: Less returns precedence {13, 14}",
-          "[binding_power][operator][relational][T-BP-009]") {
+TEST_CASE("binding_power: Less returns precedence {13, 14}", "[binding_power][operator][relational][T-BP-009]") {
     constexpr jsv::Token token(jsv::TokenKind::Less, "<",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(7, 1, 90),
-                                               jsv::SourceLocation(7, 2, 91)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(7, 1, 90), jsv::SourceLocation(7, 2, 91)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 13);
     STATIC_REQUIRE(bp.second == 14);
 }
 
-TEST_CASE("binding_power: LessEqual returns precedence {13, 14}",
-          "[binding_power][operator][relational][T-BP-010]") {
-    constexpr jsv::Token token(jsv::TokenKind::LessEqual, "<=",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(7, 3, 92),
-                                               jsv::SourceLocation(7, 5, 94)));
+TEST_CASE("binding_power: LessEqual returns precedence {13, 14}", "[binding_power][operator][relational][T-BP-010]") {
+    constexpr jsv::Token token(jsv::TokenKind::LessEqual,
+                               "<=", jsv::SourceSpan(filename, jsv::SourceLocation(7, 3, 92), jsv::SourceLocation(7, 5, 94)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 13);
     STATIC_REQUIRE(bp.second == 14);
 }
 
-TEST_CASE("binding_power: Greater returns precedence {13, 14}",
-          "[binding_power][operator][relational][T-BP-011]") {
+TEST_CASE("binding_power: Greater returns precedence {13, 14}", "[binding_power][operator][relational][T-BP-011]") {
     constexpr jsv::Token token(jsv::TokenKind::Greater, ">",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(7, 6, 95),
-                                               jsv::SourceLocation(7, 7, 96)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(7, 6, 95), jsv::SourceLocation(7, 7, 96)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 13);
     STATIC_REQUIRE(bp.second == 14);
 }
 
-TEST_CASE("binding_power: GreaterEqual returns precedence {13, 14}",
-          "[binding_power][operator][relational][T-BP-012]") {
-    constexpr jsv::Token token(jsv::TokenKind::GreaterEqual, ">=",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(7, 8, 97),
-                                               jsv::SourceLocation(7, 10, 99)));
+TEST_CASE("binding_power: GreaterEqual returns precedence {13, 14}", "[binding_power][operator][relational][T-BP-012]") {
+    constexpr jsv::Token token(jsv::TokenKind::GreaterEqual,
+                               ">=", jsv::SourceSpan(filename, jsv::SourceLocation(7, 8, 97), jsv::SourceLocation(7, 10, 99)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 13);
     STATIC_REQUIRE(bp.second == 14);
 }
 
-TEST_CASE("binding_power: All relational operators have identical precedence",
-          "[binding_power][operator][relational][T-BP-013]") {
+TEST_CASE("binding_power: All relational operators have identical precedence", "[binding_power][operator][relational][T-BP-013]") {
     constexpr jsv::Token less(jsv::TokenKind::Less, "<",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                              jsv::SourceLocation(1, 2, 1)));
-    constexpr jsv::Token leq(jsv::TokenKind::LessEqual, "<=",
-                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2),
-                                             jsv::SourceLocation(1, 5, 4)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1)));
+    constexpr jsv::Token leq(jsv::TokenKind::LessEqual,
+                             "<=", jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 5, 4)));
     constexpr jsv::Token greater(jsv::TokenKind::Greater, ">",
-                                 jsv::SourceSpan(filename, jsv::SourceLocation(1, 6, 5),
-                                                 jsv::SourceLocation(1, 7, 6)));
-    constexpr jsv::Token geq(jsv::TokenKind::GreaterEqual, ">=",
-                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 8, 7),
-                                             jsv::SourceLocation(1, 10, 9)));
+                                 jsv::SourceSpan(filename, jsv::SourceLocation(1, 6, 5), jsv::SourceLocation(1, 7, 6)));
+    constexpr jsv::Token geq(jsv::TokenKind::GreaterEqual,
+                             ">=", jsv::SourceSpan(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 10, 9)));
 
     constexpr auto bp_less = jsv::binding_power(less);
     constexpr auto bp_leq = jsv::binding_power(leq);
@@ -1096,389 +1066,316 @@ TEST_CASE("binding_power: All relational operators have identical precedence",
     STATIC_REQUIRE(bp_less.second == bp_geq.second);
 }
 
-TEST_CASE("binding_power: ShiftLeft returns precedence {15, 16}",
-          "[binding_power][operator][shift][T-BP-014]") {
+TEST_CASE("binding_power: ShiftLeft returns precedence {15, 16}", "[binding_power][operator][shift][T-BP-014]") {
     constexpr jsv::Token token(jsv::TokenKind::ShiftLeft, "<<",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(8, 1, 105),
-                                               jsv::SourceLocation(8, 3, 107)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(8, 1, 105), jsv::SourceLocation(8, 3, 107)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 15);
     STATIC_REQUIRE(bp.second == 16);
 }
 
-TEST_CASE("binding_power: ShiftRight returns precedence {15, 16}",
-          "[binding_power][operator][shift][T-BP-015]") {
+TEST_CASE("binding_power: ShiftRight returns precedence {15, 16}", "[binding_power][operator][shift][T-BP-015]") {
     constexpr jsv::Token token(jsv::TokenKind::ShiftRight, ">>",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(8, 4, 108),
-                                               jsv::SourceLocation(8, 6, 110)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(8, 4, 108), jsv::SourceLocation(8, 6, 110)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 15);
     STATIC_REQUIRE(bp.second == 16);
 }
 
-TEST_CASE("binding_power: Shift operators bind tighter than relational",
-          "[binding_power][operator][shift][T-BP-016]") {
+TEST_CASE("binding_power: Shift operators bind tighter than relational", "[binding_power][operator][shift][T-BP-016]") {
     constexpr jsv::Token shift(jsv::TokenKind::ShiftLeft, "<<",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                               jsv::SourceLocation(1, 3, 2)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2)));
     constexpr jsv::Token relational(jsv::TokenKind::Less, "<",
-                                    jsv::SourceSpan(filename, jsv::SourceLocation(1, 4, 3),
-                                                    jsv::SourceLocation(1, 5, 4)));
+                                    jsv::SourceSpan(filename, jsv::SourceLocation(1, 4, 3), jsv::SourceLocation(1, 5, 4)));
     constexpr auto bp_shift = jsv::binding_power(shift);
     constexpr auto bp_rel = jsv::binding_power(relational);
-    STATIC_REQUIRE(bp_shift.first > bp_rel.first);   // 15 > 13
-    STATIC_REQUIRE(bp_shift.second > bp_rel.second);   // 16 > 14
+    STATIC_REQUIRE(bp_shift.first > bp_rel.first);    // 15 > 13
+    STATIC_REQUIRE(bp_shift.second > bp_rel.second);  // 16 > 14
 }
 
-TEST_CASE("binding_power: Plus returns precedence {17, 18}",
-          "[binding_power][operator][additive][T-BP-017]") {
+TEST_CASE("binding_power: Plus returns precedence {17, 18}", "[binding_power][operator][additive][T-BP-017]") {
     constexpr jsv::Token token(jsv::TokenKind::Plus, "+",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(9, 1, 115),
-                                               jsv::SourceLocation(9, 2, 116)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(9, 1, 115), jsv::SourceLocation(9, 2, 116)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 17);
     STATIC_REQUIRE(bp.second == 18);
 }
 
-TEST_CASE("binding_power: Minus returns precedence {17, 18}",
-          "[binding_power][operator][additive][T-BP-018]") {
+TEST_CASE("binding_power: Minus returns precedence {17, 18}", "[binding_power][operator][additive][T-BP-018]") {
     constexpr jsv::Token token(jsv::TokenKind::Minus, "-",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(9, 3, 117),
-                                               jsv::SourceLocation(9, 4, 118)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(9, 3, 117), jsv::SourceLocation(9, 4, 118)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 17);
     STATIC_REQUIRE(bp.second == 18);
 }
 
-TEST_CASE("binding_power: Additive operators bind tighter than shift",
-          "[binding_power][operator][additive][T-BP-019]") {
+TEST_CASE("binding_power: Additive operators bind tighter than shift", "[binding_power][operator][additive][T-BP-019]") {
     constexpr jsv::Token additive(jsv::TokenKind::Plus, "+",
-                                  jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                                  jsv::SourceLocation(1, 2, 1)));
+                                  jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1)));
     constexpr jsv::Token shift(jsv::TokenKind::ShiftLeft, "<<",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2),
-                                               jsv::SourceLocation(1, 5, 4)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 5, 4)));
     constexpr auto bp_add = jsv::binding_power(additive);
     constexpr auto bp_shift = jsv::binding_power(shift);
-    STATIC_REQUIRE(bp_add.first > bp_shift.first);   // 17 > 15
-    STATIC_REQUIRE(bp_add.second > bp_shift.second);   // 18 > 16
+    STATIC_REQUIRE(bp_add.first > bp_shift.first);    // 17 > 15
+    STATIC_REQUIRE(bp_add.second > bp_shift.second);  // 18 > 16
 }
 
-TEST_CASE("binding_power: Star returns precedence {19, 20}",
-          "[binding_power][operator][multiplicative][T-BP-020]") {
+TEST_CASE("binding_power: Star returns precedence {19, 20}", "[binding_power][operator][multiplicative][T-BP-020]") {
     constexpr jsv::Token token(jsv::TokenKind::Star, "*",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(10, 1, 125),
-                                               jsv::SourceLocation(10, 2, 126)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(10, 1, 125), jsv::SourceLocation(10, 2, 126)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 19);
     STATIC_REQUIRE(bp.second == 20);
 }
 
-TEST_CASE("binding_power: Slash returns precedence {19, 20}",
-          "[binding_power][operator][multiplicative][T-BP-021]") {
+TEST_CASE("binding_power: Slash returns precedence {19, 20}", "[binding_power][operator][multiplicative][T-BP-021]") {
     constexpr jsv::Token token(jsv::TokenKind::Slash, "/",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(10, 3, 127),
-                                               jsv::SourceLocation(10, 4, 128)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(10, 3, 127), jsv::SourceLocation(10, 4, 128)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 19);
     STATIC_REQUIRE(bp.second == 20);
 }
 
-TEST_CASE("binding_power: Percent returns precedence {19, 20}",
-          "[binding_power][operator][multiplicative][T-BP-022]") {
+TEST_CASE("binding_power: Percent returns precedence {19, 20}", "[binding_power][operator][multiplicative][T-BP-022]") {
     constexpr jsv::Token token(jsv::TokenKind::Percent, "%",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(10, 5, 129),
-                                               jsv::SourceLocation(10, 6, 130)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(10, 5, 129), jsv::SourceLocation(10, 6, 130)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 19);
     STATIC_REQUIRE(bp.second == 20);
 }
 
-TEST_CASE("binding_power: Multiplicative operators bind tighter than additive",
-          "[binding_power][operator][multiplicative][T-BP-023]") {
+TEST_CASE("binding_power: Multiplicative operators bind tighter than additive", "[binding_power][operator][multiplicative][T-BP-023]") {
     constexpr jsv::Token mult(jsv::TokenKind::Star, "*",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                              jsv::SourceLocation(1, 2, 1)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1)));
     constexpr jsv::Token add(jsv::TokenKind::Plus, "+",
-                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2),
-                                             jsv::SourceLocation(1, 4, 3)));
+                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 4, 3)));
     constexpr auto bp_mult = jsv::binding_power(mult);
     constexpr auto bp_add = jsv::binding_power(add);
-    STATIC_REQUIRE(bp_mult.first > bp_add.first);   // 19 > 17
-    STATIC_REQUIRE(bp_mult.second > bp_add.second);   // 20 > 18
+    STATIC_REQUIRE(bp_mult.first > bp_add.first);    // 19 > 17
+    STATIC_REQUIRE(bp_mult.second > bp_add.second);  // 20 > 18
 }
 
-TEST_CASE("binding_power: Equal returns precedence {21, 22}",
-          "[binding_power][operator][assignment][T-BP-024]") {
+TEST_CASE("binding_power: Equal returns precedence {21, 22}", "[binding_power][operator][assignment][T-BP-024]") {
     constexpr jsv::Token token(jsv::TokenKind::Equal, "=",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(11, 1, 135),
-                                               jsv::SourceLocation(11, 2, 136)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(11, 1, 135), jsv::SourceLocation(11, 2, 136)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 21);
     STATIC_REQUIRE(bp.second == 22);
 }
 
-TEST_CASE("binding_power: PlusPlus returns precedence {23, 24}",
-          "[binding_power][operator][postfix][T-BP-025]") {
+TEST_CASE("binding_power: PlusPlus returns precedence {23, 24}", "[binding_power][operator][postfix][T-BP-025]") {
     constexpr jsv::Token token(jsv::TokenKind::PlusPlus, "++",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(12, 1, 145),
-                                               jsv::SourceLocation(12, 3, 147)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(12, 1, 145), jsv::SourceLocation(12, 3, 147)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 23);
     STATIC_REQUIRE(bp.second == 24);
 }
 
-TEST_CASE("binding_power: MinusMinus returns precedence {23, 24}",
-          "[binding_power][operator][postfix][T-BP-026]") {
+TEST_CASE("binding_power: MinusMinus returns precedence {23, 24}", "[binding_power][operator][postfix][T-BP-026]") {
     constexpr jsv::Token token(jsv::TokenKind::MinusMinus, "--",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(12, 4, 148),
-                                               jsv::SourceLocation(12, 6, 150)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(12, 4, 148), jsv::SourceLocation(12, 6, 150)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 23);
     STATIC_REQUIRE(bp.second == 24);
 }
 
-TEST_CASE("binding_power: Identifier returns zero binding power",
-          "[binding_power][non-operator][edge-case][T-BP-027a]") {
+TEST_CASE("binding_power: Identifier returns zero binding power", "[binding_power][non-operator][edge-case][T-BP-027a]") {
     constexpr jsv::Token token(jsv::TokenKind::IdentifierAscii, "x",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 1, 155),
-                                               jsv::SourceLocation(13, 2, 156)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 1, 155), jsv::SourceLocation(13, 2, 156)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 0);
     STATIC_REQUIRE(bp.second == 0);
 }
 
-TEST_CASE("binding_power: Numeric literal returns zero binding power",
-          "[binding_power][non-operator][edge-case][T-BP-027b]") {
+TEST_CASE("binding_power: Numeric literal returns zero binding power", "[binding_power][non-operator][edge-case][T-BP-027b]") {
     constexpr jsv::Token token(jsv::TokenKind::Numeric, "42",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 3, 157),
-                                               jsv::SourceLocation(13, 5, 159)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 3, 157), jsv::SourceLocation(13, 5, 159)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 0);
     STATIC_REQUIRE(bp.second == 0);
 }
 
-TEST_CASE("binding_power: Keyword returns zero binding power",
-          "[binding_power][non-operator][edge-case][T-BP-027c]") {
+TEST_CASE("binding_power: Keyword returns zero binding power", "[binding_power][non-operator][edge-case][T-BP-027c]") {
     constexpr jsv::Token token(jsv::TokenKind::KeywordIf, "if",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 6, 160),
-                                               jsv::SourceLocation(13, 8, 162)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 6, 160), jsv::SourceLocation(13, 8, 162)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 0);
     STATIC_REQUIRE(bp.second == 0);
 }
 
-TEST_CASE("binding_power: EOF returns zero binding power",
-          "[binding_power][non-operator][edge-case][T-BP-027d]") {
+TEST_CASE("binding_power: EOF returns zero binding power", "[binding_power][non-operator][edge-case][T-BP-027d]") {
     constexpr jsv::Token token(jsv::TokenKind::Eof, "",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 9, 163),
-                                               jsv::SourceLocation(13, 9, 163)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 9, 163), jsv::SourceLocation(13, 9, 163)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 0);
     STATIC_REQUIRE(bp.second == 0);
 }
 
-TEST_CASE("binding_power: Parenthesis returns zero binding power",
-          "[binding_power][non-operator][edge-case][T-BP-027e]") {
+TEST_CASE("binding_power: Parenthesis returns zero binding power", "[binding_power][non-operator][edge-case][T-BP-027e]") {
     constexpr jsv::Token token(jsv::TokenKind::OpenParen, "(",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 10, 164),
-                                               jsv::SourceLocation(13, 11, 165)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 10, 164), jsv::SourceLocation(13, 11, 165)));
     constexpr auto bp = jsv::binding_power(token);
     STATIC_REQUIRE(bp.first == 0);
     STATIC_REQUIRE(bp.second == 0);
 }
 
-TEST_CASE("binding_power: Complete precedence ladder is strictly monotonic",
-          "[binding_power][hierarchy][comprehensive][T-BP-028]") {
+TEST_CASE("binding_power: Complete precedence ladder is strictly monotonic", "[binding_power][hierarchy][comprehensive][T-BP-028]") {
     constexpr jsv::Token or_or(jsv::TokenKind::OrOr, "||",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                               jsv::SourceLocation(1, 3, 2)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2)));
     constexpr auto bp1 = jsv::binding_power(or_or);
     STATIC_REQUIRE(bp1.first == 1);
 
     // Logical AND
     constexpr jsv::Token and_and(jsv::TokenKind::AndAnd, "&&",
-                                 jsv::SourceSpan(filename, jsv::SourceLocation(1, 4, 3),
-                                                 jsv::SourceLocation(1, 6, 5)));
+                                 jsv::SourceSpan(filename, jsv::SourceLocation(1, 4, 3), jsv::SourceLocation(1, 6, 5)));
     constexpr auto bp2 = jsv::binding_power(and_and);
     STATIC_REQUIRE(bp2.first == 3);
     STATIC_REQUIRE(bp2.first > bp1.first);
 
     // Bitwise OR
     constexpr jsv::Token bitwise_or(jsv::TokenKind::Or, "|",
-                            jsv::SourceSpan(filename, jsv::SourceLocation(1, 7, 6),
-                                            jsv::SourceLocation(1, 8, 7)));
+                                    jsv::SourceSpan(filename, jsv::SourceLocation(1, 7, 6), jsv::SourceLocation(1, 8, 7)));
     constexpr auto bp3 = jsv::binding_power(bitwise_or);
     STATIC_REQUIRE(bp3.first == 5);
     STATIC_REQUIRE(bp3.first > bp2.first);
 
     // Bitwise XOR
     constexpr jsv::Token xor_(jsv::TokenKind::Xor, "^",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 9, 8),
-                                              jsv::SourceLocation(1, 10, 9)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9)));
     constexpr auto bp4 = jsv::binding_power(xor_);
     STATIC_REQUIRE(bp4.first == 7);
     STATIC_REQUIRE(bp4.first > bp3.first);
 
     // Bitwise AND
     constexpr jsv::Token and_(jsv::TokenKind::And, "&",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 11, 10),
-                                              jsv::SourceLocation(1, 12, 11)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 11, 10), jsv::SourceLocation(1, 12, 11)));
     constexpr auto bp5 = jsv::binding_power(and_);
     STATIC_REQUIRE(bp5.first == 9);
     STATIC_REQUIRE(bp5.first > bp4.first);
 
     // Equality
-    constexpr jsv::Token eq(jsv::TokenKind::EqualEqual, "==",
-                            jsv::SourceSpan(filename, jsv::SourceLocation(1, 13, 12),
-                                            jsv::SourceLocation(1, 15, 14)));
+    constexpr jsv::Token eq(jsv::TokenKind::EqualEqual,
+                            "==", jsv::SourceSpan(filename, jsv::SourceLocation(1, 13, 12), jsv::SourceLocation(1, 15, 14)));
     constexpr auto bp6 = jsv::binding_power(eq);
     STATIC_REQUIRE(bp6.first == 11);
     STATIC_REQUIRE(bp6.first > bp5.first);
 
     // Relational
     constexpr jsv::Token rel(jsv::TokenKind::Less, "<",
-                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 16, 15),
-                                             jsv::SourceLocation(1, 17, 16)));
+                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 16, 15), jsv::SourceLocation(1, 17, 16)));
     constexpr auto bp7 = jsv::binding_power(rel);
     STATIC_REQUIRE(bp7.first == 13);
     STATIC_REQUIRE(bp7.first > bp6.first);
 
     // Shift
     constexpr jsv::Token shift(jsv::TokenKind::ShiftLeft, "<<",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 18, 17),
-                                               jsv::SourceLocation(1, 20, 19)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 18, 17), jsv::SourceLocation(1, 20, 19)));
     constexpr auto bp8 = jsv::binding_power(shift);
     STATIC_REQUIRE(bp8.first == 15);
     STATIC_REQUIRE(bp8.first > bp7.first);
 
     // Additive
     constexpr jsv::Token add(jsv::TokenKind::Plus, "+",
-                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 21, 20),
-                                             jsv::SourceLocation(1, 22, 21)));
+                             jsv::SourceSpan(filename, jsv::SourceLocation(1, 21, 20), jsv::SourceLocation(1, 22, 21)));
     constexpr auto bp9 = jsv::binding_power(add);
     STATIC_REQUIRE(bp9.first == 17);
     STATIC_REQUIRE(bp9.first > bp8.first);
 
     // Multiplicative
     constexpr jsv::Token mult(jsv::TokenKind::Star, "*",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 23, 22),
-                                              jsv::SourceLocation(1, 24, 23)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 23, 22), jsv::SourceLocation(1, 24, 23)));
     constexpr auto bp10 = jsv::binding_power(mult);
     STATIC_REQUIRE(bp10.first == 19);
     STATIC_REQUIRE(bp10.first > bp9.first);
 
     // Assignment
     constexpr jsv::Token assign(jsv::TokenKind::Equal, "=",
-                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 25, 24),
-                                                jsv::SourceLocation(1, 26, 25)));
+                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 25, 24), jsv::SourceLocation(1, 26, 25)));
     constexpr auto bp11 = jsv::binding_power(assign);
     STATIC_REQUIRE(bp11.first == 21);
     STATIC_REQUIRE(bp11.first > bp10.first);
 
     // Postfix (highest)
     constexpr jsv::Token postfix(jsv::TokenKind::PlusPlus, "++",
-                                 jsv::SourceSpan(filename, jsv::SourceLocation(1, 27, 26),
-                                                 jsv::SourceLocation(1, 29, 28)));
+                                 jsv::SourceSpan(filename, jsv::SourceLocation(1, 27, 26), jsv::SourceLocation(1, 29, 28)));
     constexpr auto bp12 = jsv::binding_power(postfix);
     STATIC_REQUIRE(bp12.first == 23);
     STATIC_REQUIRE(bp12.first > bp11.first);
 }
 
-TEST_CASE("unary_binding_power: Minus returns {0, 22}",
-          "[unary_binding_power][operator][negation][T-UBP-001]") {
+TEST_CASE("unary_binding_power: Minus returns {0, 22}", "[unary_binding_power][operator][negation][T-UBP-001]") {
     constexpr jsv::Token token(jsv::TokenKind::Minus, "-",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                               jsv::SourceLocation(1, 2, 1)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 22);
 }
 
-TEST_CASE("unary_binding_power: Not returns {0, 21}",
-          "[unary_binding_power][operator][logical][T-UBP-002]") {
+TEST_CASE("unary_binding_power: Not returns {0, 21}", "[unary_binding_power][operator][logical][T-UBP-002]") {
     constexpr jsv::Token token(jsv::TokenKind::Not, "!",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(2, 1, 10),
-                                               jsv::SourceLocation(2, 2, 11)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(2, 1, 10), jsv::SourceLocation(2, 2, 11)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 21);
 }
 
-TEST_CASE("unary_binding_power: PlusPlus returns {0, 24}",
-          "[unary_binding_power][operator][preinc][T-UBP-003]") {
+TEST_CASE("unary_binding_power: PlusPlus returns {0, 24}", "[unary_binding_power][operator][preinc][T-UBP-003]") {
     constexpr jsv::Token token(jsv::TokenKind::PlusPlus, "++",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(3, 1, 20),
-                                               jsv::SourceLocation(3, 3, 22)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(3, 1, 20), jsv::SourceLocation(3, 3, 22)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 24);
 }
 
-TEST_CASE("unary_binding_power: MinusMinus returns {0, 25}",
-          "[unary_binding_power][operator][predec][T-UBP-004]") {
+TEST_CASE("unary_binding_power: MinusMinus returns {0, 25}", "[unary_binding_power][operator][predec][T-UBP-004]") {
     constexpr jsv::Token token(jsv::TokenKind::MinusMinus, "--",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(4, 1, 30),
-                                               jsv::SourceLocation(4, 3, 32)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(4, 1, 30), jsv::SourceLocation(4, 3, 32)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 25);
 }
 
-TEST_CASE("unary_binding_power: Binary Plus returns zero unary binding power",
-          "[unary_binding_power][non-unary][edge-case][T-UBP-005a]") {
+TEST_CASE("unary_binding_power: Binary Plus returns zero unary binding power", "[unary_binding_power][non-unary][edge-case][T-UBP-005a]") {
     constexpr jsv::Token token(jsv::TokenKind::Plus, "+",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 1, 40),
-                                               jsv::SourceLocation(5, 2, 41)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 1, 40), jsv::SourceLocation(5, 2, 41)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 0);
 }
 
-TEST_CASE("unary_binding_power: Identifier returns zero unary binding power",
-          "[unary_binding_power][non-unary][edge-case][T-UBP-005b]") {
+TEST_CASE("unary_binding_power: Identifier returns zero unary binding power", "[unary_binding_power][non-unary][edge-case][T-UBP-005b]") {
     constexpr jsv::Token token(jsv::TokenKind::IdentifierAscii, "x",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 3, 42),
-                                               jsv::SourceLocation(5, 4, 43)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 3, 42), jsv::SourceLocation(5, 4, 43)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 0);
 }
 
-TEST_CASE("unary_binding_power: Literal returns zero unary binding power",
-          "[unary_binding_power][non-unary][edge-case][T-UBP-005c]") {
+TEST_CASE("unary_binding_power: Literal returns zero unary binding power", "[unary_binding_power][non-unary][edge-case][T-UBP-005c]") {
     constexpr jsv::Token token(jsv::TokenKind::Numeric, "42",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 5, 44),
-                                               jsv::SourceLocation(5, 7, 46)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 5, 44), jsv::SourceLocation(5, 7, 46)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 0);
 }
 
-TEST_CASE("unary_binding_power: EOF returns zero unary binding power",
-          "[unary_binding_power][non-unary][edge-case][T-UBP-005d]") {
+TEST_CASE("unary_binding_power: EOF returns zero unary binding power", "[unary_binding_power][non-unary][edge-case][T-UBP-005d]") {
     constexpr jsv::Token token(jsv::TokenKind::Eof, "",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 8, 47),
-                                               jsv::SourceLocation(5, 8, 47)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(5, 8, 47), jsv::SourceLocation(5, 8, 47)));
     constexpr auto ubp = jsv::unary_binding_power(token);
     STATIC_REQUIRE(ubp.first == 0);
     STATIC_REQUIRE(ubp.second == 0);
 }
 
-TEST_CASE("unary_binding_power: All unary operators have zero left binding power",
-          "[unary_binding_power][invariant][T-UBP-006]") {
+TEST_CASE("unary_binding_power: All unary operators have zero left binding power", "[unary_binding_power][invariant][T-UBP-006]") {
     constexpr jsv::Token minus(jsv::TokenKind::Minus, "-",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                               jsv::SourceLocation(1, 2, 1)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1)));
     constexpr jsv::Token not_(jsv::TokenKind::Not, "!",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2),
-                                              jsv::SourceLocation(1, 4, 3)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 4, 3)));
     constexpr jsv::Token preinc(jsv::TokenKind::PlusPlus, "++",
-                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 5, 4),
-                                                jsv::SourceLocation(1, 7, 6)));
+                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 7, 6)));
     constexpr jsv::Token predec(jsv::TokenKind::MinusMinus, "--",
-                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 8, 7),
-                                                jsv::SourceLocation(1, 10, 9)));
+                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 10, 9)));
 
     constexpr auto ubp_minus = jsv::unary_binding_power(minus);
     constexpr auto ubp_not = jsv::unary_binding_power(not_);
@@ -1495,20 +1392,15 @@ TEST_CASE("unary_binding_power: All unary operators have zero left binding power
     STATIC_REQUIRE(ubp_predec.second > 0);
 }
 
-TEST_CASE("unary_binding_power: Precedence hierarchy among unary operators",
-          "[unary_binding_power][hierarchy][T-UBP-007]") {
+TEST_CASE("unary_binding_power: Precedence hierarchy among unary operators", "[unary_binding_power][hierarchy][T-UBP-007]") {
     constexpr jsv::Token not_(jsv::TokenKind::Not, "!",
-                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0),
-                                              jsv::SourceLocation(1, 2, 1)));
+                              jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1)));
     constexpr jsv::Token minus(jsv::TokenKind::Minus, "-",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2),
-                                               jsv::SourceLocation(1, 4, 3)));
+                               jsv::SourceSpan(filename, jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 4, 3)));
     constexpr jsv::Token preinc(jsv::TokenKind::PlusPlus, "++",
-                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 5, 4),
-                                                jsv::SourceLocation(1, 7, 6)));
+                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 7, 6)));
     constexpr jsv::Token predec(jsv::TokenKind::MinusMinus, "--",
-                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 8, 7),
-                                                jsv::SourceLocation(1, 10, 9)));
+                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 10, 9)));
 
     constexpr auto ubp_not = jsv::unary_binding_power(not_);
     constexpr auto ubp_minus = jsv::unary_binding_power(minus);
