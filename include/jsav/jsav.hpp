@@ -26,5 +26,6 @@
 #include "ast/Program.hpp"
 #include "ast/Visitor.hpp"
 #include "ast/Ast_printer.hpp"
+#include "parser/precedence.hpp"
 #include "parser/Parser.hpp"
 // clang-format on
