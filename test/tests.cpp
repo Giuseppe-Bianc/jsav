@@ -10174,6 +10174,736 @@ TEST_CASE("get_binary_op: Error help message is present", "[get_binary_op][error
     REQUIRE_THAT(*help_msg.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
 }
 
+namespace {
+    /**
+     * @brief Helper function to create a Token with specified properties.
+     *
+     * Creates a token with a predefined source span for consistent testing.
+     *
+     * @param kind The TokenKind for the token.
+     * @param text The text content of the token.
+     * @param line The line number in source (default: 1).
+     * @param column The column number in source (default: 1).
+     * @param offset The character offset in source (default: 0).
+     * @return jsv::Token A fully constructed token.
+     */
+    [[nodiscard]] jsv::Token make_precedence_token(const jsv::TokenKind kind, std::string_view text,
+                                                    std::size_t line = 1, std::size_t column = 1,
+                                                    std::size_t offset = 0) {
+        const jsv::SourceLocation start{line, column, offset};
+        const jsv::SourceLocation end{line, column + text.size(), offset + text.size()};
+        const jsv::SourceSpan span(filename, start, end);
+        return jsv::Token(kind, text, span);
+    }
+}  // namespace
+
+// ============================================================================
+// binding_power() Tests - Lines 30-42, 48-50, 54-57
+// ============================================================================
+
+TEST_CASE("binding_power: Logical OR operator (||) - Lines 30-32", "[binding_power][OrOr][T-BP-001]") {
+    // Corner case: Lowest precedence binary operator
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::OrOr, "||", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::binding_power(token);
+    
+    // Expected: {1, 2} - lowest precedence, left-associative
+    REQUIRE(lbp == 1);
+    REQUIRE(rbp == 2);
+    REQUIRE(rbp > lbp);  // Ensures left-associativity
+}
+
+TEST_CASE("binding_power: Logical AND operator (&&) - Lines 33-35", "[binding_power][AndAnd][T-BP-002]") {
+    // Corner case: Second lowest precedence
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::AndAnd, "&&", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::binding_power(token);
+    
+    // Expected: {3, 4}
+    REQUIRE(lbp == 3);
+    REQUIRE(rbp == 4);
+    REQUIRE(rbp > lbp);  // Left-associative
+}
+
+TEST_CASE("binding_power: Bitwise OR operator (|) - Lines 36-38", "[binding_power][Or][T-BP-003]") {
+    // Standard case: Bitwise operations
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::Or, "|", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::binding_power(token);
+    
+    // Expected: {5, 6}
+    REQUIRE(lbp == 5);
+    REQUIRE(rbp == 6);
+    REQUIRE(rbp > lbp);  // Left-associative
+}
+
+TEST_CASE("binding_power: Bitwise XOR operator (^) - Lines 39-41", "[binding_power][Xor][T-BP-004]") {
+    // Standard case: XOR between AND and OR
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::Xor, "^", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::binding_power(token);
+    
+    // Expected: {7, 8}
+    REQUIRE(lbp == 7);
+    REQUIRE(rbp == 8);
+    REQUIRE(rbp > lbp);  // Left-associative
+}
+
+TEST_CASE("binding_power: Bitwise AND operator (&) - Lines 42-44", "[binding_power][And][T-BP-005]") {
+    // Standard case: Bitwise AND has higher precedence than XOR
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::And, "&", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::binding_power(token);
+    
+    // Expected: {9, 10}
+    REQUIRE(lbp == 9);
+    REQUIRE(rbp == 10);
+    REQUIRE(rbp > lbp);  // Left-associative
+}
+
+TEST_CASE("binding_power: Equality operators (==, !=) - Lines 45-48", "[binding_power][Equality][T-BP-006]") {
+    // Edge case: Both equality operators share same precedence
+    SECTION("EqualEqual (==)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::EqualEqual, "==", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {11, 12}
+        REQUIRE(lbp == 11);
+        REQUIRE(rbp == 12);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+    
+    SECTION("NotEqual (!=)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::NotEqual, "!=", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {11, 12}
+        REQUIRE(lbp == 11);
+        REQUIRE(rbp == 12);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+}
+
+TEST_CASE("binding_power: Relational operators (<, <=, >, >=) - Lines 49-54", "[binding_power][Relational][T-BP-007]") {
+    // Standard case: All relational operators share same precedence
+    const std::array<jsv::TokenKind, 4> relational_ops = {
+        jsv::TokenKind::Less,
+        jsv::TokenKind::LessEqual,
+        jsv::TokenKind::Greater,
+        jsv::TokenKind::GreaterEqual
+    };
+    
+    for(const jsv::TokenKind kind : relational_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {13, 14}
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(lbp == 13);
+        REQUIRE(rbp == 14);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+}
+
+TEST_CASE("binding_power: Shift operators (<<, >>) - Lines 55-58", "[binding_power][Shift][T-BP-008]") {
+    // Standard case: Shift operators have higher precedence than relational
+    SECTION("ShiftLeft (<<)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::ShiftLeft, "<<", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {15, 16}
+        REQUIRE(lbp == 15);
+        REQUIRE(rbp == 16);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+    
+    SECTION("ShiftRight (>>)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::ShiftRight, ">>", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {15, 16}
+        REQUIRE(lbp == 15);
+        REQUIRE(rbp == 16);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+}
+
+TEST_CASE("binding_power: Additive operators (+, -) - Lines 59-62", "[binding_power][Additive][T-BP-009]") {
+    // Standard case: Additive operators
+    SECTION("Plus (+)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::Plus, "+", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {17, 18}
+        REQUIRE(lbp == 17);
+        REQUIRE(rbp == 18);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+    
+    SECTION("Minus (-)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::Minus, "-", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {17, 18}
+        REQUIRE(lbp == 17);
+        REQUIRE(rbp == 18);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+}
+
+TEST_CASE("binding_power: Multiplicative operators (*, /, %) - Lines 63-67", "[binding_power][Multiplicative][T-BP-010]") {
+    // Standard case: Multiplicative operators have highest precedence among binary ops
+    const std::array<jsv::TokenKind, 3> multiplicative_ops = {
+        jsv::TokenKind::Star,
+        jsv::TokenKind::Slash,
+        jsv::TokenKind::Percent
+    };
+    
+    for(const jsv::TokenKind kind : multiplicative_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {19, 20}
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(lbp == 19);
+        REQUIRE(rbp == 20);
+        REQUIRE(rbp > lbp);  // Left-associative
+    }
+}
+
+TEST_CASE("binding_power: Assignment operator (=) - Lines 68-70", "[binding_power][Assignment][T-BP-011]") {
+    // Edge case: Assignment has very high precedence for right-associativity
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::Equal, "=", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::binding_power(token);
+    
+    // Expected: {21, 22}
+    REQUIRE(lbp == 21);
+    REQUIRE(rbp == 22);
+    REQUIRE(rbp > lbp);  // Right-associative (unusual for assignment)
+}
+
+TEST_CASE("binding_power: Increment/Decrement operators (++, --) - Lines 71-74", "[binding_power][Increment][T-BP-012]") {
+    // Corner case: Highest precedence (postfix)
+    SECTION("PlusPlus (++)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::PlusPlus, "++", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {23, 24}
+        REQUIRE(lbp == 23);
+        REQUIRE(rbp == 24);
+        REQUIRE(rbp > lbp);
+    }
+    
+    SECTION("MinusMinus (--)") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::MinusMinus, "--", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        // Expected: {23, 24}
+        REQUIRE(lbp == 23);
+        REQUIRE(rbp == 24);
+        REQUIRE(rbp > lbp);
+    }
+}
+
+TEST_CASE("binding_power: Non-operator tokens return {0, 0} - Lines 75-77", "[binding_power][Default][T-BP-013]") {
+    // Negative test: Various non-operator tokens should return zero binding power
+    const std::array<jsv::TokenKind, 8> non_operators = {
+        jsv::TokenKind::IdentifierAscii,
+        jsv::TokenKind::Numeric,
+        jsv::TokenKind::KeywordIf,
+        jsv::TokenKind::OpenParen,
+        jsv::TokenKind::CloseParen,
+        jsv::TokenKind::Eof,
+        jsv::TokenKind::Semicolon,
+        jsv::TokenKind::Comma
+    };
+    
+    for(const jsv::TokenKind kind : non_operators) {
+        const jsv::Token token = make_precedence_token(kind, "token", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::binding_power(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(lbp == 0);
+        REQUIRE(rbp == 0);
+        REQUIRE(lbp == rbp);  // Neither left nor right associative
+    }
+}
+
+TEST_CASE("binding_power: Precedence ordering is monotonic - Lines 30-77", "[binding_power][PrecedenceOrder][T-BP-014]") {
+    // Comprehensive test: Verify precedence levels increase monotonically
+    // This ensures the Pratt parsing will work correctly
+    
+    constexpr std::size_t num_precedence_levels = 12;
+    std::array<std::pair<std::size_t, std::size_t>, num_precedence_levels> precedence_levels;
+    
+    // Collect all precedence levels
+    precedence_levels[0] = jsv::binding_power(make_precedence_token(jsv::TokenKind::OrOr, "||"));
+    precedence_levels[1] = jsv::binding_power(make_precedence_token(jsv::TokenKind::AndAnd, "&&"));
+    precedence_levels[2] = jsv::binding_power(make_precedence_token(jsv::TokenKind::Or, "|"));
+    precedence_levels[3] = jsv::binding_power(make_precedence_token(jsv::TokenKind::Xor, "^"));
+    precedence_levels[4] = jsv::binding_power(make_precedence_token(jsv::TokenKind::And, "&"));
+    precedence_levels[5] = jsv::binding_power(make_precedence_token(jsv::TokenKind::EqualEqual, "=="));
+    precedence_levels[6] = jsv::binding_power(make_precedence_token(jsv::TokenKind::Less, "<"));
+    precedence_levels[7] = jsv::binding_power(make_precedence_token(jsv::TokenKind::ShiftLeft, "<<"));
+    precedence_levels[8] = jsv::binding_power(make_precedence_token(jsv::TokenKind::Plus, "+"));
+    precedence_levels[9] = jsv::binding_power(make_precedence_token(jsv::TokenKind::Star, "*"));
+    precedence_levels[10] = jsv::binding_power(make_precedence_token(jsv::TokenKind::Equal, "="));
+    precedence_levels[11] = jsv::binding_power(make_precedence_token(jsv::TokenKind::PlusPlus, "++"));
+    
+    // Verify each level has higher precedence than the previous
+    for(std::size_t i = 1; i < num_precedence_levels; ++i) {
+        CAPTURE(i);
+        // Left binding power should increase
+        REQUIRE(precedence_levels[i].first > precedence_levels[i - 1].first);
+        // Right binding power should increase
+        REQUIRE(precedence_levels[i].second > precedence_levels[i - 1].second);
+        // Right should be greater than left (left-associative) for all except assignment
+        if(i != 10) {  // Assignment is special
+            REQUIRE(precedence_levels[i].second > precedence_levels[i].first);
+        }
+    }
+}
+
+// ============================================================================
+// unary_binding_power() Tests - Lines 91-96, 121-132
+// ============================================================================
+
+TEST_CASE("unary_binding_power: Unary minus (-) - Lines 91-93", "[unary_binding_power][Minus][T-UBP-001]") {
+    // Corner case: Unary negation has high precedence
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::Minus, "-", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::unary_binding_power(token);
+    
+    // Expected: {0, 22} - lbp is always 0 for unary operators
+    REQUIRE(lbp == 0);
+    REQUIRE(rbp == 22);
+    REQUIRE(rbp > lbp);  // Binds tightly to right operand
+}
+
+TEST_CASE("unary_binding_power: Logical NOT (!) - Lines 94-96", "[unary_binding_power][Not][T-UBP-002]") {
+    // Standard case: Logical NOT
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::Not, "!", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::unary_binding_power(token);
+    
+    // Expected: {0, 21}
+    REQUIRE(lbp == 0);
+    REQUIRE(rbp == 21);
+    REQUIRE(rbp > lbp);
+}
+
+TEST_CASE("unary_binding_power: Pre-increment (++) - Lines 100-102", "[unary_binding_power][PreInc][T-UBP-003]") {
+    // Corner case: Pre-increment has very high precedence
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::PlusPlus, "++", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::unary_binding_power(token);
+    
+    // Expected: {0, 24}
+    REQUIRE(lbp == 0);
+    REQUIRE(rbp == 24);
+    REQUIRE(rbp > lbp);
+}
+
+TEST_CASE("unary_binding_power: Pre-decrement (--) - Lines 103-105", "[unary_binding_power][PreDec][T-UBP-004]") {
+    // Corner case: Pre-decrement has highest unary precedence
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::MinusMinus, "--", 1, 5, 10);
+    const auto [lbp, rbp] = jsv::unary_binding_power(token);
+    
+    // Expected: {0, 25}
+    REQUIRE(lbp == 0);
+    REQUIRE(rbp == 25);
+    REQUIRE(rbp > lbp);
+}
+
+TEST_CASE("unary_binding_power: Non-unary operators return {0, 0} - Lines 106-108", "[unary_binding_power][Default][T-UBP-005]") {
+    // Negative test: Binary operators and other tokens should not be recognized as unary
+    const std::array<jsv::TokenKind, 10> non_unary_ops = {
+        jsv::TokenKind::PlusEqual,      // Assignment operator
+        jsv::TokenKind::Star,           // Binary multiplication
+        jsv::TokenKind::Slash,          // Binary division
+        jsv::TokenKind::OrOr,           // Logical OR
+        jsv::TokenKind::AndAnd,         // Logical AND
+        jsv::TokenKind::EqualEqual,     // Equality
+        jsv::TokenKind::IdentifierAscii, // Identifier
+        jsv::TokenKind::Numeric,        // Literal
+        jsv::TokenKind::OpenParen,      // Punctuation
+        jsv::TokenKind::Eof             // End of file
+    };
+    
+    for(const jsv::TokenKind kind : non_unary_ops) {
+        const jsv::Token token = make_precedence_token(kind, "token", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::unary_binding_power(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(lbp == 0);
+        REQUIRE(rbp == 0);
+    }
+}
+
+TEST_CASE("unary_binding_power: Unary operators have lbp=0 - Lines 91-108", "[unary_binding_power][LBPZero][T-UBP-006]") {
+    // Comprehensive test: All unary operators must have lbp=0
+    // This is critical for Pratt parsing - unary operators don't consume left operands
+    const std::array<jsv::TokenKind, 4> unary_ops = {
+        jsv::TokenKind::Minus,
+        jsv::TokenKind::Not,
+        jsv::TokenKind::PlusPlus,
+        jsv::TokenKind::MinusMinus
+    };
+    
+    for(const jsv::TokenKind kind : unary_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        const auto [lbp, rbp] = jsv::unary_binding_power(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(lbp == 0);  // Critical invariant
+        REQUIRE(rbp > 0);   // Must bind to right operand
+    }
+}
+
+TEST_CASE("unary_binding_power: Unary precedence vs Binary precedence - Lines 91-108", "[unary_binding_power][PrecedenceComparison][T-UBP-007]") {
+    // Edge case: Verify unary operators have higher precedence than most binary operators
+    // This ensures expressions like "-a + b" parse as "(-a) + b" not "-(a + b)"
+    
+    const jsv::Token unary_minus = make_precedence_token(jsv::TokenKind::Minus, "-");
+    const jsv::Token binary_plus = make_precedence_token(jsv::TokenKind::Plus, "+");
+    const jsv::Token binary_star = make_precedence_token(jsv::TokenKind::Star, "*");
+    
+    const auto [unary_lbp, unary_rbp] = jsv::unary_binding_power(unary_minus);
+    const auto [binary_plus_lbp, binary_plus_rbp] = jsv::binding_power(binary_plus);
+    const auto [binary_star_lbp, binary_star_rbp] = jsv::binding_power(binary_star);
+    
+    // Unary minus should bind tighter than binary + and *
+    REQUIRE(unary_rbp > binary_plus_lbp);
+    REQUIRE(unary_rbp > binary_star_lbp);
+    
+    // Unary operators have lbp=0 (don't consume left operand)
+    REQUIRE(unary_lbp == 0);
+}
+
+// ============================================================================
+// get_binary_op() Tests - Lines 135-158
+// ============================================================================
+
+TEST_CASE("get_binary_op: Additive operators - Lines 135-140", "[get_binary_op][Additive][T-GBOP-001]") {
+    // Standard case: Basic arithmetic
+    SECTION("Plus (+) returns BinaryOp::Add") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::Plus, "+", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Add);
+    }
+    
+    SECTION("Minus (-) returns BinaryOp::Sub") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::Minus, "-", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Sub);
+    }
+}
+
+TEST_CASE("get_binary_op: Multiplicative operators - Lines 141-146", "[get_binary_op][Multiplicative][T-GBOP-002]") {
+    // Standard case: Multiplication, division, modulo
+    const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, 3> multiplicative_ops = {
+        std::pair{jsv::TokenKind::Star, jsv::BinaryOp::Mul},
+        std::pair{jsv::TokenKind::Slash, jsv::BinaryOp::Div},
+        std::pair{jsv::TokenKind::Percent, jsv::BinaryOp::Mod}
+    };
+    
+    for(const auto& [kind, expected_op] : multiplicative_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == expected_op);
+    }
+}
+
+TEST_CASE("get_binary_op: Equality operators - Lines 147-152", "[get_binary_op][Equality][T-GBOP-003]") {
+    // Standard case: Equality comparisons
+    SECTION("EqualEqual (==) returns BinaryOp::Eq") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::EqualEqual, "==", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Eq);
+    }
+    
+    SECTION("NotEqual (!=) returns BinaryOp::Neq") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::NotEqual, "!=", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Neq);
+    }
+}
+
+TEST_CASE("get_binary_op: Relational operators - Lines 153-160", "[get_binary_op][Relational][T-GBOP-004]") {
+    // Standard case: Ordering comparisons
+    const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, 4> relational_ops = {
+        std::pair{jsv::TokenKind::Less, jsv::BinaryOp::Lt},
+        std::pair{jsv::TokenKind::LessEqual, jsv::BinaryOp::Le},
+        std::pair{jsv::TokenKind::Greater, jsv::BinaryOp::Gt},
+        std::pair{jsv::TokenKind::GreaterEqual, jsv::BinaryOp::Ge}
+    };
+    
+    for(const auto& [kind, expected_op] : relational_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == expected_op);
+    }
+}
+
+TEST_CASE("get_binary_op: Logical operators - Lines 161-166", "[get_binary_op][Logical][T-GBOP-005]") {
+    // Standard case: Logical AND/OR
+    SECTION("AndAnd (&&) returns BinaryOp::And") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::AndAnd, "&&", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::And);
+    }
+    
+    SECTION("OrOr (||) returns BinaryOp::Or") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::OrOr, "||", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Or);
+    }
+}
+
+TEST_CASE("get_binary_op: Bitwise operators - Lines 167-172", "[get_binary_op][Bitwise][T-GBOP-006]") {
+    // Standard case: Bitwise operations
+    const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, 3> bitwise_ops = {
+        std::pair{jsv::TokenKind::And, jsv::BinaryOp::BitAnd},
+        std::pair{jsv::TokenKind::Or, jsv::BinaryOp::BitOr},
+        std::pair{jsv::TokenKind::Xor, jsv::BinaryOp::BitXor}
+    };
+    
+    for(const auto& [kind, expected_op] : bitwise_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == expected_op);
+    }
+}
+
+TEST_CASE("get_binary_op: Shift operators - Lines 173-178", "[get_binary_op][Shift][T-GBOP-007]") {
+    // Standard case: Bit shifts
+    SECTION("ShiftLeft (<<) returns BinaryOp::Shl") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::ShiftLeft, "<<", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Shl);
+    }
+    
+    SECTION("ShiftRight (>>) returns BinaryOp::Shr") {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::ShiftRight, ">>", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Shr);
+    }
+}
+
+TEST_CASE("get_binary_op: Invalid operators return error - Lines 179-183", "[get_binary_op][Error][T-GBOP-008]") {
+    // Negative test: Non-binary operators should return error
+    const std::array<jsv::TokenKind, 12> invalid_operators = {
+        // Unary-only operators
+        jsv::TokenKind::Not,            // ! is unary only
+        // Assignment operators (not binary in this context)
+        jsv::TokenKind::Equal,          // = is assignment
+        jsv::TokenKind::PlusEqual,      // +=
+        jsv::TokenKind::MinusEqual,     // -=
+        // Postfix operators
+        jsv::TokenKind::PlusPlus,       // ++
+        jsv::TokenKind::MinusMinus,     // --
+        // Literals and identifiers
+        jsv::TokenKind::IdentifierAscii,
+        jsv::TokenKind::Numeric,
+        jsv::TokenKind::StringLiteral,
+        // Keywords
+        jsv::TokenKind::KeywordIf,
+        jsv::TokenKind::KeywordReturn,
+        // Punctuation
+        jsv::TokenKind::Semicolon
+    };
+    
+    for(const jsv::TokenKind kind : invalid_operators) {
+        const jsv::Token token = make_precedence_token(kind, "token", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE_FALSE(result.has_value());
+        
+        // Verify error structure
+        REQUIRE(result.error().error_code().has_value());
+        REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+        REQUIRE_THAT(std::string(result.error().message()), Catch::Matchers::ContainsSubstring("Invalid binary operator"));
+    }
+}
+
+TEST_CASE("get_binary_op: Error contains source location - Lines 179-183", "[get_binary_op][Error][SourceLocation][T-GBOP-009]") {
+    // Edge case: Verify error includes accurate source location
+    constexpr std::size_t test_line = 42;
+    constexpr std::size_t test_column = 15;
+    constexpr std::size_t test_offset = 100;
+    
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::KeywordIf, "if", 
+                                                    test_line, test_column, test_offset);
+    auto result = jsv::get_binary_op(token);
+    
+    REQUIRE_FALSE(result.has_value());
+    
+    const auto& error = result.error();
+    const auto& span = error.span();
+    
+    // Verify source location is preserved
+    REQUIRE(span.start.line == test_line);
+    REQUIRE(span.start.column == test_column);
+    REQUIRE(span.start.absolute_pos == test_offset);
+}
+
+TEST_CASE("get_binary_op: Error help message provides guidance - Lines 179-183", "[get_binary_op][Error][HelpMessage][T-GBOP-010]") {
+    // Edge case: Verify error includes helpful message
+    const jsv::Token token = make_precedence_token(jsv::TokenKind::KeywordIf, "if", 1, 5, 10);
+    auto result = jsv::get_binary_op(token);
+    
+    REQUIRE_FALSE(result.has_value());
+    
+    const auto& error = result.error();
+    auto help = error.help();
+    
+    REQUIRE(help.has_value());
+    REQUIRE_THAT(*help.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
+}
+
+TEST_CASE("get_binary_op: All valid binary operators - Comprehensive", "[get_binary_op][Comprehensive][T-GBOP-011]") {
+    // Comprehensive test: Verify all 18 valid binary operators
+    constexpr std::size_t num_binary_ops = 18;
+    const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, num_binary_ops> all_binary_ops = {{
+        // Additive (2)
+        {jsv::TokenKind::Plus, jsv::BinaryOp::Add},
+        {jsv::TokenKind::Minus, jsv::BinaryOp::Sub},
+        // Multiplicative (3)
+        {jsv::TokenKind::Star, jsv::BinaryOp::Mul},
+        {jsv::TokenKind::Slash, jsv::BinaryOp::Div},
+        {jsv::TokenKind::Percent, jsv::BinaryOp::Mod},
+        // Equality (2)
+        {jsv::TokenKind::EqualEqual, jsv::BinaryOp::Eq},
+        {jsv::TokenKind::NotEqual, jsv::BinaryOp::Neq},
+        // Relational (4)
+        {jsv::TokenKind::Less, jsv::BinaryOp::Lt},
+        {jsv::TokenKind::LessEqual, jsv::BinaryOp::Le},
+        {jsv::TokenKind::Greater, jsv::BinaryOp::Gt},
+        {jsv::TokenKind::GreaterEqual, jsv::BinaryOp::Ge},
+        // Logical (2)
+        {jsv::TokenKind::AndAnd, jsv::BinaryOp::And},
+        {jsv::TokenKind::OrOr, jsv::BinaryOp::Or},
+        // Bitwise (3)
+        {jsv::TokenKind::And, jsv::BinaryOp::BitAnd},
+        {jsv::TokenKind::Or, jsv::BinaryOp::BitOr},
+        {jsv::TokenKind::Xor, jsv::BinaryOp::BitXor},
+        // Shift (2)
+        {jsv::TokenKind::ShiftLeft, jsv::BinaryOp::Shl},
+        {jsv::TokenKind::ShiftRight, jsv::BinaryOp::Shr}
+    }};
+    
+    for(const auto& [kind, expected_op] : all_binary_ops) {
+        const jsv::Token token = make_precedence_token(kind, "op", 1, 5, 10);
+        auto result = jsv::get_binary_op(token);
+        
+        CAPTURE(tokenKindToString(kind));
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == expected_op);
+    }
+}
+
+TEST_CASE("get_binary_op: Token with different source locations", "[get_binary_op][SourceLocation][T-GBOP-012]") {
+    // Edge case: Verify function works with tokens at various source locations
+    const std::array<std::tuple<std::size_t, std::size_t, std::size_t>, 5> locations = {{
+        {1, 1, 0},      // Start of file
+        {1, 50, 49},    // Middle of first line
+        {10, 1, 100},   // Start of line 10
+        {100, 25, 500}, // Deep in file
+        {1000, 1, 10000} // Very far in file
+    }};
+    
+    for(const auto& [line, column, offset] : locations) {
+        const jsv::Token token = make_precedence_token(jsv::TokenKind::Plus, "+", line, column, offset);
+        auto result = jsv::get_binary_op(token);
+        
+        CAPTURE(line, column, offset);
+        REQUIRE(result.has_value());
+        REQUIRE(result.value() == jsv::BinaryOp::Add);
+    }
+}
+
+// ============================================================================
+// Integration Tests - Combined Precedence Functions
+// ============================================================================
+
+TEST_CASE("Precedence functions integration: Expression parsing simulation", "[precedence][Integration][T-PREC-001]") {
+    // Integration test: Simulate how binding_power and unary_binding_power work together
+    // for parsing the expression: "-5 + 3 * 2"
+    
+    // Unary minus should bind tighter than binary plus
+    const jsv::Token unary_minus = make_precedence_token(jsv::TokenKind::Minus, "-");
+    const jsv::Token binary_plus = make_precedence_token(jsv::TokenKind::Plus, "+");
+    const jsv::Token binary_star = make_precedence_token(jsv::TokenKind::Star, "*");
+    
+    const auto [unary_lbp, unary_rbp] = jsv::unary_binding_power(unary_minus);
+    const auto [plus_lbp, plus_rbp] = jsv::binding_power(binary_plus);
+    const auto [star_lbp, star_rbp] = jsv::binding_power(binary_star);
+    
+    // Verify parsing order:
+    // 1. Unary minus binds first (rbp=22)
+    // 2. Then multiplication (lbp=19, rbp=20)
+    // 3. Finally addition (lbp=17, rbp=18)
+    
+    REQUIRE(unary_rbp > star_lbp);  // Unary minus binds before *
+    REQUIRE(star_lbp > plus_lbp);   // * binds before +
+    REQUIRE(star_rbp > plus_lbp);   // * completes before + consumes
+    
+    // Expected parse tree: ((-5) + (3 * 2))
+}
+
+TEST_CASE("Precedence functions integration: Operator associativity", "[precedence][Integration][T-PREC-002]") {
+    // Integration test: Verify left-associativity for most operators
+    // Expression: "a - b - c" should parse as "((a - b) - c)"
+    
+    const jsv::Token minus = make_precedence_token(jsv::TokenKind::Minus, "-");
+    const auto [lbp, rbp] = jsv::binding_power(minus);
+    
+    // Left-associative: rbp > lbp ensures left operand is consumed first
+    REQUIRE(rbp > lbp);
+    
+    // For "a - b - c":
+    // First minus: lbp=17, rbp=18
+    // Second minus: lbp=17, rbp=18
+    // Since rbp(18) > lbp(17), first minus completes before second starts
+    // Result: ((a - b) - c)
+}
+
+TEST_CASE("Precedence functions integration: Right-associative assignment", "[precedence][Integration][T-PREC-003]") {
+    // Integration test: Assignment should be right-associative
+    // Expression: "a = b = c" should parse as "(a = (b = c))"
+    
+    const jsv::Token equal = make_precedence_token(jsv::TokenKind::Equal, "=");
+    const auto [lbp, rbp] = jsv::binding_power(equal);
+    
+    // Assignment has high precedence
+    REQUIRE(lbp == 21);
+    REQUIRE(rbp == 22);
+    
+    // For "a = b = c":
+    // First =: lbp=21, rbp=22
+    // Second =: lbp=21, rbp=22
+    // Since rbp(22) > lbp(21), right-associativity is enforced
+    // Result: (a = (b = c))
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
