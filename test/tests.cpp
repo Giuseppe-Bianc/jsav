@@ -9218,7 +9218,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
 
     SECTION("Function with Unicode name") {
         const SourceSpan span;
-        std::vector<FuncParam> params;
+        const std::vector<FuncParam> params;
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 

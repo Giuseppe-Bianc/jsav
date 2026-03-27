@@ -450,12 +450,12 @@ namespace jsv {
     }
 
     std::optional<StmtPtr> Parser::parse_break() {
-        const SourceSpan span = advance().getSpan();
+        const SourceSpan &span = advance().getSpan();
         return std::make_unique<BreakStmt>(span);
     }
 
     std::optional<StmtPtr> Parser::parse_continue() {
-        const SourceSpan span = advance().getSpan();
+        const SourceSpan &span = advance().getSpan();
         return std::make_unique<ContinueStmt>(span);
     }
 
