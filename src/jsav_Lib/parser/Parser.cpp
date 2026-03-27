@@ -682,7 +682,8 @@ namespace jsv {
 
         const Token *const current_token_ptr = is_at_end() ? nullptr : &peek();
 
-        const std::string found_str = current_token_ptr != nullptr ? std::string{tokenKindToString(current_token_ptr->getKind())} : "end of input";
+        const std::string found_str = current_token_ptr != nullptr ? std::string{tokenKindToString(current_token_ptr->getKind())}
+                                                                   : "end of input";
         const SourceSpan span = current_token_ptr != nullptr ? current_token_ptr->getSpan() : SourceSpan{};
         const auto help_message = FORMAT("Try adding a {}", tokenKindToString(kind));
 
