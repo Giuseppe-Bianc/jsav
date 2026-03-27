@@ -2,7 +2,7 @@
  * Created by gbian on 23/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-suspicious-stringview-data-usage)
 #include "jsav/parser/Parser.hpp"
 #include "jsav/parser/precedence.hpp"
 
@@ -150,7 +150,7 @@ namespace jsv {
         return std::make_unique<BlockStmt>(std::move(stmts), body_span);
     }
 
-    Parser::Parser(std::span<const Token> tokens) : tokens_{tokens}, current_{0}, recursion_depth_{0} {
+    Parser::Parser(std::span<const Token> tokens) : tokens_{tokens} {
         // Reserve space for errors to avoid reallocations
         // Typical programs have few syntax errors, 8 is a reasonable initial capacity
         errors_.reserve(kInitialErrorCapacity);
@@ -292,6 +292,7 @@ namespace jsv {
         }
 
         assert((*body)->kind() == NodeKind::BlockStmt && "parse_block_stmt must return NodeKind::BlockStmt");
+        // NOLINTNEXTLINE(*-pro-type-static-cast-downcast)
         auto block_body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt *>(body->release()));
 
         return std::make_unique<FuncDecl>(name, std::move(parameters), return_type, std::move(block_body), fun_token.getSpan());
@@ -681,8 +682,8 @@ namespace jsv {
 
         const Token *const current_token_ptr = is_at_end() ? nullptr : &peek();
 
-        const std::string found_str = current_token_ptr ? std::string{tokenKindToString(current_token_ptr->getKind())} : "end of input";
-        const SourceSpan span = current_token_ptr ? current_token_ptr->getSpan() : SourceSpan{};
+        const std::string found_str = current_token_ptr != nullptr ? std::string{tokenKindToString(current_token_ptr->getKind())} : "end of input";
+        const SourceSpan span = current_token_ptr != nullptr ? current_token_ptr->getSpan() : SourceSpan{};
         const auto help_message = FORMAT("Try adding a {}", tokenKindToString(kind));
 
         errors_.push_back(CompileError::SyntaxError(
@@ -833,4 +834,4 @@ namespace jsv {
     }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner, *-identifier-length)
+// NOLINTEND(*-include-cleaner, *-identifier-length, *-suspicious-stringview-data-usage)

@@ -8184,7 +8184,7 @@ TEST_CASE("FuncDecl node creation and accessors", "[FuncDecl][AST][Statements]")
 
     SECTION("Function declaration with no parameters") {
         const SourceSpan span;
-        std::vector<FuncParam> params;
+        const std::vector<FuncParam> params;
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
         FuncDecl decl("foo", std::move(params), PrimitiveType::void_(), std::move(body), span);
@@ -9207,7 +9207,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
 
     SECTION("Function without return type annotation") {
         const SourceSpan span;
-        std::vector<FuncParam> params;
+        const std::vector<FuncParam> params;
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
 
@@ -9229,7 +9229,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
 
     SECTION("Function returning array type") {
         const SourceSpan span;
-        std::vector<FuncParam> params;
+        const std::vector<FuncParam> params;
         std::vector<StmtPtr> body_stmts;
         auto body = std::make_unique<BlockStmt>(std::move(body_stmts), span);
         auto return_type = std::make_shared<const CustomType>("i32[10]");
