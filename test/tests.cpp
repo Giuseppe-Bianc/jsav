@@ -10685,14 +10685,14 @@ TEST_CASE("get_binary_op: Invalid operators return error - Lines 179-183", "[get
     // Negative test: Non-binary operators should return error
     const std::array<jsv::TokenKind, 12> invalid_operators = {                      // Unary-only operators
                                                               jsv::TokenKind::Not,  // ! is unary only
-                                                              // Assignment operators (not binary in this context)
+                                                                                    // Assignment operators (not binary in this context)
                                                               jsv::TokenKind::Equal,       // = is assignment
                                                               jsv::TokenKind::PlusEqual,   // +=
                                                               jsv::TokenKind::MinusEqual,  // -=
-                                                              // Postfix operators
+                                                                                           // Postfix operators
                                                               jsv::TokenKind::PlusPlus,    // ++
                                                               jsv::TokenKind::MinusMinus,  // --
-                                                              // Literals and identifiers
+                                                                                           // Literals and identifiers
                                                               jsv::TokenKind::IdentifierAscii, jsv::TokenKind::Numeric,
                                                               jsv::TokenKind::StringLiteral,
                                                               // Keywords
