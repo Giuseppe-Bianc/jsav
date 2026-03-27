@@ -9843,6 +9843,371 @@ TEST_CASE("Parser error cases - malformed declarations", "[Parser][ErrorCases]")
     }
 }
 
+namespace {
+    // Helper function to create a token with minimal boilerplate for get_binary_op tests
+    [[nodiscard]] jsv::Token make_token_for_op(jsv::TokenKind kind, std::string_view text = ""sv,
+                                        std::size_t line = 1, std::size_t column = 1,
+                                        std::size_t offset = 0) {
+        const jsv::SourceLocation start(line, column, offset);
+        const jsv::SourceLocation end(line, column + text.size(), offset + text.size());
+        const jsv::SourceSpan span(filename, start, end);
+        return jsv::Token(kind, text, span);
+    }
+}  // namespace -----------------------------------------------------------------------------
+
+TEST_CASE("get_binary_op: Plus converts to BinaryOp::Add",
+          "[get_binary_op][additive][T-GBOP-001]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Plus, "+", 1, 1, 0);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Add);
+}
+
+TEST_CASE("get_binary_op: Minus converts to BinaryOp::Sub",
+          "[get_binary_op][additive][T-GBOP-002]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Minus, "-", 1, 3, 2);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Sub);
+}
+
+TEST_CASE("get_binary_op: Star converts to BinaryOp::Mul",
+          "[get_binary_op][multiplicative][T-GBOP-003]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Star, "*", 2, 1, 10);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Mul);
+}
+
+TEST_CASE("get_binary_op: Slash converts to BinaryOp::Div",
+          "[get_binary_op][multiplicative][T-GBOP-004]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Slash, "/", 2, 3, 12);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Div);
+}
+
+TEST_CASE("get_binary_op: Percent converts to BinaryOp::Mod",
+          "[get_binary_op][multiplicative][T-GBOP-005]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Percent, "%", 2, 5, 14);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Mod);
+}
+
+TEST_CASE("get_binary_op: EqualEqual converts to BinaryOp::Eq",
+          "[get_binary_op][equality][T-GBOP-006]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::EqualEqual, "==", 3, 1, 20);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Eq);
+}
+
+TEST_CASE("get_binary_op: NotEqual converts to BinaryOp::Neq",
+          "[get_binary_op][equality][T-GBOP-007]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::NotEqual, "!=", 3, 4, 23);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Neq);
+}
+
+TEST_CASE("get_binary_op: Less converts to BinaryOp::Lt",
+          "[get_binary_op][relational][T-GBOP-008]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Less, "<", 4, 1, 30);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Lt);
+}
+
+TEST_CASE("get_binary_op: LessEqual converts to BinaryOp::Le",
+          "[get_binary_op][relational][T-GBOP-009]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::LessEqual, "<=", 4, 3, 32);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Le);
+}
+
+TEST_CASE("get_binary_op: Greater converts to BinaryOp::Gt",
+          "[get_binary_op][relational][T-GBOP-010]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Greater, ">", 4, 6, 35);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Gt);
+}
+
+TEST_CASE("get_binary_op: GreaterEqual converts to BinaryOp::Ge",
+          "[get_binary_op][relational][T-GBOP-011]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::GreaterEqual, ">=", 4, 8, 37);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Ge);
+}
+
+TEST_CASE("get_binary_op: AndAnd converts to BinaryOp::And",
+          "[get_binary_op][logical][T-GBOP-012]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::AndAnd, "&&", 5, 1, 40);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::And);
+}
+
+TEST_CASE("get_binary_op: OrOr converts to BinaryOp::Or",
+          "[get_binary_op][logical][T-GBOP-013]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::OrOr, "||", 5, 4, 43);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Or);
+}
+TEST_CASE("get_binary_op: And converts to BinaryOp::BitAnd",
+          "[get_binary_op][bitwise][T-GBOP-014]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::And, "&", 6, 1, 50);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::BitAnd);
+}
+
+TEST_CASE("get_binary_op: Or converts to BinaryOp::BitOr",
+          "[get_binary_op][bitwise][T-GBOP-015]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Or, "|", 6, 3, 52);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::BitOr);
+}
+
+TEST_CASE("get_binary_op: Xor converts to BinaryOp::BitXor",
+          "[get_binary_op][bitwise][T-GBOP-016]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Xor, "^", 6, 5, 54);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::BitXor);
+}
+
+TEST_CASE("get_binary_op: ShiftLeft converts to BinaryOp::Shl",
+          "[get_binary_op][shift][T-GBOP-017]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::ShiftLeft, "<<", 7, 1, 60);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Shl);
+}
+
+TEST_CASE("get_binary_op: ShiftRight converts to BinaryOp::Shr",
+          "[get_binary_op][shift][T-GBOP-018]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::ShiftRight, ">>", 7, 4, 63);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE(result.has_value());
+    REQUIRE(*result == jsv::BinaryOp::Shr);
+}
+TEST_CASE("get_binary_op: Unary operators return SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-019]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Not, "!", 8, 1, 70);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+    REQUIRE(result.error().span().start.line == 8);
+    REQUIRE(result.error().span().start.column == 1);
+}
+
+TEST_CASE("get_binary_op: Assignment operator returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-020]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Equal, "=", 8, 3, 72);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Postfix operators return SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-021]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::PlusPlus, "++", 8, 5, 74);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Identifier returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-022]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::IdentifierAscii, "x", 8, 8, 77);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Numeric literal returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-023]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Numeric, "42", 8, 10, 79);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Keyword returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-024]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::KeywordIf, "if", 8, 13, 82);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: EOF returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-025]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Eof, "", 8, 16, 85);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Parenthesis returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-026]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::OpenParen, "(", 8, 17, 86);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Semicolon returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-027]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Semicolon, ";", 8, 19, 88);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Comma returns SyntaxError",
+          "[get_binary_op][error][negative][T-GBOP-028]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Comma, ",", 8, 21, 90);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().error_code().has_value());
+    REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+}
+
+TEST_CASE("get_binary_op: Error message contains diagnostic information",
+          "[get_binary_op][error][message][T-GBOP-029]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::IdentifierAscii, "invalid", 9, 1, 100);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    const std::string error_msg = result.error().what();
+    REQUIRE_THAT(error_msg, Catch::Matchers::ContainsSubstring("Invalid binary operator"));
+    REQUIRE_THAT(error_msg, Catch::Matchers::ContainsSubstring("cannot be used as a binary operator"));
+}
+
+TEST_CASE("get_binary_op: Error preserves source location accurately",
+          "[get_binary_op][error][location][T-GBOP-030]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::Not, "!", 10, 5, 150);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    REQUIRE(result.error().span().start.line == 10);
+    REQUIRE(result.error().span().start.column == 5);
+    REQUIRE(result.error().span().start.absolute_pos == 150);
+}
+
+TEST_CASE("get_binary_op: All valid binary operators succeed",
+          "[get_binary_op][comprehensive][T-GBOP-031]") {
+    const std::vector<std::pair<jsv::TokenKind, jsv::BinaryOp>> valid_operators = {
+        // Additive (Lines 121-125)
+        {jsv::TokenKind::Plus, jsv::BinaryOp::Add},
+        {jsv::TokenKind::Minus, jsv::BinaryOp::Sub},
+        // Multiplicative (Lines 126-130)
+        {jsv::TokenKind::Star, jsv::BinaryOp::Mul},
+        {jsv::TokenKind::Slash, jsv::BinaryOp::Div},
+        {jsv::TokenKind::Percent, jsv::BinaryOp::Mod},
+        // Equality (Lines 131-135)
+        {jsv::TokenKind::EqualEqual, jsv::BinaryOp::Eq},
+        {jsv::TokenKind::NotEqual, jsv::BinaryOp::Neq},
+        // Relational (Lines 136-140)
+        {jsv::TokenKind::Less, jsv::BinaryOp::Lt},
+        {jsv::TokenKind::LessEqual, jsv::BinaryOp::Le},
+        {jsv::TokenKind::Greater, jsv::BinaryOp::Gt},
+        {jsv::TokenKind::GreaterEqual, jsv::BinaryOp::Ge},
+        // Logical (Lines 141-144)
+        {jsv::TokenKind::AndAnd, jsv::BinaryOp::And},
+        {jsv::TokenKind::OrOr, jsv::BinaryOp::Or},
+        // Bitwise (Lines 145-148)
+        {jsv::TokenKind::And, jsv::BinaryOp::BitAnd},
+        {jsv::TokenKind::Or, jsv::BinaryOp::BitOr},
+        {jsv::TokenKind::Xor, jsv::BinaryOp::BitXor},
+        // Shift (Lines 149-152)
+        {jsv::TokenKind::ShiftLeft, jsv::BinaryOp::Shl},
+        {jsv::TokenKind::ShiftRight, jsv::BinaryOp::Shr},
+    };
+
+    for(const auto &[kind, expected_op] : valid_operators) {
+        const jsv::Token token = make_token_for_op(kind, "op");
+        auto result = jsv::get_binary_op(token);
+        CAPTURE(jsv::tokenKindToString(kind));
+        REQUIRE(result.has_value());
+        REQUIRE(*result == expected_op);
+    }
+}
+
+TEST_CASE("get_binary_op: Invalid operators fail with consistent error structure",
+          "[get_binary_op][comprehensive][error][T-GBOP-032]") {
+    const std::vector<jsv::TokenKind> invalid_operators = {
+        // Unary-only operators
+        jsv::TokenKind::Not,
+        // Assignment
+        jsv::TokenKind::Equal,
+        // Postfix/Prefix
+        jsv::TokenKind::PlusPlus,
+        jsv::TokenKind::MinusMinus,
+        // Non-operators
+        jsv::TokenKind::IdentifierAscii,
+        jsv::TokenKind::IdentifierUnicode,
+        jsv::TokenKind::Numeric,
+        jsv::TokenKind::Binary,
+        jsv::TokenKind::Octal,
+        jsv::TokenKind::Hexadecimal,
+        // Keywords
+        jsv::TokenKind::KeywordIf,
+        jsv::TokenKind::KeywordElse,
+        jsv::TokenKind::KeywordWhile,
+        jsv::TokenKind::KeywordFor,
+        jsv::TokenKind::KeywordReturn,
+        // Punctuation
+        jsv::TokenKind::Eof,
+        jsv::TokenKind::Semicolon,
+        jsv::TokenKind::Comma,
+        jsv::TokenKind::Colon,
+        jsv::TokenKind::Dot,
+        jsv::TokenKind::OpenParen,
+        jsv::TokenKind::CloseParen,
+        jsv::TokenKind::OpenBrace,
+        jsv::TokenKind::CloseBrace,
+        jsv::TokenKind::OpenBracket,
+        jsv::TokenKind::CloseBracket,
+    };
+
+    for(const jsv::TokenKind kind : invalid_operators) {
+        const jsv::Token token = make_token_for_op(kind, "op");
+        auto result = jsv::get_binary_op(token);
+        CAPTURE(jsv::tokenKindToString(kind));
+        REQUIRE_FALSE(result.has_value());
+        // Verify error has all required components
+        REQUIRE(result.error().error_code().has_value());
+        REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
+        REQUIRE(!result.error().message().empty());
+        REQUIRE(result.error().span().start.line > 0);
+    }
+}
+
+TEST_CASE("get_binary_op: Error help message is present",
+          "[get_binary_op][error][help][T-GBOP-033]") {
+    const jsv::Token token = make_token_for_op(jsv::TokenKind::KeywordIf, "if", 11, 1, 200);
+    auto result = jsv::get_binary_op(token);
+    REQUIRE_FALSE(result.has_value());
+    auto help_msg = result.error().help();
+    REQUIRE(help_msg.has_value());
+    REQUIRE_THAT(*help_msg.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
