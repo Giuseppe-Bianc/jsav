@@ -9850,7 +9850,7 @@ namespace {
         const jsv::SourceLocation start(line, column, offset);
         const jsv::SourceLocation end(line, column + text.size(), offset + text.size());
         const jsv::SourceSpan span(filename, start, end);
-        return jsv::Token(kind, text, span);
+        return {kind, text, span};
     }
 }  // namespace
 
