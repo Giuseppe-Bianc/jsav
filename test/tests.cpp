@@ -8804,7 +8804,8 @@ TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scena
 
         for(const auto &suffix : valid_suffixes) {
             std::vector<Token> tokens;
-            tokens.emplace_back(TokenKind::Numeric, FORMAT("42{}", suffix), SourceSpan{});
+            const std::string token_text = FORMAT("42{}", suffix);
+            tokens.emplace_back(TokenKind::Numeric, token_text, SourceSpan{});
             tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
             Parser parser(tokens);
             auto [program, errors] = parser.parse();
