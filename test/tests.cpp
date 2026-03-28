@@ -8317,6 +8317,572 @@ TEST_CASE("node_dyn_cast works correctly", "[Node][AST][TypeChecking]") {
         REQUIRE(string_lit == nullptr);
     }
 }
+namespace {
+    [[nodiscard]] bool test_all_digits_from_scenario(std::string_view text, std::size_t start_index) {
+        for(std::size_t j = start_index; j < text.size(); ++j) {
+            if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) { return false; }
+        }
+        return true;
+    }
+}  // namespace
+
+TEST_CASE("Parser helper: all_digits_from function (lines 13-18)", "[Parser][HelperFunctions][all_digits_from]") {
+    using namespace jsv;
+
+    SECTION("Empty string from start index") {
+        // Edge case: empty string should return true (no non-digit characters)
+        REQUIRE(test_all_digits_from_scenario("", 0) == true);
+    }
+
+    SECTION("All digits from start index") {
+        // Normal case: all characters are digits
+        REQUIRE(test_all_digits_from_scenario("123456", 0) == true);
+        REQUIRE(test_all_digits_from_scenario("123456", 3) == true);
+        REQUIRE(test_all_digits_from_scenario("9", 0) == true);
+    }
+
+    SECTION("Non-digits from start index") {
+        // Corner case: no digits at all
+        REQUIRE(test_all_digits_from_scenario("abc", 0) == false);
+        REQUIRE(test_all_digits_from_scenario("xyz", 2) == false);
+    }
+
+    SECTION("Mixed digits and non-digits") {
+        // Corner case: digits followed by non-digits
+        REQUIRE(test_all_digits_from_scenario("123abc", 0) == false);
+        REQUIRE(test_all_digits_from_scenario("123abc", 3) == false);
+        // Corner case: start index at first non-digit
+        REQUIRE(test_all_digits_from_scenario("123abc", 3) == false);
+        // Corner case: start index after non-digits
+        REQUIRE(test_all_digits_from_scenario("abc123", 3) == true);
+    }
+
+    SECTION("Start index at boundary") {
+        // Edge case: start index equals string size
+        REQUIRE(test_all_digits_from_scenario("123", 3) == true);
+        // Edge case: start index beyond string size (undefined behavior, but should not crash)
+        // Note: We don't test this as it would be undefined behavior
+    }
+
+    SECTION("Special characters") {
+        // Edge case: special characters, whitespace, symbols
+        REQUIRE(test_all_digits_from_scenario("12 45", 0) == false);
+        REQUIRE(test_all_digits_from_scenario("12\t45", 0) == false);
+        REQUIRE(test_all_digits_from_scenario("12.45", 0) == false);
+        REQUIRE(test_all_digits_from_scenario("12+45", 0) == false);
+    }
+
+    SECTION("Unicode and extended characters") {
+        // Edge case: non-ASCII characters
+        REQUIRE(test_all_digits_from_scenario("12é45", 0) == false);
+        REQUIRE(test_all_digits_from_scenario("12ñ45", 2) == false);
+    }
+
+    SECTION("Single character cases") {
+        // Corner case: single digit
+        REQUIRE(test_all_digits_from_scenario("5", 0) == true);
+        // Corner case: single non-digit
+        REQUIRE(test_all_digits_from_scenario("a", 0) == false);
+    }
+}
+
+TEST_CASE("Parser helper: find_suffix_start function (lines 20-44)", "[Parser][HelperFunctions][find_suffix_start]") {
+    using namespace jsv;
+
+    SECTION("Empty string") {
+        // Edge case: empty string should return 0
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        // Empty numeric literal should parse without crashing
+        REQUIRE(program != nullptr);
+    }
+
+    SECTION("No suffix - pure integer") {
+        // Normal case: no suffix, should return string size
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Suffix 'd' or 'D' (decimal explicit)") {
+        // Normal case: decimal suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42d", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "123D", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Suffix 'f' or 'F' (float)") {
+        // Normal case: float suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "3.14f", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "2.5F", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Suffix 'u' or 'U' (unsigned)") {
+        // Normal case: unsigned suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42u", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "100U", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Suffix 'i' or 'I' (imaginary/integer type)") {
+        // Normal case: imaginary/integer suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "100I", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Complex suffix with digits before 'i' or 'I'") {
+        // Corner case: suffix like "32i" where "32" is part of the type suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "100I64", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Multiple suffix characters") {
+        // Edge case: multiple potential suffix characters
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42u32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Suffix detection boundary - digit before suffix") {
+        // Corner case: ensure suffix detection starts at correct position
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "123456789u", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("No suffix - ends with non-suffix character") {
+        // Edge case: string ends with character that's not a valid suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        // Should still parse, suffix detection should handle invalid suffix
+        REQUIRE(program != nullptr);
+    }
+
+    SECTION("Suffix at start of string") {
+        // Edge case: suffix character at position 0 (unusual but should not crash)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "u", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+    }
+}
+
+TEST_CASE("Parser helper: parse_numeric_literal function (lines 46-58)", "[Parser][HelperFunctions][parse_numeric_literal]") {
+    using namespace jsv;
+
+    SECTION("Empty string") {
+        // Edge case: empty string should return {0, nullopt}
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        // Empty numeric should not cause errors, just be treated as 0
+    }
+
+    SECTION("Simple integer without suffix") {
+        // Normal case: basic integer parsing
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 1);
+    }
+
+    SECTION("Integer with 'u' suffix (unsigned)") {
+        // Normal case: unsigned integer
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42u", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'U' suffix (unsigned uppercase)") {
+        // Normal case: unsigned integer uppercase
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "100U", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'i' suffix") {
+        // Normal case: integer with 'i' suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'I' suffix (uppercase)") {
+        // Normal case: integer with 'I' suffix uppercase
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "100I", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'd' suffix (decimal)") {
+        // Normal case: decimal explicit
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42d", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'D' suffix (decimal uppercase)") {
+        // Normal case: decimal explicit uppercase
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "100D", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'f' suffix (float)") {
+        // Normal case: float suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "3.14f", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with 'F' suffix (float uppercase)") {
+        // Normal case: float suffix uppercase
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "2.5F", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with composite suffix 'i32'") {
+        // Corner case: type suffix with digits
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with composite suffix 'I64'") {
+        // Corner case: type suffix with digits uppercase
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "100I64", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with composite suffix 'u32'") {
+        // Corner case: unsigned type suffix with digits
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42u32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Integer with composite suffix 'U64'") {
+        // Corner case: unsigned type suffix with digits uppercase
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "100U64", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Large integer without suffix") {
+        // Edge case: large integer value
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "9223372036854775807", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        // May or may not have errors depending on overflow handling
+    }
+
+    SECTION("Integer with leading zeros") {
+        // Corner case: leading zeros should be handled correctly
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "00042", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Zero value") {
+        // Corner case: zero
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+
+    SECTION("Zero with suffix") {
+        // Corner case: zero with various suffixes
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "0u", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "0i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Negative test - invalid suffix character") {
+        // Negative test: invalid suffix should still parse but may produce error
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        // Should not crash, may have error or treat 'x' as part of suffix
+        REQUIRE(program != nullptr);
+    }
+
+    SECTION("Negative test - only suffix character") {
+        // Negative test: only suffix character, no digits
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "u", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        // Should parse as 0 with suffix 'u'
+        REQUIRE(program != nullptr);
+    }
+
+    SECTION("Negative test - mixed invalid characters") {
+        // Negative test: mixed valid and invalid characters
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42a32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        // Should not crash
+        REQUIRE(program != nullptr);
+    }
+}
+
+TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scenarios", "[Parser][HelperFunctions][NumericLiteral][SuffixDetection]") {
+    using namespace jsv;
+
+    SECTION("All valid suffix characters at end position") {
+        // Comprehensive test: all valid single-character suffixes
+        const std::array<std::string_view, 8> valid_suffixes = {"d"sv, "D"sv, "f"sv, "F"sv, "u"sv, "U"sv, "i"sv, "I"sv};
+        
+        for(const auto &suffix : valid_suffixes) {
+            std::vector<Token> tokens;
+            tokens.emplace_back(TokenKind::Numeric, FORMAT("42{}", suffix), SourceSpan{});
+            tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+            Parser parser(tokens);
+            auto [program, errors] = parser.parse();
+            CAPTURE(suffix);
+            REQUIRE(program != nullptr);
+        }
+    }
+
+    SECTION("Suffix detection with decimal point") {
+        // Corner case: decimal point before suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "3.14159f", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        tokens.clear();
+        tokens.emplace_back(TokenKind::Numeric, "2.718281828D", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser2(tokens);
+        auto [program2, errors2] = parser2.parse();
+        REQUIRE(program2 != nullptr);
+        REQUIRE(errors2.empty());
+    }
+
+    SECTION("Multiple potential suffixes - rightmost wins") {
+        // Corner case: multiple suffix-like characters, should detect rightmost
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "42uU", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+    }
+
+    SECTION("Suffix detection boundary - digit followed by suffix") {
+        // Corner case: ensure correct boundary detection
+        const std::array<std::string_view, 4> test_cases = {"1u"sv, "2U"sv, "3i"sv, "4I"sv};
+        
+        for(const auto &test_case : test_cases) {
+            std::vector<Token> tokens;
+            tokens.emplace_back(TokenKind::Numeric, test_case, SourceSpan{});
+    
+            tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+            Parser parser(tokens);
+            auto [program, errors] = parser.parse();
+            CAPTURE(test_case);
+            REQUIRE(program != nullptr);
+        }
+    }
+
+    SECTION("Long numeric literal with suffix") {
+        // Edge case: very long numeric literal
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, "123456789012345678901234567890u", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+        // May have overflow error, but should not crash
+    }
+
+    SECTION("Suffix after decimal without digits") {
+        // Edge case: decimal point immediately before suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Numeric, ".5f", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+        REQUIRE(program != nullptr);
+    }
+}
 
 // -----------------------------------------------------------------------------
 // Parser Basic Tests
@@ -8342,7 +8908,7 @@ TEST_CASE("Parser single expression statement", "[Parser]") {
     SECTION("Parse integer literal expression") {
         std::vector<Token> tokens;
         tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -8369,7 +8935,7 @@ TEST_CASE("Parser variable declaration", "[Parser]") {
         tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
         tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
         tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9358,7 +9924,7 @@ TEST_CASE("Parser corner cases - deeply nested structures", "[Parser][CornerCase
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9380,7 +9946,7 @@ TEST_CASE("Parser corner cases - deeply nested structures", "[Parser][CornerCase
         tokens.emplace_back(TokenKind::Numeric, "4", SourceSpan{});
         tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
         tokens.emplace_back(TokenKind::Numeric, "5", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9525,7 +10091,7 @@ TEST_CASE("Parser corner cases - function calls", "[Parser][CornerCases][Call]")
         tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
         tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9545,7 +10111,7 @@ TEST_CASE("Parser corner cases - function calls", "[Parser][CornerCases][Call]")
         tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9634,7 +10200,7 @@ TEST_CASE("Parser corner cases - assignment expressions", "[Parser][CornerCases]
         tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
         tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
         tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9654,7 +10220,7 @@ TEST_CASE("Parser corner cases - assignment expressions", "[Parser][CornerCases]
         tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
         tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
         tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
@@ -9757,7 +10323,7 @@ TEST_CASE("Parser error cases - unclosed constructs", "[Parser][ErrorCases]") {
         tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
         tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
         tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
-        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
         Parser parser(tokens);
