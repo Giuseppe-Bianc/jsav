@@ -10138,11 +10138,12 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for conditi
 // -----------------------------------------------------------------------------
 // Parser for-loop condition clause (lines 131-132) - parse_for_condition_clause
 // Tests for: Condition followed by CloseParen (without semicolon) or Semicolon
-// Lines 131-132: if(!parser.check(TokenKind::Semicolon)) { 
+// Lines 131-132: if(!parser.check(TokenKind::Semicolon)) {
 //                    if(!parser.check(TokenKind::CloseParen)) { return std::nullopt; }
 // -----------------------------------------------------------------------------
 
-TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without semicolon)", "[Parser][parse_for_condition_clause][Line131-132][ForLoop]") {
+TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without semicolon)",
+          "[Parser][parse_for_condition_clause][Line131-132][ForLoop]") {
     using namespace jsv;
 
     SECTION("For-loop with condition followed by CloseParen - lines 131-132 executed") {
@@ -10363,11 +10364,11 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without
 
         auto *func = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func != nullptr);
-        
+
         auto *body = node_dyn_cast<BlockStmt>(&func->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *for_stmt = node_dyn_cast<ForStmt>(body->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
         REQUIRE(for_stmt->has_init());
@@ -10412,7 +10413,7 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without
         REQUIRE_FALSE(for_stmt->has_init());
         REQUIRE(for_stmt->has_condition());
         REQUIRE_FALSE(for_stmt->has_increment());
-        
+
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 2);  // Two statements
@@ -10487,7 +10488,8 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without
 // Lines 147-150: Wrapping single statement in BlockStmt
 // -----------------------------------------------------------------------------
 
-TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapping)", "[Parser][make_for_body_block][Line147-150][ForLoop]") {
+TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapping)",
+          "[Parser][make_for_body_block][Line147-150][ForLoop]") {
     using namespace jsv;
 
     SECTION("For-loop with single expression statement body - lines 147-150 executed") {
@@ -10529,7 +10531,7 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
@@ -10568,12 +10570,12 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *var_decl = node_dyn_cast<VarDecl>(body->statements()[0].get());
         REQUIRE(var_decl != nullptr);
         REQUIRE(var_decl->names().size() == 1);
@@ -10611,12 +10613,12 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *if_stmt = node_dyn_cast<IfStmt>(body->statements()[0].get());
         REQUIRE(if_stmt != nullptr);
     }
@@ -10652,12 +10654,12 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *while_stmt = node_dyn_cast<WhileStmt>(body->statements()[0].get());
         REQUIRE(while_stmt != nullptr);
     }
@@ -10690,12 +10692,12 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *break_stmt = node_dyn_cast<BreakStmt>(body->statements()[0].get());
         REQUIRE(break_stmt != nullptr);
     }
@@ -10728,12 +10730,12 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *continue_stmt = node_dyn_cast<ContinueStmt>(body->statements()[0].get());
         REQUIRE(continue_stmt != nullptr);
     }
@@ -10767,12 +10769,12 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *return_stmt = node_dyn_cast<ReturnStmt>(body->statements()[0].get());
         REQUIRE(return_stmt != nullptr);
     }
@@ -10807,7 +10809,7 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         // Body is already a BlockStmt
         auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
         REQUIRE(body != nullptr);
@@ -10848,15 +10850,15 @@ TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapp
 
         auto *outer_for = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(outer_for != nullptr);
-        
+
         // Body should be wrapped in BlockStmt
         auto *outer_body = node_dyn_cast<BlockStmt>(&outer_for->body());
         REQUIRE(outer_body != nullptr);
         REQUIRE(outer_body->statements().size() == 1);
-        
+
         auto *inner_for = node_dyn_cast<ForStmt>(outer_body->statements()[0].get());
         REQUIRE(inner_for != nullptr);
-        
+
         // Inner for body should also be wrapped in BlockStmt
         auto *inner_body = node_dyn_cast<BlockStmt>(&inner_for->body());
         REQUIRE(inner_body != nullptr);
