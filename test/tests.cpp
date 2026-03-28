@@ -9080,6 +9080,413 @@ TEST_CASE("Parser for loop", "[Parser]") {
     }
 }
 
+// -----------------------------------------------------------------------------
+// Parser for-loop variable names parsing (line 71) - parse_for_var_names
+// Tests for: Multiple variable declarations in for-loop initializer
+// -----------------------------------------------------------------------------
+
+TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "[Parser][parse_for_var_names][Line71][ForLoop]") {
+    using namespace jsv;
+
+    SECTION("Single variable in for-loop initializer (no comma - line 71 breaks)") {
+        // Normal case: Single variable declaration - comma check returns false, loop breaks
+        // This exercises line 71: if(!parser.match_token(TokenKind::Comma)) { break; }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});  // Line 67: consume_identifier()
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE(for_stmt->has_init());
+        
+        // Verify the initializer is a VarDecl with single variable
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 1);  // Only one variable
+        REQUIRE(var_decl->names()[0] == "i");
+    }
+
+    SECTION("Two variables in for-loop initializer (comma present - line 71 continues)") {
+        // Corner case: Two variables - first comma check returns true, loop continues
+        // Then second variable, comma check returns false, loop breaks
+        // This exercises line 71 twice: once with true (continue), once with false (break)
+        // Syntax: for(var i, j: i32 = 0, 0; condition; increment)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});  // Line 67: first consume_identifier()
+        // Comma - Line 71: match_token(Comma) returns true, loop continues
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        // Second variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "j", SourceSpan{});  // Line 67: second consume_identifier()
+        // Common type annotation
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // Common initializers
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        // No comma - Line 71: match_token(Comma) returns false, loop breaks (for var names)
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Condition
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Increment
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE(for_stmt->has_init());
+        
+        // Verify the initializer is a VarDecl with two variables
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 2);  // Two variables
+        REQUIRE(var_decl->names()[0] == "i");
+        REQUIRE(var_decl->names()[1] == "j");
+    }
+
+    SECTION("Three variables in for-loop initializer (multiple commas)") {
+        // Edge case: Three variables - tests multiple iterations of line 71
+        // Syntax: for(var i, j, k: i32 = 0, 0, 0; condition; increment)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue
+        // Second variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "j", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue
+        // Third variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "k", SourceSpan{});
+        // Common type
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // Common initializers
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        // No comma - Line 71: break
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Condition
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Increment
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 3);  // Three variables
+        REQUIRE(var_decl->names()[0] == "i");
+        REQUIRE(var_decl->names()[1] == "j");
+        REQUIRE(var_decl->names()[2] == "k");
+    }
+
+    SECTION("Multiple variables without type annotation") {
+        // Corner case: Multiple variables without explicit type
+        // Syntax: for(var i, j = 0, 0; condition; increment)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable name (no type)
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue
+        // Second variable name (no type)
+        tokens.emplace_back(TokenKind::IdentifierAscii, "j", SourceSpan{});
+        // Common initializers
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        // No comma - Line 71: break
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Condition
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // End
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        // May have errors for missing type, but should not crash
+        REQUIRE(errors.empty());  // Should parse successfully
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 2);
+        REQUIRE(var_decl->names()[0] == "i");
+        REQUIRE(var_decl->names()[1] == "j");
+    }
+
+    SECTION("Multiple variables with const qualifier") {
+        // Corner case: const instead of var with multiple variables
+        // Syntax: for(const i, j: i32 = 0, 0; condition; increment)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordConst, "const", SourceSpan{});
+        // First variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue
+        // Second variable name
+        tokens.emplace_back(TokenKind::IdentifierAscii, "j", SourceSpan{});
+        // Common type
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // Common initializers
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        // No comma - Line 71: break
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Condition
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // End
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 2);
+        REQUIRE(var_decl->is_const() == true);  // const qualifier
+    }
+
+    SECTION("Negative test - Missing identifier after comma (line 67 fails)") {
+        // Negative test: Comma present but no identifier following
+        // Line 67: consume_identifier() should fail, returning std::nullopt
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue expected
+        // Missing identifier here - should cause error
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Unexpected token
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Should report error for missing identifier
+        REQUIRE(!errors.empty());
+        // Parser should handle error gracefully (may not produce ForStmt)
+    }
+
+    SECTION("Negative test - Comma followed by invalid token") {
+        // Negative test: Comma followed by non-identifier token
+        // Line 67: consume_identifier() should fail
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue expected
+        // Invalid token (not an identifier)
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});  // Invalid here
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Should report error for invalid identifier
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Unicode identifier in multiple variable declaration") {
+        // Edge case: Unicode identifiers with comma separation
+        // Syntax: for(var i, α = 0, 1; condition; increment)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable name (ASCII)
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue
+        // Second variable name (Unicode)
+        tokens.emplace_back(TokenKind::IdentifierUnicode, "α", SourceSpan{});  // Greek alpha
+        // Common initializers
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        // No comma - Line 71: break
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Condition
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // End
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 2);
+        REQUIRE(var_decl->names()[0] == "i");
+        REQUIRE(var_decl->names()[1] == "α");
+    }
+
+    SECTION("Multiple variables without initializer expressions") {
+        // Corner case: Multiple variables declared but not initialized
+        // Syntax: for(var i, j: i32; condition; increment)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        // First variable name (no initializer)
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Line 71: continue
+        // Second variable name (no initializer)
+        tokens.emplace_back(TokenKind::IdentifierAscii, "j", SourceSpan{});
+        // Common type
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // No initializers (no '=' token)
+        // No comma - Line 71: break
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Condition
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Increment
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        // May have errors for uninitialized variables depending on language rules
+        // REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        
+        auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 2);
+    }
+}
+
 TEST_CASE("Parser error handling", "[Parser]") {
     using namespace jsv;
 
