@@ -9488,7 +9488,8 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
     }
 }
 
-TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initializer)", "[Parser][parse_for_initializer_clause][Line111-112][ForLoop]") {
+TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initializer)",
+          "[Parser][parse_for_initializer_clause][Line111-112][ForLoop]") {
     using namespace jsv;
 
     SECTION("For-loop with empty initializer - lines 111-112 executed") {
@@ -9729,12 +9730,12 @@ TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initi
         auto *outer_for = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(outer_for != nullptr);
         REQUIRE_FALSE(outer_for->has_init());
-        
+
         // Check inner for loop in body
         auto *body = node_dyn_cast<BlockStmt>(&outer_for->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *inner_for = node_dyn_cast<ForStmt>(body->statements()[0].get());
         REQUIRE(inner_for != nullptr);
         REQUIRE_FALSE(inner_for->has_init());
@@ -9796,11 +9797,11 @@ TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initi
 
         auto *func = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func != nullptr);
-        
+
         auto *body = node_dyn_cast<BlockStmt>(&func->body());
         REQUIRE(body != nullptr);
         REQUIRE(body->statements().size() == 1);
-        
+
         auto *for_stmt = node_dyn_cast<ForStmt>(body->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
         REQUIRE_FALSE(for_stmt->has_init());
