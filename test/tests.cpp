@@ -9122,7 +9122,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
         REQUIRE(for_stmt->has_init());
-        
+
         // Verify the initializer is a VarDecl with single variable
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
@@ -9178,7 +9178,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
         REQUIRE(for_stmt->has_init());
-        
+
         // Verify the initializer is a VarDecl with two variables
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
@@ -9236,7 +9236,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
         REQUIRE(var_decl->names().size() == 3);  // Three variables
@@ -9285,7 +9285,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
         REQUIRE(var_decl->names().size() == 2);
@@ -9333,7 +9333,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
         REQUIRE(var_decl->names().size() == 2);
@@ -9431,7 +9431,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
         REQUIRE(var_decl->names().size() == 2);
@@ -9480,7 +9480,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
 
         auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
         REQUIRE(for_stmt != nullptr);
-        
+
         auto *var_decl = node_dyn_cast<VarDecl>(&for_stmt->init());
         REQUIRE(var_decl != nullptr);
         REQUIRE(var_decl->names().size() == 2);
