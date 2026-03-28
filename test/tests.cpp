@@ -8794,13 +8794,14 @@ TEST_CASE("Parser helper: parse_numeric_literal function (lines 46-58)", "[Parse
     }
 }
 
-TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scenarios", "[Parser][HelperFunctions][NumericLiteral][SuffixDetection]") {
+TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scenarios",
+          "[Parser][HelperFunctions][NumericLiteral][SuffixDetection]") {
     using namespace jsv;
 
     SECTION("All valid suffix characters at end position") {
         // Comprehensive test: all valid single-character suffixes
         const std::array<std::string_view, 8> valid_suffixes = {"d"sv, "D"sv, "f"sv, "F"sv, "u"sv, "U"sv, "i"sv, "I"sv};
-        
+
         for(const auto &suffix : valid_suffixes) {
             std::vector<Token> tokens;
             tokens.emplace_back(TokenKind::Numeric, FORMAT("42{}", suffix), SourceSpan{});
@@ -8847,11 +8848,11 @@ TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scena
     SECTION("Suffix detection boundary - digit followed by suffix") {
         // Corner case: ensure correct boundary detection
         const std::array<std::string_view, 4> test_cases = {"1u"sv, "2U"sv, "3i"sv, "4I"sv};
-        
+
         for(const auto &test_case : test_cases) {
             std::vector<Token> tokens;
             tokens.emplace_back(TokenKind::Numeric, test_case, SourceSpan{});
-    
+
             tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
             Parser parser(tokens);
             auto [program, errors] = parser.parse();
@@ -11249,10 +11250,10 @@ TEST_CASE("get_binary_op: Shift operators - Lines 173-178", "[get_binary_op][Shi
 
 TEST_CASE("get_binary_op: Invalid operators return error - Lines 179-183", "[get_binary_op][Error][T-GBOP-008]") {
     // Negative test: Non-binary operators should return error
-    const std::array<jsv::TokenKind, 12> invalid_operators = {                      // Unary-only operators
-                                                              jsv::TokenKind::Not,  // ! is unary only
-                                                                                    // Assignment operators (not binary in this context)
-                                                              jsv::TokenKind::Equal,       // = is assignment
+    const std::array<jsv::TokenKind, 12> invalid_operators = {                        // Unary-only operators
+                                                              jsv::TokenKind::Not,    // ! is unary only
+                                                                                      // Assignment operators (not binary in this context)
+                                                              jsv::TokenKind::Equal,  // = is assignment
                                                               jsv::TokenKind::PlusEqual,   // +=
                                                               jsv::TokenKind::MinusEqual,  // -=
                                                                                            // Postfix operators
