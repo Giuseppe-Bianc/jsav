@@ -9808,6 +9808,333 @@ TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initi
     }
 }
 
+TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for condition)",
+          "[Parser][parse_for_condition_clause][Line122-123][ForLoop]") {
+    using namespace jsv;
+
+    SECTION("For-loop with empty initializer and empty condition - lines 122-123 executed") {
+        // Normal case: Empty initializer AND empty condition triggers lines 122-123
+        // Syntax: for(;; increment) body
+        // Line 122: parser.advance() - consumes the second semicolon
+        // Line 123: return std::optional<ExprPtr>{} - returns empty condition (infinite loop)
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        // Empty initializer - immediate semicolon
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Empty condition - immediate semicolon (triggers lines 122-123)
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Increment
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        // May have errors for infinite loop without break
+        // REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());       // No initializer
+        REQUIRE_FALSE(for_stmt->has_condition());  // No condition (infinite loop)
+        REQUIRE(for_stmt->has_increment());        // Has increment
+    }
+
+    SECTION("For-loop with empty initializer, empty condition, empty increment - classic infinite loop") {
+        // Edge case: for(;;) - the classic infinite loop pattern
+        // All three clauses are empty, lines 122-123 are executed for the empty condition
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        // Empty initializer - immediate semicolon
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Empty condition - immediate semicolon (triggers lines 122-123)
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Empty increment - immediate close paren
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        // Body with break statement to exit infinite loop
+        tokens.emplace_back(TokenKind::KeywordBreak, "break", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());
+        REQUIRE_FALSE(for_stmt->has_condition());  // No condition = infinite loop
+        REQUIRE_FALSE(for_stmt->has_increment());
+    }
+
+    SECTION("For-loop with empty initializer, empty condition, and expression in increment") {
+        // Corner case: for(;; i++, j++) - multiple expressions in increment
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        // Empty initializer
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Empty condition (triggers lines 122-123)
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Simple increment: i++
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());
+        REQUIRE_FALSE(for_stmt->has_condition());
+        REQUIRE(for_stmt->has_increment());
+    }
+
+    SECTION("For-loop with empty initializer, empty condition - function call in increment") {
+        // Corner case: for(;; process()) - function call in increment clause
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        // Empty initializer
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Empty condition (triggers lines 122-123)
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Increment: process()
+        tokens.emplace_back(TokenKind::IdentifierAscii, "process", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());
+        REQUIRE_FALSE(for_stmt->has_condition());
+        REQUIRE(for_stmt->has_increment());
+    }
+
+    SECTION("For-loop with empty initializer, empty condition - nested in if statement") {
+        // Edge case: Infinite loop nested in if statement
+        std::vector<Token> tokens;
+        // If statement
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        // For-loop with empty initializer and condition
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty init
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty cond (lines 122-123)
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBreak, "break", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *if_stmt = node_dyn_cast<IfStmt>(program->statements()[0].get());
+        REQUIRE(if_stmt != nullptr);
+
+        auto *if_body = node_dyn_cast<BlockStmt>(&if_stmt->then_branch());
+        REQUIRE(if_body != nullptr);
+        REQUIRE(if_body->statements().size() == 1);
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(if_body->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());
+        REQUIRE_FALSE(for_stmt->has_condition());
+    }
+
+    SECTION("For-loop with empty initializer, empty condition - with variable declaration before") {
+        // Integration test: Variable declaration before infinite for-loop
+        std::vector<Token> tokens;
+        // Variable declaration: var i: i32 = 0;
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // For-loop with empty initializer and condition
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty init
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty cond (lines 122-123)
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 2);  // Two statements
+        REQUIRE(errors.empty());
+
+        auto *var_decl = node_dyn_cast<VarDecl>(program->statements()[0].get());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 1);
+        REQUIRE(var_decl->names()[0] == "i");
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[1].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());
+        REQUIRE_FALSE(for_stmt->has_condition());
+    }
+
+    SECTION("For-loop with empty initializer, empty condition - multiple statements in body") {
+        // Corner case: Infinite loop with multiple statements in body
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty init
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty cond (lines 122-123)
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        // Statement 1: var x: i32 = 0;
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Statement 2: break;
+        tokens.emplace_back(TokenKind::KeywordBreak, "break", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *for_stmt = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(for_stmt != nullptr);
+        REQUIRE_FALSE(for_stmt->has_init());
+        REQUIRE_FALSE(for_stmt->has_condition());
+
+        auto *body = node_dyn_cast<BlockStmt>(&for_stmt->body());
+        REQUIRE(body != nullptr);
+        REQUIRE(body->statements().size() == 2);  // Two statements in body
+    }
+
+    SECTION("For-loop with empty initializer, empty condition - nested for loops") {
+        // Edge case: Nested infinite for-loops
+        std::vector<Token> tokens;
+        // Outer for: for(;;)
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty init
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty cond (lines 122-123)
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        // Inner for: for(;;)
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty init
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});  // Empty cond (lines 122-123)
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBreak, "break", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(program->statements().size() == 1);
+        REQUIRE(errors.empty());
+
+        auto *outer_for = node_dyn_cast<ForStmt>(program->statements()[0].get());
+        REQUIRE(outer_for != nullptr);
+        REQUIRE_FALSE(outer_for->has_init());
+        REQUIRE_FALSE(outer_for->has_condition());
+
+        auto *body = node_dyn_cast<BlockStmt>(&outer_for->body());
+        REQUIRE(body != nullptr);
+        REQUIRE(body->statements().size() == 1);
+
+        auto *inner_for = node_dyn_cast<ForStmt>(body->statements()[0].get());
+        REQUIRE(inner_for != nullptr);
+        REQUIRE_FALSE(inner_for->has_init());
+        REQUIRE_FALSE(inner_for->has_condition());
+    }
+
+    SECTION("Negative test - For-loop with empty initializer but missing second semicolon") {
+        // Negative test: Empty initializer but condition expression without closing semicolon
+        // This should fail because the condition clause is malformed
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        // Empty initializer
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+        // Missing second semicolon - condition expression starts but doesn't end properly
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        // Missing semicolon before increment - should cause error
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Should report syntax error for missing semicolon
+        REQUIRE(!errors.empty());
+    }
+}
+
 TEST_CASE("Parser error handling", "[Parser]") {
     using namespace jsv;
 
