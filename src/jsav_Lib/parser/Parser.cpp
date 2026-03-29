@@ -286,7 +286,7 @@ namespace jsv {
 
         // Corpo
         auto body = parse_block_stmt();
-        if(!body) {
+        if(!body.has_value()) {
             syntax_error("Expected function body", peek(), {}, ErrorCode::E1006);
             return std::nullopt;
         }
