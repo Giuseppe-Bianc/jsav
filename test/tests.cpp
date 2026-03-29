@@ -14264,7 +14264,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid 
         REQUIRE(errors.empty());
         REQUIRE_FALSE(program->statements().empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].name == "x");
@@ -14290,7 +14290,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid 
         REQUIRE(errors.empty());
         REQUIRE_FALSE(program->statements().empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].name == "Διαγωνίσμα");
@@ -14320,7 +14320,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid 
         REQUIRE(errors.empty());
         REQUIRE_FALSE(program->statements().empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 2);
         REQUIRE(func_decl->params()[0].name == "x");
@@ -14354,7 +14354,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::I32);
@@ -14379,7 +14379,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::F64);
@@ -14404,7 +14404,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::Char);
@@ -14429,7 +14429,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::Bool);
@@ -14462,7 +14462,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 3);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::I32);
@@ -14593,14 +14593,12 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
     using namespace jsv;
 
     SECTION("Signed integer types (i8, i16, i32, i64)") {
-        const std::vector<std::pair<TokenKind, TypeKind>> int_types = {
-            {TokenKind::TypeI8, TypeKind::I8},
-            {TokenKind::TypeI16, TypeKind::I16},
-            {TokenKind::TypeI32, TypeKind::I32},
-            {TokenKind::TypeI64, TypeKind::I64}
-        };
+        const std::vector<std::pair<TokenKind, TypeKind>> int_types = {{TokenKind::TypeI8, TypeKind::I8},
+                                                                       {TokenKind::TypeI16, TypeKind::I16},
+                                                                       {TokenKind::TypeI32, TypeKind::I32},
+                                                                       {TokenKind::TypeI64, TypeKind::I64}};
 
-        for(const auto& [type_kind, expected_kind] : int_types) {
+        for(const auto &[type_kind, expected_kind] : int_types) {
             std::vector<Token> tokens;
             tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
             tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
@@ -14620,7 +14618,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
             REQUIRE(program != nullptr);
             REQUIRE(errors.empty());
 
-            auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+            auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
             REQUIRE(func_decl != nullptr);
             REQUIRE(func_decl->params().size() == 1);
             REQUIRE(func_decl->params()[0].type_annotation->kind() == expected_kind);
@@ -14628,14 +14626,12 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
     }
 
     SECTION("Unsigned integer types (u8, u16, u32, u64)") {
-        const std::vector<std::pair<TokenKind, TypeKind>> uint_types = {
-            {TokenKind::TypeU8, TypeKind::U8},
-            {TokenKind::TypeU16, TypeKind::U16},
-            {TokenKind::TypeU32, TypeKind::U32},
-            {TokenKind::TypeU64, TypeKind::U64}
-        };
+        const std::vector<std::pair<TokenKind, TypeKind>> uint_types = {{TokenKind::TypeU8, TypeKind::U8},
+                                                                        {TokenKind::TypeU16, TypeKind::U16},
+                                                                        {TokenKind::TypeU32, TypeKind::U32},
+                                                                        {TokenKind::TypeU64, TypeKind::U64}};
 
-        for(const auto& [type_kind, expected_kind] : uint_types) {
+        for(const auto &[type_kind, expected_kind] : uint_types) {
             std::vector<Token> tokens;
             tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
             tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
@@ -14655,7 +14651,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
             REQUIRE(program != nullptr);
             REQUIRE(errors.empty());
 
-            auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+            auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
             REQUIRE(func_decl != nullptr);
             REQUIRE(func_decl->params().size() == 1);
             REQUIRE(func_decl->params()[0].type_annotation->kind() == expected_kind);
@@ -14663,12 +14659,10 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
     }
 
     SECTION("Floating-point types (f32, f64)") {
-        const std::vector<std::pair<TokenKind, TypeKind>> float_types = {
-            {TokenKind::TypeF32, TypeKind::F32},
-            {TokenKind::TypeF64, TypeKind::F64}
-        };
+        const std::vector<std::pair<TokenKind, TypeKind>> float_types = {{TokenKind::TypeF32, TypeKind::F32},
+                                                                         {TokenKind::TypeF64, TypeKind::F64}};
 
-        for(const auto& [type_kind, expected_kind] : float_types) {
+        for(const auto &[type_kind, expected_kind] : float_types) {
             std::vector<Token> tokens;
             tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
             tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
@@ -14688,7 +14682,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
             REQUIRE(program != nullptr);
             REQUIRE(errors.empty());
 
-            auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+            auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
             REQUIRE(func_decl != nullptr);
             REQUIRE(func_decl->params().size() == 1);
             REQUIRE(func_decl->params()[0].type_annotation->kind() == expected_kind);
@@ -14696,8 +14690,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separation)",
-          "[Parser][parse_function][Line261-270][T-PF-006]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separation)", "[Parser][parse_function][Line261-270][T-PF-006]") {
     // Edge case: Multiple parameters with various comma patterns
     // Tests line 268-269 where comma is expected between parameters
 
@@ -14726,7 +14719,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separati
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 2);
     }
@@ -14782,7 +14775,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separati
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 3);
     }
@@ -14811,8 +14804,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separati
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return type)",
-          "[Parser][parse_function][Line261-270][T-PF-007]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return type)", "[Parser][parse_function][Line261-270][T-PF-007]") {
     // Standard usage: Function with both parameter types and return type
     // Tests interaction between parameter type parsing (lines 261-270) and return type parsing (lines 276-281)
 
@@ -14843,7 +14835,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return ty
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 2);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::I32);
@@ -14871,7 +14863,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return ty
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 1);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::Char);
@@ -14903,7 +14895,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return ty
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->params().size() == 2);
         REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::F64);
