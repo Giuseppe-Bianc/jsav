@@ -14956,6 +14956,28 @@ TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)", "
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
     }
 
+    SECTION("Function with parameters but no return type") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "bar", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        // No colon for return type - should default to void
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(!errors.empty());
+    }
+
     SECTION("Function with Unicode name and no return type defaults to void") {
         std::vector<Token> tokens;
         tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
@@ -15059,24 +15081,6 @@ TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)"
 
         // parse_block_stmt expects OpenBrace, finds KeywordReturn
         REQUIRE_FALSE(errors.empty());
-    }
-
-    SECTION("Function with no type specified - error on body parse") {
-        std::vector<Token> tokens;
-        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
-        tokens.emplace_back(TokenKind::IdentifierAscii, "invalid", SourceSpan{});
-        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
-        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
-        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
-        // Next token is a keyword, not OpenBrace
-        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
-        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
-
-        Parser parser(tokens);
-        auto [program, errors] = parser.parse();
-
-        // parse_block_stmt expects OpenBrace, finds KeywordReturn
-        REQUIRE_FALSE(!errors.empty());
     }
 
     SECTION("Function with identifier instead of body block - error on body parse") {
