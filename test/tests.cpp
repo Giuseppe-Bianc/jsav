@@ -12256,8 +12256,7 @@ TEST_CASE("get_binary_op: EqualEqual converts to BinaryOp::Eq", "[get_binary_op]
 // Parser::parse_stmt() switch statement (lines 216-217), ensuring comprehensive
 // coverage of the main function parsing functionality.
 
-TEST_CASE("Parser: parse_main_function - basic main function",
-          "[Parser][parse_main_function][Line216-217][T-PMF-001]") {
+TEST_CASE("Parser: parse_main_function - basic main function", "[Parser][parse_main_function][Line216-217][T-PMF-001]") {
     using namespace jsv;
 
     SECTION("Minimal main function with empty body") {
@@ -12290,8 +12289,7 @@ TEST_CASE("Parser: parse_main_function - basic main function",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with statements",
-          "[Parser][parse_main_function][Line216-217][T-PMF-002]") {
+TEST_CASE("Parser: parse_main_function - main with statements", "[Parser][parse_main_function][Line216-217][T-PMF-002]") {
     using namespace jsv;
 
     SECTION("Main function with single expression statement") {
@@ -12380,8 +12378,7 @@ TEST_CASE("Parser: parse_main_function - main with statements",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with nested blocks",
-          "[Parser][parse_main_function][Line216-217][T-PMF-003]") {
+TEST_CASE("Parser: parse_main_function - main with nested blocks", "[Parser][parse_main_function][Line216-217][T-PMF-003]") {
     using namespace jsv;
 
     SECTION("Main function with nested block statements") {
@@ -12424,8 +12421,7 @@ TEST_CASE("Parser: parse_main_function - main with nested blocks",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with control flow",
-          "[Parser][parse_main_function][Line216-217][T-PMF-004]") {
+TEST_CASE("Parser: parse_main_function - main with control flow", "[Parser][parse_main_function][Line216-217][T-PMF-004]") {
     using namespace jsv;
 
     SECTION("Main function with if-else statement") {
@@ -12558,8 +12554,7 @@ TEST_CASE("Parser: parse_main_function - main with control flow",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with break/continue",
-          "[Parser][parse_main_function][Line216-217][T-PMF-005]") {
+TEST_CASE("Parser: parse_main_function - main with break/continue", "[Parser][parse_main_function][Line216-217][T-PMF-005]") {
     using namespace jsv;
 
     SECTION("Main function with break statement") {
@@ -12646,8 +12641,7 @@ TEST_CASE("Parser: parse_main_function - main with break/continue",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with function call",
-          "[Parser][parse_main_function][Line216-217][T-PMF-006]") {
+TEST_CASE("Parser: parse_main_function - main with function call", "[Parser][parse_main_function][Line216-217][T-PMF-006]") {
     using namespace jsv;
 
     SECTION("Main function with function call expression") {
@@ -12685,8 +12679,7 @@ TEST_CASE("Parser: parse_main_function - main with function call",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with const declaration",
-          "[Parser][parse_main_function][Line216-217][T-PMF-007]") {
+TEST_CASE("Parser: parse_main_function - main with const declaration", "[Parser][parse_main_function][Line216-217][T-PMF-007]") {
     using namespace jsv;
 
     SECTION("Main function with const variable declaration") {
@@ -12727,8 +12720,7 @@ TEST_CASE("Parser: parse_main_function - main with const declaration",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with multiple declarations",
-          "[Parser][parse_main_function][Line216-217][T-PMF-008]") {
+TEST_CASE("Parser: parse_main_function - main with multiple declarations", "[Parser][parse_main_function][Line216-217][T-PMF-008]") {
     using namespace jsv;
 
     SECTION("Main function with comma-separated variable declarations") {
@@ -12780,8 +12772,7 @@ TEST_CASE("Parser: parse_main_function - main with multiple declarations",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - error cases",
-          "[Parser][parse_main_function][Line216-217][ErrorHandling][T-PMF-ERR-001]") {
+TEST_CASE("Parser: parse_main_function - error cases", "[Parser][parse_main_function][Line216-217][ErrorHandling][T-PMF-ERR-001]") {
     using namespace jsv;
 
     SECTION("Main function with unclosed block - error recovery") {
@@ -12800,7 +12791,7 @@ TEST_CASE("Parser: parse_main_function - error cases",
         // Parser should report error but not crash
         REQUIRE(program != nullptr);
         REQUIRE_FALSE(errors.empty());
-        
+
         // Verify at least one error was reported
         REQUIRE(errors.size() >= 1);
     }
@@ -12995,8 +12986,7 @@ TEST_CASE("Parser: parse_main_function - corner cases with literals",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - unary operators",
-          "[Parser][parse_main_function][Line216-217][UnaryOps][T-PMF-UO-001]") {
+TEST_CASE("Parser: parse_main_function - unary operators", "[Parser][parse_main_function][Line216-217][UnaryOps][T-PMF-UO-001]") {
     using namespace jsv;
 
     SECTION("Main with unary minus") {
@@ -13116,8 +13106,7 @@ TEST_CASE("Parser: parse_main_function - unary operators",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - binary operators",
-          "[Parser][parse_main_function][Line216-217][BinaryOps][T-PMF-BO-001]") {
+TEST_CASE("Parser: parse_main_function - binary operators", "[Parser][parse_main_function][Line216-217][BinaryOps][T-PMF-BO-001]") {
     using namespace jsv;
 
     SECTION("Main with addition expression") {
