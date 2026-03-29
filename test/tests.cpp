@@ -14903,7 +14903,321 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return ty
         REQUIRE(func_decl->return_type().has_value());
     }
 }
-// NOLINTEND(*-identifier-length)
+
+TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)",
+          "[Parser][parse_function][Line278-279][T-PF-008]") {
+    // Standard usage: Function without explicit return type should default to void
+    // This tests lines 278-279 where return_type = PrimitiveType::void_() is executed
+
+    using namespace jsv;
+
+    SECTION("Function without return type defaults to void") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // No colon for return type - should default to void
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE_FALSE(program->statements().empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        // Verify return type is void
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
+    }
+
+    SECTION("Function with parameters but no return type defaults to void") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "bar", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // No colon for return type - should default to void
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
+    }
+
+    SECTION("Function with Unicode name and no return type defaults to void") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierUnicode, "Διαγωνίσμα", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // No colon for return type - should default to void
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
+    }
+
+    SECTION("Function with empty body and no return type defaults to void") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "empty", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // No colon for return type
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
+    }
+}
+
+TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)",
+          "[Parser][parse_function][Line290-291][T-PF-009]") {
+    // Edge case: Function declaration without body should produce error E1006
+    // This tests lines 290-291 where syntax_error is called with ErrorCode::E1006
+
+    using namespace jsv;
+
+    SECTION("Function with EOF after parameter list - error on body parse") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "incomplete", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // EOF immediately after parameter list - no body possible
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_block_stmt will fail because there's no opening brace
+        REQUIRE_FALSE(errors.empty());
+    }
+
+    SECTION("Function with CloseBrace instead of OpenBrace - error on body parse") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "broken", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // CloseBrace instead of OpenBrace - body parsing should fail
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_block_stmt advances and expects OpenBrace, finds CloseBrace
+        REQUIRE_FALSE(errors.empty());
+    }
+
+    SECTION("Function with keyword instead of body block - error on body parse") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "invalid", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // Next token is a keyword, not OpenBrace
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_block_stmt expects OpenBrace, finds KeywordReturn
+        REQUIRE_FALSE(errors.empty());
+    }
+
+    SECTION("Function with identifier instead of body block - error on body parse") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "nobranch", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // Identifier instead of OpenBrace for body
+        tokens.emplace_back(TokenKind::IdentifierAscii, "someVar", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_block_stmt expects OpenBrace, finds Identifier
+        REQUIRE_FALSE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
+          "[Parser][parse_function][ReturnType][T-PF-010]") {
+    // Comprehensive test: All primitive types as return types
+    // Tests interaction between lines 275-283 (return type parsing and default)
+
+    using namespace jsv;
+
+    SECTION("Function returning i32") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "get_i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::I32);
+    }
+
+    SECTION("Function returning f64") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "get_f64", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeF64, "f64", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::F64);
+    }
+
+    SECTION("Function returning char") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "get_char", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeChar, "char", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Char);
+    }
+
+    SECTION("Function returning bool") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "get_bool", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeBool, "bool", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Bool);
+    }
+
+    SECTION("Function returning CustomType") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "get_custom", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "MyType", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->return_type().has_value());
+        REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Custom);
+    }
+}
 
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
