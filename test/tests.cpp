@@ -12249,6 +12249,968 @@ TEST_CASE("get_binary_op: EqualEqual converts to BinaryOp::Eq", "[get_binary_op]
     REQUIRE(*result == jsv::BinaryOp::Eq);
 }
 
+// =============================================================================
+// Parser: parse_main_function() Tests - Lines 216-217 Coverage
+// =============================================================================
+// These tests specifically target the parse_main_function() code path in
+// Parser::parse_stmt() switch statement (lines 216-217), ensuring comprehensive
+// coverage of the main function parsing functionality.
+
+TEST_CASE("Parser: parse_main_function - basic main function",
+          "[Parser][parse_main_function][Line216-217][T-PMF-001]") {
+    using namespace jsv;
+
+    SECTION("Minimal main function with empty body") {
+        // Scenario: Parse a minimal main function with empty block body
+        // Input: main {}
+        // Expected: MainStmt with empty body block, no errors
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Verify program structure
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 1);
+
+        // Verify main statement type
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+        REQUIRE(main_stmt->has_body());
+
+        // Verify body is a block with no statements
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().empty());
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with statements",
+          "[Parser][parse_main_function][Line216-217][T-PMF-002]") {
+    using namespace jsv;
+
+    SECTION("Main function with single expression statement") {
+        // Scenario: Parse main function containing a single expression statement
+        // Input: main { 42 }
+        // Expected: MainStmt with body containing one ExprStmt
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 1);
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+        REQUIRE(main_stmt->has_body());
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<IntegerLiteral>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main function with multiple statements") {
+        // Scenario: Parse main function with multiple mixed statements
+        // Input: main { var x: i32 = 1 var y: i32 = 2 return }
+        // Expected: MainStmt with body containing three statements
+        // Note: Language does NOT require semicolons - statements separated by newlines
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        // var x: i32 = 1
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+
+        // var y: i32 = 2
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "y", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+
+        // return
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 1);
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+        REQUIRE(main_stmt->has_body());
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 3);
+
+        // Verify first statement is var declaration
+        REQUIRE(node_isa<VarDecl>(body_block->statements()[0].get()));
+        // Verify second statement is var declaration
+        REQUIRE(node_isa<VarDecl>(body_block->statements()[1].get()));
+        // Verify third statement is return
+        REQUIRE(node_isa<ReturnStmt>(body_block->statements()[2].get()));
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with nested blocks",
+          "[Parser][parse_main_function][Line216-217][T-PMF-003]") {
+    using namespace jsv;
+
+    SECTION("Main function with nested block statements") {
+        // Scenario: Parse main function containing nested block structures
+        // Input: main { { { } } }
+        // Expected: MainStmt with nested BlockStmt structures
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 1);
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+        REQUIRE(main_stmt->has_body());
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        // Verify nested block structure
+        const auto *nested1 = node_dyn_cast<const BlockStmt>(body_block->statements()[0].get());
+        REQUIRE(nested1 != nullptr);
+        REQUIRE(nested1->statements().size() == 1);
+
+        const auto *nested2 = node_dyn_cast<const BlockStmt>(nested1->statements()[0].get());
+        REQUIRE(nested2 != nullptr);
+        REQUIRE(nested2->statements().empty());
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with control flow",
+          "[Parser][parse_main_function][Line216-217][T-PMF-004]") {
+    using namespace jsv;
+
+    SECTION("Main function with if-else statement") {
+        // Scenario: Parse main function containing if-else control flow
+        // Input: main { if(true) { } else { } }
+        // Expected: MainStmt with IfStmt containing both branches
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordElse, "else", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 1);
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+        REQUIRE(main_stmt->has_body());
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *if_stmt = node_dyn_cast<IfStmt>(body_block->statements()[0].get());
+        REQUIRE(if_stmt != nullptr);
+        REQUIRE(if_stmt->has_else());
+    }
+
+    SECTION("Main function with while loop") {
+        // Scenario: Parse main function containing while loop
+        // Input: main { while(true) { } }
+        // Expected: MainStmt with WhileStmt
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordWhile, "while", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+        REQUIRE(node_isa<WhileStmt>(body_block->statements()[0].get()));
+    }
+
+    SECTION("Main function with for loop") {
+        // Scenario: Parse main function containing for loop
+        // Input: main { for(var i: i32 = 0; i < 10; i = i + 1) { } }
+        // Expected: MainStmt with ForStmt
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+
+        // Initializer: var i: i32 = 0
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
+        // Condition: i < 10
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "10", SourceSpan{});
+        tokens.emplace_back(TokenKind::Semicolon, ";", SourceSpan{});
+
+        // Increment: i = i + 1
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "i", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+        REQUIRE(node_isa<ForStmt>(body_block->statements()[0].get()));
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with break/continue",
+          "[Parser][parse_main_function][Line216-217][T-PMF-005]") {
+    using namespace jsv;
+
+    SECTION("Main function with break statement") {
+        // Scenario: Parse main function containing break statement
+        // Input: main { while(true) { break; } }
+        // Expected: MainStmt with WhileStmt containing BreakStmt
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordWhile, "while", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordBreak, "break", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        // Note: parser may produce semantic errors for break/continue, but AST structure is correct
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *while_stmt = node_dyn_cast<WhileStmt>(body_block->statements()[0].get());
+        REQUIRE(while_stmt != nullptr);
+
+        const auto *while_body = node_dyn_cast<const BlockStmt>(&while_stmt->body());
+        REQUIRE(while_body != nullptr);
+        REQUIRE(while_body->statements().size() == 1);
+        REQUIRE(while_body->statements()[0]->kind() == NodeKind::BreakStmt);
+    }
+
+    SECTION("Main function with continue statement") {
+        // Scenario: Parse main function containing continue statement
+        // Input: main { while(true) { continue; } }
+        // Expected: MainStmt with WhileStmt containing ContinueStmt
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordWhile, "while", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordContinue, "continue", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        // Note: parser may produce semantic errors for break/continue, but AST structure is correct
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+
+        auto *while_stmt = node_dyn_cast<WhileStmt>(body_block->statements()[0].get());
+        REQUIRE(while_stmt != nullptr);
+
+        const auto *while_body = node_dyn_cast<const BlockStmt>(&while_stmt->body());
+        REQUIRE(while_body != nullptr);
+        REQUIRE(while_body->statements().size() == 1);
+        REQUIRE(while_body->statements()[0]->kind() == NodeKind::ContinueStmt);
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with function call",
+          "[Parser][parse_main_function][Line216-217][T-PMF-006]") {
+    using namespace jsv;
+
+    SECTION("Main function with function call expression") {
+        // Scenario: Parse main function containing function call
+        // Input: main { foo(42); }
+        // Expected: MainStmt with ExprStmt containing Call expression
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<CallExpr>(&expr_stmt->expression()));
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with const declaration",
+          "[Parser][parse_main_function][Line216-217][T-PMF-007]") {
+    using namespace jsv;
+
+    SECTION("Main function with const variable declaration") {
+        // Scenario: Parse main function containing const declaration
+        // Input: main { const x: i32 = 42; }
+        // Expected: MainStmt with VarDecl marked as const
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordConst, "const", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *var_decl = node_dyn_cast<VarDecl>(body_block->statements()[0].get());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->is_const() == true);
+        REQUIRE(var_decl->name() == "x");
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - main with multiple declarations",
+          "[Parser][parse_main_function][Line216-217][T-PMF-008]") {
+    using namespace jsv;
+
+    SECTION("Main function with comma-separated variable declarations") {
+        // Scenario: Parse main function with multiple variables in single declaration
+        // Input: main { var x: i32, y: i32, z: i32 = 1, 2, 3; }
+        // Expected: MainStmt with VarDecl containing three names and initializers
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "y", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "z", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "3", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *var_decl = node_dyn_cast<VarDecl>(body_block->statements()[0].get());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->names().size() == 3);
+        REQUIRE(var_decl->names()[0] == "x");
+        REQUIRE(var_decl->names()[1] == "y");
+        REQUIRE(var_decl->names()[2] == "z");
+        REQUIRE(var_decl->initializers().size() == 3);
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - error cases",
+          "[Parser][parse_main_function][Line216-217][ErrorHandling][T-PMF-ERR-001]") {
+    using namespace jsv;
+
+    SECTION("Main function with unclosed block - error recovery") {
+        // Edge case: Missing closing brace for main block
+        // Input: main {
+        // Expected: Error reported, parser attempts recovery
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        // Missing CloseBrace - syntax error
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Parser should report error but not crash
+        REQUIRE(program != nullptr);
+        REQUIRE_FALSE(errors.empty());
+        
+        // Verify at least one error was reported
+        REQUIRE(errors.size() >= 1);
+    }
+
+    SECTION("Main function followed by another statement") {
+        // Normal case: Multiple main functions or main + other statements
+        // Input: main { } var x: i32 = 1;
+        // Expected: Both statements parsed successfully
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE(program->statements().size() == 2);
+
+        // First statement should be main
+        REQUIRE(node_isa<MainStmt>(program->statements()[0].get()));
+
+        // Second statement should be var declaration
+        REQUIRE(node_isa<VarDecl>(program->statements()[1].get()));
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - corner cases with literals",
+          "[Parser][parse_main_function][Line216-217][CornerCases][T-PMF-CC-001]") {
+    using namespace jsv;
+
+    SECTION("Main with string literal") {
+        // Corner case: Main function with string literal expression
+        // Input: main { "hello"; }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::StringLiteral, "hello", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<StringLiteral>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with char literal") {
+        // Corner case: Main function with char literal expression
+        // Input: main { 'a'; }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CharLiteral, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<CharLiteral>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with bool literal true") {
+        // Corner case: Main function with bool literal
+        // Input: main { true }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<BoolLiteral>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with nullptr literal") {
+        // Corner case: Main function with nullptr literal
+        // Input: main { nullptr }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordNullptr, "nullptr", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<NullLiteral>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with array literal") {
+        // Corner case: Main function with array literal in variable declaration
+        // Input: main { var arr = {1, 2, 3}; }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::KeywordVar, "var", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "arr", SourceSpan{});
+        tokens.emplace_back(TokenKind::Equal, "=", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "3", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *var_decl = node_dyn_cast<VarDecl>(body_block->statements()[0].get());
+        REQUIRE(var_decl != nullptr);
+        REQUIRE(var_decl->has_initializer());
+        REQUIRE(var_decl->initializers()[0]->kind() == NodeKind::ArrayLiteral);
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - unary operators",
+          "[Parser][parse_main_function][Line216-217][UnaryOps][T-PMF-UO-001]") {
+    using namespace jsv;
+
+    SECTION("Main with unary minus") {
+        // Corner case: Main function with unary minus expression
+        // Input: main { -42 }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Minus, "-", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<UnaryExpr>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with logical not") {
+        // Corner case: Main function with logical not expression
+        // Input: main { !true }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Not, "!", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<UnaryExpr>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with pre-increment") {
+        // Corner case: Main function with pre-increment expression
+        // Input: main { ++x }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<UnaryExpr>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with pre-decrement") {
+        // Corner case: Main function with pre-decrement expression
+        // Input: main { --x }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::MinusMinus, "--", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<UnaryExpr>(&expr_stmt->expression()));
+    }
+}
+
+TEST_CASE("Parser: parse_main_function - binary operators",
+          "[Parser][parse_main_function][Line216-217][BinaryOps][T-PMF-BO-001]") {
+    using namespace jsv;
+
+    SECTION("Main with addition expression") {
+        // Normal case: Main function with binary addition
+        // Input: main { 1 + 2 }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<BinaryExpr>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with comparison expression") {
+        // Normal case: Main function with comparison operator
+        // Input: main { 1 < 2 }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Less, "<", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<BinaryExpr>(&expr_stmt->expression()));
+    }
+
+    SECTION("Main with logical and expression") {
+        // Normal case: Main function with logical AND
+        // Input: main { true && false }
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordMain, "main", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "true", SourceSpan{});
+        tokens.emplace_back(TokenKind::AndAnd, "&&", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordBool, "false", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *main_stmt = node_dyn_cast<MainStmt>(program->statements()[0].get());
+        REQUIRE(main_stmt != nullptr);
+
+        const auto *body_block = node_dyn_cast<const BlockStmt>(&main_stmt->body());
+        REQUIRE(body_block != nullptr);
+        REQUIRE(body_block->statements().size() == 1);
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(body_block->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        REQUIRE(node_isa<BinaryExpr>(&expr_stmt->expression()));
+    }
+}
+
 TEST_CASE("get_binary_op: NotEqual converts to BinaryOp::Neq", "[get_binary_op][equality][T-GBOP-007]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::NotEqual, "!=", 3, 4, 23);
     auto result = jsv::get_binary_op(token);
