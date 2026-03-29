@@ -15037,6 +15037,23 @@ TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)"
         tokens.emplace_back(TokenKind::IdentifierAscii, "incomplete", SourceSpan{});
         tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_block_stmt will fail because there's no opening brace
+        REQUIRE(!errors.empty());
+    }
+
+    SECTION("Function with EOF after parameter list - error on body parse") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "incomplete", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
         // EOF immediately after parameter list - no body possible
         tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
 
