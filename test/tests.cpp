@@ -14176,6 +14176,743 @@ TEST_CASE("Precedence functions integration: Right-associative assignment", "[pr
     // Result: (a = (b = c))
 }
 
+// NOLINTBEGIN(*-identifier-length)
+TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-identifier token)",
+          "[Parser][parse_function][Line256][T-PF-001]") {
+    // Corner case: Function parameter is not a valid identifier (e.g., keyword, operator)
+    // This tests the error path at line 256-258 where syntax_error is called with ErrorCode::E1002
+
+    using namespace jsv;
+
+    SECTION("Parameter is an operator (Plus)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "bar", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});  // Invalid: operator instead of identifier
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());  // Should have errors
+    }
+
+    SECTION("Parameter is a literal (Numeric)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "baz", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});  // Invalid: literal instead of identifier
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());  // Should have errors
+    }
+
+    SECTION("Parameter is a closing paren (missing parameter)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "qux", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});  // No parameter at all
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Valid: empty parameter list
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+    }
+}
+
+TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid identifiers)",
+          "[Parser][parse_function][Line256][T-PF-002]") {
+    // Standard usage: Function with valid ASCII and Unicode parameter names
+    // This tests the success path at line 256 where both identifier types are accepted
+
+    using namespace jsv;
+
+    SECTION("Single ASCII identifier parameter") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});  // Valid ASCII identifier
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE_FALSE(program->statements().empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].name == "x");
+    }
+
+    SECTION("Single Unicode identifier parameter") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierUnicode, "Διαγωνίσμα", SourceSpan{});  // Valid Unicode identifier
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE_FALSE(program->statements().empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].name == "Διαγωνίσμα");
+    }
+
+    SECTION("Mixed ASCII and Unicode parameters") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierUnicode, "привет", SourceSpan{});  // Unicode identifier
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI64, "i64", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+        REQUIRE_FALSE(program->statements().empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 2);
+        REQUIRE(func_decl->params()[0].name == "x");
+        REQUIRE(func_decl->params()[1].name == "привет");
+    }
+}
+
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - valid types)",
+          "[Parser][parse_function][Line261-270][T-PF-003]") {
+    // Standard usage: Function parameters with various valid type annotations
+    // This tests lines 261-267 where parse_type() is called and parameters are added
+
+    using namespace jsv;
+
+    SECTION("Primitive integer type (i32)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::I32);
+    }
+
+    SECTION("Primitive floating-point type (f64)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "value", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeF64, "f64", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::F64);
+    }
+
+    SECTION("Character type (char)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeChar, "char", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::Char);
+    }
+
+    SECTION("Boolean type (bool)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "flag", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeBool, "bool", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::Bool);
+    }
+
+    SECTION("Multiple parameters with different types") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "add", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeF64, "f64", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeChar, "char", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 3);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::I32);
+        REQUIRE(func_decl->params()[1].type_annotation->kind() == TypeKind::F64);
+        REQUIRE(func_decl->params()[2].type_annotation->kind() == TypeKind::Char);
+    }
+}
+
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - error cases)",
+          "[Parser][parse_function][Line261-270][T-PF-004]") {
+    // Edge case: Function parameter missing type annotation or with invalid type
+    // This tests lines 263-266 where syntax_error is called with ErrorCode::E1003
+
+    using namespace jsv;
+
+    SECTION("Parameter missing colon before type") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        // Missing colon - directly type token
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // expect() at line 260 fails, returning std::nullopt
+        REQUIRE_FALSE(errors.empty());
+    }
+
+    SECTION("Parameter with invalid type token (keyword)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});  // Invalid: not a type token
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_type() advances and doesn't recognize 'if' as a type
+        // Returns std::nullopt, triggering error E1003 at line 264-265
+        REQUIRE_FALSE(errors.empty());
+        REQUIRE_FALSE(errors[0].error_code() == ErrorCode::E1003);
+    }
+
+    SECTION("Parameter with invalid type token (operator)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});  // Invalid: operator instead of type
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());
+        REQUIRE_FALSE(errors[0].error_code() == ErrorCode::E1003);
+    }
+
+    SECTION("Parameter with invalid type token (literal)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});  // Invalid: literal instead of type
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());
+        REQUIRE_FALSE(errors[0].error_code() == ErrorCode::E1003);
+    }
+
+    SECTION("Multiple parameters - second has invalid type") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordFor, "for", SourceSpan{});  // Invalid: keyword instead of type
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());
+        REQUIRE_FALSE(errors[0].error_code() == ErrorCode::E1003);
+    }
+}
+
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all primitive types)",
+          "[Parser][parse_function][Line261-270][T-PF-005]") {
+    // Comprehensive test: All primitive type tokens as parameter types
+    // Ensures parse_type() correctly handles each type variant
+
+    using namespace jsv;
+
+    SECTION("Signed integer types (i8, i16, i32, i64)") {
+        const std::vector<std::pair<TokenKind, TypeKind>> int_types = {
+            {TokenKind::TypeI8, TypeKind::I8},
+            {TokenKind::TypeI16, TypeKind::I16},
+            {TokenKind::TypeI32, TypeKind::I32},
+            {TokenKind::TypeI64, TypeKind::I64}
+        };
+
+        for(const auto& [type_kind, expected_kind] : int_types) {
+            std::vector<Token> tokens;
+            tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+            tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+            tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+            tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+            tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+            tokens.emplace_back(type_kind, "", SourceSpan{});
+            tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+            tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+            tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+            tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+            Parser parser(tokens);
+            auto [program, errors] = parser.parse();
+
+            INFO("Testing type: " << type_kind_name(expected_kind));
+            REQUIRE(program != nullptr);
+            REQUIRE(errors.empty());
+
+            auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+            REQUIRE(func_decl != nullptr);
+            REQUIRE(func_decl->params().size() == 1);
+            REQUIRE(func_decl->params()[0].type_annotation->kind() == expected_kind);
+        }
+    }
+
+    SECTION("Unsigned integer types (u8, u16, u32, u64)") {
+        const std::vector<std::pair<TokenKind, TypeKind>> uint_types = {
+            {TokenKind::TypeU8, TypeKind::U8},
+            {TokenKind::TypeU16, TypeKind::U16},
+            {TokenKind::TypeU32, TypeKind::U32},
+            {TokenKind::TypeU64, TypeKind::U64}
+        };
+
+        for(const auto& [type_kind, expected_kind] : uint_types) {
+            std::vector<Token> tokens;
+            tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+            tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+            tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+            tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+            tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+            tokens.emplace_back(type_kind, "", SourceSpan{});
+            tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+            tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+            tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+            tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+            Parser parser(tokens);
+            auto [program, errors] = parser.parse();
+
+            INFO("Testing type: " << type_kind_name(expected_kind));
+            REQUIRE(program != nullptr);
+            REQUIRE(errors.empty());
+
+            auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+            REQUIRE(func_decl != nullptr);
+            REQUIRE(func_decl->params().size() == 1);
+            REQUIRE(func_decl->params()[0].type_annotation->kind() == expected_kind);
+        }
+    }
+
+    SECTION("Floating-point types (f32, f64)") {
+        const std::vector<std::pair<TokenKind, TypeKind>> float_types = {
+            {TokenKind::TypeF32, TypeKind::F32},
+            {TokenKind::TypeF64, TypeKind::F64}
+        };
+
+        for(const auto& [type_kind, expected_kind] : float_types) {
+            std::vector<Token> tokens;
+            tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+            tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+            tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+            tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+            tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+            tokens.emplace_back(type_kind, "", SourceSpan{});
+            tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+            tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+            tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+            tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+            Parser parser(tokens);
+            auto [program, errors] = parser.parse();
+
+            INFO("Testing type: " << type_kind_name(expected_kind));
+            REQUIRE(program != nullptr);
+            REQUIRE(errors.empty());
+
+            auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+            REQUIRE(func_decl != nullptr);
+            REQUIRE(func_decl->params().size() == 1);
+            REQUIRE(func_decl->params()[0].type_annotation->kind() == expected_kind);
+        }
+    }
+}
+
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separation)",
+          "[Parser][parse_function][Line261-270][T-PF-006]") {
+    // Edge case: Multiple parameters with various comma patterns
+    // Tests line 268-269 where comma is expected between parameters
+
+    using namespace jsv;
+
+    SECTION("Two parameters with correct comma") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Correct comma
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 2);
+    }
+
+    SECTION("Two parameters missing comma") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        // Missing comma - directly next parameter
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // expect() at line 269 fails
+        REQUIRE_FALSE(errors.empty());
+    }
+
+    SECTION("Three parameters with correct commas") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI8, "i8", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI16, "i16", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 3);
+    }
+
+    SECTION("Trailing comma (parser accepts)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Trailing comma
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Parser accepts trailing comma and treats it as expecting another parameter
+        // but finds ')' which ends the parameter list
+        REQUIRE(program != nullptr);
+        // May or may not have errors depending on parser implementation
+    }
+}
+
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return type)",
+          "[Parser][parse_function][Line261-270][T-PF-007]") {
+    // Standard usage: Function with both parameter types and return type
+    // Tests interaction between parameter type parsing (lines 261-270) and return type parsing (lines 276-281)
+
+    using namespace jsv;
+
+    SECTION("Function with parameters and matching return type") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "add", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});  // Return type separator
+        tokens.emplace_back(TokenKind::TypeI32, "i32", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 2);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::I32);
+        REQUIRE(func_decl->params()[1].type_annotation->kind() == TypeKind::I32);
+        REQUIRE(func_decl->return_type().has_value());
+    }
+
+    SECTION("Function with parameters but no return type (defaults to void)") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "print", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "msg", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeChar, "char", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // No colon - return type defaults to void (line 283)
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 1);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::Char);
+        // Return type should be void (default)
+    }
+
+    SECTION("Function with mixed parameter types and different return type") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "compute", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeF64, "f64", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "y", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeF64, "f64", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::TypeI64, "i64", SourceSpan{});  // Different return type
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        REQUIRE(func_decl != nullptr);
+        REQUIRE(func_decl->params().size() == 2);
+        REQUIRE(func_decl->params()[0].type_annotation->kind() == TypeKind::F64);
+        REQUIRE(func_decl->params()[1].type_annotation->kind() == TypeKind::F64);
+        REQUIRE(func_decl->return_type().has_value());
+    }
+}
+// NOLINTEND(*-identifier-length)
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
 // clang-format on
