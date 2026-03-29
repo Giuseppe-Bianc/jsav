@@ -14172,8 +14172,6 @@ TEST_CASE("Precedence functions integration: Right-associative assignment", "[pr
     // Since rbp(22) > lbp(21), right-associativity is enforced
     // Result: (a = (b = c))
 }
-
-// NOLINTBEGIN(*-identifier-length)
 TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-identifier token)",
           "[Parser][parse_function][Line256][T-PF-001]") {
     // Corner case: Function parameter is not a valid identifier (e.g., keyword, operator)
