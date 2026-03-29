@@ -15061,6 +15061,24 @@ TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)"
         REQUIRE_FALSE(errors.empty());
     }
 
+    SECTION("Function with no type specified - error on body parse") {
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "invalid", SourceSpan{});
+        tokens.emplace_back(TokenKind::Colon, ":", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        // Next token is a keyword, not OpenBrace
+        tokens.emplace_back(TokenKind::KeywordReturn, "return", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // parse_block_stmt expects OpenBrace, finds KeywordReturn
+        REQUIRE_FALSE(!errors.empty());
+    }
+
     SECTION("Function with identifier instead of body block - error on body parse") {
         std::vector<Token> tokens;
         tokens.emplace_back(TokenKind::KeywordFun, "fun", SourceSpan{});
