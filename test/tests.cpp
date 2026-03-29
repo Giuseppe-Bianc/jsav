@@ -2,11 +2,9 @@
 // NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
 // clang-format on
 #include "testsConstanst.hpp"
-#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
-#include <catch2/matchers/catch_matchers_container_properties.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
 #include <future>
@@ -14,7 +12,6 @@
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::EndsWith;
 using Catch::Matchers::Message;
-using Catch::Matchers::MessageMatches;
 using Catch::Matchers::StartsWith;
 
 #define REQ_FORMAT(type, string) REQUIRE(FORMAT("{}", type) == (string));
