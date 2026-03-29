@@ -14904,8 +14904,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return ty
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)",
-          "[Parser][parse_function][Line278-279][T-PF-008]") {
+TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)", "[Parser][parse_function][Line278-279][T-PF-008]") {
     // Standard usage: Function without explicit return type should default to void
     // This tests lines 278-279 where return_type = PrimitiveType::void_() is executed
 
@@ -14929,7 +14928,7 @@ TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)",
         REQUIRE(errors.empty());
         REQUIRE_FALSE(program->statements().empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         // Verify return type is void
@@ -14956,7 +14955,7 @@ TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
@@ -14979,7 +14978,7 @@ TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
@@ -15002,15 +15001,14 @@ TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Void);
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)",
-          "[Parser][parse_function][Line290-291][T-PF-009]") {
+TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)", "[Parser][parse_function][Line290-291][T-PF-009]") {
     // Edge case: Function declaration without body should produce error E1006
     // This tests lines 290-291 where syntax_error is called with ErrorCode::E1006
 
@@ -15091,8 +15089,7 @@ TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)"
     }
 }
 
-TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
-          "[Parser][parse_function][ReturnType][T-PF-010]") {
+TEST_CASE("Parser: parse_function - comprehensive return type scenarios", "[Parser][parse_function][ReturnType][T-PF-010]") {
     // Comprehensive test: All primitive types as return types
     // Tests interaction between lines 275-283 (return type parsing and default)
 
@@ -15116,7 +15113,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::I32);
@@ -15140,7 +15137,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::F64);
@@ -15164,7 +15161,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Char);
@@ -15188,7 +15185,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Bool);
@@ -15212,7 +15209,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios",
         REQUIRE(program != nullptr);
         REQUIRE(errors.empty());
 
-        auto* func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
+        auto *func_decl = node_dyn_cast<FuncDecl>(program->statements()[0].get());
         REQUIRE(func_decl != nullptr);
         REQUIRE(func_decl->return_type().has_value());
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Custom);
