@@ -16462,6 +16462,960 @@ TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser][parse_c
     }
 }
 
+namespace {
+    // Helper to create IntegerLiteral for ArrayType size expressions
+    std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) {
+        return std::make_shared<const jsv::IntegerLiteral>(value);
+    }
+}  // namespace
+TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Type][type_kind_name][enum]") {
+    using jsv::TypeKind;
+    using jsv::type_kind_name;
+
+    SECTION("Signed integer types") {
+        REQUIRE(type_kind_name(TypeKind::I8) == "i8");
+        REQUIRE(type_kind_name(TypeKind::I16) == "i16");
+        REQUIRE(type_kind_name(TypeKind::I32) == "i32");
+        REQUIRE(type_kind_name(TypeKind::I64) == "i64");
+    }
+
+    SECTION("Unsigned integer types") {
+        REQUIRE(type_kind_name(TypeKind::U8) == "u8");
+        REQUIRE(type_kind_name(TypeKind::U16) == "u16");
+        REQUIRE(type_kind_name(TypeKind::U32) == "u32");
+        REQUIRE(type_kind_name(TypeKind::U64) == "u64");
+    }
+
+    SECTION("Floating-point types") {
+        REQUIRE(type_kind_name(TypeKind::F32) == "f32");
+        REQUIRE(type_kind_name(TypeKind::F64) == "f64");
+    }
+
+    SECTION("Character and string types") {
+        REQUIRE(type_kind_name(TypeKind::Char) == "char");
+        REQUIRE(type_kind_name(TypeKind::String) == "string");
+    }
+
+    SECTION("Boolean type") {
+        REQUIRE(type_kind_name(TypeKind::Bool) == "bool");
+    }
+
+    SECTION("Custom type") {
+        REQUIRE(type_kind_name(TypeKind::Custom) == "custom");
+    }
+
+    SECTION("Compound types") {
+        REQUIRE(type_kind_name(TypeKind::Array) == "array");
+        REQUIRE(type_kind_name(TypeKind::Vector) == "vector");
+    }
+
+    SECTION("Special types") {
+        REQUIRE(type_kind_name(TypeKind::Void) == "void");
+        REQUIRE(type_kind_name(TypeKind::NullPtr) == "nullptr");
+    }
+}
+
+TEST_CASE("type_kind_name is constexpr", "[Type][type_kind_name][constexpr]") {
+    using jsv::TypeKind;
+    using jsv::type_kind_name;
+
+    STATIC_REQUIRE(type_kind_name(TypeKind::I32) == "i32");
+    STATIC_REQUIRE(type_kind_name(TypeKind::F64) == "f64");
+    STATIC_REQUIRE(type_kind_name(TypeKind::Void) == "void");
+}
+
+TEST_CASE("PrimitiveType singleton instances are created correctly", "[Type][PrimitiveType][singleton]") {
+    using jsv::PrimitiveType;
+
+    SECTION("Signed integer types") {
+        const auto i8 = PrimitiveType::i8();
+        REQUIRE(i8 != nullptr);
+        REQUIRE(i8->kind() == jsv::TypeKind::I8);
+
+        const auto i16 = PrimitiveType::i16();
+        REQUIRE(i16 != nullptr);
+        REQUIRE(i16->kind() == jsv::TypeKind::I16);
+
+        const auto i32 = PrimitiveType::i32();
+        REQUIRE(i32 != nullptr);
+        REQUIRE(i32->kind() == jsv::TypeKind::I32);
+
+        const auto i64 = PrimitiveType::i64();
+        REQUIRE(i64 != nullptr);
+        REQUIRE(i64->kind() == jsv::TypeKind::I64);
+    }
+
+    SECTION("Unsigned integer types") {
+        const auto u8 = PrimitiveType::u8();
+        REQUIRE(u8 != nullptr);
+        REQUIRE(u8->kind() == jsv::TypeKind::U8);
+
+        const auto u16 = PrimitiveType::u16();
+        REQUIRE(u16 != nullptr);
+        REQUIRE(u16->kind() == jsv::TypeKind::U16);
+
+        const auto u32 = PrimitiveType::u32();
+        REQUIRE(u32 != nullptr);
+        REQUIRE(u32->kind() == jsv::TypeKind::U32);
+
+        const auto u64 = PrimitiveType::u64();
+        REQUIRE(u64 != nullptr);
+        REQUIRE(u64->kind() == jsv::TypeKind::U64);
+    }
+
+    SECTION("Floating-point types") {
+        const auto f32 = PrimitiveType::f32();
+        REQUIRE(f32 != nullptr);
+        REQUIRE(f32->kind() == jsv::TypeKind::F32);
+
+        const auto f64 = PrimitiveType::f64();
+        REQUIRE(f64 != nullptr);
+        REQUIRE(f64->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("Character and string types") {
+        const auto charType = PrimitiveType::char_();
+        REQUIRE(charType != nullptr);
+        REQUIRE(charType->kind() == jsv::TypeKind::Char);
+
+        const auto stringType = PrimitiveType::string();
+        REQUIRE(stringType != nullptr);
+        REQUIRE(stringType->kind() == jsv::TypeKind::String);
+    }
+
+    SECTION("Boolean type") {
+        const auto boolType = PrimitiveType::bool_();
+        REQUIRE(boolType != nullptr);
+        REQUIRE(boolType->kind() == jsv::TypeKind::Bool);
+    }
+
+    SECTION("Void type") {
+        const auto voidType = PrimitiveType::void_();
+        REQUIRE(voidType != nullptr);
+        REQUIRE(voidType->kind() == jsv::TypeKind::Void);
+    }
+
+    SECTION("NullPtr type") {
+        const auto nullPtrType = PrimitiveType::nullptr_();
+        REQUIRE(nullPtrType != nullptr);
+        REQUIRE(nullPtrType->kind() == jsv::TypeKind::NullPtr);
+    }
+}
+
+TEST_CASE("PrimitiveType to_string returns correct type names", "[Type][PrimitiveType][to_string]") {
+    using jsv::PrimitiveType;
+
+    SECTION("Integer types") {
+        REQUIRE(PrimitiveType::i8()->to_string() == "i8");
+        REQUIRE(PrimitiveType::i16()->to_string() == "i16");
+        REQUIRE(PrimitiveType::i32()->to_string() == "i32");
+        REQUIRE(PrimitiveType::i64()->to_string() == "i64");
+        REQUIRE(PrimitiveType::u8()->to_string() == "u8");
+        REQUIRE(PrimitiveType::u16()->to_string() == "u16");
+        REQUIRE(PrimitiveType::u32()->to_string() == "u32");
+        REQUIRE(PrimitiveType::u64()->to_string() == "u64");
+    }
+
+    SECTION("Floating-point types") {
+        REQUIRE(PrimitiveType::f32()->to_string() == "f32");
+        REQUIRE(PrimitiveType::f64()->to_string() == "f64");
+    }
+
+    SECTION("Other primitive types") {
+        REQUIRE(PrimitiveType::char_()->to_string() == "char");
+        REQUIRE(PrimitiveType::string()->to_string() == "string");
+        REQUIRE(PrimitiveType::bool_()->to_string() == "bool");
+        REQUIRE(PrimitiveType::void_()->to_string() == "void");
+        REQUIRE(PrimitiveType::nullptr_()->to_string() == "nullptr");
+    }
+}
+
+TEST_CASE("PrimitiveType equality comparison", "[Type][PrimitiveType][equality]") {
+    using jsv::PrimitiveType;
+
+    SECTION("Same type instances are equal") {
+        REQUIRE(*PrimitiveType::i32() == *PrimitiveType::i32());
+        REQUIRE(*PrimitiveType::f64() == *PrimitiveType::f64());
+        REQUIRE(*PrimitiveType::string() == *PrimitiveType::string());
+    }
+
+    SECTION("Different type instances are not equal") {
+        REQUIRE(*PrimitiveType::i32() != *PrimitiveType::i64());
+        REQUIRE(*PrimitiveType::f32() != *PrimitiveType::f64());
+        REQUIRE(*PrimitiveType::i32() != *PrimitiveType::f32());
+        REQUIRE(*PrimitiveType::bool_() != *PrimitiveType::void_());
+    }
+
+    SECTION("Inequality operator is consistent") {
+        REQUIRE_FALSE(*PrimitiveType::i32() != *PrimitiveType::i32());
+        REQUIRE(*PrimitiveType::i32() != *PrimitiveType::u32());
+    }
+}
+
+TEST_CASE("PrimitiveType type predicates", "[Type][PrimitiveType][predicates]") {
+    using jsv::PrimitiveType;
+
+    SECTION("is_primitive returns true for all primitive types") {
+        REQUIRE(PrimitiveType::i32()->is_primitive());
+        REQUIRE(PrimitiveType::f64()->is_primitive());
+        REQUIRE(PrimitiveType::bool_()->is_primitive());
+        REQUIRE(PrimitiveType::void_()->is_primitive());
+        REQUIRE(PrimitiveType::nullptr_()->is_primitive());
+    }
+
+    SECTION("is_integer returns true for integer types only") {
+        REQUIRE(PrimitiveType::i32()->is_integer());
+        REQUIRE(PrimitiveType::u64()->is_integer());
+        REQUIRE_FALSE(PrimitiveType::f32()->is_integer());
+        REQUIRE_FALSE(PrimitiveType::bool_()->is_integer());
+    }
+
+    SECTION("is_signed_integer returns true for signed integers only") {
+        REQUIRE(PrimitiveType::i8()->is_signed_integer());
+        REQUIRE(PrimitiveType::i32()->is_signed_integer());
+        REQUIRE_FALSE(PrimitiveType::u32()->is_signed_integer());
+        REQUIRE_FALSE(PrimitiveType::f32()->is_signed_integer());
+    }
+
+    SECTION("is_unsigned_integer returns true for unsigned integers only") {
+        REQUIRE(PrimitiveType::u8()->is_unsigned_integer());
+        REQUIRE(PrimitiveType::u64()->is_unsigned_integer());
+        REQUIRE_FALSE(PrimitiveType::i32()->is_unsigned_integer());
+        REQUIRE_FALSE(PrimitiveType::f64()->is_unsigned_integer());
+    }
+
+    SECTION("is_floating_point returns true for floating-point types only") {
+        REQUIRE(PrimitiveType::f32()->is_floating_point());
+        REQUIRE(PrimitiveType::f64()->is_floating_point());
+        REQUIRE_FALSE(PrimitiveType::i32()->is_floating_point());
+        REQUIRE_FALSE(PrimitiveType::bool_()->is_floating_point());
+    }
+
+    SECTION("is_numeric returns true for integer and floating-point types") {
+        REQUIRE(PrimitiveType::i32()->is_numeric());
+        REQUIRE(PrimitiveType::u64()->is_numeric());
+        REQUIRE(PrimitiveType::f32()->is_numeric());
+        REQUIRE(PrimitiveType::f64()->is_numeric());
+        REQUIRE_FALSE(PrimitiveType::bool_()->is_numeric());
+        REQUIRE_FALSE(PrimitiveType::void_()->is_numeric());
+    }
+}
+
+TEST_CASE("PrimitiveType classof type check", "[Type][PrimitiveType][classof]") {
+    using jsv::PrimitiveType;
+
+    const auto i32 = PrimitiveType::i32();
+    const auto f64 = PrimitiveType::f64();
+    const auto voidType = PrimitiveType::void_();
+
+    // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
+    // The constexpr nature is in the function itself, not its result with runtime pointers
+    REQUIRE(PrimitiveType::classof(i32.get()));
+    REQUIRE(PrimitiveType::classof(f64.get()));
+    REQUIRE(PrimitiveType::classof(voidType.get()));
+}
+
+TEST_CASE("CustomType construction and basic properties", "[Type][CustomType][construction]") {
+    using jsv::CustomType;
+
+    SECTION("Construction with simple name") {
+        const CustomType myType("MyClass");
+        REQUIRE(myType.kind() == jsv::TypeKind::Custom);
+        REQUIRE(myType.name() == "MyClass");
+    }
+
+    SECTION("Construction with qualified name") {
+        const CustomType nsType("std::string");
+        REQUIRE(nsType.kind() == jsv::TypeKind::Custom);
+        REQUIRE(nsType.name() == "std::string");
+    }
+
+    SECTION("Construction with empty name") {
+        const CustomType emptyType("");
+        REQUIRE(emptyType.kind() == jsv::TypeKind::Custom);
+        REQUIRE(emptyType.name() == "");
+    }
+
+    SECTION("Construction with complex template-like name") {
+        const CustomType templateType("std::vector<int>");
+        REQUIRE(templateType.kind() == jsv::TypeKind::Custom);
+        REQUIRE(templateType.name() == "std::vector<int>");
+    }
+}
+
+TEST_CASE("CustomType to_string returns the type name", "[Type][CustomType][to_string]") {
+    using jsv::CustomType;
+
+    SECTION("Simple class name") {
+        const CustomType myClass("MyClass");
+        REQUIRE(myClass.to_string() == "MyClass");
+    }
+
+    SECTION("Namespaced type") {
+        const CustomType nsType("my_namespace::MyType");
+        REQUIRE(nsType.to_string() == "my_namespace::MyType");
+    }
+
+    SECTION("Type with underscores") {
+        const CustomType underscoreType("My_Custom_Type");
+        REQUIRE(underscoreType.to_string() == "My_Custom_Type");
+    }
+}
+
+TEST_CASE("CustomType equality comparison", "[Type][CustomType][equality]") {
+    using jsv::CustomType;
+
+    SECTION("Same name types are equal") {
+        const CustomType type1("MyClass");
+        const CustomType type2("MyClass");
+        REQUIRE(type1 == type2);
+        REQUIRE(type2 == type1);
+    }
+
+    SECTION("Different name types are not equal") {
+        const CustomType type1("MyClass");
+        const CustomType type2("OtherClass");
+        REQUIRE(type1 != type2);
+        REQUIRE(type2 != type1);
+    }
+
+    SECTION("Case-sensitive comparison") {
+        const CustomType type1("MyClass");
+        const CustomType type2("myclass");
+        REQUIRE(type1 != type2);
+    }
+
+    SECTION("Empty name comparison") {
+        const CustomType empty1("");
+        const CustomType empty2("");
+        REQUIRE(empty1 == empty2);
+    }
+
+    SECTION("Inequality with different qualified names") {
+        const CustomType type1("std::string");
+        const CustomType type2("std::vector");
+        REQUIRE(type1 != type2);
+    }
+}
+
+TEST_CASE("CustomType classof type check", "[Type][CustomType][classof]") {
+    using jsv::CustomType;
+
+    const CustomType myType("MyClass");
+    const jsv::TypeBase* basePtr = &myType;
+
+    // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
+    // Test that CustomType::classof returns false for PrimitiveType
+    const auto i32Type = jsv::PrimitiveType::i32();
+    REQUIRE(CustomType::classof(i32Type.get()) == false);
+    // Test that CustomType::classof returns true for CustomType
+    REQUIRE(CustomType::classof(basePtr));
+}
+
+TEST_CASE("ArrayType construction and basic properties", "[Type][ArrayType][construction]") {
+    using jsv::ArrayType;
+
+    SECTION("Construction with primitive element type") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.kind() == jsv::TypeKind::Array);
+        REQUIRE(*arrayType.element_type() == *elementType);
+        REQUIRE(arrayType.size_expr() != nullptr);
+    }
+
+    SECTION("Construction with custom element type") {
+        const auto elementType = std::make_shared<const jsv::CustomType>("MyClass");
+        const auto sizeExpr = makeIntegerLiteral(5);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.kind() == jsv::TypeKind::Array);
+        REQUIRE(arrayType.element_type()->kind() == jsv::TypeKind::Custom);
+    }
+
+    SECTION("Construction with size zero") {
+        const auto elementType = jsv::PrimitiveType::f64();
+        const auto sizeExpr = makeIntegerLiteral(0);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.kind() == jsv::TypeKind::Array);
+    }
+
+    SECTION("Construction with large size") {
+        const auto elementType = jsv::PrimitiveType::u8();
+        const auto sizeExpr = makeIntegerLiteral(1000000);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.kind() == jsv::TypeKind::Array);
+    }
+}
+
+TEST_CASE("ArrayType to_string with IntegerLiteral size", "[Type][ArrayType][to_string]") {
+    using jsv::ArrayType;
+
+    SECTION("Array of i32 with size 10") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.to_string() == "[i32; 10]");
+    }
+
+    SECTION("Array of f64 with size 5") {
+        const auto elementType = jsv::PrimitiveType::f64();
+        const auto sizeExpr = makeIntegerLiteral(5);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.to_string() == "[f64; 5]");
+    }
+
+    SECTION("Array of custom type with size 3") {
+        const auto elementType = std::make_shared<const jsv::CustomType>("MyClass");
+        const auto sizeExpr = makeIntegerLiteral(3);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.to_string() == "[MyClass; 3]");
+    }
+
+    SECTION("Array with size zero") {
+        const auto elementType = jsv::PrimitiveType::bool_();
+        const auto sizeExpr = makeIntegerLiteral(0);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.to_string() == "[bool; 0]");
+    }
+
+    SECTION("Array with large size") {
+        const auto elementType = jsv::PrimitiveType::u8();
+        const auto sizeExpr = makeIntegerLiteral(1024);
+        const ArrayType arrayType(elementType, sizeExpr);
+
+        REQUIRE(arrayType.to_string() == "[u8; 1024]");
+    }
+
+    SECTION("Nested array type") {
+        const auto innerElementType = jsv::PrimitiveType::i32();
+        const auto innerSizeExpr = makeIntegerLiteral(5);
+        const auto innerArrayType = std::make_shared<const ArrayType>(innerElementType, innerSizeExpr);
+        const auto outerSizeExpr = makeIntegerLiteral(10);
+        const ArrayType outerArrayType(innerArrayType, outerSizeExpr);
+
+        REQUIRE(outerArrayType.to_string() == "[[i32; 5]; 10]");
+    }
+}
+
+TEST_CASE("ArrayType to_string with non-IntegerLiteral size expression", "[Type][ArrayType][to_string][edge]") {
+    using jsv::ArrayType;
+
+    SECTION("Size expression is BinaryExpr") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        // Create a binary expression: 5 + 5
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(5);
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(5);
+        auto binaryExpr = std::make_unique<jsv::BinaryExpr>(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        
+        const ArrayType arrayType(elementType, std::move(binaryExpr));
+
+        // Should show <expr> for non-IntegerLiteral
+        REQUIRE(arrayType.to_string() == "[i32; <expr>]");
+    }
+
+    SECTION("Size expression is Identifier") {
+        const auto elementType = jsv::PrimitiveType::f64();
+        auto identExpr = std::make_unique<jsv::Identifier>("SIZE");
+        
+        const ArrayType arrayType(elementType, std::move(identExpr));
+
+        REQUIRE(arrayType.to_string() == "[f64; <expr>]");
+    }
+}
+
+TEST_CASE("ArrayType equality comparison", "[Type][ArrayType][equality]") {
+    using jsv::ArrayType;
+
+    SECTION("Same element type and same size expression pointer are equal") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const ArrayType arrayType1(elementType, sizeExpr);
+        const ArrayType arrayType2(elementType, sizeExpr);
+
+        REQUIRE(arrayType1 == arrayType2);
+    }
+
+    SECTION("Different element types are not equal") {
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const ArrayType arrayType1(jsv::PrimitiveType::i32(), sizeExpr);
+        const ArrayType arrayType2(jsv::PrimitiveType::f64(), sizeExpr);
+
+        REQUIRE(arrayType1 != arrayType2);
+    }
+
+    SECTION("Different size expression pointers are not equal (pointer comparison)") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const auto sizeExpr1 = makeIntegerLiteral(10);
+        const auto sizeExpr2 = makeIntegerLiteral(10);
+        const ArrayType arrayType1(elementType, sizeExpr1);
+        const ArrayType arrayType2(elementType, sizeExpr2);
+
+        // Note: Currently uses pointer equality for size expressions
+        REQUIRE(arrayType1 != arrayType2);
+    }
+
+    SECTION("Same kind but different types are not equal") {
+        const auto sizeExpr = makeIntegerLiteral(5);
+        const ArrayType arrayType1(jsv::PrimitiveType::i32(), sizeExpr);
+        const ArrayType arrayType2(jsv::PrimitiveType::i64(), sizeExpr);
+
+        REQUIRE(arrayType1 != arrayType2);
+    }
+}
+
+TEST_CASE("ArrayType classof type check", "[Type][ArrayType][classof]") {
+    using jsv::ArrayType;
+
+    const auto elementType = jsv::PrimitiveType::i32();
+    const auto sizeExpr = makeIntegerLiteral(10);
+    const ArrayType arrayType(elementType, sizeExpr);
+    const jsv::TypeBase* basePtr = &arrayType;
+
+    // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
+    REQUIRE(ArrayType::classof(basePtr));
+}
+
+TEST_CASE("ArrayType is_primitive returns false", "[Type][ArrayType][predicates]") {
+    using jsv::ArrayType;
+
+    const auto elementType = jsv::PrimitiveType::i32();
+    const auto sizeExpr = makeIntegerLiteral(10);
+    const ArrayType arrayType(elementType, sizeExpr);
+
+    REQUIRE_FALSE(arrayType.is_primitive());
+    REQUIRE_FALSE(arrayType.is_integer());
+    REQUIRE_FALSE(arrayType.is_numeric());
+}
+
+// ============================================================================
+// VectorType Tests
+// ============================================================================
+
+TEST_CASE("VectorType construction and basic properties", "[Type][VectorType][construction]") {
+    using jsv::VectorType;
+
+    SECTION("Construction with primitive element type") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const VectorType vectorType(elementType);
+
+        REQUIRE(vectorType.kind() == jsv::TypeKind::Vector);
+        REQUIRE(*vectorType.element_type() == *elementType);
+    }
+
+    SECTION("Construction with custom element type") {
+        const auto elementType = std::make_shared<const jsv::CustomType>("MyClass");
+        const VectorType vectorType(elementType);
+
+        REQUIRE(vectorType.kind() == jsv::TypeKind::Vector);
+        REQUIRE(vectorType.element_type()->kind() == jsv::TypeKind::Custom);
+    }
+
+    SECTION("Construction with another VectorType (nested)") {
+        const auto innerElementType = jsv::PrimitiveType::f64();
+        const auto innerVector = std::make_shared<const VectorType>(innerElementType);
+        const VectorType outerVector(innerVector);
+
+        REQUIRE(outerVector.kind() == jsv::TypeKind::Vector);
+        REQUIRE(outerVector.element_type()->kind() == jsv::TypeKind::Vector);
+    }
+
+    SECTION("Construction with ArrayType element") {
+        const auto arrayElementType = jsv::PrimitiveType::i32();
+        const auto arraySizeExpr = makeIntegerLiteral(10);
+        const auto arrayType = std::make_shared<const jsv::ArrayType>(arrayElementType, arraySizeExpr);
+        const VectorType vectorType(arrayType);
+
+        REQUIRE(vectorType.kind() == jsv::TypeKind::Vector);
+        REQUIRE(vectorType.element_type()->kind() == jsv::TypeKind::Array);
+    }
+}
+
+TEST_CASE("VectorType to_string returns Vec<element_type> format", "[Type][VectorType][to_string]") {
+    using jsv::VectorType;
+
+    SECTION("Vector of i32") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const VectorType vectorType(elementType);
+
+        REQUIRE(vectorType.to_string() == "Vec<i32>");
+    }
+
+    SECTION("Vector of f64") {
+        const auto elementType = jsv::PrimitiveType::f64();
+        const VectorType vectorType(elementType);
+
+        REQUIRE(vectorType.to_string() == "Vec<f64>");
+    }
+
+    SECTION("Vector of custom type") {
+        const auto elementType = std::make_shared<const jsv::CustomType>("MyClass");
+        const VectorType vectorType(elementType);
+
+        REQUIRE(vectorType.to_string() == "Vec<MyClass>");
+    }
+
+    SECTION("Vector of string") {
+        const auto elementType = jsv::PrimitiveType::string();
+        const VectorType vectorType(elementType);
+
+        REQUIRE(vectorType.to_string() == "Vec<string>");
+    }
+
+    SECTION("Nested vector (vector of vector)") {
+        const auto innerElementType = jsv::PrimitiveType::i32();
+        const auto innerVector = std::make_shared<const VectorType>(innerElementType);
+        const VectorType outerVector(innerVector);
+
+        REQUIRE(outerVector.to_string() == "Vec<Vec<i32>>");
+    }
+
+    SECTION("Vector of array") {
+        const auto arrayElementType = jsv::PrimitiveType::f64();
+        const auto arraySizeExpr = makeIntegerLiteral(5);
+        const auto arrayType = std::make_shared<const jsv::ArrayType>(arrayElementType, arraySizeExpr);
+        const VectorType vectorType(arrayType);
+
+        REQUIRE(vectorType.to_string() == "Vec<[f64; 5]>");
+    }
+}
+
+TEST_CASE("VectorType equality comparison", "[Type][VectorType][equality]") {
+    using jsv::VectorType;
+
+    SECTION("Same element type are equal") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const VectorType vectorType1(elementType);
+        const VectorType vectorType2(elementType);
+
+        REQUIRE(vectorType1 == vectorType2);
+    }
+
+    SECTION("Different element types are not equal") {
+        const VectorType vectorType1(jsv::PrimitiveType::i32());
+        const VectorType vectorType2(jsv::PrimitiveType::f64());
+
+        REQUIRE(vectorType1 != vectorType2);
+    }
+
+    SECTION("Vector of custom type with same name are equal") {
+        const auto elementType1 = std::make_shared<const jsv::CustomType>("MyClass");
+        const auto elementType2 = std::make_shared<const jsv::CustomType>("MyClass");
+        const VectorType vectorType1(elementType1);
+        const VectorType vectorType2(elementType2);
+
+        REQUIRE(vectorType1 == vectorType2);
+    }
+
+    SECTION("Vector of custom type with different names are not equal") {
+        const auto elementType1 = std::make_shared<const jsv::CustomType>("MyClass");
+        const auto elementType2 = std::make_shared<const jsv::CustomType>("OtherClass");
+        const VectorType vectorType1(elementType1);
+        const VectorType vectorType2(elementType2);
+
+        REQUIRE(vectorType1 != vectorType2);
+    }
+}
+
+TEST_CASE("VectorType classof type check", "[Type][VectorType][classof]") {
+    using jsv::VectorType;
+
+    const auto elementType = jsv::PrimitiveType::i32();
+    const VectorType vectorType(elementType);
+    const jsv::TypeBase* basePtr = &vectorType;
+
+    // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
+    REQUIRE(VectorType::classof(basePtr));
+}
+
+TEST_CASE("VectorType is_primitive returns false", "[Type][VectorType][predicates]") {
+    using jsv::VectorType;
+
+    const auto elementType = jsv::PrimitiveType::i32();
+    const VectorType vectorType(elementType);
+
+    REQUIRE_FALSE(vectorType.is_primitive());
+    REQUIRE_FALSE(vectorType.is_integer());
+    REQUIRE_FALSE(vectorType.is_numeric());
+}
+
+// ============================================================================
+// TypeBase Polymorphic Tests
+// ============================================================================
+
+TEST_CASE("TypeBase polymorphic to_string", "[Type][TypeBase][polymorphism]") {
+    using jsv::TypeBase;
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+    using jsv::ArrayType;
+    using jsv::VectorType;
+
+    SECTION("PrimitiveType through base pointer") {
+        const std::shared_ptr<const TypeBase> type = PrimitiveType::i32();
+        REQUIRE(type->to_string() == "i32");
+    }
+
+    SECTION("CustomType through base pointer") {
+        const std::shared_ptr<const TypeBase> type = std::make_shared<const CustomType>("MyClass");
+        REQUIRE(type->to_string() == "MyClass");
+    }
+
+    SECTION("ArrayType through base pointer") {
+        const auto elementType = PrimitiveType::f64();
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const std::shared_ptr<const TypeBase> type = std::make_shared<const ArrayType>(elementType, sizeExpr);
+        REQUIRE(type->to_string() == "[f64; 10]");
+    }
+
+    SECTION("VectorType through base pointer") {
+        const auto elementType = PrimitiveType::bool_();
+        const std::shared_ptr<const TypeBase> type = std::make_shared<const VectorType>(elementType);
+        REQUIRE(type->to_string() == "Vec<bool>");
+    }
+}
+
+TEST_CASE("TypeBase polymorphic equality", "[Type][TypeBase][polymorphism][equality]") {
+    using jsv::TypeBase;
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+
+    SECTION("Same concrete types through base pointers") {
+        const std::shared_ptr<const TypeBase> type1 = PrimitiveType::i32();
+        const std::shared_ptr<const TypeBase> type2 = PrimitiveType::i32();
+        REQUIRE(*type1 == *type2);
+    }
+
+    SECTION("Different concrete types through base pointers") {
+        const std::shared_ptr<const TypeBase> type1 = PrimitiveType::i32();
+        const std::shared_ptr<const TypeBase> type2 = PrimitiveType::f64();
+        REQUIRE(*type1 != *type2);
+    }
+
+    SECTION("Primitive vs Custom are not equal") {
+        const std::shared_ptr<const TypeBase> primitive = PrimitiveType::i32();
+        const std::shared_ptr<const TypeBase> custom = std::make_shared<const CustomType>("i32");
+        REQUIRE(*primitive != *custom);
+    }
+}
+
+TEST_CASE("TypeBase kind() accessor", "[Type][TypeBase][kind]") {
+    using jsv::TypeBase;
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+    using jsv::ArrayType;
+    using jsv::VectorType;
+
+    SECTION("PrimitiveType kind") {
+        const std::shared_ptr<const TypeBase> type = PrimitiveType::i32();
+        REQUIRE(type->kind() == jsv::TypeKind::I32);
+    }
+
+    SECTION("CustomType kind") {
+        const std::shared_ptr<const TypeBase> type = std::make_shared<const CustomType>("MyClass");
+        REQUIRE(type->kind() == jsv::TypeKind::Custom);
+    }
+
+    SECTION("ArrayType kind") {
+        const auto elementType = PrimitiveType::f64();
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const std::shared_ptr<const TypeBase> type = std::make_shared<const ArrayType>(elementType, sizeExpr);
+        REQUIRE(type->kind() == jsv::TypeKind::Array);
+    }
+
+    SECTION("VectorType kind") {
+        const auto elementType = PrimitiveType::bool_();
+        const std::shared_ptr<const TypeBase> type = std::make_shared<const VectorType>(elementType);
+        REQUIRE(type->kind() == jsv::TypeKind::Vector);
+    }
+}
+
+// ============================================================================
+// Formatter Tests (std::formatter and fmt::formatter)
+// ============================================================================
+
+TEST_CASE("TypePtr std::formatter outputs correctly", "[Type][formatter][std]") {
+    using jsv::TypePtr;
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+    using jsv::ArrayType;
+    using jsv::VectorType;
+
+    SECTION("Format primitive type") {
+        const TypePtr type = PrimitiveType::i32();
+        REQUIRE(FORMAT("{}", type) == "i32");
+    }
+
+    SECTION("Format custom type") {
+        const TypePtr type = std::make_shared<const CustomType>("MyClass");
+        REQUIRE(FORMAT("{}", type) == "MyClass");
+    }
+
+    SECTION("Format array type") {
+        const auto elementType = PrimitiveType::f64();
+        const auto sizeExpr = makeIntegerLiteral(10);
+        const TypePtr type = std::make_shared<const ArrayType>(elementType, sizeExpr);
+        REQUIRE(FORMAT("{}", type) == "[f64; 10]");
+    }
+
+    SECTION("Format vector type") {
+        const auto elementType = PrimitiveType::bool_();
+        const TypePtr type = std::make_shared<const VectorType>(elementType);
+        REQUIRE(FORMAT("{}", type) == "Vec<bool>");
+    }
+
+    SECTION("Format null TypePtr") {
+        const TypePtr nullType;
+        REQUIRE(FORMAT("{}", nullType) == "none");
+    }
+
+    SECTION("Format nested type") {
+        const auto innerElementType = PrimitiveType::i32();
+        const auto innerVector = std::make_shared<const VectorType>(innerElementType);
+        const TypePtr type = innerVector;
+        REQUIRE(FORMAT("{}", type) == "Vec<i32>");
+    }
+}
+
+TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type][formatter][fmt]") {
+    using jsv::TypePtr;
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+
+    SECTION("Format primitive type with FFORMAT") {
+        const TypePtr type = PrimitiveType::f64();
+        REQUIRE(FFORMAT("{}", type) == "f64");
+    }
+
+    SECTION("Format custom type with FFORMAT") {
+        const TypePtr type = std::make_shared<const CustomType>("TestClass");
+        REQUIRE(FFORMAT("{}", type) == "TestClass");
+    }
+
+    SECTION("Format null TypePtr with FFORMAT") {
+        const TypePtr nullType;
+        REQUIRE(FFORMAT("{}", nullType) == "none");
+    }
+}
+
+// ============================================================================
+// Corner Cases and Edge Cases
+// ============================================================================
+
+TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+    using jsv::ArrayType;
+    using jsv::VectorType;
+
+    SECTION("CustomType with very long name") {
+        const std::string longName(256, 'A');
+        const CustomType longType(longName);
+        REQUIRE(longType.name().size() == 256);
+        REQUIRE(longType.to_string().size() == 256);
+    }
+
+    SECTION("CustomType with special characters in name") {
+        const CustomType specialType("My_Class<模板>::Nested");
+        REQUIRE(specialType.name() == "My_Class<模板>::Nested");
+        REQUIRE(specialType.to_string() == "My_Class<模板>::Nested");
+    }
+
+    SECTION("ArrayType with maximum size value") {
+        const auto elementType = PrimitiveType::u8();
+        const auto sizeExpr = makeIntegerLiteral(std::numeric_limits<std::int64_t>::max());
+        const ArrayType maxArrayType(elementType, sizeExpr);
+        
+        // Should handle large size values in to_string
+        const auto str = maxArrayType.to_string();
+        REQUIRE_THAT(str, StartsWith("[u8; "));
+        REQUIRE_THAT(str, EndsWith("]"));
+    }
+
+    SECTION("Deeply nested type structures") {
+        // Vec<Vec<Vec<i32>>>
+        const auto i32Type = PrimitiveType::i32();
+        const auto vec1 = std::make_shared<const VectorType>(i32Type);
+        const auto vec2 = std::make_shared<const VectorType>(vec1);
+        const auto vec3 = std::make_shared<const VectorType>(vec2);
+        
+        REQUIRE(vec3->to_string() == "Vec<Vec<Vec<i32>>>");
+    }
+
+    SECTION("Array of vector of custom type") {
+        const auto customType = std::make_shared<const CustomType>("MyType");
+        const auto vectorType = std::make_shared<const VectorType>(customType);
+        const auto sizeExpr = makeIntegerLiteral(5);
+        const ArrayType arrayOfType(vectorType, sizeExpr);
+        
+        REQUIRE(arrayOfType.to_string() == "[Vec<MyType>; 5]");
+    }
+}
+
+TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+    using jsv::ArrayType;
+    using jsv::VectorType;
+
+    SECTION("Same singleton instances are equal") {
+        // PrimitiveType singletons should always compare equal
+        REQUIRE(*PrimitiveType::i32() == *PrimitiveType::i32());
+        REQUIRE(*PrimitiveType::f64() == *PrimitiveType::f64());
+    }
+
+    SECTION("Different custom type instances with same name are equal") {
+        const CustomType type1("SameName");
+        const CustomType type2("SameName");
+        REQUIRE(type1 == type2);
+    }
+
+    SECTION("Array type with same element but different size expression pointers") {
+        const auto elementType = PrimitiveType::i32();
+        const auto sizeExpr1 = makeIntegerLiteral(10);
+        const auto sizeExpr2 = makeIntegerLiteral(10);
+        const ArrayType array1(elementType, sizeExpr1);
+        const ArrayType array2(elementType, sizeExpr2);
+        
+        // Current implementation uses pointer equality for size expressions
+        REQUIRE(array1 != array2);
+    }
+
+    SECTION("Vector type equality is transitive") {
+        const auto elementType = PrimitiveType::i32();
+        const VectorType vec1(elementType);
+        const VectorType vec2(elementType);
+        const VectorType vec3(elementType);
+        
+        REQUIRE(vec1 == vec2);
+        REQUIRE(vec2 == vec3);
+        REQUIRE(vec1 == vec3);
+    }
+}
+
+TEST_CASE("Type virtual destructor is called correctly", "[Type][destructor][virtual]") {
+    using jsv::PrimitiveType;
+    using jsv::CustomType;
+
+    SECTION("Delete PrimitiveType through base pointer") {
+        std::shared_ptr<const jsv::TypeBase> base = PrimitiveType::i32();
+        // Shared_ptr handles virtual destructor automatically
+        REQUIRE_NOTHROW(base.reset());
+    }
+
+    SECTION("Delete CustomType through base pointer") {
+        auto customType = std::make_shared<CustomType>("TestClass");
+        std::shared_ptr<const jsv::TypeBase> base = customType;
+        REQUIRE_NOTHROW(base.reset());
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
 // clang-format on
