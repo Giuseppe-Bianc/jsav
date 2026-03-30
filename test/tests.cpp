@@ -13695,8 +13695,9 @@ TEST_CASE("binding_power: Increment/Decrement operators (++, --) - Lines 71-74",
 TEST_CASE("binding_power: Non-operator tokens return {0, 0} - Lines 75-77", "[binding_power][Default][T-BP-013]") {
     // Negative test: Various non-operator tokens should return zero binding power
     const std::array<jsv::TokenKind, 8> non_operators = {
-        jsv::TokenKind::IdentifierAscii, jsv::TokenKind::Numeric, jsv::TokenKind::KeywordIf, jsv::TokenKind::CloseParen,
-        jsv::TokenKind::Eof,             jsv::TokenKind::Semicolon, jsv::TokenKind::Comma,     jsv::TokenKind::CloseBracket};
+        jsv::TokenKind::IdentifierAscii, jsv::TokenKind::Numeric,     jsv::TokenKind::KeywordIf,
+        jsv::TokenKind::CloseParen,      jsv::TokenKind::Eof,         jsv::TokenKind::Semicolon,
+        jsv::TokenKind::Comma,           jsv::TokenKind::CloseBracket};
 
     for(const jsv::TokenKind kind : non_operators) {
         const jsv::Token token = make_precedence_token(kind, "token", 1, 5, 10);
@@ -15254,8 +15255,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios", "[Pars
 // Parser - Test per linee 578-581: parse_call e parse_array_access in Parser::led()
 // -----------------------------------------------------------------------------
 
-TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)",
-          "[Parser][parse_call][Line578-579][T-PC-001]") {
+TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)", "[Parser][parse_call][Line578-579][T-PC-001]") {
     using namespace jsv;
 
     SECTION("Chiamata di funzione con nessun argomento - caso normale") {
@@ -15570,8 +15570,7 @@ TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)",
     }
 }
 
-TEST_CASE("Parser: parse_array_access - linea 580-581 (accesso ad array)",
-          "[Parser][parse_array_access][Line580-581][T-PAA-001]") {
+TEST_CASE("Parser: parse_array_access - linea 580-581 (accesso ad array)", "[Parser][parse_array_access][Line580-581][T-PAA-001]") {
     using namespace jsv;
 
     SECTION("Accesso ad array con indice letterale - caso normale") {
@@ -15928,9 +15927,7 @@ TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581"
         auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
         REQUIRE(call_expr != nullptr);
         REQUIRE(call_expr->args().size() == 3);
-        for(const auto &arg : call_expr->args()) {
-            REQUIRE(arg->kind() == NodeKind::IndexExpr);
-        }
+        for(const auto &arg : call_expr->args()) { REQUIRE(arg->kind() == NodeKind::IndexExpr); }
     }
 }
 
