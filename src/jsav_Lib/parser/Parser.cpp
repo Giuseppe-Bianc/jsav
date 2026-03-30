@@ -284,14 +284,14 @@ namespace jsv {
             return_type = PrimitiveType::void_();
         }
 
-// LCOV_EXCL_START
+        // LCOV_EXCL_START
         // Corpo
         auto body = parse_block_stmt();
         if(!body.has_value()) {
             syntax_error("Expected function body", peek(), {}, ErrorCode::E1006);
             return std::nullopt;
         }
-// LCOV_EXCL_STOP
+        // LCOV_EXCL_STOP
         assert((*body)->kind() == NodeKind::BlockStmt && "parse_block_stmt must return NodeKind::BlockStmt");
         // NOLINTNEXTLINE(*-pro-type-static-cast-downcast)
         auto block_body = std::unique_ptr<BlockStmt>(static_cast<BlockStmt *>(body->release()));
