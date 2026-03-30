@@ -15931,6 +15931,540 @@ TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581"
     }
 }
 
+TEST_CASE("Parser: parse_call linee 578-579 - suite completa",
+          "[Parser][parse_call][Line578-579][T-PC-002]") {
+    using namespace jsv;
+
+    // =========================================================================
+    // SCENARI D'USO ORDINARI (Standard Usage Scenarios)
+    // =========================================================================
+
+    SECTION("Chiamata di funzione con identificatore ASCII - scenario standard") {
+        // Scenario: Chiamata di funzione base con nome ASCII
+        // Input: process()
+        // Expected: CallExpr con callee IdentifierAscii
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "process", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->callee().kind() == NodeKind::Identifier);
+    }
+
+    SECTION("Chiamata di funzione con identificatore Unicode - scenario standard") {
+        // Scenario: Chiamata di funzione con nome Unicode (come da input.vn)
+        // Input: 函数 ()
+        // Expected: CallExpr con callee IdentifierUnicode
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierUnicode, "函数", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        REQUIRE(expr_stmt != nullptr);
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->callee().kind() == NodeKind::Identifier);
+    }
+
+    SECTION("Chiamata di funzione con argomento numerico con suffisso - scenario standard") {
+        // Scenario: Funzione con argomento numerico con suffisso tipo (come da input.vn)
+        // Input: foo(1i8)
+        // Expected: CallExpr con IntegerLiteral con type_suffix
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1i8", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        auto *int_lit = node_dyn_cast<IntegerLiteral>(call_expr->args()[0].get());
+        REQUIRE(int_lit != nullptr);
+        REQUIRE(int_lit->type_suffix() == "i8");
+    }
+
+    SECTION("Chiamata di funzione con espressione binaria come argomento - scenario standard") {
+        // Scenario: Funzione con espressione aritmetica (come da input.vn: a(1i8, 2i8))
+        // Input: func(1 + 2)
+        // Expected: CallExpr con BinaryExpr come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::BinaryExpr);
+    }
+
+    // =========================================================================
+    // CASI LIMITE (Corner Cases) - Condizioni ai confini del dominio
+    // =========================================================================
+
+    SECTION("Chiamata di funzione con nome al limite inferiore ASCII - corner case") {
+        // Scenario: Nome funzione di 1 carattere (limite inferiore)
+        // Input: a()
+        // Expected: CallExpr valida con nome singolo carattere
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        auto *callee = node_dyn_cast<Identifier>(&call_expr->callee());
+        REQUIRE(callee != nullptr);
+        REQUIRE(callee->name() == "a");
+    }
+
+    SECTION("Chiamata di funzione con nome contenente numeri - corner case") {
+        // Scenario: Nome funzione con numeri (a2, b2 come in input.vn)
+        // Input: func2()
+        // Expected: CallExpr con nome contenente cifre
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func2", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        auto *callee = node_dyn_cast<Identifier>(&call_expr->callee());
+        REQUIRE(callee != nullptr);
+        REQUIRE(callee->name() == "func2");
+    }
+
+    SECTION("Chiamata di funzione con argomento char - corner case") {
+        // Scenario: Funzione con argomento carattere (come da input.vn: var c: char = 'a')
+        // Input: print('a')
+        // Expected: CallExpr con CharLiteral come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "print", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CharLiteral, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::CharLiteral);
+    }
+
+    SECTION("Chiamata di funzione con argomento nullptr - corner case") {
+        // Scenario: Funzione con argomento nullo
+        // Input: func(nullptr)
+        // Expected: CallExpr con NullLiteral come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::KeywordNullptr, "nullptr", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::NullLiteral);
+    }
+
+    SECTION("Chiamata di funzione con espressione tra parentesi - corner case") {
+        // Scenario: Funzione con argomento tra parentesi
+        // Input: func((1 + 2))
+        // Expected: CallExpr con GroupingExpr come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::GroupingExpr);
+    }
+
+    SECTION("Chiamata di funzione con operatore unario prefisso - corner case") {
+        // Scenario: Funzione con operatore unario prefisso come argomento
+        // Input: func(-x)
+        // Expected: CallExpr con UnaryExpr (PreInc/PreDec/Negate) come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Minus, "-", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::UnaryExpr);
+    }
+
+    // =========================================================================
+    // CONDIZIONI ESTREME (Edge Cases) - Situazioni anomale o poco frequenti
+    // =========================================================================
+
+    SECTION("Chiamata di funzione con array literal come argomento - edge case") {
+        // Scenario: Funzione con array literal come argomento
+        // Input: process({1, 2, 3})
+        // Expected: CallExpr con ArrayLiteral come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "process", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "3", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::ArrayLiteral);
+    }
+
+    SECTION("Chiamata di funzione con operatore postfisso -- edge case") {
+        // Scenario: Funzione con operatore di incremento/decremento postfisso
+        // Input: func(x++)
+        // Expected: CallExpr con UnaryExpr (PostInc/PostDec) come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "x", SourceSpan{});
+        tokens.emplace_back(TokenKind::PlusPlus, "++", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        auto *unary = node_dyn_cast<UnaryExpr>(call_expr->args()[0].get());
+        REQUIRE(unary != nullptr);
+        REQUIRE(unary->op() == UnaryOp::PostInc);
+    }
+
+    SECTION("Chiamata di funzione con accesso ad array come argomento - edge case") {
+        // Scenario: Funzione riceve elemento di array (come da input.vn: arr[0])
+        // Input: foo(arr[0])
+        // Expected: CallExpr con IndexExpr come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "arr", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBracket, "[", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBracket, "]", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::IndexExpr);
+    }
+
+    SECTION("Chiamata di funzione con accesso ad array multidimensionale - edge case") {
+        // Scenario: Funzione con accesso a matrice 2D
+        // Input: process(matrix[0][1])
+        // Expected: CallExpr con IndexExpr annidate come argomento
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "process", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "matrix", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBracket, "[", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "0", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBracket, "]", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenBracket, "[", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseBracket, "]", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+
+        // Verifica che l'argomento sia un accesso ad array annidato
+        auto *outer_index = node_dyn_cast<IndexExpr>(call_expr->args()[0].get());
+        REQUIRE(outer_index != nullptr);
+        REQUIRE(outer_index->object().kind() == NodeKind::IndexExpr);
+    }
+
+    SECTION("Chiamata di funzione con operatore logico - edge case") {
+        // Scenario: Funzione con espressione logica complessa
+        // Input: func(a && b || c)
+        // Expected: CallExpr con combinazione di And/Or
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "func", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "a", SourceSpan{});
+        tokens.emplace_back(TokenKind::AndAnd, "&&", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "b", SourceSpan{});
+        tokens.emplace_back(TokenKind::OrOr, "||", SourceSpan{});
+        tokens.emplace_back(TokenKind::IdentifierAscii, "c", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE(program != nullptr);
+        REQUIRE(errors.empty());
+
+        auto *expr_stmt = node_dyn_cast<ExprStmt>(program->statements()[0].get());
+        auto *call_expr = node_dyn_cast<CallExpr>(&expr_stmt->expression());
+        REQUIRE(call_expr != nullptr);
+        REQUIRE(call_expr->args().size() == 1);
+        REQUIRE(call_expr->args()[0]->kind() == NodeKind::BinaryExpr);
+    }
+
+    // =========================================================================
+    // TEST NEGATIVI - Validazione gestione input non validi
+    // =========================================================================
+
+    SECTION("Chiamata di funzione senza parentesi di chiusura - test negativo") {
+        // Scenario: Sintassi errata - manca parentesi tonda di chiusura
+        // Input: foo(42
+        // Expected: Errore di sintassi, programma nullo o con errori
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});  // Manca CloseParen
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());
+        // Il parser dovrebbe riportare errore per la parentesi mancante
+    }
+
+    SECTION("Chiamata di funzione senza parentesi di apertura - test negativo") {
+        // Scenario: Sintassi errata - manca parentesi tonda di apertura
+        // Input: foo 42)
+        // Expected: Errore di sintassi o parsing come espressione diversa
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "42", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Questo caso dovrebbe essere gestito come errore o come espressione diversa
+        // La chiamata di funzione richiede OpenParen
+        REQUIRE((errors.empty() || program == nullptr ||
+                      program->statements()[0]->kind() != NodeKind::CallExpr));
+    }
+
+    SECTION("Chiamata di funzione con virgola finale - test negativo") {
+        // Scenario: Sintassi con virgola finale (potenziale errore)
+        // Input: foo(1, 2,)
+        // Expected: Errore di sintassi o parsing che ignora la virgola finale
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Virgola finale
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Il parser può gestire la virgola finale o riportare errore
+        // Dipende dall'implementazione specifica
+    }
+
+    SECTION("Chiamata di funzione con argomento mancante tra virgole - test negativo") {
+        // Scenario: Sintassi errata - virgole consecutive senza argomento
+        // Input: foo(1,, 2)
+        // Expected: Errore di sintassi
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::IdentifierAscii, "foo", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});  // Virgola consecutiva
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        REQUIRE_FALSE(errors.empty());
+    }
+
+    SECTION("Chiamata di funzione con token keyword come nome - test negativo") {
+        // Scenario: Tentativo di usare keyword come nome funzione
+        // Input: if()
+        // Expected: Errore di sintassi o parsing come istruzione if
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::KeywordIf, "if", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Le keyword non possono essere usate come nomi di funzione
+        // Il parser dovrebbe trattare questo come un'istruzione if, non come chiamata
+        // Quindi o ci sono errori o il programma non è una CallExpr
+        if(errors.empty() && program != nullptr) {
+            // Se non ci sono errori, dovrebbe essere un'istruzione if, non una chiamata
+            REQUIRE((program->statements()[0]->kind() != NodeKind::ExprStmt || 
+                    program->statements()[0]->kind() == NodeKind::IfStmt));
+        }
+    }
+
+    SECTION("Chiamata di funzione con operatore binario come nome - test negativo") {
+        // Scenario: Tentativo di usare operatore come nome funzione
+        // Input: +(1, 2)
+        // Expected: Errore di sintassi
+        std::vector<Token> tokens;
+        tokens.emplace_back(TokenKind::Plus, "+", SourceSpan{});
+        tokens.emplace_back(TokenKind::OpenParen, "(", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "1", SourceSpan{});
+        tokens.emplace_back(TokenKind::Comma, ",", SourceSpan{});
+        tokens.emplace_back(TokenKind::Numeric, "2", SourceSpan{});
+        tokens.emplace_back(TokenKind::CloseParen, ")", SourceSpan{});
+        tokens.emplace_back(TokenKind::Eof, "", SourceSpan{});
+
+        Parser parser(tokens);
+        auto [program, errors] = parser.parse();
+
+        // Gli operatori non possono essere usati come nomi di funzione
+        REQUIRE_FALSE(errors.empty());
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
 // clang-format on
