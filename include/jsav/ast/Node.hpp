@@ -90,6 +90,7 @@ namespace jsv {
         case NodeKind::IntegerLiteral:
         case NodeKind::FloatLiteral:
         case NodeKind::StringLiteral:
+        case NodeKind::CharLiteral:
         case NodeKind::BoolLiteral:
         case NodeKind::NullLiteral:
         case NodeKind::Identifier:

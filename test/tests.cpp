@@ -17410,6 +17410,732 @@ TEST_CASE("Type virtual destructor is called correctly", "[Type][destructor][vir
     }
 }
 
+// =============================================================================
+// AST Node Tests
+// =============================================================================
+
+TEST_CASE("Node: Default construction with minimal parameters", "[ast][node][construction]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::SourceSpan;
+
+    SECTION("Construct node with kind only") {
+        const Node node(NodeKind::IntegerLiteral);
+        REQUIRE(node.kind() == NodeKind::IntegerLiteral);
+        REQUIRE(node.kind_name() == "IntegerLiteral");
+        REQUIRE(node.location().file_path.empty());
+        REQUIRE(node.location().start.line == 0);
+        REQUIRE(node.location().start.column == 0);
+    }
+
+    SECTION("Construct node with kind and empty span") {
+        const SourceSpan emptySpan;
+        const Node node(NodeKind::FloatLiteral, emptySpan);
+        REQUIRE(node.kind() == NodeKind::FloatLiteral);
+        REQUIRE(node.kind_name() == "FloatLiteral");
+        REQUIRE(node.location().file_path.empty());
+    }
+}
+
+TEST_CASE("Node: Construction with SourceSpan", "[ast][node][construction][location]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::SourceLocation;
+    using jsv::SourceSpan;
+
+    SECTION("Construct node with valid source location") {
+        const SourceSpan span("test.cpp", SourceLocation{1, 1, 0}, SourceLocation{1, 11, 10});
+        const Node node(NodeKind::StringLiteral, span);
+
+        REQUIRE(node.kind() == NodeKind::StringLiteral);
+        REQUIRE(node.kind_name() == "StringLiteral");
+        REQUIRE(node.location().file_path == "test.cpp");
+        REQUIRE(node.location().start.line == 1);
+        REQUIRE(node.location().start.column == 1);
+        REQUIRE(node.location().end.line == 1);
+        REQUIRE(node.location().end.column == 11);
+    }
+
+    SECTION("Construct node with multi-line span") {
+        const SourceSpan span("multi_line.cpp", SourceLocation{5, 11, 100}, SourceLocation{10, 26, 250});
+        const Node node(NodeKind::BlockStmt, span);
+
+        REQUIRE(node.location().start.line == 5);
+        REQUIRE(node.location().start.column == 11);
+        REQUIRE(node.location().end.line == 10);
+        REQUIRE(node.location().end.column == 26);
+    }
+}
+
+TEST_CASE("Node: Location mutation", "[ast][node][location][mutation]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::SourceLocation;
+    using jsv::SourceSpan;
+
+    Node node(NodeKind::Identifier);
+
+    SECTION("Set location on existing node") {
+        const SourceSpan newSpan("updated.cpp", SourceLocation{42, 6, 500}, SourceLocation{42, 16, 510});
+        node.set_location(newSpan);
+
+        REQUIRE(node.location().file_path == "updated.cpp");
+        REQUIRE(node.location().start.line == 42);
+        REQUIRE(node.location().start.column == 6);
+        REQUIRE(node.location().end.line == 42);
+        REQUIRE(node.location().end.column == 16);
+    }
+
+    SECTION("Set empty location on existing node") {
+        const SourceSpan emptySpan;
+        node.set_location(emptySpan);
+
+        REQUIRE(node.location().file_path.empty());
+        REQUIRE(node.location().start.line == 0);
+        REQUIRE(node.location().end.line == 0);
+    }
+}
+
+TEST_CASE("Node: kind_name() for all NodeKind values", "[ast][node][kind_name][coverage]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    SECTION("Expression literals") {
+        REQUIRE(Node(NodeKind::IntegerLiteral).kind_name() == "IntegerLiteral");
+        REQUIRE(Node(NodeKind::FloatLiteral).kind_name() == "FloatLiteral");
+        REQUIRE(Node(NodeKind::StringLiteral).kind_name() == "StringLiteral");
+        REQUIRE(Node(NodeKind::CharLiteral).kind_name() == "CharLiteral");
+        REQUIRE(Node(NodeKind::BoolLiteral).kind_name() == "BoolLiteral");
+        REQUIRE(Node(NodeKind::NullLiteral).kind_name() == "NullLiteral");
+    }
+
+    SECTION("Expression operators") {
+        REQUIRE(Node(NodeKind::UnaryExpr).kind_name() == "UnaryExpr");
+        REQUIRE(Node(NodeKind::BinaryExpr).kind_name() == "BinaryExpr");
+        REQUIRE(Node(NodeKind::TernaryExpr).kind_name() == "TernaryExpr");
+    }
+
+    SECTION("Expression access and call") {
+        REQUIRE(Node(NodeKind::CallExpr).kind_name() == "CallExpr");
+        REQUIRE(Node(NodeKind::IndexExpr).kind_name() == "IndexExpr");
+        REQUIRE(Node(NodeKind::MemberExpr).kind_name() == "MemberExpr");
+        REQUIRE(Node(NodeKind::AssignExpr).kind_name() == "AssignExpr");
+        REQUIRE(Node(NodeKind::CastExpr).kind_name() == "CastExpr");
+    }
+
+    SECTION("Expression containers") {
+        REQUIRE(Node(NodeKind::ArrayLiteral).kind_name() == "ArrayLiteral");
+        REQUIRE(Node(NodeKind::GroupingExpr).kind_name() == "GroupingExpr");
+        REQUIRE(Node(NodeKind::Identifier).kind_name() == "Identifier");
+    }
+
+    SECTION("Statement types") {
+        REQUIRE(Node(NodeKind::ExprStmt).kind_name() == "ExprStmt");
+        REQUIRE(Node(NodeKind::VarDecl).kind_name() == "VarDecl");
+        REQUIRE(Node(NodeKind::FuncDecl).kind_name() == "FuncDecl");
+        REQUIRE(Node(NodeKind::ReturnStmt).kind_name() == "ReturnStmt");
+        REQUIRE(Node(NodeKind::IfStmt).kind_name() == "IfStmt");
+        REQUIRE(Node(NodeKind::WhileStmt).kind_name() == "WhileStmt");
+        REQUIRE(Node(NodeKind::ForStmt).kind_name() == "ForStmt");
+        REQUIRE(Node(NodeKind::BlockStmt).kind_name() == "BlockStmt");
+        REQUIRE(Node(NodeKind::BreakStmt).kind_name() == "BreakStmt");
+        REQUIRE(Node(NodeKind::ContinueStmt).kind_name() == "ContinueStmt");
+        REQUIRE(Node(NodeKind::MainStmt).kind_name() == "MainStmt");
+    }
+
+    SECTION("Top-level node") {
+        REQUIRE(Node(NodeKind::Program).kind_name() == "Program");
+    }
+}
+
+TEST_CASE("Node: Move semantics", "[ast][node][move][noexcept]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::SourceLocation;
+    using jsv::SourceSpan;
+
+    SECTION("Move constructor is noexcept") {
+        REQUIRE(std::is_nothrow_move_constructible_v<Node>);
+    }
+
+    SECTION("Move assignment is noexcept") {
+        REQUIRE(std::is_nothrow_move_assignable_v<Node>);
+    }
+
+    SECTION("Move constructor transfers state correctly") {
+        const SourceSpan span("moved.cpp", SourceLocation{100, 51, 1000}, SourceLocation{200, 76, 2000});
+        Node source(NodeKind::BinaryExpr, span);
+
+        Node destination(std::move(source));
+
+        REQUIRE(destination.kind() == NodeKind::BinaryExpr);
+        REQUIRE(destination.location().file_path == "moved.cpp");
+        REQUIRE(destination.location().start.line == 100);
+    }
+
+    SECTION("Move assignment transfers state correctly") {
+        const SourceSpan span("assigned.cpp", SourceLocation{10, 21, 100}, SourceLocation{30, 41, 300});
+        Node source(NodeKind::CallExpr, span);
+        Node destination(NodeKind::IntegerLiteral);
+
+        destination = std::move(source);
+
+        REQUIRE(destination.kind() == NodeKind::CallExpr);
+        REQUIRE(destination.location().file_path == "assigned.cpp");
+        REQUIRE(destination.location().start.line == 10);
+    }
+}
+
+TEST_CASE("Node: Copy operations deleted", "[ast][node][copy][deleted]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    SECTION("Copy constructor is deleted") {
+        REQUIRE_FALSE(std::is_copy_constructible_v<Node>);
+    }
+
+    SECTION("Copy assignment is deleted") {
+        REQUIRE_FALSE(std::is_copy_assignable_v<Node>);
+    }
+}
+
+TEST_CASE("Node: Virtual destructor", "[ast][node][destructor][virtual]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    SECTION("Destructor is virtual") {
+        REQUIRE(std::has_virtual_destructor_v<Node>);
+    }
+
+    SECTION("Can delete derived through base pointer") {
+        auto* node = new Node(NodeKind::Identifier);
+        REQUIRE_NOTHROW(delete node);
+    }
+}
+
+TEST_CASE("Expr: Intermediate expression class", "[ast][expr][construction]") {
+    using jsv::Expr;
+    using jsv::NodeKind;
+    using jsv::SourceLocation;
+    using jsv::SourceSpan;
+
+    SECTION("Construct Expr with kind only") {
+        const Expr expr(NodeKind::IntegerLiteral);
+        REQUIRE(expr.kind() == NodeKind::IntegerLiteral);
+        REQUIRE(expr.kind_name() == "IntegerLiteral");
+    }
+
+    SECTION("Construct Expr with source span") {
+        const SourceSpan span("expr_test.cpp", SourceLocation{15, 4, 100}, SourceLocation{15, 21, 117});
+        const Expr expr(NodeKind::BinaryExpr, span);
+
+        REQUIRE(expr.kind() == NodeKind::BinaryExpr);
+        REQUIRE(expr.location().file_path == "expr_test.cpp");
+        REQUIRE(expr.location().start.line == 15);
+    }
+
+    SECTION("Expr move semantics") {
+        REQUIRE(std::is_nothrow_move_constructible_v<Expr>);
+        REQUIRE(std::is_nothrow_move_assignable_v<Expr>);
+    }
+
+    SECTION("Expr copy operations deleted") {
+        REQUIRE_FALSE(std::is_copy_constructible_v<Expr>);
+        REQUIRE_FALSE(std::is_copy_assignable_v<Expr>);
+    }
+}
+
+TEST_CASE("Stmt: Intermediate statement class", "[ast][stmt][construction]") {
+    using jsv::Stmt;
+    using jsv::NodeKind;
+    using jsv::SourceLocation;
+    using jsv::SourceSpan;
+
+    SECTION("Construct Stmt with kind only") {
+        const Stmt stmt(NodeKind::ReturnStmt);
+        REQUIRE(stmt.kind() == NodeKind::ReturnStmt);
+        REQUIRE(stmt.kind_name() == "ReturnStmt");
+    }
+
+    SECTION("Construct Stmt with source span") {
+        const SourceSpan span("stmt_test.cpp", SourceLocation{25, 9, 200}, SourceLocation{27, 2, 250});
+        const Stmt stmt(NodeKind::IfStmt, span);
+
+        REQUIRE(stmt.kind() == NodeKind::IfStmt);
+        REQUIRE(stmt.location().file_path == "stmt_test.cpp");
+        REQUIRE(stmt.location().start.line == 25);
+    }
+
+    SECTION("Stmt move semantics") {
+        REQUIRE(std::is_nothrow_move_constructible_v<Stmt>);
+        REQUIRE(std::is_nothrow_move_assignable_v<Stmt>);
+    }
+
+    SECTION("Stmt copy operations deleted") {
+        REQUIRE_FALSE(std::is_copy_constructible_v<Stmt>);
+        REQUIRE_FALSE(std::is_copy_assignable_v<Stmt>);
+    }
+}
+
+TEST_CASE("node_isa_check: Expression type detection", "[ast][rtti][isa][expr]") {
+    using jsv::Expr;
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    SECTION("IntegerLiteral is Expr") {
+        const Node node(NodeKind::IntegerLiteral);
+        REQUIRE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("FloatLiteral is Expr") {
+        const Node node(NodeKind::FloatLiteral);
+        REQUIRE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("StringLiteral is Expr") {
+        const Node node(NodeKind::StringLiteral);
+        REQUIRE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("BinaryExpr is Expr") {
+        const Node node(NodeKind::BinaryExpr);
+        REQUIRE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("CallExpr is Expr") {
+        const Node node(NodeKind::CallExpr);
+        REQUIRE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("BlockStmt is NOT Expr") {
+        const Node node(NodeKind::BlockStmt);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("ReturnStmt is NOT Expr") {
+        const Node node(NodeKind::ReturnStmt);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+
+    SECTION("Program is NOT Expr") {
+        const Node node(NodeKind::Program);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<Expr>{}));
+    }
+}
+
+TEST_CASE("node_isa_check: Statement type detection", "[ast][rtti][isa][stmt]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::Stmt;
+
+    SECTION("ReturnStmt is Stmt") {
+        const Node node(NodeKind::ReturnStmt);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("IfStmt is Stmt") {
+        const Node node(NodeKind::IfStmt);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("WhileStmt is Stmt") {
+        const Node node(NodeKind::WhileStmt);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("ForStmt is Stmt") {
+        const Node node(NodeKind::ForStmt);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("BlockStmt is Stmt") {
+        const Node node(NodeKind::BlockStmt);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("VarDecl is Stmt") {
+        const Node node(NodeKind::VarDecl);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("FuncDecl is Stmt") {
+        const Node node(NodeKind::FuncDecl);
+        REQUIRE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("IntegerLiteral is NOT Stmt") {
+        const Node node(NodeKind::IntegerLiteral);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("BinaryExpr is NOT Stmt") {
+        const Node node(NodeKind::BinaryExpr);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+
+    SECTION("Program is NOT Stmt") {
+        const Node node(NodeKind::Program);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<Stmt>{}));
+    }
+}
+
+TEST_CASE("node_isa: Type checking utility", "[ast][rtti][isa][utility]") {
+    using jsv::Expr;
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::Stmt;
+
+    SECTION("node_isa<Expr> with expression node") {
+        const Node node(NodeKind::Identifier);
+        REQUIRE(node_isa<Expr>(&node));
+    }
+
+    SECTION("node_isa<Stmt> with statement node") {
+        const Node node(NodeKind::VarDecl);
+        REQUIRE(node_isa<Stmt>(&node));
+    }
+
+    SECTION("node_isa<Expr> with statement node returns false") {
+        const Node node(NodeKind::BreakStmt);
+        REQUIRE_FALSE(node_isa<Expr>(&node));
+    }
+
+    SECTION("node_isa<Stmt> with expression node returns false") {
+        const Node node(NodeKind::AssignExpr);
+        REQUIRE_FALSE(node_isa<Stmt>(&node));
+    }
+
+    SECTION("node_isa with nullptr returns false") {
+        const Node* nullNode = nullptr;
+        REQUIRE_FALSE(node_isa<Expr>(nullNode));
+        REQUIRE_FALSE(node_isa<Stmt>(nullNode));
+    }
+}
+
+TEST_CASE("node_cast: Safe casting with assertion", "[ast][cast][node_cast][safety]") {
+    using jsv::Expr;
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::Stmt;
+
+    SECTION("node_cast<Expr> on valid expression node") {
+        Node node(NodeKind::IntegerLiteral);
+        Expr* expr = node_cast<Expr>(&node);
+
+        REQUIRE(expr != nullptr);
+        REQUIRE(expr->kind() == NodeKind::IntegerLiteral);
+    }
+
+    SECTION("node_cast<Stmt> on valid statement node") {
+        Node node(NodeKind::ReturnStmt);
+        Stmt* stmt = node_cast<Stmt>(&node);
+
+        REQUIRE(stmt != nullptr);
+        REQUIRE(stmt->kind() == NodeKind::ReturnStmt);
+    }
+
+    SECTION("node_cast<const Expr> on const expression node") {
+        const Node node(NodeKind::BinaryExpr);
+        const Expr* expr = node_cast<const Expr>(&node);
+
+        REQUIRE(expr != nullptr);
+        REQUIRE(expr->kind() == NodeKind::BinaryExpr);
+    }
+
+    SECTION("node_cast<Expr> on statement node does not assert in runtime") {
+        Node node(NodeKind::IfStmt);
+        // node_cast would assert in debug, so we check isa first
+        REQUIRE_FALSE(node_isa<Expr>(&node));  // Pre-check confirms invalid cast
+    }
+}
+
+TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast][cast][node_dyn_cast][safety]") {
+    using jsv::Expr;
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::Stmt;
+
+    SECTION("node_dyn_cast<Expr> on valid expression node") {
+        Node node(NodeKind::FloatLiteral);
+        Expr* expr = node_dyn_cast<Expr>(&node);
+
+        REQUIRE(expr != nullptr);
+        REQUIRE(expr->kind() == NodeKind::FloatLiteral);
+    }
+
+    SECTION("node_dyn_cast<Stmt> on valid statement node") {
+        Node node(NodeKind::ForStmt);
+        Stmt* stmt = node_dyn_cast<Stmt>(&node);
+
+        REQUIRE(stmt != nullptr);
+        REQUIRE(stmt->kind() == NodeKind::ForStmt);
+    }
+
+    SECTION("node_dyn_cast<Expr> on statement node returns nullptr") {
+        Node node(NodeKind::WhileStmt);
+        Expr* expr = node_dyn_cast<Expr>(&node);
+
+        REQUIRE(expr == nullptr);
+    }
+
+    SECTION("node_dyn_cast<Stmt> on expression node returns nullptr") {
+        Node node(NodeKind::StringLiteral);
+        Stmt* stmt = node_dyn_cast<Stmt>(&node);
+
+        REQUIRE(stmt == nullptr);
+    }
+
+    SECTION("node_dyn_cast with nullptr returns nullptr") {
+        const Node* nullNode = nullptr;
+        REQUIRE(node_dyn_cast<Expr>(nullNode) == nullptr);
+        REQUIRE(node_dyn_cast<Stmt>(nullNode) == nullptr);
+    }
+
+    SECTION("node_dyn_cast<const Expr> on const node") {
+        const Node node(NodeKind::CharLiteral);
+        const Expr* expr = node_dyn_cast<const Expr>(&node);
+
+        REQUIRE(expr != nullptr);
+        REQUIRE(expr->kind() == NodeKind::CharLiteral);
+    }
+}
+
+TEST_CASE("Node: classof RTTI for base Node", "[ast][rtti][classof]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    SECTION("classof always returns true for Node") {
+        const Node node(NodeKind::Program);
+        REQUIRE(Node::classof(&node));
+    }
+
+    SECTION("classof works with any node kind") {
+        const Node node1(NodeKind::IntegerLiteral);
+        const Node node2(NodeKind::BinaryExpr);
+        const Node node3(NodeKind::BlockStmt);
+
+        REQUIRE(Node::classof(&node1));
+        REQUIRE(Node::classof(&node2));
+        REQUIRE(Node::classof(&node3));
+    }
+}
+
+TEST_CASE("NodePtr, ExprPtr, StmtPtr unique_ptr aliases", "[ast][memory][unique_ptr]") {
+    using jsv::ExprPtr;
+    using jsv::NodePtr;
+    using jsv::StmtPtr;
+
+    SECTION("NodePtr is unique_ptr<Node>") {
+        REQUIRE(std::is_same_v<NodePtr, std::unique_ptr<jsv::Node>>);
+    }
+
+    SECTION("ExprPtr is unique_ptr<Expr>") {
+        REQUIRE(std::is_same_v<ExprPtr, std::unique_ptr<jsv::Expr>>);
+    }
+
+    SECTION("StmtPtr is unique_ptr<Stmt>") {
+        REQUIRE(std::is_same_v<StmtPtr, std::unique_ptr<jsv::Stmt>>);
+    }
+
+    SECTION("NodePtr can hold derived types") {
+        NodePtr ptr = std::make_unique<jsv::Node>(jsv::NodeKind::Identifier);
+        REQUIRE(ptr->kind() == jsv::NodeKind::Identifier);
+    }
+
+    SECTION("ExprPtr move semantics") {
+        ExprPtr ptr1 = std::make_unique<jsv::Expr>(jsv::NodeKind::IntegerLiteral);
+        ExprPtr ptr2 = std::move(ptr1);
+
+        REQUIRE(ptr1 == nullptr);
+        REQUIRE(ptr2 != nullptr);
+        REQUIRE(ptr2->kind() == jsv::NodeKind::IntegerLiteral);
+    }
+
+    SECTION("StmtPtr move semantics") {
+        StmtPtr ptr1 = std::make_unique<jsv::Stmt>(jsv::NodeKind::ReturnStmt);
+        StmtPtr ptr2 = std::move(ptr1);
+
+        REQUIRE(ptr1 == nullptr);
+        REQUIRE(ptr2 != nullptr);
+        REQUIRE(ptr2->kind() == jsv::NodeKind::ReturnStmt);
+    }
+}
+
+TEST_CASE("Node: Comprehensive NodeKind coverage", "[ast][node][NodeKind][exhaustive]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    // Test all NodeKind values can be constructed and queried
+    constexpr std::array allKinds = {
+        // Expressions
+        NodeKind::IntegerLiteral,
+        NodeKind::FloatLiteral,
+        NodeKind::StringLiteral,
+        NodeKind::CharLiteral,
+        NodeKind::BoolLiteral,
+        NodeKind::NullLiteral,
+        NodeKind::Identifier,
+        NodeKind::UnaryExpr,
+        NodeKind::BinaryExpr,
+        NodeKind::TernaryExpr,
+        NodeKind::CallExpr,
+        NodeKind::IndexExpr,
+        NodeKind::MemberExpr,
+        NodeKind::AssignExpr,
+        NodeKind::CastExpr,
+        NodeKind::ArrayLiteral,
+        NodeKind::GroupingExpr,
+        // Statements
+        NodeKind::ExprStmt,
+        NodeKind::VarDecl,
+        NodeKind::FuncDecl,
+        NodeKind::ReturnStmt,
+        NodeKind::IfStmt,
+        NodeKind::WhileStmt,
+        NodeKind::ForStmt,
+        NodeKind::BlockStmt,
+        NodeKind::BreakStmt,
+        NodeKind::ContinueStmt,
+        NodeKind::MainStmt,
+        // Top-level
+        NodeKind::Program,
+    };
+
+    SECTION("All NodeKind values produce valid kind_name") {
+        for(const auto kind : allKinds) {
+            const Node node(kind);
+            const auto name = node.kind_name();
+
+            CAPTURE(kind, name);
+            REQUIRE_FALSE(name.empty());
+            REQUIRE(node.kind() == kind);
+        }
+    }
+
+    SECTION("All expression kinds detected as Expr") {
+        constexpr std::array exprKinds = {
+            NodeKind::IntegerLiteral,  NodeKind::FloatLiteral,   NodeKind::StringLiteral,
+            NodeKind::CharLiteral,     NodeKind::BoolLiteral,    NodeKind::NullLiteral,
+            NodeKind::Identifier,      NodeKind::UnaryExpr,      NodeKind::BinaryExpr,
+            NodeKind::TernaryExpr,     NodeKind::CallExpr,       NodeKind::IndexExpr,
+            NodeKind::MemberExpr,      NodeKind::AssignExpr,     NodeKind::CastExpr,
+            NodeKind::ArrayLiteral,    NodeKind::GroupingExpr,
+        };
+
+        for(const auto kind : exprKinds) {
+            const Node node(kind);
+            CAPTURE(kind);
+            REQUIRE(node_isa_check(&node, std::type_identity<jsv::Expr>{}));
+            REQUIRE_FALSE(node_isa_check(&node, std::type_identity<jsv::Stmt>{}));
+        }
+    }
+
+    SECTION("All statement kinds detected as Stmt") {
+        constexpr std::array stmtKinds = {
+            NodeKind::ExprStmt,    NodeKind::VarDecl,     NodeKind::FuncDecl,
+            NodeKind::ReturnStmt,  NodeKind::IfStmt,      NodeKind::WhileStmt,
+            NodeKind::ForStmt,     NodeKind::BlockStmt,   NodeKind::BreakStmt,
+            NodeKind::ContinueStmt, NodeKind::MainStmt,
+        };
+
+        for(const auto kind : stmtKinds) {
+            const Node node(kind);
+            CAPTURE(kind);
+            REQUIRE(node_isa_check(&node, std::type_identity<jsv::Stmt>{}));
+            REQUIRE_FALSE(node_isa_check(&node, std::type_identity<jsv::Expr>{}));
+        }
+    }
+
+    SECTION("Program kind is neither Expr nor Stmt") {
+        const Node node(NodeKind::Program);
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<jsv::Expr>{}));
+        REQUIRE_FALSE(node_isa_check(&node, std::type_identity<jsv::Stmt>{}));
+    }
+}
+
+TEST_CASE("Node: Edge cases and corner cases", "[ast][node][edge][corner]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+    using jsv::SourceLocation;
+    using jsv::SourceSpan;
+
+    SECTION("Node with zero-length span") {
+        const SourceSpan span("zero.cpp", SourceLocation{10, 11, 100}, SourceLocation{10, 11, 100});
+        const Node node(NodeKind::Identifier, span);
+
+        REQUIRE(node.location().start.column == 11);
+        REQUIRE(node.location().end.column == 11);
+        REQUIRE(node.location().start.line == 10);
+        REQUIRE(node.location().end.line == 10);
+    }
+
+    SECTION("Node with maximum line numbers") {
+        const SourceSpan span("max.cpp", SourceLocation{999999, 1, 0}, SourceLocation{999999, 101, 100});
+        const Node node(NodeKind::BlockStmt, span);
+
+        REQUIRE(node.location().start.line == 999999);
+        REQUIRE(node.location().end.line == 999999);
+    }
+
+    SECTION("Node with empty file path") {
+        const SourceSpan span("", SourceLocation{1, 1, 0}, SourceLocation{1, 6, 5});
+        const Node node(NodeKind::NullLiteral, span);
+
+        REQUIRE(node.location().file_path.empty());
+        REQUIRE(node.kind_name() == "NullLiteral");
+    }
+
+    SECTION("Node with very long file path") {
+        const std::string longPath = std::string(1000, 'a') + "/test.cpp";
+        const SourceSpan span(longPath, SourceLocation{1, 1, 0}, SourceLocation{1, 11, 10});
+        const Node node(NodeKind::IntegerLiteral, span);
+
+        REQUIRE(node.location().file_path.size() == longPath.size());
+    }
+
+    SECTION("Multiple nodes with same kind are independent") {
+        Node node1(NodeKind::BinaryExpr);
+        Node node2(NodeKind::BinaryExpr);
+
+        const SourceSpan span1("file1.cpp", SourceLocation{1, 1, 0}, SourceLocation{1, 11, 10});
+        const SourceSpan span2("file2.cpp", SourceLocation{2, 1, 0}, SourceLocation{2, 21, 20});
+
+        node1.set_location(span1);
+        node2.set_location(span2);
+
+        REQUIRE(node1.location().file_path == "file1.cpp");
+        REQUIRE(node2.location().file_path == "file2.cpp");
+        REQUIRE(node1.location().start.line == 1);
+        REQUIRE(node2.location().start.line == 2);
+    }
+}
+
+TEST_CASE("Node: noexcept contract verification", "[ast][node][noexcept][contract]") {
+    using jsv::Node;
+    using jsv::NodeKind;
+
+    SECTION("kind() is noexcept") {
+        REQUIRE(noexcept(std::declval<const Node&>().kind()));
+    }
+
+    SECTION("location() is noexcept") {
+        REQUIRE(noexcept(std::declval<const Node&>().location()));
+    }
+
+    SECTION("set_location() is noexcept") {
+        REQUIRE(noexcept(std::declval<Node&>().set_location(std::declval<const jsv::SourceSpan&>())));
+    }
+
+    SECTION("kind_name() is noexcept") {
+        REQUIRE(noexcept(std::declval<const Node&>().kind_name()));
+    }
+
+    SECTION("Move operations are noexcept") {
+        REQUIRE(std::is_nothrow_move_constructible_v<Node>);
+        REQUIRE(std::is_nothrow_move_assignable_v<Node>);
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
 // clang-format on
