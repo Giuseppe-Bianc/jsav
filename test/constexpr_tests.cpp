@@ -1211,14 +1211,6 @@ TEST_CASE("binding_power: EOF returns zero binding power", "[binding_power][non-
     STATIC_REQUIRE(bp.second == 0);
 }
 
-TEST_CASE("binding_power: Parenthesis returns zero binding power", "[binding_power][non-operator][edge-case][T-BP-027e]") {
-    constexpr jsv::Token token(jsv::TokenKind::OpenParen, "(",
-                               jsv::SourceSpan(filename, jsv::SourceLocation(13, 10, 164), jsv::SourceLocation(13, 11, 165)));
-    constexpr auto bp = jsv::binding_power(token);
-    STATIC_REQUIRE(bp.first == 0);
-    STATIC_REQUIRE(bp.second == 0);
-}
-
 TEST_CASE("binding_power: Complete precedence ladder is strictly monotonic", "[binding_power][hierarchy][comprehensive][T-BP-028]") {
     constexpr jsv::Token or_or(jsv::TokenKind::OrOr, "||",
                                jsv::SourceSpan(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2)));

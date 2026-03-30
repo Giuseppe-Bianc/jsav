@@ -60,6 +60,9 @@ namespace jsv {
         case TokenKind::PlusPlus:    // ++ (postfix)
         case TokenKind::MinusMinus:  // -- (postfix)
             return {23, 24};
+        case TokenKind::OpenParen:   // ( (function call)
+        case TokenKind::OpenBracket: // [ (array access)
+            return {25, 26};
         default:
             return {0, 0};  // Not an operator
         }

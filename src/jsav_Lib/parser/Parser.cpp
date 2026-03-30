@@ -651,6 +651,12 @@ namespace jsv {
     }
 
     std::optional<ExprPtr> Parser::parse_call(ExprPtr callee, const Token &start_token) {
+        // Solo gli identificatori possono essere chiamati come funzioni
+        if(callee->kind() != NodeKind::Identifier) {
+            syntax_error("Invalid function call: only identifiers can be called", peek(),
+                         "Function call syntax is only valid for function names, not for expressions", ErrorCode::E1004);
+            return std::nullopt;
+        }
         std::vector<ExprPtr> arguments;
         if(!check(TokenKind::CloseParen)) {
             while(!is_at_end()) {
@@ -670,6 +676,13 @@ namespace jsv {
     }
 
     std::optional<ExprPtr> Parser::parse_array_access(ExprPtr array, const Token &start_token) {
+        // Solo gli identificatori o gli accessi ad array possono essere indicizzati
+        // (per permettere arr[0][1] ma non getArray()[0])
+        if(array->kind() != NodeKind::Identifier && array->kind() != NodeKind::IndexExpr) {
+            syntax_error("Invalid array access: only identifiers or array accesses can be indexed", peek(),
+                         "Array access syntax is only valid for array names or chained array accesses", ErrorCode::E1004);
+            return std::nullopt;
+        }
         auto index = parse_expr(0);
         if(!index) { index = std::make_unique<NullLiteral>(start_token.getSpan()); }
         if(!expect(TokenKind::CloseBracket, "end of array access")) { return std::nullopt; }
