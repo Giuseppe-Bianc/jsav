@@ -17543,9 +17543,7 @@ TEST_CASE("Node: kind_name() for all NodeKind values", "[ast][node][kind_name][c
         REQUIRE(Node(NodeKind::MainStmt).kind_name() == "MainStmt");
     }
 
-    SECTION("Top-level node") {
-        REQUIRE(Node(NodeKind::Program).kind_name() == "Program");
-    }
+    SECTION("Top-level node") { REQUIRE(Node(NodeKind::Program).kind_name() == "Program"); }
 }
 
 TEST_CASE("Node: Move semantics", "[ast][node][move][noexcept]") {
@@ -17554,13 +17552,9 @@ TEST_CASE("Node: Move semantics", "[ast][node][move][noexcept]") {
     using jsv::SourceLocation;
     using jsv::SourceSpan;
 
-    SECTION("Move constructor is noexcept") {
-        REQUIRE(std::is_nothrow_move_constructible_v<Node>);
-    }
+    SECTION("Move constructor is noexcept") { REQUIRE(std::is_nothrow_move_constructible_v<Node>); }
 
-    SECTION("Move assignment is noexcept") {
-        REQUIRE(std::is_nothrow_move_assignable_v<Node>);
-    }
+    SECTION("Move assignment is noexcept") { REQUIRE(std::is_nothrow_move_assignable_v<Node>); }
 
     SECTION("Move constructor transfers state correctly") {
         const SourceSpan span("moved.cpp", SourceLocation{100, 51, 1000}, SourceLocation{200, 76, 2000});
@@ -17590,25 +17584,19 @@ TEST_CASE("Node: Copy operations deleted", "[ast][node][copy][deleted]") {
     using jsv::Node;
     using jsv::NodeKind;
 
-    SECTION("Copy constructor is deleted") {
-        REQUIRE_FALSE(std::is_copy_constructible_v<Node>);
-    }
+    SECTION("Copy constructor is deleted") { REQUIRE_FALSE(std::is_copy_constructible_v<Node>); }
 
-    SECTION("Copy assignment is deleted") {
-        REQUIRE_FALSE(std::is_copy_assignable_v<Node>);
-    }
+    SECTION("Copy assignment is deleted") { REQUIRE_FALSE(std::is_copy_assignable_v<Node>); }
 }
 
 TEST_CASE("Node: Virtual destructor", "[ast][node][destructor][virtual]") {
     using jsv::Node;
     using jsv::NodeKind;
 
-    SECTION("Destructor is virtual") {
-        REQUIRE(std::has_virtual_destructor_v<Node>);
-    }
+    SECTION("Destructor is virtual") { REQUIRE(std::has_virtual_destructor_v<Node>); }
 
     SECTION("Can delete derived through base pointer") {
-        auto* node = new Node(NodeKind::Identifier);
+        auto *node = new Node(NodeKind::Identifier);
         REQUIRE_NOTHROW(delete node);
     }
 }
@@ -17646,10 +17634,10 @@ TEST_CASE("Expr: Intermediate expression class", "[ast][expr][construction]") {
 }
 
 TEST_CASE("Stmt: Intermediate statement class", "[ast][stmt][construction]") {
-    using jsv::Stmt;
     using jsv::NodeKind;
     using jsv::SourceLocation;
     using jsv::SourceSpan;
+    using jsv::Stmt;
 
     SECTION("Construct Stmt with kind only") {
         const Stmt stmt(NodeKind::ReturnStmt);
@@ -17806,7 +17794,7 @@ TEST_CASE("node_isa: Type checking utility", "[ast][rtti][isa][utility]") {
     }
 
     SECTION("node_isa with nullptr returns false") {
-        const Node* nullNode = nullptr;
+        const Node *nullNode = nullptr;
         REQUIRE_FALSE(node_isa<Expr>(nullNode));
         REQUIRE_FALSE(node_isa<Stmt>(nullNode));
     }
@@ -17820,7 +17808,7 @@ TEST_CASE("node_cast: Safe casting with assertion", "[ast][cast][node_cast][safe
 
     SECTION("node_cast<Expr> on valid expression node") {
         Node node(NodeKind::IntegerLiteral);
-        Expr* expr = node_cast<Expr>(&node);
+        Expr *expr = node_cast<Expr>(&node);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::IntegerLiteral);
@@ -17828,7 +17816,7 @@ TEST_CASE("node_cast: Safe casting with assertion", "[ast][cast][node_cast][safe
 
     SECTION("node_cast<Stmt> on valid statement node") {
         Node node(NodeKind::ReturnStmt);
-        Stmt* stmt = node_cast<Stmt>(&node);
+        Stmt *stmt = node_cast<Stmt>(&node);
 
         REQUIRE(stmt != nullptr);
         REQUIRE(stmt->kind() == NodeKind::ReturnStmt);
@@ -17836,7 +17824,7 @@ TEST_CASE("node_cast: Safe casting with assertion", "[ast][cast][node_cast][safe
 
     SECTION("node_cast<const Expr> on const expression node") {
         const Node node(NodeKind::BinaryExpr);
-        const Expr* expr = node_cast<const Expr>(&node);
+        const Expr *expr = node_cast<const Expr>(&node);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::BinaryExpr);
@@ -17857,7 +17845,7 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast][cast][node
 
     SECTION("node_dyn_cast<Expr> on valid expression node") {
         Node node(NodeKind::FloatLiteral);
-        Expr* expr = node_dyn_cast<Expr>(&node);
+        Expr *expr = node_dyn_cast<Expr>(&node);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::FloatLiteral);
@@ -17865,7 +17853,7 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast][cast][node
 
     SECTION("node_dyn_cast<Stmt> on valid statement node") {
         Node node(NodeKind::ForStmt);
-        Stmt* stmt = node_dyn_cast<Stmt>(&node);
+        Stmt *stmt = node_dyn_cast<Stmt>(&node);
 
         REQUIRE(stmt != nullptr);
         REQUIRE(stmt->kind() == NodeKind::ForStmt);
@@ -17873,27 +17861,27 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast][cast][node
 
     SECTION("node_dyn_cast<Expr> on statement node returns nullptr") {
         Node node(NodeKind::WhileStmt);
-        Expr* expr = node_dyn_cast<Expr>(&node);
+        Expr *expr = node_dyn_cast<Expr>(&node);
 
         REQUIRE(expr == nullptr);
     }
 
     SECTION("node_dyn_cast<Stmt> on expression node returns nullptr") {
         Node node(NodeKind::StringLiteral);
-        Stmt* stmt = node_dyn_cast<Stmt>(&node);
+        Stmt *stmt = node_dyn_cast<Stmt>(&node);
 
         REQUIRE(stmt == nullptr);
     }
 
     SECTION("node_dyn_cast with nullptr returns nullptr") {
-        const Node* nullNode = nullptr;
+        const Node *nullNode = nullptr;
         REQUIRE(node_dyn_cast<Expr>(nullNode) == nullptr);
         REQUIRE(node_dyn_cast<Stmt>(nullNode) == nullptr);
     }
 
     SECTION("node_dyn_cast<const Expr> on const node") {
         const Node node(NodeKind::CharLiteral);
-        const Expr* expr = node_dyn_cast<const Expr>(&node);
+        const Expr *expr = node_dyn_cast<const Expr>(&node);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::CharLiteral);
@@ -17925,17 +17913,11 @@ TEST_CASE("NodePtr, ExprPtr, StmtPtr unique_ptr aliases", "[ast][memory][unique_
     using jsv::NodePtr;
     using jsv::StmtPtr;
 
-    SECTION("NodePtr is unique_ptr<Node>") {
-        REQUIRE(std::is_same_v<NodePtr, std::unique_ptr<jsv::Node>>);
-    }
+    SECTION("NodePtr is unique_ptr<Node>") { REQUIRE(std::is_same_v<NodePtr, std::unique_ptr<jsv::Node>>); }
 
-    SECTION("ExprPtr is unique_ptr<Expr>") {
-        REQUIRE(std::is_same_v<ExprPtr, std::unique_ptr<jsv::Expr>>);
-    }
+    SECTION("ExprPtr is unique_ptr<Expr>") { REQUIRE(std::is_same_v<ExprPtr, std::unique_ptr<jsv::Expr>>); }
 
-    SECTION("StmtPtr is unique_ptr<Stmt>") {
-        REQUIRE(std::is_same_v<StmtPtr, std::unique_ptr<jsv::Stmt>>);
-    }
+    SECTION("StmtPtr is unique_ptr<Stmt>") { REQUIRE(std::is_same_v<StmtPtr, std::unique_ptr<jsv::Stmt>>); }
 
     SECTION("NodePtr can hold derived types") {
         NodePtr ptr = std::make_unique<jsv::Node>(jsv::NodeKind::Identifier);
@@ -18014,12 +17996,10 @@ TEST_CASE("Node: Comprehensive NodeKind coverage", "[ast][node][NodeKind][exhaus
 
     SECTION("All expression kinds detected as Expr") {
         constexpr std::array exprKinds = {
-            NodeKind::IntegerLiteral,  NodeKind::FloatLiteral,   NodeKind::StringLiteral,
-            NodeKind::CharLiteral,     NodeKind::BoolLiteral,    NodeKind::NullLiteral,
-            NodeKind::Identifier,      NodeKind::UnaryExpr,      NodeKind::BinaryExpr,
-            NodeKind::TernaryExpr,     NodeKind::CallExpr,       NodeKind::IndexExpr,
-            NodeKind::MemberExpr,      NodeKind::AssignExpr,     NodeKind::CastExpr,
-            NodeKind::ArrayLiteral,    NodeKind::GroupingExpr,
+            NodeKind::IntegerLiteral, NodeKind::FloatLiteral, NodeKind::StringLiteral, NodeKind::CharLiteral, NodeKind::BoolLiteral,
+            NodeKind::NullLiteral,    NodeKind::Identifier,   NodeKind::UnaryExpr,     NodeKind::BinaryExpr,  NodeKind::TernaryExpr,
+            NodeKind::CallExpr,       NodeKind::IndexExpr,    NodeKind::MemberExpr,    NodeKind::AssignExpr,  NodeKind::CastExpr,
+            NodeKind::ArrayLiteral,   NodeKind::GroupingExpr,
         };
 
         for(const auto kind : exprKinds) {
@@ -18032,10 +18012,8 @@ TEST_CASE("Node: Comprehensive NodeKind coverage", "[ast][node][NodeKind][exhaus
 
     SECTION("All statement kinds detected as Stmt") {
         constexpr std::array stmtKinds = {
-            NodeKind::ExprStmt,    NodeKind::VarDecl,     NodeKind::FuncDecl,
-            NodeKind::ReturnStmt,  NodeKind::IfStmt,      NodeKind::WhileStmt,
-            NodeKind::ForStmt,     NodeKind::BlockStmt,   NodeKind::BreakStmt,
-            NodeKind::ContinueStmt, NodeKind::MainStmt,
+            NodeKind::ExprStmt, NodeKind::VarDecl,   NodeKind::FuncDecl,  NodeKind::ReturnStmt,   NodeKind::IfStmt,   NodeKind::WhileStmt,
+            NodeKind::ForStmt,  NodeKind::BlockStmt, NodeKind::BreakStmt, NodeKind::ContinueStmt, NodeKind::MainStmt,
         };
 
         for(const auto kind : stmtKinds) {
@@ -18114,21 +18092,15 @@ TEST_CASE("Node: noexcept contract verification", "[ast][node][noexcept][contrac
     using jsv::Node;
     using jsv::NodeKind;
 
-    SECTION("kind() is noexcept") {
-        REQUIRE(noexcept(std::declval<const Node&>().kind()));
-    }
+    SECTION("kind() is noexcept") { REQUIRE(noexcept(std::declval<const Node &>().kind())); }
 
-    SECTION("location() is noexcept") {
-        REQUIRE(noexcept(std::declval<const Node&>().location()));
-    }
+    SECTION("location() is noexcept") { REQUIRE(noexcept(std::declval<const Node &>().location())); }
 
     SECTION("set_location() is noexcept") {
-        REQUIRE(noexcept(std::declval<Node&>().set_location(std::declval<const jsv::SourceSpan&>())));
+        REQUIRE(noexcept(std::declval<Node &>().set_location(std::declval<const jsv::SourceSpan &>())));
     }
 
-    SECTION("kind_name() is noexcept") {
-        REQUIRE(noexcept(std::declval<const Node&>().kind_name()));
-    }
+    SECTION("kind_name() is noexcept") { REQUIRE(noexcept(std::declval<const Node &>().kind_name())); }
 
     SECTION("Move operations are noexcept") {
         REQUIRE(std::is_nothrow_move_constructible_v<Node>);
