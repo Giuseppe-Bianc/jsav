@@ -16464,13 +16464,11 @@ TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser][parse_c
 
 namespace {
     // Helper to create IntegerLiteral for ArrayType size expressions
-    std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) {
-        return std::make_shared<const jsv::IntegerLiteral>(value);
-    }
+    std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
 }  // namespace
 TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Type][type_kind_name][enum]") {
-    using jsv::TypeKind;
     using jsv::type_kind_name;
+    using jsv::TypeKind;
 
     SECTION("Signed integer types") {
         REQUIRE(type_kind_name(TypeKind::I8) == "i8");
@@ -16496,13 +16494,9 @@ TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Typ
         REQUIRE(type_kind_name(TypeKind::String) == "string");
     }
 
-    SECTION("Boolean type") {
-        REQUIRE(type_kind_name(TypeKind::Bool) == "bool");
-    }
+    SECTION("Boolean type") { REQUIRE(type_kind_name(TypeKind::Bool) == "bool"); }
 
-    SECTION("Custom type") {
-        REQUIRE(type_kind_name(TypeKind::Custom) == "custom");
-    }
+    SECTION("Custom type") { REQUIRE(type_kind_name(TypeKind::Custom) == "custom"); }
 
     SECTION("Compound types") {
         REQUIRE(type_kind_name(TypeKind::Array) == "array");
@@ -16516,8 +16510,8 @@ TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Typ
 }
 
 TEST_CASE("type_kind_name is constexpr", "[Type][type_kind_name][constexpr]") {
-    using jsv::TypeKind;
     using jsv::type_kind_name;
+    using jsv::TypeKind;
 
     STATIC_REQUIRE(type_kind_name(TypeKind::I32) == "i32");
     STATIC_REQUIRE(type_kind_name(TypeKind::F64) == "f64");
@@ -16802,7 +16796,7 @@ TEST_CASE("CustomType classof type check", "[Type][CustomType][classof]") {
     using jsv::CustomType;
 
     const CustomType myType("MyClass");
-    const jsv::TypeBase* basePtr = &myType;
+    const jsv::TypeBase *basePtr = &myType;
 
     // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
     // Test that CustomType::classof returns false for PrimitiveType
@@ -16914,7 +16908,7 @@ TEST_CASE("ArrayType to_string with non-IntegerLiteral size expression", "[Type]
         auto lhs = std::make_unique<jsv::IntegerLiteral>(5);
         auto rhs = std::make_unique<jsv::IntegerLiteral>(5);
         auto binaryExpr = std::make_unique<jsv::BinaryExpr>(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
-        
+
         const ArrayType arrayType(elementType, std::move(binaryExpr));
 
         // Should show <expr> for non-IntegerLiteral
@@ -16924,7 +16918,7 @@ TEST_CASE("ArrayType to_string with non-IntegerLiteral size expression", "[Type]
     SECTION("Size expression is Identifier") {
         const auto elementType = jsv::PrimitiveType::f64();
         auto identExpr = std::make_unique<jsv::Identifier>("SIZE");
-        
+
         const ArrayType arrayType(elementType, std::move(identExpr));
 
         REQUIRE(arrayType.to_string() == "[f64; <expr>]");
@@ -16977,7 +16971,7 @@ TEST_CASE("ArrayType classof type check", "[Type][ArrayType][classof]") {
     const auto elementType = jsv::PrimitiveType::i32();
     const auto sizeExpr = makeIntegerLiteral(10);
     const ArrayType arrayType(elementType, sizeExpr);
-    const jsv::TypeBase* basePtr = &arrayType;
+    const jsv::TypeBase *basePtr = &arrayType;
 
     // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
     REQUIRE(ArrayType::classof(basePtr));
@@ -17129,7 +17123,7 @@ TEST_CASE("VectorType classof type check", "[Type][VectorType][classof]") {
 
     const auto elementType = jsv::PrimitiveType::i32();
     const VectorType vectorType(elementType);
-    const jsv::TypeBase* basePtr = &vectorType;
+    const jsv::TypeBase *basePtr = &vectorType;
 
     // Note: Cannot use STATIC_REQUIRE here because classof takes a runtime pointer
     REQUIRE(VectorType::classof(basePtr));
@@ -17151,10 +17145,10 @@ TEST_CASE("VectorType is_primitive returns false", "[Type][VectorType][predicate
 // ============================================================================
 
 TEST_CASE("TypeBase polymorphic to_string", "[Type][TypeBase][polymorphism]") {
-    using jsv::TypeBase;
-    using jsv::PrimitiveType;
-    using jsv::CustomType;
     using jsv::ArrayType;
+    using jsv::CustomType;
+    using jsv::PrimitiveType;
+    using jsv::TypeBase;
     using jsv::VectorType;
 
     SECTION("PrimitiveType through base pointer") {
@@ -17182,9 +17176,9 @@ TEST_CASE("TypeBase polymorphic to_string", "[Type][TypeBase][polymorphism]") {
 }
 
 TEST_CASE("TypeBase polymorphic equality", "[Type][TypeBase][polymorphism][equality]") {
-    using jsv::TypeBase;
-    using jsv::PrimitiveType;
     using jsv::CustomType;
+    using jsv::PrimitiveType;
+    using jsv::TypeBase;
 
     SECTION("Same concrete types through base pointers") {
         const std::shared_ptr<const TypeBase> type1 = PrimitiveType::i32();
@@ -17206,10 +17200,10 @@ TEST_CASE("TypeBase polymorphic equality", "[Type][TypeBase][polymorphism][equal
 }
 
 TEST_CASE("TypeBase kind() accessor", "[Type][TypeBase][kind]") {
-    using jsv::TypeBase;
-    using jsv::PrimitiveType;
-    using jsv::CustomType;
     using jsv::ArrayType;
+    using jsv::CustomType;
+    using jsv::PrimitiveType;
+    using jsv::TypeBase;
     using jsv::VectorType;
 
     SECTION("PrimitiveType kind") {
@@ -17241,10 +17235,10 @@ TEST_CASE("TypeBase kind() accessor", "[Type][TypeBase][kind]") {
 // ============================================================================
 
 TEST_CASE("TypePtr std::formatter outputs correctly", "[Type][formatter][std]") {
-    using jsv::TypePtr;
-    using jsv::PrimitiveType;
-    using jsv::CustomType;
     using jsv::ArrayType;
+    using jsv::CustomType;
+    using jsv::PrimitiveType;
+    using jsv::TypePtr;
     using jsv::VectorType;
 
     SECTION("Format primitive type") {
@@ -17284,9 +17278,9 @@ TEST_CASE("TypePtr std::formatter outputs correctly", "[Type][formatter][std]") 
 }
 
 TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type][formatter][fmt]") {
-    using jsv::TypePtr;
-    using jsv::PrimitiveType;
     using jsv::CustomType;
+    using jsv::PrimitiveType;
+    using jsv::TypePtr;
 
     SECTION("Format primitive type with FFORMAT") {
         const TypePtr type = PrimitiveType::f64();
@@ -17309,9 +17303,9 @@ TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type][formatter][fmt]") 
 // ============================================================================
 
 TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
-    using jsv::PrimitiveType;
-    using jsv::CustomType;
     using jsv::ArrayType;
+    using jsv::CustomType;
+    using jsv::PrimitiveType;
     using jsv::VectorType;
 
     SECTION("CustomType with very long name") {
@@ -17331,7 +17325,7 @@ TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
         const auto elementType = PrimitiveType::u8();
         const auto sizeExpr = makeIntegerLiteral(std::numeric_limits<std::int64_t>::max());
         const ArrayType maxArrayType(elementType, sizeExpr);
-        
+
         // Should handle large size values in to_string
         const auto str = maxArrayType.to_string();
         REQUIRE_THAT(str, StartsWith("[u8; "));
@@ -17344,7 +17338,7 @@ TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
         const auto vec1 = std::make_shared<const VectorType>(i32Type);
         const auto vec2 = std::make_shared<const VectorType>(vec1);
         const auto vec3 = std::make_shared<const VectorType>(vec2);
-        
+
         REQUIRE(vec3->to_string() == "Vec<Vec<Vec<i32>>>");
     }
 
@@ -17353,15 +17347,15 @@ TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
         const auto vectorType = std::make_shared<const VectorType>(customType);
         const auto sizeExpr = makeIntegerLiteral(5);
         const ArrayType arrayOfType(vectorType, sizeExpr);
-        
+
         REQUIRE(arrayOfType.to_string() == "[Vec<MyType>; 5]");
     }
 }
 
 TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
-    using jsv::PrimitiveType;
-    using jsv::CustomType;
     using jsv::ArrayType;
+    using jsv::CustomType;
+    using jsv::PrimitiveType;
     using jsv::VectorType;
 
     SECTION("Same singleton instances are equal") {
@@ -17382,7 +17376,7 @@ TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
         const auto sizeExpr2 = makeIntegerLiteral(10);
         const ArrayType array1(elementType, sizeExpr1);
         const ArrayType array2(elementType, sizeExpr2);
-        
+
         // Current implementation uses pointer equality for size expressions
         REQUIRE(array1 != array2);
     }
@@ -17392,7 +17386,7 @@ TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
         const VectorType vec1(elementType);
         const VectorType vec2(elementType);
         const VectorType vec3(elementType);
-        
+
         REQUIRE(vec1 == vec2);
         REQUIRE(vec2 == vec3);
         REQUIRE(vec1 == vec3);
@@ -17400,8 +17394,8 @@ TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
 }
 
 TEST_CASE("Type virtual destructor is called correctly", "[Type][destructor][virtual]") {
-    using jsv::PrimitiveType;
     using jsv::CustomType;
+    using jsv::PrimitiveType;
 
     SECTION("Delete PrimitiveType through base pointer") {
         std::shared_ptr<const jsv::TypeBase> base = PrimitiveType::i32();
