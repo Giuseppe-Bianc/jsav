@@ -15931,8 +15931,7 @@ TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581"
     }
 }
 
-TEST_CASE("Parser: parse_call linee 578-579 - suite completa",
-          "[Parser][parse_call][Line578-579][T-PC-002]") {
+TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser][parse_call][Line578-579][T-PC-002]") {
     using namespace jsv;
 
     // =========================================================================
@@ -16376,8 +16375,7 @@ TEST_CASE("Parser: parse_call linee 578-579 - suite completa",
 
         // Questo caso dovrebbe essere gestito come errore o come espressione diversa
         // La chiamata di funzione richiede OpenParen
-        REQUIRE((errors.empty() || program == nullptr ||
-                      program->statements()[0]->kind() != NodeKind::CallExpr));
+        REQUIRE((errors.empty() || program == nullptr || program->statements()[0]->kind() != NodeKind::CallExpr));
     }
 
     SECTION("Chiamata di funzione con virgola finale - test negativo") {
@@ -16439,8 +16437,7 @@ TEST_CASE("Parser: parse_call linee 578-579 - suite completa",
         // Quindi o ci sono errori o il programma non è una CallExpr
         if(errors.empty() && program != nullptr) {
             // Se non ci sono errori, dovrebbe essere un'istruzione if, non una chiamata
-            REQUIRE((program->statements()[0]->kind() != NodeKind::ExprStmt || 
-                    program->statements()[0]->kind() == NodeKind::IfStmt));
+            REQUIRE((program->statements()[0]->kind() != NodeKind::ExprStmt || program->statements()[0]->kind() == NodeKind::IfStmt));
         }
     }
 
