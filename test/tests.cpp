@@ -35,6 +35,56 @@ static fs::path createTestFolderStructure() {
     return testFolder;
 }
 
+namespace {
+    // Helper function to create a file with content
+    // NOLINTBEGIN(*-easily-swappable-parameters, *-signed-bitwise)
+    void createFile(const std::string &infilename, const std::string &content) {
+        std::ofstream ofs(infilename, std::ios::out | std::ios::binary);
+        ofs << content;
+        ofs.close();
+    }
+    // NOLINTEND(*-easily-swappable-parameters, *-signed-bitwise)
+
+    [[nodiscard]] bool test_all_digits_from_scenario(std::string_view text, std::size_t start_index) {
+        for(std::size_t j = start_index; j < text.size(); ++j) {
+            if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) { return false; }
+        }
+        return true;
+    }
+
+    // Helper function to create a token with minimal boilerplate for get_binary_op tests
+    [[nodiscard]] jsv::Token make_token_for_op(jsv::TokenKind kind, std::string_view text = ""sv, std::size_t line = 1,
+                                               std::size_t column = 1, std::size_t offset = 0) {
+        const jsv::SourceLocation start(line, column, offset);
+        const jsv::SourceLocation end(line, column + text.size(), offset + text.size());
+        const jsv::SourceSpan span(filename, start, end);
+        return {kind, text, span};
+    }
+
+    /**
+     * @brief Helper function to create a Token with specified properties.
+     *
+     * Creates a token with a predefined source span for consistent testing.
+     *
+     * @param kind The TokenKind for the token.
+     * @param text The text content of the token.
+     * @param line The line number in source (default: 1).
+     * @param column The column number in source (default: 1).
+     * @param offset The character offset in source (default: 0).
+     * @return jsv::Token A fully constructed token.
+     */
+    [[nodiscard]] jsv::Token make_precedence_token(const jsv::TokenKind kind, std::string_view text, std::size_t line = 1,
+                                                   std::size_t column = 1, std::size_t offset = 0) {
+        const jsv::SourceLocation start{line, column, offset};
+        const jsv::SourceLocation end{line, column + text.size(), offset + text.size()};
+        const jsv::SourceSpan span(filename, start, end);
+        return {kind, text, span};
+    }
+    
+    // Helper to create IntegerLiteral for ArrayType size expressions
+    std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
+}  // namespace
+
 TEST_CASE("Logger setup", "[setup_logger]") {
     SECTION("Default setup") { REQUIRE_NOTHROW(setup_logger()); }
     SECTION("Logger sinks") {
@@ -499,16 +549,6 @@ TEST_CASE("Timer: TimeItTimer", "[timer]") {
     REQUIRE_THAT(output, ContainsSubstring(timerTime1.data()));
 }
 
-namespace {
-    // Helper function to create a file with content
-    // NOLINTBEGIN(*-easily-swappable-parameters, *-signed-bitwise)
-    void createFile(const std::string &infilename, const std::string &content) {
-        std::ofstream ofs(infilename, std::ios::out | std::ios::binary);
-        ofs << content;
-        ofs.close();
-    }
-    // NOLINTEND(*-easily-swappable-parameters, *-signed-bitwise)
-}  // namespace
 TEST_CASE("FolderCreationResult Constructor", "[FolderCreationResult]") {
     SECTION("Default constructor") {
         const vnd::FolderCreationResult result;
@@ -8314,14 +8354,6 @@ TEST_CASE("node_dyn_cast works correctly", "[Node][AST][TypeChecking]") {
         REQUIRE(string_lit == nullptr);
     }
 }
-namespace {
-    [[nodiscard]] bool test_all_digits_from_scenario(std::string_view text, std::size_t start_index) {
-        for(std::size_t j = start_index; j < text.size(); ++j) {
-            if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) { return false; }
-        }
-        return true;
-    }
-}  // namespace
 
 TEST_CASE("Parser helper: all_digits_from function (lines 13-18)", "[Parser][HelperFunctions][all_digits_from]") {
     using namespace jsv;
@@ -12193,17 +12225,6 @@ TEST_CASE("Parser error cases - malformed declarations", "[Parser][ErrorCases]")
     }
 }
 
-namespace {
-    // Helper function to create a token with minimal boilerplate for get_binary_op tests
-    [[nodiscard]] jsv::Token make_token_for_op(jsv::TokenKind kind, std::string_view text = ""sv, std::size_t line = 1,
-                                               std::size_t column = 1, std::size_t offset = 0) {
-        const jsv::SourceLocation start(line, column, offset);
-        const jsv::SourceLocation end(line, column + text.size(), offset + text.size());
-        const jsv::SourceSpan span(filename, start, end);
-        return {kind, text, span};
-    }
-}  // namespace
-
 TEST_CASE("get_binary_op: Plus converts to BinaryOp::Add", "[get_binary_op][additive][T-GBOP-001]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Plus, "+", 1, 1, 0);
     auto result = jsv::get_binary_op(token);
@@ -13474,28 +13495,6 @@ TEST_CASE("get_binary_op: Error help message is present", "[get_binary_op][error
     REQUIRE(help_msg.has_value());
     REQUIRE_THAT(*help_msg.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
 }
-
-namespace {
-    /**
-     * @brief Helper function to create a Token with specified properties.
-     *
-     * Creates a token with a predefined source span for consistent testing.
-     *
-     * @param kind The TokenKind for the token.
-     * @param text The text content of the token.
-     * @param line The line number in source (default: 1).
-     * @param column The column number in source (default: 1).
-     * @param offset The character offset in source (default: 0).
-     * @return jsv::Token A fully constructed token.
-     */
-    [[nodiscard]] jsv::Token make_precedence_token(const jsv::TokenKind kind, std::string_view text, std::size_t line = 1,
-                                                   std::size_t column = 1, std::size_t offset = 0) {
-        const jsv::SourceLocation start{line, column, offset};
-        const jsv::SourceLocation end{line, column + text.size(), offset + text.size()};
-        const jsv::SourceSpan span(filename, start, end);
-        return {kind, text, span};
-    }
-}  // namespace
 
 // ============================================================================
 // binding_power() Tests - Lines 30-42, 48-50, 54-57
@@ -16462,10 +16461,6 @@ TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser][parse_c
     }
 }
 
-namespace {
-    // Helper to create IntegerLiteral for ArrayType size expressions
-    std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
-}  // namespace
 TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Type][type_kind_name][enum]") {
     using jsv::type_kind_name;
     using jsv::TypeKind;
