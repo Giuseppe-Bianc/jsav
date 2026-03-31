@@ -31,7 +31,7 @@ namespace jsv {
                                         std::optional<std::string> help);
 
         static CompileError TypeError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
-                                        std::optional<std::string> help);
+                                      std::optional<std::string> help);
 
         /*static CompileError IrGeneratorError(
             std::optional<ErrorCode> code,

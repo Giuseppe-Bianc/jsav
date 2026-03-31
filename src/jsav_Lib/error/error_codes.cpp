@@ -443,7 +443,7 @@ namespace jsv {
         const uint16_t num = numeric_code(error_code);
         if(num >= 1 && num <= 999) { return CompilerPhase::Lexer; }
         if(num >= 1001 && num <= 1999) { return CompilerPhase::Parser; }
-        if (num >= 2001 && num <= 2999) { return CompilerPhase::Semantic; }
+        if(num >= 2001 && num <= 2999) { return CompilerPhase::Semantic; }
         /*if (num >= 3001 && num <= 3999) return CompilerPhase::IrGeneration;
         if (num >= 4001 && num <= 4999) return CompilerPhase::CodeGeneration;*/
         return CompilerPhase::Lexer;  // fallback (System non ancora abilitato)
