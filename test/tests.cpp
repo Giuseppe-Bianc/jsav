@@ -4679,7 +4679,7 @@ TEST_CASE("Severity fmt::format integration", "[error]") {
     SECTION("fmt::format Fatal") { REQUIRE(fmt::format("{}", jsv::Severity::Fatal) == "fatale"); }
 }
 
-TEST_CASE("CompilerPhase to_string tests", "[error]"){ REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer"); }
+TEST_CASE("CompilerPhase to_string tests", "[error]") { REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer"); }
 
 TEST_CASE("CompilerPhase std::format integration", "[error]") {
     SECTION("format Lexer") { REQUIRE(FORMAT("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
