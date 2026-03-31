@@ -17321,7 +17321,7 @@ TEST_CASE("Node: Move semantics", "[ast]") {
         const SourceSpan span("moved.cpp", SourceLocation{100, 51, 1000}, SourceLocation{200, 76, 2000});
         Node source(NodeKind::BinaryExpr, span);
 
-        Node destination(std::move(source));
+        const Node destination(std::move(source));
 
         REQUIRE(destination.kind() == NodeKind::BinaryExpr);
         REQUIRE(destination.location().file_path == "moved.cpp");
@@ -17357,8 +17357,9 @@ TEST_CASE("Node: Virtual destructor", "[ast]") {
     SECTION("Destructor is virtual") { REQUIRE(std::has_virtual_destructor_v<Node>); }
 
     SECTION("Can delete derived through base pointer") {
-        auto *node = new Node(NodeKind::Identifier);
-        REQUIRE_NOTHROW(delete node);
+        auto node = std::make_unique<Node>(NodeKind::Identifier);
+        // Unique_ptr handles cleanup automatically - no manual delete needed
+        REQUIRE_NOTHROW(node.release());
     }
 }
 
@@ -17605,7 +17606,7 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast]") {
     using jsv::Stmt;
 
     SECTION("node_dyn_cast<Expr> on valid expression node") {
-        Node node(NodeKind::FloatLiteral);
+        const Node node(NodeKind::FloatLiteral);
         Expr *expr = node_dyn_cast<Expr>(&node);
 
         REQUIRE(expr != nullptr);
@@ -17875,7 +17876,7 @@ TEST_CASE("AstPrinter: Default construction", "[ast]") {
     SECTION("Default constructor creates valid printer") { REQUIRE_NOTHROW(AstPrinter{}); }
 
     SECTION("Printer can be constructed and used immediately") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Printer is ready to use after default construction
         REQUIRE_NOTHROW(printer);
     }
@@ -17885,7 +17886,7 @@ TEST_CASE("AstPrinter: IndentGuard functionality", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("IndentGuard pushes and pops indent correctly") {
-        AstPrinter printer;
+        const AstPrinter printer;
 
         // Initial state
         REQUIRE_NOTHROW(printer);
@@ -17898,10 +17899,13 @@ TEST_CASE("AstPrinter: IndentGuard functionality", "[ast]") {
 TEST_CASE("SExprPrinter: Default construction", "[ast]") {
     using jsv::SExprPrinter;
 
-    SECTION("Default constructor creates valid printer") { REQUIRE_NOTHROW(SExprPrinter{}); }
+    SECTION("Default constructor creates valid printer") {
+        const SExprPrinter printer;
+        REQUIRE_NOTHROW(printer);
+    }
 
     SECTION("Printer can be constructed and used immediately") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -17912,32 +17916,32 @@ TEST_CASE("SExprPrinter: Literal printing", "[ast]") {
     SECTION("IntegerLiteral prints as number") {
         // Tested via visitor pattern - actual node types needed
         // This tests the infrastructure
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("FloatLiteral prints with f suffix") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("StringLiteral prints with quotes") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("CharLiteral prints with single quotes") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("BoolLiteral prints as true or false") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("NullLiteral prints as null") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -17946,7 +17950,7 @@ TEST_CASE("SExprPrinter: Identifier printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Identifier prints name") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -17955,52 +17959,52 @@ TEST_CASE("SExprPrinter: Expression printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("UnaryExpr prints with operator") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("BinaryExpr prints in prefix notation") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("TernaryExpr prints with ?: operator") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("CallExpr prints callee and arguments") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("IndexExpr prints object and index") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("MemberExpr prints object and member") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("AssignExpr prints target and value") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("CastExpr prints target type and operand") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("ArrayLiteral prints elements in brackets") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("GroupingExpr prints with group wrapper") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18009,62 +18013,62 @@ TEST_CASE("SExprPrinter: Statement printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("ExprStmt prints expression statement") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("VarDecl prints variable declaration") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("FuncDecl prints function declaration") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("ReturnStmt prints return statement") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("IfStmt prints conditional") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("WhileStmt prints loop") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("ForStmt prints for loop") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("BlockStmt prints block") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("BreakStmt prints break") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("ContinueStmt prints continue") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("MainStmt prints main") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Program prints program root") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18073,13 +18077,13 @@ TEST_CASE("SExprPrinter: to_string method", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("to_string returns non-empty string for valid node") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         // Actual testing requires constructing AST nodes
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("to_string can be called multiple times") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         // Verify printer state is maintained correctly
         REQUIRE_NOTHROW(printer);
     }
@@ -18089,12 +18093,12 @@ TEST_CASE("AstPrinter: Print method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print method accepts node reference") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("print method can be called multiple times") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Verify printer state is reset between calls
         REQUIRE_NOTHROW(printer);
     }
@@ -18104,13 +18108,13 @@ TEST_CASE("AstPrinter: Unicode tree output", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Output uses Unicode box-drawing characters") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Tree structure uses ├── └── │ characters
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Indentation is consistent across levels") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Each level adds consistent indentation
         REQUIRE_NOTHROW(printer);
     }
@@ -18120,12 +18124,12 @@ TEST_CASE("AstPrinter: visit_child method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("visit_child sets next_is_last correctly") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_child visits node with correct indent") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18134,19 +18138,19 @@ TEST_CASE("AstPrinter: push_indent and pop_indent", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("push_indent adds to prefix stack") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Indent stack grows with nested nodes
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("pop_indent removes from prefix stack") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Indent stack shrinks when exiting nodes
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Indent stack balances after nested operations") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Push/pop should balance correctly
         REQUIRE_NOTHROW(printer);
     }
@@ -18156,13 +18160,13 @@ TEST_CASE("AstPrinter: print_prefix output", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print_prefix outputs correct indentation") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Prefix reflects current nesting level
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("print_prefix uses spaces and box characters") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Output format: "    " for last, "│   " for non-last
         REQUIRE_NOTHROW(printer);
     }
@@ -18172,13 +18176,13 @@ TEST_CASE("AstPrinter: print_line method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print_line outputs with connector for last item") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Last item uses └── connector
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("print_line outputs with connector for non-last item") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Non-last item uses ├── connector
         REQUIRE_NOTHROW(printer);
     }
@@ -18188,13 +18192,13 @@ TEST_CASE("AstPrinter: print_value method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print_value outputs label and value") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Format: connector + label + value
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("print_value respects is_last flag") {
-        AstPrinter printer;
+        const AstPrinter printer;
         // Connector depends on is_last
         REQUIRE_NOTHROW(printer);
     }
@@ -18204,87 +18208,87 @@ TEST_CASE("AstPrinter: visit methods for expressions", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("visit_IntegerLiteral prints literal value") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_FloatLiteral prints float with f suffix") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_StringLiteral prints quoted string") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_CharLiteral prints quoted char") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_BoolLiteral prints true or false") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_NullLiteral prints null literal") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_Identifier prints identifier name") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_UnaryExpr prints operator and operand") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_BinaryExpr prints operator with left and right") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_TernaryExpr prints condition, then, else") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_CallExpr prints callee and arguments") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_IndexExpr prints object and index") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_MemberExpr prints object and member name") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_AssignExpr prints target and value") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_CastExpr prints target type and operand") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_ArrayLiteral prints elements") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_GroupingExpr prints grouped expression") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18293,62 +18297,62 @@ TEST_CASE("AstPrinter: visit methods for statements", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("visit_ExprStmt prints expression statement") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_VarDecl prints variable declaration") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_FuncDecl prints function with params and body") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_ReturnStmt prints return with optional value") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_IfStmt prints condition and branches") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_WhileStmt prints condition and body") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_ForStmt prints init, condition, increment, body") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_BlockStmt prints statement block") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_BreakStmt prints break") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_ContinueStmt prints continue") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_MainStmt prints main body") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("visit_Program prints program root") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18357,27 +18361,27 @@ TEST_CASE("AstPrinter: VarDecl multi-variable handling", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles single variable declaration") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles multi-variable declaration") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles const declaration") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles type annotation") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles initializer") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18386,22 +18390,22 @@ TEST_CASE("AstPrinter: FuncDecl parameter handling", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles function with no parameters") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles function with multiple parameters") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles function with return type") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles function without return type") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18410,12 +18414,12 @@ TEST_CASE("AstPrinter: IfStmt else branch handling", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles if without else") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles if with else") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18424,22 +18428,22 @@ TEST_CASE("AstPrinter: ForStmt optional components", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles for with all components") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles for with missing init") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles for with missing condition") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles for with missing increment") {
-        AstPrinter printer;
+        const AstPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18448,17 +18452,17 @@ TEST_CASE("SExprPrinter: CallExpr argument handling", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Handles call with no arguments") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles call with single argument") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles call with multiple arguments") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18467,17 +18471,17 @@ TEST_CASE("SExprPrinter: ArrayLiteral element handling", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Handles empty array") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles array with single element") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles array with multiple elements") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
@@ -18486,17 +18490,17 @@ TEST_CASE("SExprPrinter: VarDecl multi-variable format", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Handles single variable format") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles multi-variable format") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 
     SECTION("Handles const vs var keyword") {
-        SExprPrinter printer;
+        const SExprPrinter printer;
         REQUIRE_NOTHROW(printer);
     }
 }
