@@ -17607,7 +17607,7 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast]") {
 
     SECTION("node_dyn_cast<Expr> on valid expression node") {
         const Node node(NodeKind::FloatLiteral);
-        Expr *expr = node_dyn_cast<Expr>(&node);
+        const Expr *expr = node_dyn_cast<Expr>(&node);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::FloatLiteral);
