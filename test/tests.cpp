@@ -4719,7 +4719,7 @@ TEST_CASE("ErrorCode severity() tests", "[error]") {
 TEST_CASE("ErrorCode phase() tests", "[error]") {
     REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
     REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Parser);
-    REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
+    REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Semantic);
 }
 
 TEST_CASE("ErrorCode message() tests", "[error]") {
@@ -4974,10 +4974,10 @@ TEST_CASE("phase() function coverage", "[error]") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E1015) == jsv::CompilerPhase::Parser);
     }
 
-    SECTION("Lexer phase for E2001-E2032 (Semantic range, not yet implemented)") {
-        REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
-        REQUIRE(jsv::phase(jsv::ErrorCode::E2023) == jsv::CompilerPhase::Lexer);
-        REQUIRE(jsv::phase(jsv::ErrorCode::E2032) == jsv::CompilerPhase::Lexer);
+    SECTION("Semantic phase for E2001-E2032 (Semantic range)") {
+        REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Semantic);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E2023) == jsv::CompilerPhase::Semantic);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E2032) == jsv::CompilerPhase::Semantic);
     }
 
     SECTION("Lexer phase for E3001-E3008 (IR range, not yet implemented)") {
@@ -17354,13 +17354,7 @@ TEST_CASE("Node: Virtual destructor", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
-    SECTION("Destructor is virtual") { REQUIRE(std::has_virtual_destructor_v<Node>); }
-
-    SECTION("Can delete derived through base pointer") {
-        auto node = std::make_unique<Node>(NodeKind::Identifier);
-        // Unique_ptr handles cleanup automatically - no manual delete needed
-        REQUIRE_NOTHROW(node.release());
-    }
+    REQUIRE(std::has_virtual_destructor_v<Node>);
 }
 
 TEST_CASE("Expr: Intermediate expression class", "[ast]") {

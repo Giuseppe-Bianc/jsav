@@ -20,12 +20,13 @@ namespace jsv {
         return {Kind::SyntaxError, vnd_move(code), message, span, vnd_move(help)};
     }
 
-    /*CompileError CompileError::TypeError(std::optional<jsv::ErrorCode> code, std::string_view message, const SourceSpan& span,
+    
+    CompileError CompileError::TypeError(std::optional<jsv::ErrorCode> code, std::string_view message, const SourceSpan& span,
                                          std::optional<std::string> help) {
         return {Kind::TypeError, vnd_move(code), message, span, vnd_move(help)};
     }
 
-    CompileError CompileError::IrGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message, const SourceSpan& span,
+    /*CompileError CompileError::IrGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message, const SourceSpan& span,
                                                 std::optional<std::string> help) {
         return {Kind::IrGeneratorError, vnd_move(code), message, span, vnd_move(help)};
     }
