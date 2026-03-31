@@ -4679,8 +4679,7 @@ TEST_CASE("Severity fmt::format integration", "[error]") {
     SECTION("fmt::format Fatal") { REQUIRE(fmt::format("{}", jsv::Severity::Fatal) == "fatale"); }
 }
 
-TEST_CASE("CompilerPhase to_string tests", "[error]");
-}
+TEST_CASE("CompilerPhase to_string tests", "[error]"){ REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer"); }
 
 TEST_CASE("CompilerPhase std::format integration", "[error]") {
     SECTION("format Lexer") { REQUIRE(FORMAT("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
@@ -5940,8 +5939,7 @@ namespace test_utils {
 
 }  // namespace test_utils
 
-TEST_CASE("strip_ansi empty input", "[ansi_strip]").empty());
-}
+TEST_CASE("strip_ansi empty input", "[ansi_strip]") { REQUIRE(test_utils::strip_ansi("").empty()); }
 
 TEST_CASE("strip_ansi no ansi codes", "[ansi_strip]") {
     SECTION("Plain text unchanged") { REQUIRE(test_utils::strip_ansi("Hello, World!") == "Hello, World!"sv); }
