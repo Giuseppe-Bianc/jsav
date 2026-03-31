@@ -47,7 +47,7 @@ namespace {
 
     [[nodiscard]] bool test_all_digits_from_scenario(std::string_view text, std::size_t start_index) {
         for(std::size_t j = start_index; j < text.size(); ++j) {
-            if(std::isdigit(static_cast<unsigned char>(text[j])) == 0) { return false; }
+            if(std::isdigit(C_UC(text[j])) == 0) { return false; }
         }
         return true;
     }
@@ -232,7 +232,7 @@ TEST_CASE("Times functionality", "[Times]") {
     }
 }
 
-TEST_CASE("Corner cases for TimeValues and Times", "[TimeValues][Times][CornerCases]") {
+TEST_CASE("Corner cases for TimeValues and Times", "[TimeValues]") {
     using vnd::Times;
     using vnd::TimeValues;
     using vnd::ValueLabel;
@@ -905,86 +905,86 @@ TEST_CASE("GetBuildFolder - Edge Cases") {
     }
 }
 
-TEST_CASE("FormattedSize_StdFormat_ByteSuffix_FormatsTwoDecimalPlaces", "[FormattedSize][std::format][T-FMT-001]") {
+TEST_CASE("FormattedSize_StdFormat_ByteSuffix_FormatsTwoDecimalPlaces", "[FormattedSize]") {
     const FormattedSize fs{.value = 0.0L, .suffix = "B"};
     REQUIRE(std::format("{}", fs) == "0.00 B");
 }
 
-TEST_CASE("FormattedSize_StdFormat_OneByte_FormatsCorrectly", "[FormattedSize][std::format][T-FMT-002]") {
+TEST_CASE("FormattedSize_StdFormat_OneByte_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "B"};
     REQUIRE(std::format("{}", fs) == "1.00 B");
 }
 
-TEST_CASE("FormattedSize_StdFormat_KBSuffix_FormatsCorrectly", "[FormattedSize][std::format][T-FMT-003]") {
+TEST_CASE("FormattedSize_StdFormat_KBSuffix_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "KB"};
     REQUIRE(std::format("{}", fs) == "1.00 KB");
 }
 
-TEST_CASE("FormattedSize_StdFormat_MBSuffix_FormatsCorrectly", "[FormattedSize][std::format][T-FMT-004]") {
+TEST_CASE("FormattedSize_StdFormat_MBSuffix_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "MB"};
     REQUIRE(std::format("{}", fs) == "1.00 MB");
 }
 
-TEST_CASE("FormattedSize_StdFormat_KiBSuffix_FormatsCorrectly", "[FormattedSize][std::format][T-FMT-005]") {
+TEST_CASE("FormattedSize_StdFormat_KiBSuffix_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "KiB"};
     REQUIRE(std::format("{}", fs) == "1.00 KiB");
 }
 
-TEST_CASE("FormattedSize_StdFormat_FractionalValue_FormatsWithTwoDecimals", "[FormattedSize][std::format][T-FMT-006]") {
+TEST_CASE("FormattedSize_StdFormat_FractionalValue_FormatsWithTwoDecimals", "[FormattedSize]") {
     // 1.5 MB  → "1.50 MB"
     const FormattedSize fs{.value = 1.5L, .suffix = "MB"};
     REQUIRE(std::format("{}", fs) == "1.50 MB");
 }
 
-TEST_CASE("FormattedSize_StdFormat_LargeValue_FormatsCorrectly", "[FormattedSize][std::format][T-FMT-007]") {
+TEST_CASE("FormattedSize_StdFormat_LargeValue_FormatsCorrectly", "[FormattedSize]") {
     // 999.99 B
     const FormattedSize fs{.value = 999.99L, .suffix = "B"};
     REQUIRE(std::format("{}", fs) == "999.99 B");
 }
 
-TEST_CASE("FormattedSize_StdFormat_PBSuffix_FormatsCorrectly", "[FormattedSize][std::format][T-FMT-008]") {
+TEST_CASE("FormattedSize_StdFormat_PBSuffix_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 2.25L, .suffix = "PB"};
     REQUIRE(std::format("{}", fs) == "2.25 PB");
 }
 
-TEST_CASE("FormattedSize_StdFormat_InLargerString_EmbedsProperly", "[FormattedSize][std::format][T-FMT-009]") {
+TEST_CASE("FormattedSize_StdFormat_InLargerString_EmbedsProperly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "GB"};
     REQUIRE(std::format("Size: {}", fs) == "Size: 1.00 GB");
 }
 
-TEST_CASE("FormattedSize_FmtFormat_ByteSuffix_FormatsTwoDecimalPlaces", "[FormattedSize][fmt::format][T-FMT-010]") {
+TEST_CASE("FormattedSize_FmtFormat_ByteSuffix_FormatsTwoDecimalPlaces", "[FormattedSize]") {
     const FormattedSize fs{.value = 0.0L, .suffix = "B"};
     REQUIRE(fmt::format("{}", fs) == "0.00 B");
 }
 
-TEST_CASE("FormattedSize_FmtFormat_KBSuffix_FormatsCorrectly", "[FormattedSize][fmt::format][T-FMT-011]") {
+TEST_CASE("FormattedSize_FmtFormat_KBSuffix_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "KB"};
     REQUIRE(fmt::format("{}", fs) == "1.00 KB");
 }
 
-TEST_CASE("FormattedSize_FmtFormat_KiBSuffix_FormatsCorrectly", "[FormattedSize][fmt::format][T-FMT-012]") {
+TEST_CASE("FormattedSize_FmtFormat_KiBSuffix_FormatsCorrectly", "[FormattedSize]") {
     const FormattedSize fs{.value = 1.0L, .suffix = "KiB"};
     REQUIRE(fmt::format("{}", fs) == "1.00 KiB");
 }
 
-TEST_CASE("FormattedSize_FmtFormat_FractionalValue_FormatsWithTwoDecimals", "[FormattedSize][fmt::format][T-FMT-013]") {
+TEST_CASE("FormattedSize_FmtFormat_FractionalValue_FormatsWithTwoDecimals", "[FormattedSize]") {
     const FormattedSize fs{.value = 3.75L, .suffix = "GiB"};
     REQUIRE(fmt::format("{}", fs) == "3.75 GiB");
 }
 
-TEST_CASE("FormattedSize_FmtFormat_MatchesStdFormat_SameOutput", "[FormattedSize][fmt::format][T-FMT-014]") {
+TEST_CASE("FormattedSize_FmtFormat_MatchesStdFormat_SameOutput", "[FormattedSize]") {
     const FormattedSize fs{.value = 512.0L, .suffix = "MiB"};
     REQUIRE(fmt::format("{}", fs) == std::format("{}", fs));
 }
 
-TEST_CASE("FormattedSizePair_StdFormat_ContainsSIAndIECValues", "[FormattedSizePair][std::format][T-FMT-015]") {
+TEST_CASE("FormattedSizePair_StdFormat_ContainsSIAndIECValues", "[FormattedSizePair]") {
     const FormattedSizePair pair{.si = {.value = 1.0L, .suffix = "KB"}, .iec = {.value = 1.0L, .suffix = "KiB"}};
     const std::string result = std::format("{}", pair);
     REQUIRE_THAT(result, ContainsSubstring("1.00 KB"));
     REQUIRE_THAT(result, ContainsSubstring("1.00 KiB"));
 }
 
-TEST_CASE("FormattedSizePair_StdFormat_SIColumnIsLeftPaddedTo20", "[FormattedSizePair][std::format][T-FMT-016]") {
+TEST_CASE("FormattedSizePair_StdFormat_SIColumnIsLeftPaddedTo20", "[FormattedSizePair]") {
     const FormattedSizePair pair{.si = {.value = 1.0L, .suffix = "KB"}, .iec = {.value = 1.0L, .suffix = "KiB"}};
     const std::string result = std::format("{}", pair);
     // The entire string must be at least 41 chars (20 + 1 space + 20)
@@ -993,13 +993,13 @@ TEST_CASE("FormattedSizePair_StdFormat_SIColumnIsLeftPaddedTo20", "[FormattedSiz
     REQUIRE(result.substr(0, 7) == "1.00 KB");
 }
 
-TEST_CASE("FormattedSizePair_StdFormat_ZeroBytes_BothColumnsShowZeroB", "[FormattedSizePair][std::format][T-FMT-017]") {
+TEST_CASE("FormattedSizePair_StdFormat_ZeroBytes_BothColumnsShowZeroB", "[FormattedSizePair]") {
     const FormattedSizePair pair{.si = {.value = 0.0L, .suffix = "B"}, .iec = {.value = 0.0L, .suffix = "B"}};
     const std::string result = std::format("{}", pair);
     REQUIRE_THAT(result, ContainsSubstring("0.00 B"));
 }
 
-TEST_CASE("FormattedSizePair_StdFormat_InLargerString_EmbedsProperly", "[FormattedSizePair][std::format][T-FMT-018]") {
+TEST_CASE("FormattedSizePair_StdFormat_InLargerString_EmbedsProperly", "[FormattedSizePair]") {
     const FormattedSizePair pair{.si = {.value = 1.0L, .suffix = "MB"}, .iec = {.value = 1.0L, .suffix = "MiB"}};
     const std::string result = std::format("Pair: {}", pair);
     REQUIRE_THAT(result, StartsWith("Pair: "));
@@ -1007,40 +1007,40 @@ TEST_CASE("FormattedSizePair_StdFormat_InLargerString_EmbedsProperly", "[Formatt
     REQUIRE_THAT(result, ContainsSubstring("1.00 MiB"));
 }
 
-TEST_CASE("FormattedSizePair_FmtFormat_ContainsSIAndIECValues", "[FormattedSizePair][fmt::format][T-FMT-019]") {
+TEST_CASE("FormattedSizePair_FmtFormat_ContainsSIAndIECValues", "[FormattedSizePair]") {
     const FormattedSizePair pair{.si = {.value = 1.0L, .suffix = "GB"}, .iec = {.value = 1.0L, .suffix = "GiB"}};
     const std::string result = fmt::format("{}", pair);
     REQUIRE_THAT(result, ContainsSubstring("1.00 GB"));
     REQUIRE_THAT(result, ContainsSubstring("1.00 GiB"));
 }
 
-TEST_CASE("FormattedSizePair_FmtFormat_MatchesStdFormat_SameOutput", "[FormattedSizePair][fmt::format][T-FMT-020]") {
+TEST_CASE("FormattedSizePair_FmtFormat_MatchesStdFormat_SameOutput", "[FormattedSizePair]") {
     const FormattedSizePair pair{.si = {.value = 2.5L, .suffix = "TB"}, .iec = {.value = 2.27L, .suffix = "TiB"}};
     REQUIRE(fmt::format("{}", pair) == std::format("{}", pair));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_ContainsByteCount", "[FileSizeReport][std::format][T-FMT-021]") {
+TEST_CASE("FileSizeReport_StdFormat_ContainsByteCount", "[FileSizeReport]") {
     const FileSizeInfo info{1'000u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
     REQUIRE_THAT(result, ContainsSubstring("Bytes : 1000"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_ContainsSIHeader", "[FileSizeReport][std::format][T-FMT-022]") {
+TEST_CASE("FileSizeReport_StdFormat_ContainsSIHeader", "[FileSizeReport]") {
     const FileSizeInfo info{1'024u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
     REQUIRE_THAT(result, ContainsSubstring("SI"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_ContainsIECHeader", "[FileSizeReport][std::format][T-FMT-023]") {
+TEST_CASE("FileSizeReport_StdFormat_ContainsIECHeader", "[FileSizeReport]") {
     const FileSizeInfo info{1'024u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
     REQUIRE_THAT(result, ContainsSubstring("IEC"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_ContainsDashedSeparators", "[FileSizeReport][std::format][T-FMT-024]") {
+TEST_CASE("FileSizeReport_StdFormat_ContainsDashedSeparators", "[FileSizeReport]") {
     const FileSizeInfo info{0u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
@@ -1048,7 +1048,7 @@ TEST_CASE("FileSizeReport_StdFormat_ContainsDashedSeparators", "[FileSizeReport]
     REQUIRE_THAT(result, ContainsSubstring("-----------------------------------------"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_ZeroBytes_ContainsZeroB", "[FileSizeReport][std::format][T-FMT-025]") {
+TEST_CASE("FileSizeReport_StdFormat_ZeroBytes_ContainsZeroB", "[FileSizeReport]") {
     const FileSizeInfo info{0u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
@@ -1056,14 +1056,14 @@ TEST_CASE("FileSizeReport_StdFormat_ZeroBytes_ContainsZeroB", "[FileSizeReport][
     REQUIRE_THAT(result, ContainsSubstring("0.00 B"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_1000Bytes_SIshowsKB", "[FileSizeReport][std::format][T-FMT-026]") {
+TEST_CASE("FileSizeReport_StdFormat_1000Bytes_SIshowsKB", "[FileSizeReport]") {
     const FileSizeInfo info{1'000u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
     REQUIRE_THAT(result, ContainsSubstring("1.00 KB"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_1000Bytes_IECshowsBytes", "[FileSizeReport][std::format][T-FMT-027]") {
+TEST_CASE("FileSizeReport_StdFormat_1000Bytes_IECshowsBytes", "[FileSizeReport]") {
     const FileSizeInfo info{1'000u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
@@ -1071,14 +1071,14 @@ TEST_CASE("FileSizeReport_StdFormat_1000Bytes_IECshowsBytes", "[FileSizeReport][
     REQUIRE_THAT(result, ContainsSubstring("1000.00 B"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_1024Bytes_IECshowsKiB", "[FileSizeReport][std::format][T-FMT-028]") {
+TEST_CASE("FileSizeReport_StdFormat_1024Bytes_IECshowsKiB", "[FileSizeReport]") {
     const FileSizeInfo info{1'024u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
     REQUIRE_THAT(result, ContainsSubstring("1.00 KiB"));
 }
 
-TEST_CASE("FileSizeReport_StdFormat_OutputHasFourLines", "[FileSizeReport][std::format][T-FMT-029]") {
+TEST_CASE("FileSizeReport_StdFormat_OutputHasFourLines", "[FileSizeReport]") {
     const FileSizeInfo info{42u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
@@ -1086,21 +1086,21 @@ TEST_CASE("FileSizeReport_StdFormat_OutputHasFourLines", "[FileSizeReport][std::
     REQUIRE(newline_count == 4);
 }
 
-TEST_CASE("FileSizeReport_StdFormat_BytesLineIsFirst", "[FileSizeReport][std::format][T-FMT-030]") {
+TEST_CASE("FileSizeReport_StdFormat_BytesLineIsFirst", "[FileSizeReport]") {
     const FileSizeInfo info{512u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = std::format("{}", report);
     REQUIRE_THAT(result, StartsWith("Bytes : 512"));
 }
 
-TEST_CASE("FileSizeReport_FmtFormat_ContainsByteCount", "[FileSizeReport][fmt::format][T-FMT-031]") {
+TEST_CASE("FileSizeReport_FmtFormat_ContainsByteCount", "[FileSizeReport]") {
     const FileSizeInfo info{2'048u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = fmt::format("{}", report);
     REQUIRE_THAT(result, ContainsSubstring("Bytes : 2048"));
 }
 
-TEST_CASE("FileSizeReport_FmtFormat_ContainsSIAndIECHeaders", "[FileSizeReport][fmt::format][T-FMT-032]") {
+TEST_CASE("FileSizeReport_FmtFormat_ContainsSIAndIECHeaders", "[FileSizeReport]") {
     const FileSizeInfo info{1'048'576u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const std::string result = fmt::format("{}", report);
@@ -1108,7 +1108,7 @@ TEST_CASE("FileSizeReport_FmtFormat_ContainsSIAndIECHeaders", "[FileSizeReport][
     REQUIRE_THAT(result, ContainsSubstring("IEC"));
 }
 
-TEST_CASE("FileSizeReport_FmtFormat_1MiB_ShowsCorrectSIandIEC", "[FileSizeReport][fmt::format][T-FMT-033]") {
+TEST_CASE("FileSizeReport_FmtFormat_1MiB_ShowsCorrectSIandIEC", "[FileSizeReport]") {
     // 1 MiB = 1'048'576 bytes:  1.05 MB (SI)  |  1.00 MiB (IEC)
     const FileSizeInfo info{1'048'576u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
@@ -1117,25 +1117,25 @@ TEST_CASE("FileSizeReport_FmtFormat_1MiB_ShowsCorrectSIandIEC", "[FileSizeReport
     REQUIRE_THAT(result, ContainsSubstring("MB"));
 }
 
-TEST_CASE("FileSizeReport_FmtFormat_MatchesStdFormat_SameOutput", "[FileSizeReport][fmt::format][T-FMT-034]") {
+TEST_CASE("FileSizeReport_FmtFormat_MatchesStdFormat_SameOutput", "[FileSizeReport]") {
     const FileSizeInfo info{99'999u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     REQUIRE(fmt::format("{}", report) == std::format("{}", report));
 }
 
-TEST_CASE("FileSizeInfo_FormatThenStdFormat_EndToEndSI", "[FileSizeInfo][std::format][integration][T-INT-001]") {
+TEST_CASE("FileSizeInfo_FormatThenStdFormat_EndToEndSI", "[FileSizeInfo]") {
     constexpr FileSizeInfo info{1'000'000u};
     const FormattedSize fs = info.format(kSI);
     REQUIRE(std::format("{}", fs) == "1.00 MB");
 }
 
-TEST_CASE("FileSizeInfo_FormatThenStdFormat_EndToEndIEC", "[FileSizeInfo][std::format][integration][T-INT-002]") {
+TEST_CASE("FileSizeInfo_FormatThenStdFormat_EndToEndIEC", "[FileSizeInfo]") {
     constexpr FileSizeInfo info{1'048'576u};
     const FormattedSize fs = info.format(kIEC);
     REQUIRE(std::format("{}", fs) == "1.00 MiB");
 }
 
-TEST_CASE("FileSizeReport_MakePairThenStdFormat_EndToEndPair", "[FileSizeReport][std::format][integration][T-INT-003]") {
+TEST_CASE("FileSizeReport_MakePairThenStdFormat_EndToEndPair", "[FileSizeReport]") {
     const FileSizeInfo info{1'000'000u};
     const FileSizeReport report{.info = info, .si_sys = kSI, .iec_sys = kIEC};
     const FormattedSizePair pair = report.make_pair();
@@ -1143,7 +1143,7 @@ TEST_CASE("FileSizeReport_MakePairThenStdFormat_EndToEndPair", "[FileSizeReport]
     REQUIRE_THAT(result, ContainsSubstring("1.00 MB"));
 }
 
-TEST_CASE("FileSizeInfo_AllSIPrefixLevels_FormatCorrectly", "[FileSizeInfo][std::format][integration][T-INT-004]") {
+TEST_CASE("FileSizeInfo_AllSIPrefixLevels_FormatCorrectly", "[FileSizeInfo]") {
     // Validates that every SI prefix level formats without crash and includes
     // the expected suffix.
     struct Case {
@@ -1169,7 +1169,7 @@ TEST_CASE("FileSizeInfo_AllSIPrefixLevels_FormatCorrectly", "[FileSizeInfo][std:
     }
 }
 
-TEST_CASE("FileSizeInfo_AllIECPrefixLevels_FormatCorrectly", "[FileSizeInfo][std::format][integration][T-INT-005]") {
+TEST_CASE("FileSizeInfo_AllIECPrefixLevels_FormatCorrectly", "[FileSizeInfo]") {
     struct Case {
         uintmax_t bytes;
         std::string_view suffix;
@@ -2396,7 +2396,7 @@ TEST_CASE("SourceSpan copy and move semantics", "[SourceSpan]") {
     }
 }
 
-TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][happy]") {
+TEST_CASE("truncate_path function works correctly", "[truncate_path]") {
     SECTION("path shorter than depth is unchanged") {
         const fs::path path = "a/b/c";
         const std::string result = jsv::truncate_path(path, 5);
@@ -2473,7 +2473,7 @@ TEST_CASE("truncate_path function works correctly", "[truncate_path][utility][ha
     }
 }
 
-TEST_CASE("HasSpan abstract interface works correctly", "[HasSpan][interface][polymorphism]") {
+TEST_CASE("HasSpan abstract interface works correctly", "[HasSpan]") {
     struct TestHasSpan : jsv::HasSpan {
         jsv::SourceSpan stored_span;
 
@@ -2980,7 +2980,7 @@ TEST_CASE("Token data-driven tests", "[Token]") {
     }
 }
 
-TEST_CASE("Lexer_AsciiOnlySource_TokenizeCorrectly", "[lexer][utf8][phase3]") {
+TEST_CASE("Lexer_AsciiOnlySource_TokenizeCorrectly", "[lexer]") {
     jsv::Lexer lex{"hello world 42", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     // hello, world, 42, Eof
@@ -2994,7 +2994,7 @@ TEST_CASE("Lexer_AsciiOnlySource_TokenizeCorrectly", "[lexer][utf8][phase3]") {
     REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
+TEST_CASE("Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode", "[lexer]") {
     // Ω = U+03A9, UTF-8: 0xCE 0xA9 (2 bytes)
 
     const std::string src = "\xCE\xA9";
@@ -3006,7 +3006,7 @@ TEST_CASE("Lexer_TwoByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][pha
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
+TEST_CASE("Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode", "[lexer]") {
     // 変 = U+5909, UTF-8: 0xE5 0xA4 0x89 (3 bytes)
 
     const std::string src = "\xE5\xA4\x89";
@@ -3018,7 +3018,7 @@ TEST_CASE("Lexer_ThreeByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][p
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_FourByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][phase3]") {
+TEST_CASE("Lexer_FourByteIdentifier_ReturnsIdentifierUnicode", "[lexer]") {
     // 𝑥 = U+1D465 (Mathematical Italic Small x), UTF-8: 0xF0 0x9D 0x91 0xA5 (4 bytes)
 
     const std::string src = "\xF0\x9D\x91\xA5";
@@ -3030,7 +3030,7 @@ TEST_CASE("Lexer_FourByteIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][ph
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer][utf8][phase3]") {
+TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer]") {
     // A string_view containing a null byte must NOT be treated as the end of input.
     // Source: "ab" + U+0000 + "cd" → IdentifierAscii("ab"), Error, IdentifierAscii("cd"), Eof
     using namespace std::string_literals;
@@ -3048,7 +3048,7 @@ TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer][utf8][ph
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer]") {
     // 0x80 is an orphaned continuation byte — must produce Error token
     const std::string src = "\x80";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3058,7 +3058,7 @@ TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer]") {
     // 0xC0 0xAF is an overlong encoding of '/' — must produce Error token(s)
     const std::string src = "\xC0\xAF";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3069,7 +3069,7 @@ TEST_CASE("Lexer_MalformedOverlong_EmitsErrorToken", "[lexer][utf8][malformed][p
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer]") {
     // Malformed byte followed by valid tokens — recovery must work
     const std::string src = "\x80 var x";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3083,7 +3083,7 @@ TEST_CASE("Lexer_MalformedMidFile_ContinuesTokenizing", "[lexer][utf8][malformed
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexer]") {
     // String literal containing overlong sequence → entire literal is Error per FR-021
     // Source: " + 0xC0 0xAF (no closing quote)
     const std::string src = "\"\xC0\xAF\"";
@@ -3095,7 +3095,7 @@ TEST_CASE("Lexer_MalformedInsideStringLiteral_EntireLiteralBecomesError", "[lexe
     REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0007);  // Overlong UTF-8 0xC0 0xAF
 }
 
-TEST_CASE("Lexer_UnclosedStringLiteral", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_UnclosedStringLiteral", "[lexer]") {
     // String literal containing overlong sequence → entire literal is Error per FR-021
     // Source: " + 0xC0 0xAF (no closing quote)
     const std::string src = "\"aaaaaaa";
@@ -3107,7 +3107,7 @@ TEST_CASE("Lexer_UnclosedStringLiteral", "[lexer][utf8][malformed][phase4]") {
     REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0005);  // Overlong UTF-8 0xC0 0xAF
 }
 
-TEST_CASE("Lexer_MalformedInsideCharLiteral", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_MalformedInsideCharLiteral", "[lexer]") {
     // Char literal containing orphaned continuation → entire literal is Error per FR-021
     // Source: '  + 0x80 + '
     const std::string src = "\'\x80\'";
@@ -3119,7 +3119,7 @@ TEST_CASE("Lexer_MalformedInsideCharLiteral", "[lexer][utf8][malformed][phase4]"
     REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0007);
 }
 
-TEST_CASE("Lexer_UnclosedCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][malformed][phase4]") {
+TEST_CASE("Lexer_UnclosedCharLiteral_EntireLiteralBecomesError", "[lexer]") {
     // Char literal containing orphaned continuation → entire literal is Error per FR-021
     // Source: '  + 0x80 + '
     const std::string src = "'\x80";
@@ -3131,7 +3131,7 @@ TEST_CASE("Lexer_UnclosedCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][
     REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0006);
 }
 
-TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer]") {
     // 变量名 = U+53D8 U+91CF U+540D (3 CJK characters)
     const std::string src = "\xe5\x8f\x98\xe9\x87\x8f\xe5\x90\x8d";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3142,7 +3142,7 @@ TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identif
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_CyrillicWithCombiningMark_ReturnsSingleIdentifier", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_CyrillicWithCombiningMark_ReturnsSingleIdentifier", "[lexer]") {
     // и̃мя = U+0438 U+0303 U+043C U+044F (Cyrillic + combining tilde + letters)
     const std::string src = "\xd0\xb8\xcc\x83\xd0\xbc\xd0\xaf";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3153,7 +3153,7 @@ TEST_CASE("Lexer_CyrillicWithCombiningMark_ReturnsSingleIdentifier", "[lexer][ut
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_DevanagariIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_DevanagariIdentifier_ReturnsIdentifierUnicode", "[lexer]") {
     // गणना = U+0917 U+0923 U+0928 U+093E
     const std::string src = "\xe0\xa4\x97\xe0\xa4\xa3\xe0\xa4\xa8\xe0\xa4\xbe";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3164,7 +3164,7 @@ TEST_CASE("Lexer_DevanagariIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnderscoreUnicode_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_UnderscoreUnicode_ReturnsIdentifierUnicode", "[lexer]") {
     // _变量 = _ + U+5909 + U+91CF (underscore + CJK) per FR-018
     const std::string src = "_\xe5\xa4\x89\xe9\x87\x8f";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3175,7 +3175,7 @@ TEST_CASE("Lexer_UnderscoreUnicode_ReturnsIdentifierUnicode", "[lexer][utf8][ide
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer]") {
     // 😀 = U+1F600 (F0 9F 98 80) — not a letter → Error per FR-022
     const std::string src = "\xf0\x9f\x98\x80";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3185,7 +3185,7 @@ TEST_CASE("Lexer_EmojiOutsideLiteral_ReturnsErrorToken", "[lexer][utf8][identifi
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer]") {
     // 👨‍👩 = U+1F468 U+200D U+1F469 — ZWJ sequences must NOT form identifier per FR-016
     const std::string src = "\xf0\x9f\x91\xa8\xe2\x80\x8d\xf0\x9f\x91\xa9";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3196,7 +3196,7 @@ TEST_CASE("Lexer_EmojiZWJSequence_NotRecognizedAsIdentifier", "[lexer][utf8][ide
     // for(std::size_t i = 0; i + 1 < tokens.size(); ++i) { REQUIRE(tokens[i].getKind() == jsv::TokenKind::Error); }
 }
 
-TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer]") {
     // U+0303 (combining tilde) alone — combining marks cannot start identifiers per FR-012
     const std::string src = "\xcc\x83";  // U+0303 in UTF-8: CC 83
     jsv::Lexer lex{src, "test.jsav"};
@@ -3206,7 +3206,7 @@ TEST_CASE("Lexer_MarkAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][utf8][identifiers][phase5]") {
+TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer]") {
     // U+0660 (Arabic-Indic digit zero) alone — Nd category cannot start identifiers per FR-012
     const std::string src = "\xd9\xa0";  // U+0660 in UTF-8: D9 A0
     jsv::Lexer lex{src, "test.jsav"};
@@ -3216,7 +3216,7 @@ TEST_CASE("Lexer_NumberAtIdentifierStart_NotRecognizedAsIdentifier", "[lexer][ut
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identifiers][phase5][sc001]") {
+TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer]") {
     // SC-001: identifiers from ≥30 distinct Unicode scripts must tokenize as IdentifierUnicode
     struct ScriptCase {
         const char *name;
@@ -3271,7 +3271,7 @@ TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identif
     }
 }
 
-TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer]") {
     // BOM = 0xEF 0xBB 0xBF — must be silently skipped (FR-019)
     const std::string src = "\xEF\xBB\xBF"
                             "var x";
@@ -3286,7 +3286,7 @@ TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer][utf8][ascii-compat][
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_NoBreakSpace_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_UnicodeWhitespace_NoBreakSpace_ConsumedSilently", "[lexer]") {
     // U+00A0 NO-BREAK SPACE (0xC2 0xA0, category Zs) must be consumed as whitespace (FR-023)
 
     const std::string src = "a\xC2\xA0"
@@ -3302,7 +3302,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_NoBreakSpace_ConsumedSilently", "[lexer][utf8
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_EmSpace_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_UnicodeWhitespace_EmSpace_ConsumedSilently", "[lexer]") {
     // U+2003 EM SPACE (0xE2 0x80 0x83, category Zs) must be consumed as whitespace (FR-023)
 
     const std::string src = "a\xE2\x80\x83"
@@ -3318,7 +3318,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_EmSpace_ConsumedSilently", "[lexer][utf8][asc
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer]") {
     // U+2028 LINE SEPARATOR (0xE2 0x80 0xA8, category Zl) must be consumed as whitespace (FR-023)
 
     const std::string src = "a\xE2\x80\xA8"
@@ -3334,7 +3334,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer][utf
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_VT_SeparatesTokens", "[lexer][utf8][US1][T006]") {
+TEST_CASE("Lexer_UnicodeWhitespace_VT_SeparatesTokens", "[lexer]") {
     // U+000B VERTICAL TAB must separate tokens (FR-002)
     const std::string src = "var\x0Bx";  // "var" + VT + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3346,7 +3346,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_VT_SeparatesTokens", "[lexer][utf8][US1][T006
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_FF_SeparatesTokens", "[lexer][utf8][US1][T007]") {
+TEST_CASE("Lexer_UnicodeWhitespace_FF_SeparatesTokens", "[lexer]") {
     // U+000C FORM FEED must separate tokens (FR-002)
     const std::string src = "var\x0Cx";  // "var" + FF + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3358,7 +3358,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_FF_SeparatesTokens", "[lexer][utf8][US1][T007
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_NEL_SeparatesTokens", "[lexer][utf8][US1][T008]") {
+TEST_CASE("Lexer_UnicodeWhitespace_NEL_SeparatesTokens", "[lexer]") {
     // U+0085 NEXT LINE must separate tokens (FR-003)
     const std::string src = "var\xC2\x85x";  // "var" + NEL + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3370,7 +3370,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_NEL_SeparatesTokens", "[lexer][utf8][US1][T00
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_All25CodePoints_SeparateTokens", "[lexer][utf8][US1][T009]") {
+TEST_CASE("Lexer_UnicodeWhitespace_All25CodePoints_SeparateTokens", "[lexer]") {
     // All 25 \p{White_Space} code points must separate tokens (FR-001)
     const auto cp = GENERATE(
         // ASCII whitespace (already handled, regression check)
@@ -3408,7 +3408,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_All25CodePoints_SeparateTokens", "[lexer][utf
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_ConsecutiveMixed_ConsumedAsOneRun", "[lexer][utf8][US1][T010]") {
+TEST_CASE("Lexer_UnicodeWhitespace_ConsecutiveMixed_ConsumedAsOneRun", "[lexer]") {
     // Consecutive mixed Unicode whitespace must be consumed as a single run (FR-007)
     const std::string src = "var\xC2\xA0\xE2\x80\x80\xE2\x80\xA8x";  // NBSP + EM SPACE + LINE SEP
     jsv::Lexer lex{src, "test.jsav"};
@@ -3420,7 +3420,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_ConsecutiveMixed_ConsumedAsOneRun", "[lexer][
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_LineColumn_NEL_IncrementsLineResetsColumn", "[lexer][utf8][US1][T010b]") {
+TEST_CASE("Lexer_LineColumn_NEL_IncrementsLineResetsColumn", "[lexer]") {
     // U+0085 NEL must increment line counter and reset column to 1 (FR-008)
     const std::string src = "var\xC2\x85x";  // "var" + NEL + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3434,7 +3434,7 @@ TEST_CASE("Lexer_LineColumn_NEL_IncrementsLineResetsColumn", "[lexer][utf8][US1]
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_MultiByteAtEOF_CleanEOFToken", "[lexer][utf8][US1][T010c]") {
+TEST_CASE("Lexer_UnicodeWhitespace_MultiByteAtEOF_CleanEOFToken", "[lexer]") {
     // Valid multi-byte whitespace at EOF must produce clean EOF without buffer overread (FR-010)
     const std::string src = "var\xC2\xA0";  // "var" + NBSP (U+00A0, 2 bytes) at EOF
     jsv::Lexer lex{src, "test.jsav"};
@@ -3444,7 +3444,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_MultiByteAtEOF_CleanEOFToken", "[lexer][utf8]
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_InsideStringLiteral_NotConsumed", "[lexer][utf8][US4][T017]") {
+TEST_CASE("Lexer_UnicodeWhitespace_InsideStringLiteral_NotConsumed", "[lexer]") {
     // U+00A0 NBSP inside a string literal must NOT be consumed as whitespace (FR-024)
     const std::string src = "\"hello\xC2\xA0world\"";  // "hello" + NBSP + "world"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3456,7 +3456,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_InsideStringLiteral_NotConsumed", "[lexer][ut
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_UnicodeWhitespace_InsideComment_NotConsumed", "[lexer][utf8][US4][T018]") {
+TEST_CASE("Lexer_UnicodeWhitespace_InsideComment_NotConsumed", "[lexer]") {
     // Unicode whitespace inside comments must NOT be consumed as inter-token whitespace (FR-024)
     SECTION("Line comment with NBSP") {
         const std::string src = "var\xC2\xA0// comment\xC2\xA0with\xC2\xA0NBSP\nx";
@@ -3480,7 +3480,7 @@ TEST_CASE("Lexer_UnicodeWhitespace_InsideComment_NotConsumed", "[lexer][utf8][US
     }
 }
 
-TEST_CASE("Lexer_BackwardCompat_AsciiWhitespace_IdenticalBehavior", "[lexer][utf8][US4][T019]") {
+TEST_CASE("Lexer_BackwardCompat_AsciiWhitespace_IdenticalBehavior", "[lexer]") {
     // ASCII whitespace behavior must remain unchanged (regression guard)
     const std::string src = "var \t\r\nx";  // space, tab, CR, LF
     jsv::Lexer lex{src, "test.jsav"};
@@ -3494,7 +3494,7 @@ TEST_CASE("Lexer_BackwardCompat_AsciiWhitespace_IdenticalBehavior", "[lexer][utf
     REQUIRE(tokens[1].getSpan().start.column == 1);
 }
 
-TEST_CASE("Lexer_BackwardCompat_LineComment_IdenticalBehavior", "[lexer][utf8][US4][T020]") {
+TEST_CASE("Lexer_BackwardCompat_LineComment_IdenticalBehavior", "[lexer]") {
     // Line comment behavior must remain unchanged (regression guard)
     const std::string src = "var x // comment\ny";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3508,7 +3508,7 @@ TEST_CASE("Lexer_BackwardCompat_LineComment_IdenticalBehavior", "[lexer][utf8][U
     REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_BackwardCompat_BlockComment_IdenticalBehavior", "[lexer][utf8][US4][T021]") {
+TEST_CASE("Lexer_BackwardCompat_BlockComment_IdenticalBehavior", "[lexer]") {
     // Block comment behavior must remain unchanged (regression guard)
     const std::string src = "var /* comment */ x";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3520,7 +3520,7 @@ TEST_CASE("Lexer_BackwardCompat_BlockComment_IdenticalBehavior", "[lexer][utf8][
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_BackwardCompat_BOM_IdenticalBehavior", "[lexer][utf8][US4][T022]") {
+TEST_CASE("Lexer_BackwardCompat_BOM_IdenticalBehavior", "[lexer]") {
     // BOM handling must remain unchanged (regression guard)
     const std::string src = "\xEF\xBB\xBFvar x";  // UTF-8 BOM + "var x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3532,7 +3532,7 @@ TEST_CASE("Lexer_BackwardCompat_BOM_IdenticalBehavior", "[lexer][utf8][US4][T022
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn", "[lexer][utf8][US2][T024]") {
+TEST_CASE("Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn", "[lexer]") {
     // U+2028 LINE SEPARATOR must increment line counter and reset column to 1 (FR-008)
     const std::string src = "var\xE2\x80\xA8x";  // "var" + LINE SEP + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3546,7 +3546,7 @@ TEST_CASE("Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn", "[lexer][
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_LineColumn_ParagraphSeparator_IncrementsLineResetsColumn", "[lexer][utf8][US2][T025]") {
+TEST_CASE("Lexer_LineColumn_ParagraphSeparator_IncrementsLineResetsColumn", "[lexer]") {
     // U+2029 PARAGRAPH SEPARATOR must increment line counter and reset column to 1 (FR-008)
     const std::string src = "var\xE2\x80\xA9x";  // "var" + PARA SEP + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3560,7 +3560,7 @@ TEST_CASE("Lexer_LineColumn_ParagraphSeparator_IncrementsLineResetsColumn", "[le
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_LineColumn_NBSP_ColumnAdvancesByByteCount", "[lexer][utf8][US2][T026]") {
+TEST_CASE("Lexer_LineColumn_NBSP_ColumnAdvancesByByteCount", "[lexer]") {
     // U+00A0 NBSP (2 bytes) must advance column by byte count, not increment line (FR-025)
     const std::string src = "var\xC2\xA0x";  // "var" + NBSP + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3574,7 +3574,7 @@ TEST_CASE("Lexer_LineColumn_NBSP_ColumnAdvancesByByteCount", "[lexer][utf8][US2]
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_LineColumn_IdeographicSpace_ColumnAdvancesByByteCount", "[lexer][utf8][US2][T027]") {
+TEST_CASE("Lexer_LineColumn_IdeographicSpace_ColumnAdvancesByByteCount", "[lexer]") {
     // U+3000 IDEOGRAPHIC SPACE (3 bytes) must advance column by 3 bytes (FR-025)
     const std::string src = "var\xE3\x80\x80x";  // "var" + IDEOGRAPHIC SPACE + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3588,7 +3588,7 @@ TEST_CASE("Lexer_LineColumn_IdeographicSpace_ColumnAdvancesByByteCount", "[lexer
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_LineColumn_CR_DoesNotIncrementLine", "[lexer][utf8][US2][T028]") {
+TEST_CASE("Lexer_LineColumn_CR_DoesNotIncrementLine", "[lexer]") {
     // CR (U+000D) must NOT increment line counter — treated as plain whitespace (FR-009)
     const std::string src = "var\rx";  // "var" + CR + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3602,7 +3602,7 @@ TEST_CASE("Lexer_LineColumn_CR_DoesNotIncrementLine", "[lexer][utf8][US2][T028]"
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_LineColumn_CRLF_SingleLineIncrement", "[lexer][utf8][US2][T029]") {
+TEST_CASE("Lexer_LineColumn_CRLF_SingleLineIncrement", "[lexer]") {
     // CR+LF must produce exactly one line increment (FR-009)
     const std::string src = "var\r\nx";  // "var" + CR + LF + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3616,7 +3616,7 @@ TEST_CASE("Lexer_LineColumn_CRLF_SingleLineIncrement", "[lexer][utf8][US2][T029]
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly", "[lexer][utf8][US2][T030]") {
+TEST_CASE("Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly", "[lexer]") {
     // Multiple line terminators in sequence must accumulate line increments correctly (FR-008)
     const std::string src = "var\xC2\x85\xE2\x80\xA8\nx";  // "var" + NEL + LINE SEP + LF + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3630,7 +3630,7 @@ TEST_CASE("Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly", "[lexer][u
     REQUIRE(tokens[1].getText() == "x");
 }
 
-TEST_CASE("Lexer_Robustness_LoneContinuationByte_NoCrash", "[lexer][utf8][US3][T032]") {
+TEST_CASE("Lexer_Robustness_LoneContinuationByte_NoCrash", "[lexer]") {
     // Lone continuation byte (0x80) in whitespace position must not crash (FR-004)
     const std::string src = "var\x80x";  // "var" + 0x80 + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3641,7 +3641,7 @@ TEST_CASE("Lexer_Robustness_LoneContinuationByte_NoCrash", "[lexer][utf8][US3][T
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_Truncated2ByteAtEOF_NoCrash", "[lexer][utf8][US3][T033]") {
+TEST_CASE("Lexer_Robustness_Truncated2ByteAtEOF_NoCrash", "[lexer]") {
     // Truncated 2-byte sequence at EOF must not crash (FR-010)
     const std::string src = "var\xC2";  // "var" + truncated 2-byte lead
     jsv::Lexer lex{src, "test.jsav"};
@@ -3650,7 +3650,7 @@ TEST_CASE("Lexer_Robustness_Truncated2ByteAtEOF_NoCrash", "[lexer][utf8][US3][T0
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_Truncated3ByteAtEOF_NoCrash", "[lexer][utf8][US3][T034]") {
+TEST_CASE("Lexer_Robustness_Truncated3ByteAtEOF_NoCrash", "[lexer]") {
     // Truncated 3-byte sequence at EOF must not crash (FR-010)
     const std::string src = "var\xE2\x80";  // "var" + truncated 3-byte (only 2 bytes)
     jsv::Lexer lex{src, "test.jsav"};
@@ -3659,7 +3659,7 @@ TEST_CASE("Lexer_Robustness_Truncated3ByteAtEOF_NoCrash", "[lexer][utf8][US3][T0
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_OverlongSpace_NotWhitespace", "[lexer][utf8][US3][T035]") {
+TEST_CASE("Lexer_Robustness_OverlongSpace_NotWhitespace", "[lexer]") {
     // Overlong encoding of SPACE (U+0020) must NOT be treated as whitespace (FR-004)
     // Overlong 2-byte encoding of U+0020: 0xC0 0xA0
     const std::string src = "var\xC0\xA0x";  // "var" + overlong SPACE + "x"
@@ -3679,7 +3679,7 @@ TEST_CASE("Lexer_Robustness_OverlongSpace_NotWhitespace", "[lexer][utf8][US3][T0
     REQUIRE(errors.size() == 1);
 }
 
-TEST_CASE("Lexer_Robustness_ByteFE_NoCrash", "[lexer][utf8][US3][T036]") {
+TEST_CASE("Lexer_Robustness_ByteFE_NoCrash", "[lexer]") {
     // 0xFE byte (invalid UTF-8 lead byte) must not crash (FR-004)
     const std::string src = "var\xFEx";  // "var" + 0xFE + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3688,7 +3688,7 @@ TEST_CASE("Lexer_Robustness_ByteFE_NoCrash", "[lexer][utf8][US3][T036]") {
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_ByteFF_NoCrash", "[lexer][utf8][US3][T037]") {
+TEST_CASE("Lexer_Robustness_ByteFF_NoCrash", "[lexer]") {
     // 0xFF byte (invalid UTF-8 lead byte) must not crash (FR-004)
     const std::string src = "var\xFFx";  // "var" + 0xFF + "x"
     jsv::Lexer lex{src, "test.jsav"};
@@ -3697,7 +3697,7 @@ TEST_CASE("Lexer_Robustness_ByteFF_NoCrash", "[lexer][utf8][US3][T037]") {
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_InvalidContinuation_NoCrash", "[lexer][utf8][US3][T038]") {
+TEST_CASE("Lexer_Robustness_InvalidContinuation_NoCrash", "[lexer]") {
     // Invalid continuation byte in multi-byte sequence must not crash (FR-004)
     // 0xC2 followed by 0x00 (null, not a valid continuation)
     // NOLINTNEXTLINE(bugprone-string-literal-with-embedded-nul)
@@ -3708,7 +3708,7 @@ TEST_CASE("Lexer_Robustness_InvalidContinuation_NoCrash", "[lexer][utf8][US3][T0
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed", "[lexer][utf8][US3][T039]") {
+TEST_CASE("Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed", "[lexer]") {
     // Valid non-whitespace multi-byte char (U+00E9 é) must NOT be consumed as whitespace (FR-024)
     // This test verifies the lexer doesn't crash on valid multi-byte non-whitespace characters
     const std::string src = "a\xC3\xA9";  // "a" + é (identifier with multi-byte char)
@@ -3724,7 +3724,7 @@ TEST_CASE("Lexer_Robustness_NonWhitespaceMultiByte_NotConsumed", "[lexer][utf8][
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_SurrogateBytes_NoCrash", "[lexer][utf8][US3][T040]") {
+TEST_CASE("Lexer_Robustness_SurrogateBytes_NoCrash", "[lexer]") {
     // Surrogate pair bytes (U+D800-U+DFFF) must not crash (FR-004)
     // 0xED 0xA0 0x80 encodes U+D800 (high surrogate)
     const std::string src = "var\xED\xA0\x80x";  // "var" + surrogate + "x"
@@ -3734,7 +3734,7 @@ TEST_CASE("Lexer_Robustness_SurrogateBytes_NoCrash", "[lexer][utf8][US3][T040]")
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_Robustness_NullByte_NoCrash", "[lexer][utf8][US3][T041]") {
+TEST_CASE("Lexer_Robustness_NullByte_NoCrash", "[lexer]") {
     // Null byte (0x00) in source must not crash (FR-004)
     const std::string src = std::string("var\x00x", 5);  // "var" + null + "x" (explicit length)
     jsv::Lexer lex{src, "test.jsav"};
@@ -3743,7 +3743,7 @@ TEST_CASE("Lexer_Robustness_NullByte_NoCrash", "[lexer][utf8][US3][T041]") {
     REQUIRE(tokens.back().getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer]") {
     // ASCII operators must produce identical tokens after UTF-8 changes (regression guard)
     struct OpCase {
         const char *src;
@@ -3796,7 +3796,7 @@ TEST_CASE("Lexer_AsciiOperators_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat
     }
 }
 
-TEST_CASE("Lexer_AsciiKeywords_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_AsciiKeywords_UnchangedAfterUtf8", "[lexer]") {
     // All ASCII keywords must produce identical TokenKind values (regression guard)
     struct KwCase {
         const char *text;
@@ -3830,7 +3830,7 @@ TEST_CASE("Lexer_AsciiKeywords_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat]
     }
 }
 
-TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer][utf8][ascii-compat][phase6]") {
+TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer]") {
     // ASCII string literals must produce identical content after UTF-8 changes (regression guard)
     const std::string_view src = R"("hello, world!")";
     jsv::Lexer lex{src, "test.jsav"};
@@ -3841,7 +3841,7 @@ TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer][utf8][ascii-co
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][us1][phase3]") {
+TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer]") {
     SECTION("simple integers produce Numeric tokens") {
         jsv::Lexer lex{"0 1 42 007", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -3968,7 +3968,7 @@ TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][us1][p
     }
 }
 
-TEST_CASE("Lexer_NumericPositionTracking_Correct", "[lexer][numeric][us1][phase3]") {
+TEST_CASE("Lexer_NumericPositionTracking_Correct", "[lexer]") {
     SECTION("position tracking for simple integers") {
         jsv::Lexer lex{"42", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4037,7 +4037,7 @@ TEST_CASE("Lexer_NumericPositionTracking_Correct", "[lexer][numeric][us1][phase3
     }
 }
 
-TEST_CASE("Lexer_NumericScientificNotation_TokenizeCorrectly", "[lexer][numeric][us2][phase4]") {
+TEST_CASE("Lexer_NumericScientificNotation_TokenizeCorrectly", "[lexer]") {
     SECTION("valid exponents produce single Numeric tokens") {
         jsv::Lexer lex{"1e10 3.14E+2 2.5e-3 .5E10", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4102,7 +4102,7 @@ TEST_CASE("Lexer_NumericScientificNotation_TokenizeCorrectly", "[lexer][numeric]
     }
 }
 
-TEST_CASE("Lexer_NumericScientificNotation_PositionTracking", "[lexer][numeric][us2][phase4]") {
+TEST_CASE("Lexer_NumericScientificNotation_PositionTracking", "[lexer]") {
     SECTION("position tracking for scientific notation") {
         jsv::Lexer lex{"1e10", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4132,7 +4132,7 @@ TEST_CASE("Lexer_NumericScientificNotation_PositionTracking", "[lexer][numeric][
     }
 }
 
-TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][phase5]") {
+TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer]") {
     SECTION("valid single-character suffixes d/D and f/F") {
         jsv::Lexer lex{"1.0F 1.0f 10d 10D", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4257,7 +4257,7 @@ TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][
     }
 }
 
-TEST_CASE("Lexer_NumericTypeSuffixes_PositionTracking", "[lexer][numeric][us3][phase5]") {
+TEST_CASE("Lexer_NumericTypeSuffixes_PositionTracking", "[lexer]") {
     SECTION("position tracking for type suffix") {
         jsv::Lexer lex{"42d", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4287,7 +4287,7 @@ TEST_CASE("Lexer_NumericTypeSuffixes_PositionTracking", "[lexer][numeric][us3][p
     }
 }
 
-TEST_CASE("Lexer_NumericCombinedPattern_TokenizeCorrectly", "[lexer][numeric][us4][phase6]") {
+TEST_CASE("Lexer_NumericCombinedPattern_TokenizeCorrectly", "[lexer]") {
     SECTION("G1+G2+G3 combinations produce single Numeric tokens") {
         jsv::Lexer lex{"1.5e10f 2.0E-3d 1e2u16 .5e1i32", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4352,7 +4352,7 @@ TEST_CASE("Lexer_NumericCombinedPattern_TokenizeCorrectly", "[lexer][numeric][us
     }
 }
 
-TEST_CASE("Lexer_NumericCombinedPattern_PositionTracking", "[lexer][numeric][us4][phase6]") {
+TEST_CASE("Lexer_NumericCombinedPattern_PositionTracking", "[lexer]") {
     SECTION("position tracking for complete G1+G2+G3 pattern") {
         jsv::Lexer lex{"1.5e10f", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4368,7 +4368,7 @@ TEST_CASE("Lexer_NumericCombinedPattern_PositionTracking", "[lexer][numeric][us4
     }
 }
 
-TEST_CASE("Lexer_NumericTokenBoundaries_TokenizeCorrectly", "[lexer][numeric][us5][phase7]") {
+TEST_CASE("Lexer_NumericTokenBoundaries_TokenizeCorrectly", "[lexer]") {
     SECTION("token boundaries: -42 produces Minus + Numeric") {
         jsv::Lexer lex{"-42", "test.jsav"};
         const auto [tokens, errors] = lex.tokenize();
@@ -4433,7 +4433,7 @@ TEST_CASE("Lexer_NumericTokenBoundaries_TokenizeCorrectly", "[lexer][numeric][us
     }
 }
 
-TEST_CASE("Lexer_NumericNewlineTermination_FR028", "[lexer][numeric][us5][fr-028][phase7]") {
+TEST_CASE("Lexer_NumericNewlineTermination_FR028", "[lexer]") {
     SECTION("newline terminates complete numeric token") {
         // 42\n10 → Numeric("42") + Numeric("10") + Eof (newline consumed as whitespace)
         jsv::Lexer lex{"42\n10", "test.jsav"};
@@ -4562,7 +4562,7 @@ TEST_CASE("Lexer_NumericNewlineTermination_FR028", "[lexer][numeric][us5][fr-028
     }
 }
 
-TEST_CASE("Lexer_baseNumerics", "[lexer][numeric]") {
+TEST_CASE("Lexer_baseNumerics", "[lexer]") {
     jsv::Lexer lex{"#b1010 #o777 #x1f #b0 #o0 #x0 #b11111111 #o377 #xdeadBEEF", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 10);  // 9 numeric tokens + Eof
@@ -4586,7 +4586,7 @@ TEST_CASE("Lexer_baseNumerics", "[lexer][numeric]") {
     REQUIRE(tokens[8].getText() == "#xdeadBEEF");
 }
 
-TEST_CASE("Lexer_baseNumericst_whit_suffix", "[lexer][numeric]") {
+TEST_CASE("Lexer_baseNumericst_whit_suffix", "[lexer]") {
     jsv::Lexer lex{"#b1010u #o777u #x1fu #b0u #o0u #x0u #b11111111u #o377u #xdeadBEEFu", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 10);  // 9 numeric tokens + Eof
@@ -4610,7 +4610,7 @@ TEST_CASE("Lexer_baseNumericst_whit_suffix", "[lexer][numeric]") {
     REQUIRE(tokens[8].getText() == "#xdeadBEEFu");
 }
 
-TEST_CASE("Lexer_strings", "[lexer][string]") {
+TEST_CASE("Lexer_strings", "[lexer]") {
     const std::string strSrc = std::string(R"("Hello, World!" )") + R"("Escaped \"quote\" inside")";
     jsv::Lexer lex{strSrc, "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
@@ -4622,7 +4622,7 @@ TEST_CASE("Lexer_strings", "[lexer][string]") {
     REQUIRE(tokens[1].getText() == escapedQuoteLiteral);
 }
 
-TEST_CASE("Lexer_char", "[lexer][char]") {
+TEST_CASE("Lexer_char", "[lexer]") {
     jsv::Lexer lex{R"('\r' '\n')", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 3);  // 2 string literals + Eof
@@ -4632,7 +4632,7 @@ TEST_CASE("Lexer_char", "[lexer][char]") {
     REQUIRE(tokens[1].getText() == R"('\n')");
 }
 
-TEST_CASE("Lexer_char_escape", "[lexer][char]") {
+TEST_CASE("Lexer_char_escape", "[lexer]") {
     jsv::Lexer lex{R"('\u0000' '\u0001')", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 3);  // 2 string literals + Eof
@@ -4642,7 +4642,7 @@ TEST_CASE("Lexer_char_escape", "[lexer][char]") {
     REQUIRE(tokens[1].getText() == R"('\u0001')");
 }
 
-TEST_CASE("Lexer_char_escape_long", "[lexer][char]") {
+TEST_CASE("Lexer_char_escape_long", "[lexer]") {
     jsv::Lexer lex{R"('\U01010101' '\U10101010')", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
     REQUIRE(tokens.size() == 3);  // 2 string literals + Eof
@@ -4652,7 +4652,7 @@ TEST_CASE("Lexer_char_escape_long", "[lexer][char]") {
     REQUIRE(tokens[1].getText() == R"('\U10101010')");
 }
 
-TEST_CASE("Severity to_string tests", "[error][severity]") {
+TEST_CASE("Severity to_string tests", "[error]") {
     REQUIRE(jsv::to_string(jsv::Severity::Note) == "nota");
     REQUIRE(jsv::to_string(jsv::Severity::Warning) == "avviso");
     REQUIRE(jsv::to_string(jsv::Severity::Error) == "errore");
@@ -4664,7 +4664,7 @@ TEST_CASE("Severity to_string tests", "[error][severity]") {
     }
 }
 
-TEST_CASE("Severity std::format integration", "[error][severity][format]") {
+TEST_CASE("Severity std::format integration", "[error]") {
     SECTION("format Note") { REQUIRE(FORMAT("{}", jsv::Severity::Note) == "nota"); }
     SECTION("format Warning") { REQUIRE(FORMAT("{}", jsv::Severity::Warning) == "avviso"); }
     SECTION("format Error") { REQUIRE(FORMAT("{}", jsv::Severity::Error) == "errore"); }
@@ -4672,32 +4672,32 @@ TEST_CASE("Severity std::format integration", "[error][severity][format]") {
     SECTION("format in larger string") { REQUIRE(FORMAT("Severity: {}", jsv::Severity::Warning) == "Severity: avviso"); }
 }
 
-TEST_CASE("Severity fmt::format integration", "[error][severity][fmt]") {
+TEST_CASE("Severity fmt::format integration", "[error]") {
     SECTION("fmt::format Note") { REQUIRE(fmt::format("{}", jsv::Severity::Note) == "nota"); }
     SECTION("fmt::format Warning") { REQUIRE(fmt::format("{}", jsv::Severity::Warning) == "avviso"); }
     SECTION("fmt::format Error") { REQUIRE(fmt::format("{}", jsv::Severity::Error) == "errore"); }
     SECTION("fmt::format Fatal") { REQUIRE(fmt::format("{}", jsv::Severity::Fatal) == "fatale"); }
 }
 
-TEST_CASE("CompilerPhase to_string tests", "[error][phase]") { REQUIRE(jsv::to_string(jsv::CompilerPhase::Lexer) == "lexer"); }
+TEST_CASE("CompilerPhase to_string tests", "[error]"); }
 
-TEST_CASE("CompilerPhase std::format integration", "[error][phase][format]") {
+TEST_CASE("CompilerPhase std::format integration", "[error]") {
     SECTION("format Lexer") { REQUIRE(FORMAT("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
     SECTION("format in larger string") { REQUIRE(FORMAT("Phase: {}", jsv::CompilerPhase::Lexer) == "Phase: lexer"); }
 }
 
-TEST_CASE("CompilerPhase fmt::format integration", "[error][phase][fmt]") {
+TEST_CASE("CompilerPhase fmt::format integration", "[error]") {
     SECTION("fmt::format Lexer") { REQUIRE(fmt::format("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
 }
 
-TEST_CASE("ErrorCode code() tests", "[error][code]") {
+TEST_CASE("ErrorCode code() tests", "[error]") {
     REQUIRE(jsv::code(jsv::ErrorCode::E0001) == "E0001");
     REQUIRE(jsv::code(jsv::ErrorCode::E1005) == "E1005");
     REQUIRE(jsv::code(jsv::ErrorCode::E2023) == "E2023");
     REQUIRE(jsv::code(jsv::ErrorCode::E5001) == "E5001");
 }
 
-TEST_CASE("ErrorCode numeric_code() tests", "[error][numeric_code]") {
+TEST_CASE("ErrorCode numeric_code() tests", "[error]") {
     REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0001) == 1);
     REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0010) == 10);
     REQUIRE(jsv::numeric_code(jsv::ErrorCode::E1001) == 1001);
@@ -4705,7 +4705,7 @@ TEST_CASE("ErrorCode numeric_code() tests", "[error][numeric_code]") {
     REQUIRE(jsv::numeric_code(jsv::ErrorCode::E5001) == 5001);
 }
 
-TEST_CASE("ErrorCode severity() tests", "[error][severity_func]") {
+TEST_CASE("ErrorCode severity() tests", "[error]") {
     REQUIRE(jsv::severity(jsv::ErrorCode::E1013) == jsv::Severity::Warning);
     REQUIRE(jsv::severity(jsv::ErrorCode::E0001) == jsv::Severity::Error);
     REQUIRE(jsv::severity(jsv::ErrorCode::E2023) == jsv::Severity::Error);
@@ -4716,26 +4716,26 @@ TEST_CASE("ErrorCode severity() tests", "[error][severity_func]") {
     }
 }
 
-TEST_CASE("ErrorCode phase() tests", "[error][phase_func]") {
+TEST_CASE("ErrorCode phase() tests", "[error]") {
     REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
     REQUIRE(jsv::phase(jsv::ErrorCode::E1001) == jsv::CompilerPhase::Parser);
     REQUIRE(jsv::phase(jsv::ErrorCode::E2001) == jsv::CompilerPhase::Lexer);
 }
 
-TEST_CASE("ErrorCode message() tests", "[error][message]") {
+TEST_CASE("ErrorCode message() tests", "[error]") {
     REQUIRE(jsv::message(jsv::ErrorCode::E0001) == "token non valido o non riconosciuto");
     REQUIRE(jsv::message(jsv::ErrorCode::E1001) == "profondità massima di ricorsione superata");
     REQUIRE(jsv::message(jsv::ErrorCode::E2023) == "variabile non definita");
     REQUIRE(jsv::message(jsv::ErrorCode::E5001) == "file non trovato");
 }
 
-TEST_CASE("ErrorCode explanation() tests", "[error][explanation]") {
+TEST_CASE("ErrorCode explanation() tests", "[error]") {
     REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("lexer"));
     REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("caratteri"));
     REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E2023), ContainsSubstring("dichiarata"));
 }
 
-TEST_CASE("ErrorCode suggestions() tests", "[error][suggestions]") {
+TEST_CASE("ErrorCode suggestions() tests", "[error]") {
     auto suggestions = jsv::suggestions(jsv::ErrorCode::E2023);
     REQUIRE(suggestions.size() == 3);
     REQUIRE(std::string(suggestions[0]) == "Dichiarare la variabile: var x: i32 = 0");
@@ -4743,7 +4743,7 @@ TEST_CASE("ErrorCode suggestions() tests", "[error][suggestions]") {
     REQUIRE(std::string(suggestions[2]) == "Assicurarsi che la variabile sia nello scope");
 }
 
-TEST_CASE("to_string(CompilerPhase) default case", "[error][phase][to_string]") {
+TEST_CASE("to_string(CompilerPhase) default case", "[error]") {
     // This tests the default case in to_string(CompilerPhase)
     // Currently only Lexer is defined, so default returns "sconosciuto"
     // The switch falls through to default for any value other than CompilerPhase::Lexer
@@ -4755,7 +4755,7 @@ TEST_CASE("to_string(CompilerPhase) default case", "[error][phase][to_string]") 
     }
 }
 
-TEST_CASE("code() function comprehensive coverage", "[error][code]") {
+TEST_CASE("code() function comprehensive coverage", "[error]") {
     // Test all error code ranges including default case
     SECTION("Lexer error codes E0001-E0010") {
         REQUIRE(jsv::code(jsv::ErrorCode::E0001) == "E0001");
@@ -4860,7 +4860,7 @@ TEST_CASE("code() function comprehensive coverage", "[error][code]") {
     }
 }
 
-TEST_CASE("numeric_code() function comprehensive coverage", "[error][numeric_code]") {
+TEST_CASE("numeric_code() function comprehensive coverage", "[error]") {
     SECTION("Lexer numeric codes 1-10") {
         REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0001) == 1);
         REQUIRE(jsv::numeric_code(jsv::ErrorCode::E0002) == 2);
@@ -4961,7 +4961,7 @@ TEST_CASE("numeric_code() function comprehensive coverage", "[error][numeric_cod
     }
 }
 
-TEST_CASE("phase() function coverage", "[error][phase]") {
+TEST_CASE("phase() function coverage", "[error]") {
     SECTION("Lexer phase for E0001-E0010") {
         REQUIRE(jsv::phase(jsv::ErrorCode::E0001) == jsv::CompilerPhase::Lexer);
         REQUIRE(jsv::phase(jsv::ErrorCode::E0005) == jsv::CompilerPhase::Lexer);
@@ -4997,7 +4997,7 @@ TEST_CASE("phase() function coverage", "[error][phase]") {
     }
 }
 
-TEST_CASE("message() function comprehensive coverage", "[error][message]") {
+TEST_CASE("message() function comprehensive coverage", "[error]") {
     SECTION("Lexer error messages E0001-E0010") {
         REQUIRE(jsv::message(jsv::ErrorCode::E0001) == "token non valido o non riconosciuto");
         REQUIRE(jsv::message(jsv::ErrorCode::E0002) == "letterale numerico binario malformato");
@@ -5098,7 +5098,7 @@ TEST_CASE("message() function comprehensive coverage", "[error][message]") {
     }
 }
 
-TEST_CASE("explanation() function coverage", "[error][explanation]") {
+TEST_CASE("explanation() function coverage", "[error]") {
     SECTION("E0001 explanation contains lexer and caratteri") {
         REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("lexer"));
         REQUIRE_THAT(jsv::explanation(jsv::ErrorCode::E0001), ContainsSubstring("caratteri"));
@@ -5153,7 +5153,7 @@ TEST_CASE("explanation() function coverage", "[error][explanation]") {
     }
 }
 
-TEST_CASE("suggestions() function comprehensive coverage", "[error][suggestions]") {
+TEST_CASE("suggestions() function comprehensive coverage", "[error]") {
     SECTION("E0002 suggestions") {
         auto suggestions = jsv::suggestions(jsv::ErrorCode::E0002);
         REQUIRE(suggestions.size() == 2);
@@ -5218,13 +5218,13 @@ TEST_CASE("suggestions() function comprehensive coverage", "[error][suggestions]
     }
 }
 
-TEST_CASE("ErrorCode to_string tests", "[error][to_string]") {
+TEST_CASE("ErrorCode to_string tests", "[error]") {
     REQUIRE(jsv::to_string(jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto");
     REQUIRE(jsv::to_string(jsv::ErrorCode::E1001) == "E1001: profondità massima di ricorsione superata");
     REQUIRE(jsv::to_string(jsv::ErrorCode::E2023) == "E2023: variabile non definita");
 }
 
-TEST_CASE("ErrorCode std::format integration", "[error][format]") {
+TEST_CASE("ErrorCode std::format integration", "[error]") {
     SECTION("format E0001") { REQUIRE(FORMAT("{}", jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto"); }
     SECTION("format E2023") { REQUIRE(FORMAT("{}", jsv::ErrorCode::E2023) == "E2023: variabile non definita"); }
     SECTION("format in larger string") {
@@ -5236,7 +5236,7 @@ TEST_CASE("ErrorCode std::format integration", "[error][format]") {
     }
 }
 
-TEST_CASE("ErrorCode fmt::format integration", "[error][fmt]") {
+TEST_CASE("ErrorCode fmt::format integration", "[error]") {
     SECTION("fmt::format E0001") { REQUIRE(fmt::format("{}", jsv::ErrorCode::E0001) == "E0001: token non valido o non riconosciuto"); }
     SECTION("fmt::format E2023") { REQUIRE(fmt::format("{}", jsv::ErrorCode::E2023) == "E2023: variabile non definita"); }
     SECTION("fmt::format in larger string") {
@@ -5244,11 +5244,11 @@ TEST_CASE("ErrorCode fmt::format integration", "[error][fmt]") {
     }
 }
 
-TEST_CASE("CompileError::Kind enum", "[CompileError][Kind]") {
+TEST_CASE("CompileError::Kind enum", "[CompileError]") {
     SECTION("Kind enum values exist") { REQUIRE(static_cast<int>(jsv::CompileError::Kind::LexerError) >= 0); }
 }
 
-TEST_CASE("CompileError factory method - LexerError", "[CompileError][factory]") {
+TEST_CASE("CompileError factory method - LexerError", "[CompileError]") {
     using namespace std::string_literals;
     SECTION("Create LexerError with all parameters") {
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 5, 0), jsv::SourceLocation(1, 10, 0));
@@ -5294,7 +5294,7 @@ TEST_CASE("CompileError factory method - LexerError", "[CompileError][factory]")
     }
 }
 
-TEST_CASE("CompileError::what() output", "[CompileError][what]") {
+TEST_CASE("CompileError::what() output", "[CompileError]") {
     SECTION("what() with error code and help") {
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(5, 10, 0), jsv::SourceLocation(5, 20, 0));
         const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0001;
@@ -5346,7 +5346,7 @@ TEST_CASE("CompileError::what() output", "[CompileError][what]") {
     }
 }
 
-TEST_CASE("CompileError accessors", "[CompileError][accessors]") {
+TEST_CASE("CompileError accessors", "[CompileError]") {
     SECTION("error_code() returns correct optional") {
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
         const std::optional<jsv::ErrorCode> code = jsv::ErrorCode::E0005;
@@ -5435,7 +5435,7 @@ TEST_CASE("CompileError accessors", "[CompileError][accessors]") {
     }
 }
 
-TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
+TEST_CASE("CompileError mutators", "[CompileError]") {
     SECTION("set_message() updates message") {
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
         jsv::CompileError err = jsv::CompileError::LexerError(std::nullopt, "original message"sv, span, std::nullopt);
@@ -5496,7 +5496,7 @@ TEST_CASE("CompileError mutators", "[CompileError][mutators]") {
     }
 }
 
-TEST_CASE("CompileError with different ErrorCode values", "[CompileError][ErrorCode]") {
+TEST_CASE("CompileError with different ErrorCode values", "[CompileError]") {
     SECTION("LexerError with E0001") {
         const jsv::SourceSpan span("file.vn", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 0));
         const jsv::CompileError err = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "msg"sv, span, std::nullopt);
@@ -5522,7 +5522,7 @@ TEST_CASE("CompileError with different ErrorCode values", "[CompileError][ErrorC
     }
 }
 
-TEST_CASE("CompileError multiline source span", "[CompileError][SourceSpan]") {
+TEST_CASE("CompileError multiline source span", "[CompileError]") {
     SECTION("Error spanning multiple lines") {
         const jsv::SourceLocation start(5, 10, 0);
         const jsv::SourceLocation end(7, 5, 0);
@@ -5538,7 +5538,7 @@ TEST_CASE("CompileError multiline source span", "[CompileError][SourceSpan]") {
     }
 }
 
-/*TEST_CASE("CompileError copy and move semantics", "[CompileError][semantics]") {
+/*TEST_CASE("CompileError copy and move semantics", "[CompileError]") {
     SECTION("Copy constructor") {
         const jsv::SourceSpan span("test.cpp", jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 0));
         const jsv::CompileError original = jsv::CompileError::LexerError(jsv::ErrorCode::E0001, "original error"sv, span,
@@ -5589,7 +5589,7 @@ help"));
     }
 }*/
 
-TEST_CASE("LineTracker empty source", "[LineTracker][empty]") {
+TEST_CASE("LineTracker empty source", "[LineTracker]") {
     SECTION("Default constructor creates empty tracker") {
         const jsv::LineTracker tracker;
 
@@ -5608,7 +5608,7 @@ TEST_CASE("LineTracker empty source", "[LineTracker][empty]") {
     }
 }
 
-TEST_CASE("LineTracker single line", "[LineTracker][single_line]") {
+TEST_CASE("LineTracker single line", "[LineTracker]") {
     SECTION("Single line without newline") {
         constexpr std::string_view source = "Hello, World!";
         const jsv::LineTracker tracker(source);
@@ -5641,7 +5641,7 @@ TEST_CASE("LineTracker single line", "[LineTracker][single_line]") {
     }
 }
 
-TEST_CASE("LineTracker multiple lines", "[LineTracker][multiple_lines]") {
+TEST_CASE("LineTracker multiple lines", "[LineTracker]") {
     SECTION("Two lines with Unix newlines") {
         constexpr std::string_view source = "Line 1\nLine 2";
         const jsv::LineTracker tracker(source);
@@ -5694,7 +5694,7 @@ TEST_CASE("LineTracker multiple lines", "[LineTracker][multiple_lines]") {
     }
 }
 
-TEST_CASE("LineTracker empty lines", "[LineTracker][empty_lines]") {
+TEST_CASE("LineTracker empty lines", "[LineTracker]") {
     SECTION("Single empty line (just newline)") {
         // Single newline creates 2 lines: empty + empty (after newline)
         constexpr std::string_view source = "\n";
@@ -5738,7 +5738,7 @@ TEST_CASE("LineTracker empty lines", "[LineTracker][empty_lines]") {
     }
 }
 
-TEST_CASE("LineTracker whitespace handling", "[LineTracker][whitespace]") {
+TEST_CASE("LineTracker whitespace handling", "[LineTracker]") {
     SECTION("Lines with leading/trailing spaces preserved") {
         constexpr std::string_view source = "  leading\ntrailing  \n  both  ";
         const jsv::LineTracker tracker(source);
@@ -5769,7 +5769,7 @@ TEST_CASE("LineTracker whitespace handling", "[LineTracker][whitespace]") {
     }
 }
 
-TEST_CASE("LineTracker get_line boundary conditions", "[LineTracker][boundary][edge_case]") {
+TEST_CASE("LineTracker get_line boundary conditions", "[LineTracker]") {
     SECTION("Line number 0 returns empty view") {
         constexpr std::string_view source = "Line 1\nLine 2";
         const jsv::LineTracker tracker(source);
@@ -5801,7 +5801,7 @@ TEST_CASE("LineTracker get_line boundary conditions", "[LineTracker][boundary][e
     }
 }
 
-TEST_CASE("LineTracker special characters", "[LineTracker][special_chars][edge_case]") {
+TEST_CASE("LineTracker special characters", "[LineTracker]") {
     SECTION("Unicode characters preserved") {
         constexpr std::string_view source = "Ciao mondo\nПривет мир\n你好世界";
         const jsv::LineTracker tracker(source);
@@ -5823,7 +5823,7 @@ TEST_CASE("LineTracker special characters", "[LineTracker][special_chars][edge_c
     }
 }
 
-TEST_CASE("LineTracker copy and move semantics", "[LineTracker][semantics]") {
+TEST_CASE("LineTracker copy and move semantics", "[LineTracker]") {
     SECTION("Copy constructor") {
         constexpr std::string_view source = "Line 1\nLine 2";
         const jsv::LineTracker original(source);
@@ -5859,7 +5859,7 @@ TEST_CASE("LineTracker copy and move semantics", "[LineTracker][semantics]") {
     }
 }
 
-TEST_CASE("LineTracker large source", "[LineTracker][performance][edge_case]") {
+TEST_CASE("LineTracker large source", "[LineTracker]") {
     SECTION("Many lines") {
         std::string source;
         source.reserve(C_ST(1000) * 20);
@@ -5884,7 +5884,7 @@ TEST_CASE("LineTracker large source", "[LineTracker][performance][edge_case]") {
     }
 }
 
-TEST_CASE("LineTracker source view lifetime", "[LineTracker][lifetime]") {
+TEST_CASE("LineTracker source view lifetime", "[LineTracker]") {
     SECTION("String_view source must outlive tracker") {
         // This test documents the lifetime contract - tracker doesn't own source
         std::string source = "Line 1\nLine 2";
@@ -5939,9 +5939,9 @@ namespace test_utils {
 
 }  // namespace test_utils
 
-TEST_CASE("strip_ansi empty input", "[ansi_strip][empty]") { REQUIRE(test_utils::strip_ansi("").empty()); }
+TEST_CASE("strip_ansi empty input", "[ansi_strip]").empty()); }
 
-TEST_CASE("strip_ansi no ansi codes", "[ansi_strip][no_ansi]") {
+TEST_CASE("strip_ansi no ansi codes", "[ansi_strip]") {
     SECTION("Plain text unchanged") { REQUIRE(test_utils::strip_ansi("Hello, World!") == "Hello, World!"sv); }
 
     SECTION("Numbers and symbols unchanged") {
@@ -5949,7 +5949,7 @@ TEST_CASE("strip_ansi no ansi codes", "[ansi_strip][no_ansi]") {
     }
 }
 
-TEST_CASE("strip_ansi single ansi code", "[ansi_strip][single_code]") {
+TEST_CASE("strip_ansi single ansi code", "[ansi_strip]") {
     SECTION("Reset code stripped") {
         // \x1b[0m
         const std::string input = "Hello\x1b[0m";
@@ -5974,7 +5974,7 @@ TEST_CASE("strip_ansi single ansi code", "[ansi_strip][single_code]") {
     }
 }
 
-TEST_CASE("strip_ansi multiple ansi codes", "[ansi_strip][multiple_codes]") {
+TEST_CASE("strip_ansi multiple ansi codes", "[ansi_strip]") {
     SECTION("Multiple colors stripped") {
         const std::string input = "\x1b[31mRed\x1b[32mGreen\x1b[34mBlue";
         REQUIRE(test_utils::strip_ansi(input) == "RedGreenBlue"sv);
@@ -5992,7 +5992,7 @@ TEST_CASE("strip_ansi multiple ansi codes", "[ansi_strip][multiple_codes]") {
     }
 }
 
-TEST_CASE("strip_ansi complex sequences", "[ansi_strip][complex]") {
+TEST_CASE("strip_ansi complex sequences", "[ansi_strip]") {
     SECTION("256-color codes stripped") {
         // \x1b[38;5;196m (256-color red)
         const std::string input = "\x1b[38;5;196mBright Red\x1b[0m";
@@ -6012,7 +6012,7 @@ TEST_CASE("strip_ansi complex sequences", "[ansi_strip][complex]") {
     }
 }
 
-TEST_CASE("contains_ansi utility", "[ansi_strip][contains]") {
+TEST_CASE("contains_ansi utility", "[ansi_strip]") {
     SECTION("Plain text returns false") { REQUIRE_FALSE(test_utils::contains_ansi("Hello, World!")); }
 
     SECTION("Text with ANSI returns true") { REQUIRE(test_utils::contains_ansi("\x1b[31mRed")); }
@@ -6022,7 +6022,7 @@ TEST_CASE("contains_ansi utility", "[ansi_strip][contains]") {
     SECTION("ANSI at end returns true") { REQUIRE(test_utils::contains_ansi("Text\x1b[0m")); }
 }
 
-TEST_CASE("ErrorReporter simple error without code", "[ErrorReporter][simple]") {
+TEST_CASE("ErrorReporter simple error without code", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6057,7 +6057,7 @@ TEST_CASE("ErrorReporter simple error without code", "[ErrorReporter][simple]") 
     }
 }
 
-TEST_CASE("ErrorReporter simple error with code", "[ErrorReporter][simple_with_code]") {
+TEST_CASE("ErrorReporter simple error with code", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6090,7 +6090,7 @@ TEST_CASE("ErrorReporter simple error with code", "[ErrorReporter][simple_with_c
     }
 }
 
-TEST_CASE("ErrorReporter spanned error basic", "[ErrorReporter][spanned]") {
+TEST_CASE("ErrorReporter spanned error basic", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;\nlet y = 10;\nlet z = 15;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6121,7 +6121,7 @@ TEST_CASE("ErrorReporter spanned error basic", "[ErrorReporter][spanned]") {
     }
 }
 
-TEST_CASE("ErrorReporter spanned error with error code", "[ErrorReporter][spanned_with_code]") {
+TEST_CASE("ErrorReporter spanned error with error code", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = @invalid;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6140,7 +6140,7 @@ TEST_CASE("ErrorReporter spanned error with error code", "[ErrorReporter][spanne
     }
 }
 
-TEST_CASE("ErrorReporter multi-line span", "[ErrorReporter][multi_line]") {
+TEST_CASE("ErrorReporter multi-line span", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;\n/* comment\n   spans\n   multiple\n   lines */";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6159,7 +6159,7 @@ TEST_CASE("ErrorReporter multi-line span", "[ErrorReporter][multi_line]") {
     }
 }
 
-TEST_CASE("ErrorReporter multiple errors", "[ErrorReporter][multiple]") {
+TEST_CASE("ErrorReporter multiple errors", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = @1;\nlet y = @2;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6183,7 +6183,7 @@ TEST_CASE("ErrorReporter multiple errors", "[ErrorReporter][multiple]") {
     }
 }
 
-TEST_CASE("ErrorReporter empty error list", "[ErrorReporter][empty]") {
+TEST_CASE("ErrorReporter empty error list", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6200,7 +6200,7 @@ TEST_CASE("ErrorReporter empty error list", "[ErrorReporter][empty]") {
     }
 }
 
-TEST_CASE("ErrorReporter column positioning", "[ErrorReporter][column]") {
+TEST_CASE("ErrorReporter column positioning", "[ErrorReporter]") {
     SECTION("Caret at column 1") {
         constexpr std::string_view source = "x = 5;";
         const jsv::LineTracker tracker(source);
@@ -6249,7 +6249,7 @@ TEST_CASE("ErrorReporter column positioning", "[ErrorReporter][column]") {
     }
 }
 
-TEST_CASE("ErrorReporter edge cases", "[ErrorReporter][edge_case]") {
+TEST_CASE("ErrorReporter edge cases", "[ErrorReporter]") {
     constexpr std::string_view source = "test";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6293,7 +6293,7 @@ TEST_CASE("ErrorReporter edge cases", "[ErrorReporter][edge_case]") {
     }
 }
 
-TEST_CASE("ErrorReporter unknown error kind", "[ErrorReporter][unknown_kind]") {
+TEST_CASE("ErrorReporter unknown error kind", "[ErrorReporter]") {
     constexpr std::string_view source = "test";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6313,7 +6313,7 @@ TEST_CASE("ErrorReporter unknown error kind", "[ErrorReporter][unknown_kind]") {
     }
 }
 
-TEST_CASE("ErrorReporter ANSI color verification", "[ErrorReporter][ansi]") {
+TEST_CASE("ErrorReporter ANSI color verification", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -6354,7 +6354,7 @@ TEST_CASE("ErrorReporter ANSI color verification", "[ErrorReporter][ansi]") {
     }
 }
 
-TEST_CASE("UnicodeColumn_marker_alignment_Chinese", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_marker_alignment_Chinese", "[UnicodeColumn]") {
     // Source with Chinese characters
     constexpr std::string_view source = "let x = 你好;";
     const jsv::LineTracker tracker(source);
@@ -6380,7 +6380,7 @@ TEST_CASE("UnicodeColumn_marker_alignment_Chinese", "[UnicodeColumn][US1][P1]") 
     REQUIRE(stripped.find("        ^") != std::string::npos);      // 8 spaces + 1 caret
 }
 
-TEST_CASE("UnicodeColumn_marker_alignment_Greek", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_marker_alignment_Greek", "[UnicodeColumn]") {
     // Source with Greek letters
     constexpr std::string_view source = "let αβγ = 123;";
     const jsv::LineTracker tracker(source);
@@ -6406,7 +6406,7 @@ TEST_CASE("UnicodeColumn_marker_alignment_Greek", "[UnicodeColumn][US1][P1]") {
     REQUIRE(stripped.find("    ^^") != std::string::npos);          // 4 spaces + 2 carets
 }
 
-TEST_CASE("UnicodeColumn_marker_alignment_emoji", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_marker_alignment_emoji", "[UnicodeColumn]") {
     // Source with emoji
     constexpr std::string_view source = "let x = 😀;";
     const jsv::LineTracker tracker(source);
@@ -6428,7 +6428,7 @@ TEST_CASE("UnicodeColumn_marker_alignment_emoji", "[UnicodeColumn][US1][P1]") {
     REQUIRE(stripped.find("        ^") != std::string::npos);    // 8 spaces + 1 caret
 }
 
-TEST_CASE("UnicodeColumn_detect_ansi_color_environment", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_detect_ansi_color_environment", "[UnicodeColumn]") {
     // Test detect_ansi_color() function
     SECTION("Default environment (no vars set)") {
         // Note: Can't easily test environment variable changes in Catch2
@@ -6438,7 +6438,7 @@ TEST_CASE("UnicodeColumn_detect_ansi_color_environment", "[UnicodeColumn][US1][P
     }
 }
 
-TEST_CASE("UnicodeColumn_ansi_color_red_code", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_ansi_color_red_code", "[UnicodeColumn]") {
     // Source with ASCII
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
@@ -6460,7 +6460,7 @@ TEST_CASE("UnicodeColumn_ansi_color_red_code", "[UnicodeColumn][US1][P1]") {
     REQUIRE(result.find("\x1b[0m") != std::string::npos);  // Reset
 }
 
-TEST_CASE("UnicodeColumn_ansi_color_fallback_monochrome", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_ansi_color_fallback_monochrome", "[UnicodeColumn]") {
     // Source with ASCII
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
@@ -6484,7 +6484,7 @@ TEST_CASE("UnicodeColumn_ansi_color_fallback_monochrome", "[UnicodeColumn][US1][
     REQUIRE(stripped.find("        ^") != std::string::npos);  // 8 spaces + caret
 }
 
-TEST_CASE("UnicodeColumn_detect_ansi_color_no_color_variants", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_detect_ansi_color_no_color_variants", "[UnicodeColumn]") {
     // Test NO_COLOR environment variable handling
     // Note: Can't easily test environment variable changes in Catch2
     // This test verifies the function handles the standard correctly
@@ -6494,13 +6494,13 @@ TEST_CASE("UnicodeColumn_detect_ansi_color_no_color_variants", "[UnicodeColumn][
     }
 }
 
-TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification", "[UnicodeColumn][US1][P1]") {
+TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification", "[UnicodeColumn]") {
     // TDD Red Phase verification: This test should PASS
     // (All US1 tests above should compile and pass since implementation is complete)
     SUCCEED("US1 tests compiled and executed successfully");
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_detection", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_detection", "[UnicodeColumn]") {
     // Source with invalid UTF-8 sequence (0xFF 0xFE are invalid UTF-8 bytes)
     constexpr std::string_view source = "let x = \xFF\xFE;";
     const jsv::LineTracker tracker(source);
@@ -6522,7 +6522,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_detection", "[UnicodeColumn][US2][P2]") {
     REQUIRE(result.find("byte offset") != std::string::npos);
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_null_byte", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_null_byte", "[UnicodeColumn]") {
     // Source with null byte (U+0000)
     constexpr std::string_view source = "let x = \x00;";
     const jsv::LineTracker tracker(source);
@@ -6543,7 +6543,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_null_byte", "[UnicodeColumn][US2][P2]") {
     REQUIRE(result.find("U+0000") != std::string::npos);
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_overlong", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_overlong", "[UnicodeColumn]") {
     // Source with overlong UTF-8 encoding (0xC0 0x80 is overlong NUL)
     constexpr std::string_view source = "let x = \xC0\x80;";
     const jsv::LineTracker tracker(source);
@@ -6563,7 +6563,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_overlong", "[UnicodeColumn][US2][P2]") {
     REQUIRE((result.find("Overlong") != std::string::npos || result.find("encoding error") != std::string::npos));
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_overlong_error_format", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_overlong_error_format", "[UnicodeColumn]") {
     // Verify FR-025 error message format
     constexpr std::string_view source = "let x = \xC0\x80;";  // Overlong NUL
     const jsv::LineTracker tracker(source);
@@ -6584,7 +6584,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_overlong_error_format", "[UnicodeColumn][U
     REQUIRE(stripped.find("line 1") != std::string::npos);
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate", "[UnicodeColumn]") {
     // Source with UTF-16 surrogate half (0xED 0xA0 0x80 encodes U+D800)
     constexpr std::string_view source = "let x = \xED\xA0\x80;";
     const jsv::LineTracker tracker(source);
@@ -6605,7 +6605,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate", "[UnicodeColumn][US2][P2]") {
              result.find("encoding error") != std::string::npos));
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate_error_format", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate_error_format", "[UnicodeColumn]") {
     // Verify FR-026 error message format
     constexpr std::string_view source = "let x = \xED\xA0\x80;";  // Surrogate half
     const jsv::LineTracker tracker(source);
@@ -6626,7 +6626,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_surrogate_error_format", "[UnicodeColumn][
     REQUIRE(stripped.find("line 1") != std::string::npos);
 }
 
-TEST_CASE("UnicodeColumn_invalid_UTF8_mixed_errors", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_invalid_UTF8_mixed_errors", "[UnicodeColumn]") {
     // Source with both overlong encoding and surrogate half
     constexpr std::string_view source = "let x = \xC0\x80; let y = \xED\xA0\x80;";
     const jsv::LineTracker tracker(source);
@@ -6651,7 +6651,7 @@ TEST_CASE("UnicodeColumn_invalid_UTF8_mixed_errors", "[UnicodeColumn][US2][P2]")
     REQUIRE((result.find("surrogate") != std::string::npos || result.find("U+D800") != std::string::npos));
 }
 
-TEST_CASE("UnicodeColumn_logging_critical_errors", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_logging_critical_errors", "[UnicodeColumn]") {
     // Verify LERROR() is called for critical encoding errors
     // Note: This test verifies the function exists and can be called
     // Actual log output verification requires spdlog sink mocking
@@ -6672,13 +6672,13 @@ TEST_CASE("UnicodeColumn_logging_critical_errors", "[UnicodeColumn][US2][P2]") {
     REQUIRE(!result.empty());
 }
 
-TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US2", "[UnicodeColumn][US2][P2]") {
+TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US2", "[UnicodeColumn]") {
     // TDD Red Phase verification: This test should PASS
     // (All US2 tests above should compile - implementation pending)
     SUCCEED("US2 tests compiled successfully (implementation pending)");
 }
 
-TEST_CASE("UnicodeColumn_edge_case_empty_line", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_empty_line", "[UnicodeColumn]") {
     // Empty line with error
     constexpr std::string_view source = "\n";
     const jsv::LineTracker tracker(source);
@@ -6701,7 +6701,7 @@ TEST_CASE("UnicodeColumn_edge_case_empty_line", "[UnicodeColumn][US3][P3]") {
     REQUIRE((stripped.find("ERROR") != std::string::npos || stripped.find("Empty line") != std::string::npos));
 }
 
-TEST_CASE("UnicodeColumn_edge_case_first_column", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_first_column", "[UnicodeColumn]") {
     // Error at column 1
     constexpr std::string_view source = "x = 1;";
     const jsv::LineTracker tracker(source);
@@ -6722,7 +6722,7 @@ TEST_CASE("UnicodeColumn_edge_case_first_column", "[UnicodeColumn][US3][P3]") {
     REQUIRE(stripped.find("│ ^") != std::string::npos);
 }
 
-TEST_CASE("UnicodeColumn_edge_case_last_column", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_last_column", "[UnicodeColumn]") {
     // Error at last character
     constexpr std::string_view source = "abc";
     const jsv::LineTracker tracker(source);
@@ -6744,7 +6744,7 @@ TEST_CASE("UnicodeColumn_edge_case_last_column", "[UnicodeColumn][US3][P3]") {
     REQUIRE(stripped.find("  ^") != std::string::npos);  // 2 spaces + caret
 }
 
-TEST_CASE("UnicodeColumn_edge_case_tab_expansion", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_tab_expansion", "[UnicodeColumn]") {
     // Tab before error
     constexpr std::string_view source = "let\tx = 1;";  // Tab after "let"
     const jsv::LineTracker tracker(source);
@@ -6770,7 +6770,7 @@ TEST_CASE("UnicodeColumn_edge_case_tab_expansion", "[UnicodeColumn][US3][P3]") {
     REQUIRE((stripped.find("            ^") != std::string::npos || stripped.find("│") != std::string::npos));
 }
 
-TEST_CASE("UnicodeColumn_edge_case_BOM", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_BOM", "[UnicodeColumn]") {
     // BOM at file start
     constexpr std::string_view source = "\xEF\xBB\xBFlet x = 1;";  // BOM + source
     const jsv::LineTracker tracker(source);
@@ -6793,7 +6793,7 @@ TEST_CASE("UnicodeColumn_edge_case_BOM", "[UnicodeColumn][US3][P3]") {
     REQUIRE(stripped.find("    ^") != std::string::npos);  // 4 leading spaces
 }
 
-TEST_CASE("UnicodeColumn_edge_case_combining_characters", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_combining_characters", "[UnicodeColumn]") {
     // NFD "é" = e + combining acute (U+0301)
     constexpr std::string_view source = "cafe\u0301;";  // e + combining acute
     const jsv::LineTracker tracker(source);
@@ -6816,7 +6816,7 @@ TEST_CASE("UnicodeColumn_edge_case_combining_characters", "[UnicodeColumn][US3][
     REQUIRE(stripped.find("    ^") != std::string::npos);  // 4 leading spaces
 }
 
-TEST_CASE("UnicodeColumn_edge_case_normalization_forms", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_normalization_forms", "[UnicodeColumn]") {
     // NFC precomposed é (U+00E9) vs NFD decomposed (e + U+0301)
     SECTION("NFC precomposed é") {
         constexpr std::string_view source = "caf\u00E9;";  // NFC é
@@ -6859,7 +6859,7 @@ TEST_CASE("UnicodeColumn_edge_case_normalization_forms", "[UnicodeColumn][US3][P
     }
 }
 
-TEST_CASE("UnicodeColumn_edge_case_ZWJ_emoji", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_ZWJ_emoji", "[UnicodeColumn]") {
     // ZWJ emoji sequence: 👨‍👩‍👧‍👦 (man + ZWJ + woman + ZWJ + girl + ZWJ + boy = 7 code points)
     constexpr std::string_view source = "x = \U0001F468\u200D\U0001F469\u200D\U0001F467\u200D\U0001F466;";
     const jsv::LineTracker tracker(source);
@@ -6882,7 +6882,7 @@ TEST_CASE("UnicodeColumn_edge_case_ZWJ_emoji", "[UnicodeColumn][US3][P3]") {
     REQUIRE(stripped.find("   ^") != std::string::npos);  // 3 leading spaces
 }
 
-TEST_CASE("UnicodeColumn_edge_case_bidirectional_text", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_bidirectional_text", "[UnicodeColumn]") {
     // Arabic text (right-to-left)
     constexpr std::string_view source = "let x = مرحبا;";  // "hello" in Arabic
     const jsv::LineTracker tracker(source);
@@ -6905,7 +6905,7 @@ TEST_CASE("UnicodeColumn_edge_case_bidirectional_text", "[UnicodeColumn][US3][P3
     REQUIRE(stripped.find("        ^") != std::string::npos);  // 8 leading spaces
 }
 
-TEST_CASE("UnicodeColumn_edge_case_line_length_limit", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_line_length_limit", "[UnicodeColumn]") {
     // Line with > 10,000 code points
     const std::string source(10001, 'a');  // 10,001 'a' characters
     const jsv::LineTracker tracker(source);
@@ -6925,7 +6925,7 @@ TEST_CASE("UnicodeColumn_edge_case_line_length_limit", "[UnicodeColumn][US3][P3]
     REQUIRE(!result.empty());
 }
 
-TEST_CASE("UnicodeColumn_edge_case_line_length_limit_error_format", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_edge_case_line_length_limit_error_format", "[UnicodeColumn]") {
     // Verify FR-027 error message format
     const std::string source(10001, 'a');  // 10,001 'a' characters
     const jsv::LineTracker tracker(source);
@@ -6945,13 +6945,13 @@ TEST_CASE("UnicodeColumn_edge_case_line_length_limit_error_format", "[UnicodeCol
     REQUIRE((stripped.find("Line exceeds") != std::string::npos || !result.empty()));
 }
 
-TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US3", "[UnicodeColumn][US3][P3]") {
+TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US3", "[UnicodeColumn]") {
     // TDD Red Phase verification: This test should PASS
     // (All US3 tests above should compile - implementation pending)
     SUCCEED("US3 tests compiled successfully (implementation pending)");
 }
 
-TEST_CASE("NFR-002 line length limit enforcement", "[NFR][UnicodeColumn][NFR-002]") {
+TEST_CASE("NFR-002 line length limit enforcement", "[NFR]") {
     // T048c: Verify ErrorReporter enforces 10,000 code points per line limit
     const std::string source(10001, 'a');  // 10,001 code points
     const jsv::LineTracker tracker(source);
@@ -6973,7 +6973,7 @@ TEST_CASE("NFR-002 line length limit enforcement", "[NFR][UnicodeColumn][NFR-002
              stripped.find("Line exceeds") != std::string::npos));
 }
 
-TEST_CASE("NFR-003 detect_ansi_color environment variables", "[NFR][UnicodeColumn][NFR-003]") {
+TEST_CASE("NFR-003 detect_ansi_color environment variables", "[NFR]") {
     // T048d: Verify detect_ansi_color() correctly detects terminal color support
     // Test matrix:
     // (1) NO_COLOR=1 → false
@@ -6991,7 +6991,7 @@ TEST_CASE("NFR-003 detect_ansi_color environment variables", "[NFR][UnicodeColum
     SECTION("detect_ansi_color is noexcept") { STATIC_REQUIRE(std::is_nothrow_invocable_v<decltype(&jsv::detect_ansi_color)>); }
 }
 
-TEST_CASE("NFR-003 ANSI color output validation", "[NFR][ErrorReporter][NFR-003]") {
+TEST_CASE("NFR-003 ANSI color output validation", "[NFR]") {
     // T048e: Verify error marker output contains correct ANSI escape sequences
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
@@ -7057,7 +7057,7 @@ TEST_CASE("NFR-003 ANSI color output validation", "[NFR][ErrorReporter][NFR-003]
     }
 }
 
-TEST_CASE("SC-002 ASCII backward compatibility", "[UnicodeColumn][SC-002][backward_compat]") {
+TEST_CASE("SC-002 ASCII backward compatibility", "[UnicodeColumn]") {
     // T049: ASCII-only source produces byte-for-byte identical output
     constexpr std::string_view source = "let x = 5; let y = 10; let z = 15;";
     const jsv::LineTracker tracker(source);
@@ -7080,7 +7080,7 @@ TEST_CASE("SC-002 ASCII backward compatibility", "[UnicodeColumn][SC-002][backwa
     REQUIRE(stripped.find('^') != std::string::npos);
 }
 
-TEST_CASE("SC-005 no fallback mixed valid invalid UTF-8", "[UnicodeColumn][SC-005][no_fallback]") {
+TEST_CASE("SC-005 no fallback mixed valid invalid UTF-8", "[UnicodeColumn]") {
     // T052d: Verify valid UTF-8 lines use code point calculation even when file
     // contains invalid UTF-8 on other lines (proves no file-wide byte-based fallback)
 
@@ -7115,7 +7115,7 @@ TEST_CASE("SC-005 no fallback mixed valid invalid UTF-8", "[UnicodeColumn][SC-00
     REQUIRE((result2.find("Invalid UTF-8") != std::string::npos || result2.find("encoding") != std::string::npos));
 }
 
-TEST_CASE("ErrorReporter location formatting", "[ErrorReporter][location]") {
+TEST_CASE("ErrorReporter location formatting", "[ErrorReporter]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -7134,7 +7134,7 @@ TEST_CASE("ErrorReporter location formatting", "[ErrorReporter][location]") {
     }
 }
 
-TEST_CASE("ErrorReporter report_errors vector overload", "[ErrorReporter][overload]") {
+TEST_CASE("ErrorReporter report_errors vector overload", "[ErrorReporter]") {
     constexpr std::string_view source = "test";
     const jsv::LineTracker tracker(source);
     const jsv::ErrorReporter reporter(tracker);
@@ -7160,7 +7160,7 @@ TEST_CASE("ErrorReporter report_errors vector overload", "[ErrorReporter][overlo
     }
 }
 
-TEST_CASE("LineTracker and ErrorReporter integration", "[LineTracker][ErrorReporter][integration]") {
+TEST_CASE("LineTracker and ErrorReporter integration", "[LineTracker]") {
     SECTION("Complete error reporting workflow") {
         constexpr std::string_view source_code = R"(fn main() {
     let x = 5;
@@ -7248,7 +7248,7 @@ let z = @3;)";
     }
 }
 
-TEST_CASE("NodeKind enumeration covers all node types", "[NodeKind][AST]") {
+TEST_CASE("NodeKind enumeration covers all node types", "[NodeKind]") {
     SECTION("Expression kinds are properly defined") {
         STATIC_REQUIRE(static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::IntegerLiteral) <
                        static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::ExprStmt));
@@ -7260,7 +7260,7 @@ TEST_CASE("NodeKind enumeration covers all node types", "[NodeKind][AST]") {
     }
 }
 
-TEST_CASE("node_kind_name returns correct string for all node kinds", "[NodeKind][AST]") {
+TEST_CASE("node_kind_name returns correct string for all node kinds", "[NodeKind]") {
     SECTION("Expression node kinds") {
         REQUIRE(jsv::node_kind_name(jsv::NodeKind::IntegerLiteral) == "IntegerLiteral");
         REQUIRE(jsv::node_kind_name(jsv::NodeKind::FloatLiteral) == "FloatLiteral");
@@ -7298,7 +7298,7 @@ TEST_CASE("node_kind_name returns correct string for all node kinds", "[NodeKind
     SECTION("Program node kind") { REQUIRE(jsv::node_kind_name(jsv::NodeKind::Program) == "Program"); }
 }
 
-TEST_CASE("unary_op_symbol returns correct symbol for all operators", "[UnaryOp][AST]") {
+TEST_CASE("unary_op_symbol returns correct symbol for all operators", "[UnaryOp]") {
     SECTION("Negate operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Negate) == "-"); }
     SECTION("Not operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Not) == "!"); }
     SECTION("Bitwise not operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::BitNot) == "~"); }
@@ -7308,7 +7308,7 @@ TEST_CASE("unary_op_symbol returns correct symbol for all operators", "[UnaryOp]
     SECTION("Post-decrement operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PostDec) == "--"); }
 }
 
-TEST_CASE("binary_op_symbol returns correct symbol for all operators", "[BinaryOp][AST]") {
+TEST_CASE("binary_op_symbol returns correct symbol for all operators", "[BinaryOp]") {
     SECTION("Arithmetic operators") {
         REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Add) == "+");
         REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Sub) == "-");
@@ -7340,7 +7340,7 @@ TEST_CASE("binary_op_symbol returns correct symbol for all operators", "[BinaryO
     }
 }
 
-TEST_CASE("type_kind_name returns correct string for all type kinds", "[TypeKind][AST]") {
+TEST_CASE("type_kind_name returns correct string for all type kinds", "[TypeKind]") {
     SECTION("Signed integer types") {
         REQUIRE(jsv::type_kind_name(jsv::TypeKind::I8) == "i8");
         REQUIRE(jsv::type_kind_name(jsv::TypeKind::I16) == "i16");
@@ -7375,7 +7375,7 @@ TEST_CASE("type_kind_name returns correct string for all type kinds", "[TypeKind
     }
 }
 
-TEST_CASE("PrimitiveType singleton instances work correctly", "[PrimitiveType][AST]") {
+TEST_CASE("PrimitiveType singleton instances work correctly", "[PrimitiveType]") {
     SECTION("Integer type singletons") {
         REQUIRE(jsv::PrimitiveType::i8()->kind() == jsv::TypeKind::I8);
         REQUIRE(jsv::PrimitiveType::i16()->kind() == jsv::TypeKind::I16);
@@ -7410,7 +7410,7 @@ TEST_CASE("PrimitiveType singleton instances work correctly", "[PrimitiveType][A
     }
 }
 
-TEST_CASE("PrimitiveType type predicates work correctly", "[PrimitiveType][AST]") {
+TEST_CASE("PrimitiveType type predicates work correctly", "[PrimitiveType]") {
     SECTION("Integer type predicates") {
         REQUIRE(jsv::PrimitiveType::i32()->is_integer());
         REQUIRE(jsv::PrimitiveType::i32()->is_signed_integer());
@@ -7448,7 +7448,7 @@ TEST_CASE("PrimitiveType type predicates work correctly", "[PrimitiveType][AST]"
     }
 }
 
-TEST_CASE("PrimitiveType to_string returns correct strings", "[PrimitiveType][AST]") {
+TEST_CASE("PrimitiveType to_string returns correct strings", "[PrimitiveType]") {
     SECTION("Integer type strings") {
         REQUIRE(jsv::PrimitiveType::i8()->to_string() == "i8");
         REQUIRE(jsv::PrimitiveType::i16()->to_string() == "i16");
@@ -7477,7 +7477,7 @@ TEST_CASE("PrimitiveType to_string returns correct strings", "[PrimitiveType][AS
     }
 }
 
-TEST_CASE("PrimitiveType equality comparison works correctly", "[PrimitiveType][AST]") {
+TEST_CASE("PrimitiveType equality comparison works correctly", "[PrimitiveType]") {
     SECTION("Same types are equal") {
         REQUIRE(*jsv::PrimitiveType::i32() == *jsv::PrimitiveType::i32());
         REQUIRE(*jsv::PrimitiveType::f64() == *jsv::PrimitiveType::f64());
@@ -7496,7 +7496,7 @@ TEST_CASE("PrimitiveType equality comparison works correctly", "[PrimitiveType][
     }
 }
 
-TEST_CASE("CustomType creation and comparison", "[CustomType][AST]") {
+TEST_CASE("CustomType creation and comparison", "[CustomType]") {
     SECTION("CustomType with simple name") {
         const jsv::CustomType my_type("MyType");
         REQUIRE(my_type.kind() == jsv::TypeKind::Custom);
@@ -7521,7 +7521,7 @@ TEST_CASE("CustomType creation and comparison", "[CustomType][AST]") {
     }
 }
 
-TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral][AST][Expressions]") {
+TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral]") {
     using namespace jsv;
 
     SECTION("Basic integer literal") {
@@ -7566,7 +7566,7 @@ TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral][AST][E
     }
 }
 
-TEST_CASE("FloatLiteral node creation and accessors", "[FloatLiteral][AST][Expressions]") {
+TEST_CASE("FloatLiteral node creation and accessors", "[FloatLiteral]") {
     using namespace jsv;
 
     SECTION("Basic float literal") {
@@ -7602,7 +7602,7 @@ TEST_CASE("FloatLiteral node creation and accessors", "[FloatLiteral][AST][Expre
     }
 }
 
-TEST_CASE("StringLiteral node creation and accessors", "[StringLiteral][AST][Expressions]") {
+TEST_CASE("StringLiteral node creation and accessors", "[StringLiteral]") {
     using namespace jsv;
 
     SECTION("Basic string literal") {
@@ -7632,7 +7632,7 @@ TEST_CASE("StringLiteral node creation and accessors", "[StringLiteral][AST][Exp
     }
 }
 
-TEST_CASE("CharLiteral node creation and accessors", "[CharLiteral][AST][Expressions]") {
+TEST_CASE("CharLiteral node creation and accessors", "[CharLiteral]") {
     using namespace jsv;
 
     SECTION("Basic char literal") {
@@ -7662,7 +7662,7 @@ TEST_CASE("CharLiteral node creation and accessors", "[CharLiteral][AST][Express
     }
 }
 
-TEST_CASE("BoolLiteral node creation and accessors", "[BoolLiteral][AST][Expressions]") {
+TEST_CASE("BoolLiteral node creation and accessors", "[BoolLiteral]") {
     using namespace jsv;
 
     SECTION("True literal") {
@@ -7681,7 +7681,7 @@ TEST_CASE("BoolLiteral node creation and accessors", "[BoolLiteral][AST][Express
     }
 }
 
-TEST_CASE("NullLiteral node creation and accessors", "[NullLiteral][AST][Expressions]") {
+TEST_CASE("NullLiteral node creation and accessors", "[NullLiteral]") {
     using namespace jsv;
 
     SECTION("Basic null literal") {
@@ -7692,7 +7692,7 @@ TEST_CASE("NullLiteral node creation and accessors", "[NullLiteral][AST][Express
     }
 }
 
-TEST_CASE("Identifier node creation and accessors", "[Identifier][AST][Expressions]") {
+TEST_CASE("Identifier node creation and accessors", "[Identifier]") {
     using namespace jsv;
 
     SECTION("Basic identifier") {
@@ -7722,7 +7722,7 @@ TEST_CASE("Identifier node creation and accessors", "[Identifier][AST][Expressio
     }
 }
 
-TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr][AST][Expressions]") {
+TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr]") {
     using namespace jsv;
 
     SECTION("Negate expression") {
@@ -7758,7 +7758,7 @@ TEST_CASE("UnaryExpr node creation and accessors", "[UnaryExpr][AST][Expressions
     }
 }
 
-TEST_CASE("BinaryExpr node creation and accessors", "[BinaryExpr][AST][Expressions]") {
+TEST_CASE("BinaryExpr node creation and accessors", "[BinaryExpr]") {
     using namespace jsv;
 
     SECTION("Addition expression") {
@@ -7790,7 +7790,7 @@ TEST_CASE("BinaryExpr node creation and accessors", "[BinaryExpr][AST][Expressio
     }
 }
 
-TEST_CASE("ArrayLiteral node creation and accessors", "[ArrayLiteral][AST][Expressions]") {
+TEST_CASE("ArrayLiteral node creation and accessors", "[ArrayLiteral]") {
     using namespace jsv;
 
     SECTION("Empty array literal") {
@@ -7814,7 +7814,7 @@ TEST_CASE("ArrayLiteral node creation and accessors", "[ArrayLiteral][AST][Expre
     }
 }
 
-TEST_CASE("CallExpr node creation and accessors", "[CallExpr][AST][Expressions]") {
+TEST_CASE("CallExpr node creation and accessors", "[CallExpr]") {
     using namespace jsv;
 
     SECTION("Function call with no arguments") {
@@ -7839,7 +7839,7 @@ TEST_CASE("CallExpr node creation and accessors", "[CallExpr][AST][Expressions]"
     }
 }
 
-TEST_CASE("IndexExpr node creation and accessors", "[IndexExpr][AST][Expressions]") {
+TEST_CASE("IndexExpr node creation and accessors", "[IndexExpr]") {
     using namespace jsv;
 
     SECTION("Array access expression") {
@@ -7854,7 +7854,7 @@ TEST_CASE("IndexExpr node creation and accessors", "[IndexExpr][AST][Expressions
     }
 }
 
-TEST_CASE("GroupingExpr node creation and accessors", "[GroupingExpr][AST][Expressions]") {
+TEST_CASE("GroupingExpr node creation and accessors", "[GroupingExpr]") {
     using namespace jsv;
 
     SECTION("Parenthesized expression") {
@@ -7867,7 +7867,7 @@ TEST_CASE("GroupingExpr node creation and accessors", "[GroupingExpr][AST][Expre
     }
 }
 
-TEST_CASE("ExprStmt node creation and accessors", "[ExprStmt][AST][Statements]") {
+TEST_CASE("ExprStmt node creation and accessors", "[ExprStmt]") {
     using namespace jsv;
 
     SECTION("Expression statement") {
@@ -7880,7 +7880,7 @@ TEST_CASE("ExprStmt node creation and accessors", "[ExprStmt][AST][Statements]")
     }
 }
 
-TEST_CASE("VarDecl node creation and accessors", "[VarDecl][AST][Statements]") {
+TEST_CASE("VarDecl node creation and accessors", "[VarDecl]") {
     using namespace jsv;
 
     SECTION("Single variable declaration") {
@@ -7923,7 +7923,7 @@ TEST_CASE("VarDecl node creation and accessors", "[VarDecl][AST][Statements]") {
     }
 }
 
-TEST_CASE("BlockStmt node creation and accessors", "[BlockStmt][AST][Statements]") {
+TEST_CASE("BlockStmt node creation and accessors", "[BlockStmt]") {
     using namespace jsv;
 
     SECTION("Empty block") {
@@ -7945,7 +7945,7 @@ TEST_CASE("BlockStmt node creation and accessors", "[BlockStmt][AST][Statements]
     }
 }
 
-TEST_CASE("IfStmt node creation and accessors", "[IfStmt][AST][Statements]") {
+TEST_CASE("IfStmt node creation and accessors", "[IfStmt]") {
     using namespace jsv;
 
     SECTION("If statement without else") {
@@ -7972,7 +7972,7 @@ TEST_CASE("IfStmt node creation and accessors", "[IfStmt][AST][Statements]") {
     }
 }
 
-TEST_CASE("WhileStmt node creation and accessors", "[WhileStmt][AST][Statements]") {
+TEST_CASE("WhileStmt node creation and accessors", "[WhileStmt]") {
     using namespace jsv;
 
     SECTION("While statement") {
@@ -7988,7 +7988,7 @@ TEST_CASE("WhileStmt node creation and accessors", "[WhileStmt][AST][Statements]
     }
 }
 
-TEST_CASE("ForStmt node creation and accessors", "[ForStmt][AST][Statements]") {
+TEST_CASE("ForStmt node creation and accessors", "[ForStmt]") {
     using namespace jsv;
 
     SECTION("For statement with all components") {
@@ -8020,7 +8020,7 @@ TEST_CASE("ForStmt node creation and accessors", "[ForStmt][AST][Statements]") {
     }
 }
 
-TEST_CASE("ReturnStmt node creation and accessors", "[ReturnStmt][AST][Statements]") {
+TEST_CASE("ReturnStmt node creation and accessors", "[ReturnStmt]") {
     using namespace jsv;
 
     SECTION("Return with value") {
@@ -8040,7 +8040,7 @@ TEST_CASE("ReturnStmt node creation and accessors", "[ReturnStmt][AST][Statement
     }
 }
 
-TEST_CASE("BreakStmt and ContinueStmt node creation", "[BreakStmt][ContinueStmt][AST][Statements]") {
+TEST_CASE("BreakStmt and ContinueStmt node creation", "[BreakStmt]") {
     using namespace jsv;
 
     SECTION("Break statement") {
@@ -8058,7 +8058,7 @@ TEST_CASE("BreakStmt and ContinueStmt node creation", "[BreakStmt][ContinueStmt]
     }
 }
 
-TEST_CASE("FuncDecl node creation and accessors", "[FuncDecl][AST][Statements]") {
+TEST_CASE("FuncDecl node creation and accessors", "[FuncDecl]") {
     using namespace jsv;
 
     SECTION("Function declaration with no parameters") {
@@ -8089,7 +8089,7 @@ TEST_CASE("FuncDecl node creation and accessors", "[FuncDecl][AST][Statements]")
     }
 }
 
-TEST_CASE("MainStmt node creation and accessors", "[MainStmt][AST][Statements]") {
+TEST_CASE("MainStmt node creation and accessors", "[MainStmt]") {
     using namespace jsv;
 
     SECTION("Main function statement") {
@@ -8103,7 +8103,7 @@ TEST_CASE("MainStmt node creation and accessors", "[MainStmt][AST][Statements]")
     }
 }
 
-TEST_CASE("Program node creation and accessors", "[Program][AST]") {
+TEST_CASE("Program node creation and accessors", "[Program]") {
     using namespace jsv;
 
     SECTION("Empty program") {
@@ -8125,7 +8125,7 @@ TEST_CASE("Program node creation and accessors", "[Program][AST]") {
     }
 }
 
-TEST_CASE("node_isa type checking works correctly", "[Node][AST][TypeChecking]") {
+TEST_CASE("node_isa type checking works correctly", "[Node]") {
     using namespace jsv;
 
     SECTION("node_isa for expressions") {
@@ -8150,7 +8150,7 @@ TEST_CASE("node_isa type checking works correctly", "[Node][AST][TypeChecking]")
     }
 }
 
-TEST_CASE("node_cast works correctly for valid casts", "[Node][AST][TypeChecking]") {
+TEST_CASE("node_cast works correctly for valid casts", "[Node]") {
     using namespace jsv;
 
     SECTION("node_cast from Node to IntegerLiteral") {
@@ -8172,7 +8172,7 @@ TEST_CASE("node_cast works correctly for valid casts", "[Node][AST][TypeChecking
     }
 }
 
-TEST_CASE("node_dyn_cast works correctly", "[Node][AST][TypeChecking]") {
+TEST_CASE("node_dyn_cast works correctly", "[Node]") {
     using namespace jsv;
 
     SECTION("node_dyn_cast successful cast") {
@@ -8193,7 +8193,7 @@ TEST_CASE("node_dyn_cast works correctly", "[Node][AST][TypeChecking]") {
     }
 }
 
-TEST_CASE("Parser helper: all_digits_from function (lines 13-18)", "[Parser][HelperFunctions][all_digits_from]") {
+TEST_CASE("Parser helper: all_digits_from function (lines 13-18)", "[Parser]") {
     using namespace jsv;
 
     SECTION("Empty string from start index") {
@@ -8253,7 +8253,7 @@ TEST_CASE("Parser helper: all_digits_from function (lines 13-18)", "[Parser][Hel
     }
 }
 
-TEST_CASE("Parser helper: find_suffix_start function (lines 20-44)", "[Parser][HelperFunctions][find_suffix_start]") {
+TEST_CASE("Parser helper: find_suffix_start function (lines 20-44)", "[Parser]") {
     using namespace jsv;
 
     SECTION("Empty string") {
@@ -8417,7 +8417,7 @@ TEST_CASE("Parser helper: find_suffix_start function (lines 20-44)", "[Parser][H
     }
 }
 
-TEST_CASE("Parser helper: parse_numeric_literal function (lines 46-58)", "[Parser][HelperFunctions][parse_numeric_literal]") {
+TEST_CASE("Parser helper: parse_numeric_literal function (lines 46-58)", "[Parser]") {
     using namespace jsv;
 
     SECTION("Empty string") {
@@ -8662,7 +8662,7 @@ TEST_CASE("Parser helper: parse_numeric_literal function (lines 46-58)", "[Parse
 }
 
 TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scenarios",
-          "[Parser][HelperFunctions][NumericLiteral][SuffixDetection]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("All valid suffix characters at end position") {
@@ -8949,7 +8949,7 @@ TEST_CASE("Parser for loop", "[Parser]") {
 // Tests for: Multiple variable declarations in for-loop initializer
 // -----------------------------------------------------------------------------
 
-TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "[Parser][parse_for_var_names][Line71][ForLoop]") {
+TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "[Parser]") {
     using namespace jsv;
 
     SECTION("Single variable in for-loop initializer (no comma - line 71 breaks)") {
@@ -9352,7 +9352,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
 }
 
 TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initializer)",
-          "[Parser][parse_for_initializer_clause][Line111-112][ForLoop]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with empty initializer - lines 111-112 executed") {
@@ -9672,7 +9672,7 @@ TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initi
 }
 
 TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for condition)",
-          "[Parser][parse_for_condition_clause][Line122-123][ForLoop]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with empty initializer and empty condition - lines 122-123 executed") {
@@ -10006,7 +10006,7 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for conditi
 // -----------------------------------------------------------------------------
 
 TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without semicolon)",
-          "[Parser][parse_for_condition_clause][Line131-132][ForLoop]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with condition followed by CloseParen - lines 131-132 executed") {
@@ -10352,7 +10352,7 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without
 // -----------------------------------------------------------------------------
 
 TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapping)",
-          "[Parser][make_for_body_block][Line147-150][ForLoop]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with single expression statement body - lines 147-150 executed") {
@@ -10750,7 +10750,7 @@ TEST_CASE("Parser error handling", "[Parser]") {
     }
 }
 
-TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][Expressions][CornerCases]") {
+TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral]") {
     using namespace jsv;
 
     SECTION("Minimum int64 value") {
@@ -10789,7 +10789,7 @@ TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][E
     }
 }
 
-TEST_CASE("FloatLiteral corner cases and edge cases", "[FloatLiteral][AST][Expressions][CornerCases]") {
+TEST_CASE("FloatLiteral corner cases and edge cases", "[FloatLiteral]") {
     using namespace jsv;
 
     SECTION("Positive infinity representation") {
@@ -10830,7 +10830,7 @@ TEST_CASE("FloatLiteral corner cases and edge cases", "[FloatLiteral][AST][Expre
     }
 }
 
-TEST_CASE("StringLiteral corner cases and edge cases", "[StringLiteral][AST][Expressions][CornerCases]") {
+TEST_CASE("StringLiteral corner cases and edge cases", "[StringLiteral]") {
     using namespace jsv;
 
     SECTION("String with embedded null character") {
@@ -10871,7 +10871,7 @@ TEST_CASE("StringLiteral corner cases and edge cases", "[StringLiteral][AST][Exp
     }
 }
 
-TEST_CASE("UnaryExpr corner cases and edge cases", "[UnaryExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("UnaryExpr corner cases and edge cases", "[UnaryExpr]") {
     using namespace jsv;
 
     SECTION("Nested unary operators") {
@@ -10911,7 +10911,7 @@ TEST_CASE("UnaryExpr corner cases and edge cases", "[UnaryExpr][AST][Expressions
     }
 }
 
-TEST_CASE("BinaryExpr corner cases and edge cases", "[BinaryExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("BinaryExpr corner cases and edge cases", "[BinaryExpr]") {
     using namespace jsv;
 
     SECTION("Deeply nested binary expressions") {
@@ -10963,7 +10963,7 @@ TEST_CASE("BinaryExpr corner cases and edge cases", "[BinaryExpr][AST][Expressio
     }
 }
 
-TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr]") {
     using namespace jsv;
 
     SECTION("Function call with many arguments") {
@@ -11013,7 +11013,7 @@ TEST_CASE("CallExpr corner cases and edge cases", "[CallExpr][AST][Expressions][
     }
 }
 
-TEST_CASE("IndexExpr corner cases and edge cases", "[IndexExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("IndexExpr corner cases and edge cases", "[IndexExpr]") {
     using namespace jsv;
 
     SECTION("Multi-dimensional array access") {
@@ -11040,7 +11040,7 @@ TEST_CASE("IndexExpr corner cases and edge cases", "[IndexExpr][AST][Expressions
     }
 }
 
-TEST_CASE("TernaryExpr corner cases and edge cases", "[TernaryExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("TernaryExpr corner cases and edge cases", "[TernaryExpr]") {
     using namespace jsv;
 
     SECTION("Nested ternary expressions") {
@@ -11070,7 +11070,7 @@ TEST_CASE("TernaryExpr corner cases and edge cases", "[TernaryExpr][AST][Express
     }
 }
 
-TEST_CASE("AssignExpr corner cases and edge cases", "[AssignExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("AssignExpr corner cases and edge cases", "[AssignExpr]") {
     using namespace jsv;
 
     SECTION("Chained assignment") {
@@ -11098,7 +11098,7 @@ TEST_CASE("AssignExpr corner cases and edge cases", "[AssignExpr][AST][Expressio
     }
 }
 
-TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr]") {
     using namespace jsv;
 
     SECTION("Cast with primitive type") {
@@ -11129,7 +11129,7 @@ TEST_CASE("CastExpr corner cases and edge cases", "[CastExpr][AST][Expressions][
     }
 }
 
-TEST_CASE("MemberExpr corner cases and edge cases", "[MemberExpr][AST][Expressions][CornerCases]") {
+TEST_CASE("MemberExpr corner cases and edge cases", "[MemberExpr]") {
     using namespace jsv;
 
     SECTION("Chained member access") {
@@ -11161,7 +11161,7 @@ TEST_CASE("MemberExpr corner cases and edge cases", "[MemberExpr][AST][Expressio
     }
 }
 
-TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][CornerCases]") {
+TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl]") {
     using namespace jsv;
 
     SECTION("Multiple variables with single type annotation") {
@@ -11221,7 +11221,7 @@ TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][Cor
     }
 }
 
-TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt][AST][Statements][CornerCases]") {
+TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt]") {
     using namespace jsv;
 
     SECTION("Empty block") {
@@ -11259,7 +11259,7 @@ TEST_CASE("BlockStmt corner cases and edge cases", "[BlockStmt][AST][Statements]
     }
 }
 
-TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt][AST][Statements][CornerCases]") {
+TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt]") {
     using namespace jsv;
 
     SECTION("If without else") {
@@ -11305,7 +11305,7 @@ TEST_CASE("IfStmt corner cases and edge cases", "[IfStmt][AST][Statements][Corne
     }
 }
 
-TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt][AST][Statements][CornerCases]") {
+TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt]") {
     using namespace jsv;
 
     SECTION("For loop with all components empty") {
@@ -11340,7 +11340,7 @@ TEST_CASE("ForStmt corner cases and edge cases", "[ForStmt][AST][Statements][Cor
     }
 }
 
-TEST_CASE("WhileStmt corner cases and edge cases", "[WhileStmt][AST][Statements][CornerCases]") {
+TEST_CASE("WhileStmt corner cases and edge cases", "[WhileStmt]") {
     using namespace jsv;
 
     SECTION("Infinite while loop") {
@@ -11365,7 +11365,7 @@ TEST_CASE("WhileStmt corner cases and edge cases", "[WhileStmt][AST][Statements]
     }
 }
 
-TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt][AST][Statements][CornerCases]") {
+TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt]") {
     using namespace jsv;
 
     SECTION("Return without value") {
@@ -11394,7 +11394,7 @@ TEST_CASE("ReturnStmt corner cases and edge cases", "[ReturnStmt][AST][Statement
     }
 }
 
-TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][CornerCases]") {
+TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl]") {
     using namespace jsv;
 
     SECTION("Function with many parameters") {
@@ -11448,7 +11448,7 @@ TEST_CASE("FuncDecl corner cases and edge cases", "[FuncDecl][AST][Statements][C
     }
 }
 
-TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][CornerCases]") {
+TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt]") {
     using namespace jsv;
 
     SECTION("Main with empty body") {
@@ -11474,7 +11474,7 @@ TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][C
     }
 }
 
-TEST_CASE("Parser corner cases - empty and minimal inputs", "[Parser][CornerCases]") {
+TEST_CASE("Parser corner cases - empty and minimal inputs", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse only EOF token") {
@@ -11501,7 +11501,7 @@ TEST_CASE("Parser corner cases - empty and minimal inputs", "[Parser][CornerCase
     }
 }
 
-TEST_CASE("Parser corner cases - error recovery", "[Parser][CornerCases][ErrorRecovery]") {
+TEST_CASE("Parser corner cases - error recovery", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse with unexpected token in middle") {
@@ -11545,7 +11545,7 @@ TEST_CASE("Parser corner cases - error recovery", "[Parser][CornerCases][ErrorRe
     }
 }
 
-TEST_CASE("Parser corner cases - deeply nested structures", "[Parser][CornerCases][Nesting]") {
+TEST_CASE("Parser corner cases - deeply nested structures", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse deeply nested grouping expressions") {
@@ -11595,7 +11595,7 @@ TEST_CASE("Parser corner cases - deeply nested structures", "[Parser][CornerCase
     }
 }
 
-TEST_CASE("Parser corner cases - unary operators", "[Parser][CornerCases][Unary]") {
+TEST_CASE("Parser corner cases - unary operators", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse consecutive unary operators") {
@@ -11648,7 +11648,7 @@ TEST_CASE("Parser corner cases - unary operators", "[Parser][CornerCases][Unary]
     }
 }
 
-TEST_CASE("Parser corner cases - array literals", "[Parser][CornerCases][Array]") {
+TEST_CASE("Parser corner cases - array literals", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse empty array literal") {
@@ -11721,7 +11721,7 @@ TEST_CASE("Parser corner cases - array literals", "[Parser][CornerCases][Array]"
     }
 }
 
-TEST_CASE("Parser corner cases - function calls", "[Parser][CornerCases][Call]") {
+TEST_CASE("Parser corner cases - function calls", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse function call with no arguments") {
@@ -11785,7 +11785,7 @@ TEST_CASE("Parser corner cases - function calls", "[Parser][CornerCases][Call]")
     }
 }
 
-TEST_CASE("Parser corner cases - member access", "[Parser][CornerCases][Member]") {
+TEST_CASE("Parser corner cases - member access", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse chained member access - not yet supported") {
@@ -11825,7 +11825,7 @@ TEST_CASE("Parser corner cases - member access", "[Parser][CornerCases][Member]"
     }
 }
 
-TEST_CASE("Parser corner cases - assignment expressions", "[Parser][CornerCases][Assignment]") {
+TEST_CASE("Parser corner cases - assignment expressions", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse chained assignment") {
@@ -11869,7 +11869,7 @@ TEST_CASE("Parser corner cases - assignment expressions", "[Parser][CornerCases]
     }
 }
 
-TEST_CASE("Parser corner cases - control flow", "[Parser][CornerCases][ControlFlow]") {
+TEST_CASE("Parser corner cases - control flow", "[Parser]") {
     using namespace jsv;
 
     SECTION("Parse if without braces single statement - not yet supported") {
@@ -11941,7 +11941,7 @@ TEST_CASE("Parser corner cases - control flow", "[Parser][CornerCases][ControlFl
     }
 }
 
-TEST_CASE("Parser error cases - unclosed constructs", "[Parser][ErrorCases]") {
+TEST_CASE("Parser error cases - unclosed constructs", "[Parser]") {
     using namespace jsv;
 
     SECTION("Unclosed parenthesis") {
@@ -11998,7 +11998,7 @@ TEST_CASE("Parser error cases - unclosed constructs", "[Parser][ErrorCases]") {
     }
 }
 
-TEST_CASE("Parser error cases - malformed declarations", "[Parser][ErrorCases]") {
+TEST_CASE("Parser error cases - malformed declarations", "[Parser]") {
     using namespace jsv;
 
     SECTION("Function without name") {
@@ -12047,42 +12047,42 @@ TEST_CASE("Parser error cases - malformed declarations", "[Parser][ErrorCases]")
     }
 }
 
-TEST_CASE("get_binary_op: Plus converts to BinaryOp::Add", "[get_binary_op][additive][T-GBOP-001]") {
+TEST_CASE("get_binary_op: Plus converts to BinaryOp::Add", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Plus, "+", 1, 1, 0);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Add);
 }
 
-TEST_CASE("get_binary_op: Minus converts to BinaryOp::Sub", "[get_binary_op][additive][T-GBOP-002]") {
+TEST_CASE("get_binary_op: Minus converts to BinaryOp::Sub", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Minus, "-", 1, 3, 2);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Sub);
 }
 
-TEST_CASE("get_binary_op: Star converts to BinaryOp::Mul", "[get_binary_op][multiplicative][T-GBOP-003]") {
+TEST_CASE("get_binary_op: Star converts to BinaryOp::Mul", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Star, "*", 2, 1, 10);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Mul);
 }
 
-TEST_CASE("get_binary_op: Slash converts to BinaryOp::Div", "[get_binary_op][multiplicative][T-GBOP-004]") {
+TEST_CASE("get_binary_op: Slash converts to BinaryOp::Div", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Slash, "/", 2, 3, 12);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Div);
 }
 
-TEST_CASE("get_binary_op: Percent converts to BinaryOp::Mod", "[get_binary_op][multiplicative][T-GBOP-005]") {
+TEST_CASE("get_binary_op: Percent converts to BinaryOp::Mod", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Percent, "%", 2, 5, 14);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Mod);
 }
 
-TEST_CASE("get_binary_op: EqualEqual converts to BinaryOp::Eq", "[get_binary_op][equality][T-GBOP-006]") {
+TEST_CASE("get_binary_op: EqualEqual converts to BinaryOp::Eq", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::EqualEqual, "==", 3, 1, 20);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
@@ -12093,7 +12093,7 @@ TEST_CASE("get_binary_op: EqualEqual converts to BinaryOp::Eq", "[get_binary_op]
 // Parser::parse_stmt() switch statement (lines 216-217), ensuring comprehensive
 // coverage of the main function parsing functionality.
 
-TEST_CASE("Parser: parse_main_function - basic main function", "[Parser][parse_main_function][Line216-217][T-PMF-001]") {
+TEST_CASE("Parser: parse_main_function - basic main function", "[Parser]") {
     using namespace jsv;
 
     SECTION("Minimal main function with empty body") {
@@ -12126,7 +12126,7 @@ TEST_CASE("Parser: parse_main_function - basic main function", "[Parser][parse_m
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with statements", "[Parser][parse_main_function][Line216-217][T-PMF-002]") {
+TEST_CASE("Parser: parse_main_function - main with statements", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with single expression statement") {
@@ -12215,7 +12215,7 @@ TEST_CASE("Parser: parse_main_function - main with statements", "[Parser][parse_
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with nested blocks", "[Parser][parse_main_function][Line216-217][T-PMF-003]") {
+TEST_CASE("Parser: parse_main_function - main with nested blocks", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with nested block statements") {
@@ -12258,7 +12258,7 @@ TEST_CASE("Parser: parse_main_function - main with nested blocks", "[Parser][par
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with control flow", "[Parser][parse_main_function][Line216-217][T-PMF-004]") {
+TEST_CASE("Parser: parse_main_function - main with control flow", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with if-else statement") {
@@ -12391,7 +12391,7 @@ TEST_CASE("Parser: parse_main_function - main with control flow", "[Parser][pars
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with break/continue", "[Parser][parse_main_function][Line216-217][T-PMF-005]") {
+TEST_CASE("Parser: parse_main_function - main with break/continue", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with break statement") {
@@ -12478,7 +12478,7 @@ TEST_CASE("Parser: parse_main_function - main with break/continue", "[Parser][pa
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with function call", "[Parser][parse_main_function][Line216-217][T-PMF-006]") {
+TEST_CASE("Parser: parse_main_function - main with function call", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with function call expression") {
@@ -12516,7 +12516,7 @@ TEST_CASE("Parser: parse_main_function - main with function call", "[Parser][par
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with const declaration", "[Parser][parse_main_function][Line216-217][T-PMF-007]") {
+TEST_CASE("Parser: parse_main_function - main with const declaration", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with const variable declaration") {
@@ -12557,7 +12557,7 @@ TEST_CASE("Parser: parse_main_function - main with const declaration", "[Parser]
     }
 }
 
-TEST_CASE("Parser: parse_main_function - main with multiple declarations", "[Parser][parse_main_function][Line216-217][T-PMF-008]") {
+TEST_CASE("Parser: parse_main_function - main with multiple declarations", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with comma-separated variable declarations") {
@@ -12609,7 +12609,7 @@ TEST_CASE("Parser: parse_main_function - main with multiple declarations", "[Par
     }
 }
 
-TEST_CASE("Parser: parse_main_function - error cases", "[Parser][parse_main_function][Line216-217][ErrorHandling][T-PMF-ERR-001]") {
+TEST_CASE("Parser: parse_main_function - error cases", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main function with unclosed block - error recovery") {
@@ -12667,7 +12667,7 @@ TEST_CASE("Parser: parse_main_function - error cases", "[Parser][parse_main_func
 }
 
 TEST_CASE("Parser: parse_main_function - corner cases with literals",
-          "[Parser][parse_main_function][Line216-217][CornerCases][T-PMF-CC-001]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("Main with string literal") {
@@ -12823,7 +12823,7 @@ TEST_CASE("Parser: parse_main_function - corner cases with literals",
     }
 }
 
-TEST_CASE("Parser: parse_main_function - unary operators", "[Parser][parse_main_function][Line216-217][UnaryOps][T-PMF-UO-001]") {
+TEST_CASE("Parser: parse_main_function - unary operators", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main with unary minus") {
@@ -12943,7 +12943,7 @@ TEST_CASE("Parser: parse_main_function - unary operators", "[Parser][parse_main_
     }
 }
 
-TEST_CASE("Parser: parse_main_function - binary operators", "[Parser][parse_main_function][Line216-217][BinaryOps][T-PMF-BO-001]") {
+TEST_CASE("Parser: parse_main_function - binary operators", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main with addition expression") {
@@ -13037,89 +13037,89 @@ TEST_CASE("Parser: parse_main_function - binary operators", "[Parser][parse_main
     }
 }
 
-TEST_CASE("get_binary_op: NotEqual converts to BinaryOp::Neq", "[get_binary_op][equality][T-GBOP-007]") {
+TEST_CASE("get_binary_op: NotEqual converts to BinaryOp::Neq", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::NotEqual, "!=", 3, 4, 23);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Neq);
 }
 
-TEST_CASE("get_binary_op: Less converts to BinaryOp::Lt", "[get_binary_op][relational][T-GBOP-008]") {
+TEST_CASE("get_binary_op: Less converts to BinaryOp::Lt", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Less, "<", 4, 1, 30);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Lt);
 }
 
-TEST_CASE("get_binary_op: LessEqual converts to BinaryOp::Le", "[get_binary_op][relational][T-GBOP-009]") {
+TEST_CASE("get_binary_op: LessEqual converts to BinaryOp::Le", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::LessEqual, "<=", 4, 3, 32);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Le);
 }
 
-TEST_CASE("get_binary_op: Greater converts to BinaryOp::Gt", "[get_binary_op][relational][T-GBOP-010]") {
+TEST_CASE("get_binary_op: Greater converts to BinaryOp::Gt", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Greater, ">", 4, 6, 35);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Gt);
 }
 
-TEST_CASE("get_binary_op: GreaterEqual converts to BinaryOp::Ge", "[get_binary_op][relational][T-GBOP-011]") {
+TEST_CASE("get_binary_op: GreaterEqual converts to BinaryOp::Ge", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::GreaterEqual, ">=", 4, 8, 37);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Ge);
 }
 
-TEST_CASE("get_binary_op: AndAnd converts to BinaryOp::And", "[get_binary_op][logical][T-GBOP-012]") {
+TEST_CASE("get_binary_op: AndAnd converts to BinaryOp::And", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::AndAnd, "&&", 5, 1, 40);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::And);
 }
 
-TEST_CASE("get_binary_op: OrOr converts to BinaryOp::Or", "[get_binary_op][logical][T-GBOP-013]") {
+TEST_CASE("get_binary_op: OrOr converts to BinaryOp::Or", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::OrOr, "||", 5, 4, 43);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Or);
 }
-TEST_CASE("get_binary_op: And converts to BinaryOp::BitAnd", "[get_binary_op][bitwise][T-GBOP-014]") {
+TEST_CASE("get_binary_op: And converts to BinaryOp::BitAnd", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::And, "&", 6, 1, 50);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::BitAnd);
 }
 
-TEST_CASE("get_binary_op: Or converts to BinaryOp::BitOr", "[get_binary_op][bitwise][T-GBOP-015]") {
+TEST_CASE("get_binary_op: Or converts to BinaryOp::BitOr", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Or, "|", 6, 3, 52);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::BitOr);
 }
 
-TEST_CASE("get_binary_op: Xor converts to BinaryOp::BitXor", "[get_binary_op][bitwise][T-GBOP-016]") {
+TEST_CASE("get_binary_op: Xor converts to BinaryOp::BitXor", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Xor, "^", 6, 5, 54);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::BitXor);
 }
 
-TEST_CASE("get_binary_op: ShiftLeft converts to BinaryOp::Shl", "[get_binary_op][shift][T-GBOP-017]") {
+TEST_CASE("get_binary_op: ShiftLeft converts to BinaryOp::Shl", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::ShiftLeft, "<<", 7, 1, 60);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Shl);
 }
 
-TEST_CASE("get_binary_op: ShiftRight converts to BinaryOp::Shr", "[get_binary_op][shift][T-GBOP-018]") {
+TEST_CASE("get_binary_op: ShiftRight converts to BinaryOp::Shr", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::ShiftRight, ">>", 7, 4, 63);
     auto result = jsv::get_binary_op(token);
     REQUIRE(result.has_value());
     REQUIRE(*result == jsv::BinaryOp::Shr);
 }
-TEST_CASE("get_binary_op: Unary operators return SyntaxError", "[get_binary_op][error][negative][T-GBOP-019]") {
+TEST_CASE("get_binary_op: Unary operators return SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Not, "!", 8, 1, 70);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13129,7 +13129,7 @@ TEST_CASE("get_binary_op: Unary operators return SyntaxError", "[get_binary_op][
     REQUIRE(result.error().span().start.column == 1);
 }
 
-TEST_CASE("get_binary_op: Assignment operator returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-020]") {
+TEST_CASE("get_binary_op: Assignment operator returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Equal, "=", 8, 3, 72);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13137,7 +13137,7 @@ TEST_CASE("get_binary_op: Assignment operator returns SyntaxError", "[get_binary
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Postfix operators return SyntaxError", "[get_binary_op][error][negative][T-GBOP-021]") {
+TEST_CASE("get_binary_op: Postfix operators return SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::PlusPlus, "++", 8, 5, 74);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13145,7 +13145,7 @@ TEST_CASE("get_binary_op: Postfix operators return SyntaxError", "[get_binary_op
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Identifier returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-022]") {
+TEST_CASE("get_binary_op: Identifier returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::IdentifierAscii, "x", 8, 8, 77);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13153,7 +13153,7 @@ TEST_CASE("get_binary_op: Identifier returns SyntaxError", "[get_binary_op][erro
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Numeric literal returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-023]") {
+TEST_CASE("get_binary_op: Numeric literal returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Numeric, "42", 8, 10, 79);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13161,7 +13161,7 @@ TEST_CASE("get_binary_op: Numeric literal returns SyntaxError", "[get_binary_op]
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Keyword returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-024]") {
+TEST_CASE("get_binary_op: Keyword returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::KeywordIf, "if", 8, 13, 82);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13169,7 +13169,7 @@ TEST_CASE("get_binary_op: Keyword returns SyntaxError", "[get_binary_op][error][
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: EOF returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-025]") {
+TEST_CASE("get_binary_op: EOF returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Eof, "", 8, 16, 85);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13177,7 +13177,7 @@ TEST_CASE("get_binary_op: EOF returns SyntaxError", "[get_binary_op][error][nega
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Parenthesis returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-026]") {
+TEST_CASE("get_binary_op: Parenthesis returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::OpenParen, "(", 8, 17, 86);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13185,7 +13185,7 @@ TEST_CASE("get_binary_op: Parenthesis returns SyntaxError", "[get_binary_op][err
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Semicolon returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-027]") {
+TEST_CASE("get_binary_op: Semicolon returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Semicolon, ";", 8, 19, 88);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13193,7 +13193,7 @@ TEST_CASE("get_binary_op: Semicolon returns SyntaxError", "[get_binary_op][error
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Comma returns SyntaxError", "[get_binary_op][error][negative][T-GBOP-028]") {
+TEST_CASE("get_binary_op: Comma returns SyntaxError", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Comma, ",", 8, 21, 90);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13201,7 +13201,7 @@ TEST_CASE("get_binary_op: Comma returns SyntaxError", "[get_binary_op][error][ne
     REQUIRE(result.error().error_code().value() == jsv::ErrorCode::E1005);
 }
 
-TEST_CASE("get_binary_op: Error message contains diagnostic information", "[get_binary_op][error][message][T-GBOP-029]") {
+TEST_CASE("get_binary_op: Error message contains diagnostic information", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::IdentifierAscii, "invalid", 9, 1, 100);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13210,7 +13210,7 @@ TEST_CASE("get_binary_op: Error message contains diagnostic information", "[get_
     REQUIRE_THAT(error_msg, Catch::Matchers::ContainsSubstring("cannot be used as a binary operator"));
 }
 
-TEST_CASE("get_binary_op: Error preserves source location accurately", "[get_binary_op][error][location][T-GBOP-030]") {
+TEST_CASE("get_binary_op: Error preserves source location accurately", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::Not, "!", 10, 5, 150);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13219,7 +13219,7 @@ TEST_CASE("get_binary_op: Error preserves source location accurately", "[get_bin
     REQUIRE(result.error().span().start.absolute_pos == 150);
 }
 
-TEST_CASE("get_binary_op: All valid binary operators succeed", "[get_binary_op][comprehensive][T-GBOP-031]") {
+TEST_CASE("get_binary_op: All valid binary operators succeed", "[get_binary_op]") {
     const std::vector<std::pair<jsv::TokenKind, jsv::BinaryOp>> valid_operators = {
         // Additive (Lines 121-125)
         {jsv::TokenKind::Plus, jsv::BinaryOp::Add},
@@ -13257,7 +13257,7 @@ TEST_CASE("get_binary_op: All valid binary operators succeed", "[get_binary_op][
     }
 }
 
-TEST_CASE("get_binary_op: Invalid operators fail with consistent error structure", "[get_binary_op][comprehensive][error][T-GBOP-032]") {
+TEST_CASE("get_binary_op: Invalid operators fail with consistent error structure", "[get_binary_op]") {
     const std::vector<jsv::TokenKind> invalid_operators = {
         // Unary-only operators
         jsv::TokenKind::Not,
@@ -13306,7 +13306,7 @@ TEST_CASE("get_binary_op: Invalid operators fail with consistent error structure
     }
 }
 
-TEST_CASE("get_binary_op: Error help message is present", "[get_binary_op][error][help][T-GBOP-033]") {
+TEST_CASE("get_binary_op: Error help message is present", "[get_binary_op]") {
     const jsv::Token token = make_token_for_op(jsv::TokenKind::KeywordIf, "if", 11, 1, 200);
     auto result = jsv::get_binary_op(token);
     REQUIRE_FALSE(result.has_value());
@@ -13315,7 +13315,7 @@ TEST_CASE("get_binary_op: Error help message is present", "[get_binary_op][error
     REQUIRE_THAT(*help_msg.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
 }
 
-TEST_CASE("binding_power: Logical OR operator (||) - Lines 30-32", "[binding_power][OrOr][T-BP-001]") {
+TEST_CASE("binding_power: Logical OR operator (||) - Lines 30-32", "[binding_power]") {
     // Corner case: Lowest precedence binary operator
     const jsv::Token token = make_precedence_token(jsv::TokenKind::OrOr, "||", 1, 5, 10);
     const auto [lbp, rbp] = jsv::binding_power(token);
@@ -13326,7 +13326,7 @@ TEST_CASE("binding_power: Logical OR operator (||) - Lines 30-32", "[binding_pow
     REQUIRE(rbp > lbp);  // Ensures left-associativity
 }
 
-TEST_CASE("binding_power: Logical AND operator (&&) - Lines 33-35", "[binding_power][AndAnd][T-BP-002]") {
+TEST_CASE("binding_power: Logical AND operator (&&) - Lines 33-35", "[binding_power]") {
     // Corner case: Second lowest precedence
     const jsv::Token token = make_precedence_token(jsv::TokenKind::AndAnd, "&&", 1, 5, 10);
     const auto [lbp, rbp] = jsv::binding_power(token);
@@ -13337,7 +13337,7 @@ TEST_CASE("binding_power: Logical AND operator (&&) - Lines 33-35", "[binding_po
     REQUIRE(rbp > lbp);  // Left-associative
 }
 
-TEST_CASE("binding_power: Bitwise OR operator (|) - Lines 36-38", "[binding_power][Or][T-BP-003]") {
+TEST_CASE("binding_power: Bitwise OR operator (|) - Lines 36-38", "[binding_power]") {
     // Standard case: Bitwise operations
     const jsv::Token token = make_precedence_token(jsv::TokenKind::Or, "|", 1, 5, 10);
     const auto [lbp, rbp] = jsv::binding_power(token);
@@ -13348,7 +13348,7 @@ TEST_CASE("binding_power: Bitwise OR operator (|) - Lines 36-38", "[binding_powe
     REQUIRE(rbp > lbp);  // Left-associative
 }
 
-TEST_CASE("binding_power: Bitwise XOR operator (^) - Lines 39-41", "[binding_power][Xor][T-BP-004]") {
+TEST_CASE("binding_power: Bitwise XOR operator (^) - Lines 39-41", "[binding_power]") {
     // Standard case: XOR between AND and OR
     const jsv::Token token = make_precedence_token(jsv::TokenKind::Xor, "^", 1, 5, 10);
     const auto [lbp, rbp] = jsv::binding_power(token);
@@ -13359,7 +13359,7 @@ TEST_CASE("binding_power: Bitwise XOR operator (^) - Lines 39-41", "[binding_pow
     REQUIRE(rbp > lbp);  // Left-associative
 }
 
-TEST_CASE("binding_power: Bitwise AND operator (&) - Lines 42-44", "[binding_power][And][T-BP-005]") {
+TEST_CASE("binding_power: Bitwise AND operator (&) - Lines 42-44", "[binding_power]") {
     // Standard case: Bitwise AND has higher precedence than XOR
     const jsv::Token token = make_precedence_token(jsv::TokenKind::And, "&", 1, 5, 10);
     const auto [lbp, rbp] = jsv::binding_power(token);
@@ -13370,7 +13370,7 @@ TEST_CASE("binding_power: Bitwise AND operator (&) - Lines 42-44", "[binding_pow
     REQUIRE(rbp > lbp);  // Left-associative
 }
 
-TEST_CASE("binding_power: Equality operators (==, !=) - Lines 45-48", "[binding_power][Equality][T-BP-006]") {
+TEST_CASE("binding_power: Equality operators (==, !=) - Lines 45-48", "[binding_power]") {
     // Edge case: Both equality operators share same precedence
     SECTION("EqualEqual (==)") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::EqualEqual, "==", 1, 5, 10);
@@ -13393,7 +13393,7 @@ TEST_CASE("binding_power: Equality operators (==, !=) - Lines 45-48", "[binding_
     }
 }
 
-TEST_CASE("binding_power: Relational operators (<, <=, >, >=) - Lines 49-54", "[binding_power][Relational][T-BP-007]") {
+TEST_CASE("binding_power: Relational operators (<, <=, >, >=) - Lines 49-54", "[binding_power]") {
     // Standard case: All relational operators share same precedence
     const std::array<jsv::TokenKind, 4> relational_ops = {jsv::TokenKind::Less, jsv::TokenKind::LessEqual, jsv::TokenKind::Greater,
                                                           jsv::TokenKind::GreaterEqual};
@@ -13410,7 +13410,7 @@ TEST_CASE("binding_power: Relational operators (<, <=, >, >=) - Lines 49-54", "[
     }
 }
 
-TEST_CASE("binding_power: Shift operators (<<, >>) - Lines 55-58", "[binding_power][Shift][T-BP-008]") {
+TEST_CASE("binding_power: Shift operators (<<, >>) - Lines 55-58", "[binding_power]") {
     // Standard case: Shift operators have higher precedence than relational
     SECTION("ShiftLeft (<<)") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::ShiftLeft, "<<", 1, 5, 10);
@@ -13433,7 +13433,7 @@ TEST_CASE("binding_power: Shift operators (<<, >>) - Lines 55-58", "[binding_pow
     }
 }
 
-TEST_CASE("binding_power: Additive operators (+, -) - Lines 59-62", "[binding_power][Additive][T-BP-009]") {
+TEST_CASE("binding_power: Additive operators (+, -) - Lines 59-62", "[binding_power]") {
     // Standard case: Additive operators
     SECTION("Plus (+)") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::Plus, "+", 1, 5, 10);
@@ -13456,7 +13456,7 @@ TEST_CASE("binding_power: Additive operators (+, -) - Lines 59-62", "[binding_po
     }
 }
 
-TEST_CASE("binding_power: Multiplicative operators (*, /, %) - Lines 63-67", "[binding_power][Multiplicative][T-BP-010]") {
+TEST_CASE("binding_power: Multiplicative operators (*, /, %) - Lines 63-67", "[binding_power]") {
     // Standard case: Multiplicative operators have highest precedence among binary ops
     const std::array<jsv::TokenKind, 3> multiplicative_ops = {jsv::TokenKind::Star, jsv::TokenKind::Slash, jsv::TokenKind::Percent};
 
@@ -13472,7 +13472,7 @@ TEST_CASE("binding_power: Multiplicative operators (*, /, %) - Lines 63-67", "[b
     }
 }
 
-TEST_CASE("binding_power: Assignment operator (=) - Lines 68-70", "[binding_power][Assignment][T-BP-011]") {
+TEST_CASE("binding_power: Assignment operator (=) - Lines 68-70", "[binding_power]") {
     // Edge case: Assignment has very high precedence for right-associativity
     const jsv::Token token = make_precedence_token(jsv::TokenKind::Equal, "=", 1, 5, 10);
     const auto [lbp, rbp] = jsv::binding_power(token);
@@ -13483,7 +13483,7 @@ TEST_CASE("binding_power: Assignment operator (=) - Lines 68-70", "[binding_powe
     REQUIRE(rbp > lbp);  // Right-associative (unusual for assignment)
 }
 
-TEST_CASE("binding_power: Increment/Decrement operators (++, --) - Lines 71-74", "[binding_power][Increment][T-BP-012]") {
+TEST_CASE("binding_power: Increment/Decrement operators (++, --) - Lines 71-74", "[binding_power]") {
     // Corner case: Highest precedence (postfix)
     SECTION("PlusPlus (++)") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::PlusPlus, "++", 1, 5, 10);
@@ -13506,7 +13506,7 @@ TEST_CASE("binding_power: Increment/Decrement operators (++, --) - Lines 71-74",
     }
 }
 
-TEST_CASE("binding_power: Non-operator tokens return {0, 0} - Lines 75-77", "[binding_power][Default][T-BP-013]") {
+TEST_CASE("binding_power: Non-operator tokens return {0, 0} - Lines 75-77", "[binding_power]") {
     // Negative test: Various non-operator tokens should return zero binding power
     const std::array<jsv::TokenKind, 8> non_operators = {
         jsv::TokenKind::IdentifierAscii, jsv::TokenKind::Numeric,     jsv::TokenKind::KeywordIf,
@@ -13524,7 +13524,7 @@ TEST_CASE("binding_power: Non-operator tokens return {0, 0} - Lines 75-77", "[bi
     }
 }
 
-TEST_CASE("binding_power: Precedence ordering is monotonic - Lines 30-77", "[binding_power][PrecedenceOrder][T-BP-014]") {
+TEST_CASE("binding_power: Precedence ordering is monotonic - Lines 30-77", "[binding_power]") {
     // Comprehensive test: Verify precedence levels increase monotonically
     // This ensures the Pratt parsing will work correctly
 
@@ -13559,7 +13559,7 @@ TEST_CASE("binding_power: Precedence ordering is monotonic - Lines 30-77", "[bin
     }
 }
 
-TEST_CASE("unary_binding_power: Unary minus (-) - Lines 91-93", "[unary_binding_power][Minus][T-UBP-001]") {
+TEST_CASE("unary_binding_power: Unary minus (-) - Lines 91-93", "[unary_binding_power]") {
     // Corner case: Unary negation has high precedence
     const jsv::Token token = make_precedence_token(jsv::TokenKind::Minus, "-", 1, 5, 10);
     const auto [lbp, rbp] = jsv::unary_binding_power(token);
@@ -13570,7 +13570,7 @@ TEST_CASE("unary_binding_power: Unary minus (-) - Lines 91-93", "[unary_binding_
     REQUIRE(rbp > lbp);  // Binds tightly to right operand
 }
 
-TEST_CASE("unary_binding_power: Logical NOT (!) - Lines 94-96", "[unary_binding_power][Not][T-UBP-002]") {
+TEST_CASE("unary_binding_power: Logical NOT (!) - Lines 94-96", "[unary_binding_power]") {
     // Standard case: Logical NOT
     const jsv::Token token = make_precedence_token(jsv::TokenKind::Not, "!", 1, 5, 10);
     const auto [lbp, rbp] = jsv::unary_binding_power(token);
@@ -13581,7 +13581,7 @@ TEST_CASE("unary_binding_power: Logical NOT (!) - Lines 94-96", "[unary_binding_
     REQUIRE(rbp > lbp);
 }
 
-TEST_CASE("unary_binding_power: Pre-increment (++) - Lines 100-102", "[unary_binding_power][PreInc][T-UBP-003]") {
+TEST_CASE("unary_binding_power: Pre-increment (++) - Lines 100-102", "[unary_binding_power]") {
     // Corner case: Pre-increment has very high precedence
     const jsv::Token token = make_precedence_token(jsv::TokenKind::PlusPlus, "++", 1, 5, 10);
     const auto [lbp, rbp] = jsv::unary_binding_power(token);
@@ -13592,7 +13592,7 @@ TEST_CASE("unary_binding_power: Pre-increment (++) - Lines 100-102", "[unary_bin
     REQUIRE(rbp > lbp);
 }
 
-TEST_CASE("unary_binding_power: Pre-decrement (--) - Lines 103-105", "[unary_binding_power][PreDec][T-UBP-004]") {
+TEST_CASE("unary_binding_power: Pre-decrement (--) - Lines 103-105", "[unary_binding_power]") {
     // Corner case: Pre-decrement has highest unary precedence
     const jsv::Token token = make_precedence_token(jsv::TokenKind::MinusMinus, "--", 1, 5, 10);
     const auto [lbp, rbp] = jsv::unary_binding_power(token);
@@ -13603,7 +13603,7 @@ TEST_CASE("unary_binding_power: Pre-decrement (--) - Lines 103-105", "[unary_bin
     REQUIRE(rbp > lbp);
 }
 
-TEST_CASE("unary_binding_power: Non-unary operators return {0, 0} - Lines 106-108", "[unary_binding_power][Default][T-UBP-005]") {
+TEST_CASE("unary_binding_power: Non-unary operators return {0, 0} - Lines 106-108", "[unary_binding_power]") {
     // Negative test: Binary operators and other tokens should not be recognized as unary
     const std::array<jsv::TokenKind, 10> non_unary_ops = {
         jsv::TokenKind::PlusEqual,        // Assignment operator
@@ -13628,7 +13628,7 @@ TEST_CASE("unary_binding_power: Non-unary operators return {0, 0} - Lines 106-10
     }
 }
 
-TEST_CASE("unary_binding_power: Unary operators have lbp=0 - Lines 91-108", "[unary_binding_power][LBPZero][T-UBP-006]") {
+TEST_CASE("unary_binding_power: Unary operators have lbp=0 - Lines 91-108", "[unary_binding_power]") {
     // Comprehensive test: All unary operators must have lbp=0
     // This is critical for Pratt parsing - unary operators don't consume left operands
     const std::array<jsv::TokenKind, 4> unary_ops = {jsv::TokenKind::Minus, jsv::TokenKind::Not, jsv::TokenKind::PlusPlus,
@@ -13645,7 +13645,7 @@ TEST_CASE("unary_binding_power: Unary operators have lbp=0 - Lines 91-108", "[un
 }
 
 TEST_CASE("unary_binding_power: Unary precedence vs Binary precedence - Lines 91-108",
-          "[unary_binding_power][PrecedenceComparison][T-UBP-007]") {
+          "[unary_binding_power]") {
     // Edge case: Verify unary operators have higher precedence than most binary operators
     // This ensures expressions like "-a + b" parse as "(-a) + b" not "-(a + b)"
 
@@ -13665,7 +13665,7 @@ TEST_CASE("unary_binding_power: Unary precedence vs Binary precedence - Lines 91
     REQUIRE(unary_lbp == 0);
 }
 
-TEST_CASE("get_binary_op: Additive operators - Lines 135-140", "[get_binary_op][Additive][T-GBOP-001]") {
+TEST_CASE("get_binary_op: Additive operators - Lines 135-140", "[get_binary_op]") {
     // Standard case: Basic arithmetic
     SECTION("Plus (+) returns BinaryOp::Add") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::Plus, "+", 1, 5, 10);
@@ -13684,7 +13684,7 @@ TEST_CASE("get_binary_op: Additive operators - Lines 135-140", "[get_binary_op][
     }
 }
 
-TEST_CASE("get_binary_op: Multiplicative operators - Lines 141-146", "[get_binary_op][Multiplicative][T-GBOP-002]") {
+TEST_CASE("get_binary_op: Multiplicative operators - Lines 141-146", "[get_binary_op]") {
     // Standard case: Multiplication, division, modulo
     const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, 3> multiplicative_ops = {
         std::pair{jsv::TokenKind::Star, jsv::BinaryOp::Mul}, std::pair{jsv::TokenKind::Slash, jsv::BinaryOp::Div},
@@ -13700,7 +13700,7 @@ TEST_CASE("get_binary_op: Multiplicative operators - Lines 141-146", "[get_binar
     }
 }
 
-TEST_CASE("get_binary_op: Equality operators - Lines 147-152", "[get_binary_op][Equality][T-GBOP-003]") {
+TEST_CASE("get_binary_op: Equality operators - Lines 147-152", "[get_binary_op]") {
     // Standard case: Equality comparisons
     SECTION("EqualEqual (==) returns BinaryOp::Eq") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::EqualEqual, "==", 1, 5, 10);
@@ -13719,7 +13719,7 @@ TEST_CASE("get_binary_op: Equality operators - Lines 147-152", "[get_binary_op][
     }
 }
 
-TEST_CASE("get_binary_op: Relational operators - Lines 153-160", "[get_binary_op][Relational][T-GBOP-004]") {
+TEST_CASE("get_binary_op: Relational operators - Lines 153-160", "[get_binary_op]") {
     // Standard case: Ordering comparisons
     const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, 4> relational_ops = {
         std::pair{jsv::TokenKind::Less, jsv::BinaryOp::Lt}, std::pair{jsv::TokenKind::LessEqual, jsv::BinaryOp::Le},
@@ -13735,7 +13735,7 @@ TEST_CASE("get_binary_op: Relational operators - Lines 153-160", "[get_binary_op
     }
 }
 
-TEST_CASE("get_binary_op: Logical operators - Lines 161-166", "[get_binary_op][Logical][T-GBOP-005]") {
+TEST_CASE("get_binary_op: Logical operators - Lines 161-166", "[get_binary_op]") {
     // Standard case: Logical AND/OR
     SECTION("AndAnd (&&) returns BinaryOp::And") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::AndAnd, "&&", 1, 5, 10);
@@ -13754,7 +13754,7 @@ TEST_CASE("get_binary_op: Logical operators - Lines 161-166", "[get_binary_op][L
     }
 }
 
-TEST_CASE("get_binary_op: Bitwise operators - Lines 167-172", "[get_binary_op][Bitwise][T-GBOP-006]") {
+TEST_CASE("get_binary_op: Bitwise operators - Lines 167-172", "[get_binary_op]") {
     // Standard case: Bitwise operations
     const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, 3> bitwise_ops = {std::pair{jsv::TokenKind::And, jsv::BinaryOp::BitAnd},
                                                                                  std::pair{jsv::TokenKind::Or, jsv::BinaryOp::BitOr},
@@ -13770,7 +13770,7 @@ TEST_CASE("get_binary_op: Bitwise operators - Lines 167-172", "[get_binary_op][B
     }
 }
 
-TEST_CASE("get_binary_op: Shift operators - Lines 173-178", "[get_binary_op][Shift][T-GBOP-007]") {
+TEST_CASE("get_binary_op: Shift operators - Lines 173-178", "[get_binary_op]") {
     // Standard case: Bit shifts
     SECTION("ShiftLeft (<<) returns BinaryOp::Shl") {
         const jsv::Token token = make_precedence_token(jsv::TokenKind::ShiftLeft, "<<", 1, 5, 10);
@@ -13789,7 +13789,7 @@ TEST_CASE("get_binary_op: Shift operators - Lines 173-178", "[get_binary_op][Shi
     }
 }
 
-TEST_CASE("get_binary_op: Invalid operators return error - Lines 179-183", "[get_binary_op][Error][T-GBOP-008]") {
+TEST_CASE("get_binary_op: Invalid operators return error - Lines 179-183", "[get_binary_op]") {
     // Negative test: Non-binary operators should return error
     const std::array<jsv::TokenKind, 12> invalid_operators = {                        // Unary-only operators
                                                               jsv::TokenKind::Not,    // ! is unary only
@@ -13822,7 +13822,7 @@ TEST_CASE("get_binary_op: Invalid operators return error - Lines 179-183", "[get
     }
 }
 
-TEST_CASE("get_binary_op: Error contains source location - Lines 179-183", "[get_binary_op][Error][SourceLocation][T-GBOP-009]") {
+TEST_CASE("get_binary_op: Error contains source location - Lines 179-183", "[get_binary_op]") {
     // Edge case: Verify error includes accurate source location
     constexpr std::size_t test_line = 42;
     constexpr std::size_t test_column = 15;
@@ -13842,7 +13842,7 @@ TEST_CASE("get_binary_op: Error contains source location - Lines 179-183", "[get
     REQUIRE(span.start.absolute_pos == test_offset);
 }
 
-TEST_CASE("get_binary_op: Error help message provides guidance - Lines 179-183", "[get_binary_op][Error][HelpMessage][T-GBOP-010]") {
+TEST_CASE("get_binary_op: Error help message provides guidance - Lines 179-183", "[get_binary_op]") {
     // Edge case: Verify error includes helpful message
     const jsv::Token token = make_precedence_token(jsv::TokenKind::KeywordIf, "if", 1, 5, 10);
     auto result = jsv::get_binary_op(token);
@@ -13856,7 +13856,7 @@ TEST_CASE("get_binary_op: Error help message provides guidance - Lines 179-183",
     REQUIRE_THAT(*help.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
 }
 
-TEST_CASE("get_binary_op: All valid binary operators - Comprehensive", "[get_binary_op][Comprehensive][T-GBOP-011]") {
+TEST_CASE("get_binary_op: All valid binary operators - Comprehensive", "[get_binary_op]") {
     // Comprehensive test: Verify all 18 valid binary operators
     constexpr std::size_t num_binary_ops = 18;
     const std::array<std::pair<jsv::TokenKind, jsv::BinaryOp>, num_binary_ops> all_binary_ops = {
@@ -13896,7 +13896,7 @@ TEST_CASE("get_binary_op: All valid binary operators - Comprehensive", "[get_bin
     }
 }
 
-TEST_CASE("get_binary_op: Token with different source locations", "[get_binary_op][SourceLocation][T-GBOP-012]") {
+TEST_CASE("get_binary_op: Token with different source locations", "[get_binary_op]") {
     // Edge case: Verify function works with tokens at various source locations
     const std::array<std::tuple<std::size_t, std::size_t, std::size_t>, 5> locations = {{
         {1, 1, 0},        // Start of file
@@ -13916,7 +13916,7 @@ TEST_CASE("get_binary_op: Token with different source locations", "[get_binary_o
     }
 }
 
-TEST_CASE("Precedence functions integration: Expression parsing simulation", "[precedence][Integration][T-PREC-001]") {
+TEST_CASE("Precedence functions integration: Expression parsing simulation", "[precedence]") {
     // Integration test: Simulate how binding_power and unary_binding_power work together
     // for parsing the expression: "-5 + 3 * 2"
 
@@ -13941,7 +13941,7 @@ TEST_CASE("Precedence functions integration: Expression parsing simulation", "[p
     // Expected parse tree: ((-5) + (3 * 2))
 }
 
-TEST_CASE("Precedence functions integration: Operator associativity", "[precedence][Integration][T-PREC-002]") {
+TEST_CASE("Precedence functions integration: Operator associativity", "[precedence]") {
     // Integration test: Verify left-associativity for most operators
     // Expression: "a - b - c" should parse as "((a - b) - c)"
 
@@ -13958,7 +13958,7 @@ TEST_CASE("Precedence functions integration: Operator associativity", "[preceden
     // Result: ((a - b) - c)
 }
 
-TEST_CASE("Precedence functions integration: Right-associative assignment", "[precedence][Integration][T-PREC-003]") {
+TEST_CASE("Precedence functions integration: Right-associative assignment", "[precedence]") {
     // Integration test: Assignment should be right-associative
     // Expression: "a = b = c" should parse as "(a = (b = c))"
 
@@ -13976,7 +13976,7 @@ TEST_CASE("Precedence functions integration: Right-associative assignment", "[pr
     // Result: (a = (b = c))
 }
 TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-identifier token)",
-          "[Parser][parse_function][Line256][T-PF-001]") {
+          "[Parser]") {
     // Corner case: Function parameter is not a valid identifier (e.g., keyword, operator)
     // This tests the error path at line 256-258 where syntax_error is called with ErrorCode::E1002
 
@@ -14036,7 +14036,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-id
 }
 
 TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid identifiers)",
-          "[Parser][parse_function][Line256][T-PF-002]") {
+          "[Parser]") {
     // Standard usage: Function with valid ASCII and Unicode parameter names
     // This tests the success path at line 256 where both identifier types are accepted
 
@@ -14127,7 +14127,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid 
 }
 
 TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - valid types)",
-          "[Parser][parse_function][Line261-270][T-PF-003]") {
+          "[Parser]") {
     // Standard usage: Function parameters with various valid type annotations
     // This tests lines 261-267 where parse_type() is called and parameters are added
 
@@ -14270,7 +14270,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
 }
 
 TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - error cases)",
-          "[Parser][parse_function][Line261-270][T-PF-004]") {
+          "[Parser]") {
     // Edge case: Function parameter missing type annotation or with invalid type
     // This tests lines 263-266 where syntax_error is called with ErrorCode::E1003
 
@@ -14384,7 +14384,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - erro
 }
 
 TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all primitive types)",
-          "[Parser][parse_function][Line261-270][T-PF-005]") {
+          "[Parser]") {
     // Comprehensive test: All primitive type tokens as parameter types
     // Ensures parse_type() correctly handles each type variant
 
@@ -14488,7 +14488,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all 
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separation)", "[Parser][parse_function][Line261-270][T-PF-006]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separation)", "[Parser]") {
     // Edge case: Multiple parameters with various comma patterns
     // Tests line 268-269 where comma is expected between parameters
 
@@ -14602,7 +14602,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter with comma separati
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return type)", "[Parser][parse_function][Line261-270][T-PF-007]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return type)", "[Parser]") {
     // Standard usage: Function with both parameter types and return type
     // Tests interaction between parameter type parsing (lines 261-270) and return type parsing (lines 276-281)
 
@@ -14702,7 +14702,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type with return ty
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)", "[Parser][parse_function][Line278-279][T-PF-008]") {
+TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)", "[Parser]") {
     // Standard usage: Function without explicit return type should default to void
     // This tests lines 278-279 where return_type = PrimitiveType::void_() is executed
 
@@ -14828,7 +14828,7 @@ TEST_CASE("Parser: parse_function - lines 278-279 (default void return type)", "
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)", "[Parser][parse_function][Line290-291][T-PF-009]") {
+TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)", "[Parser]") {
     // Edge case: Function declaration without body should produce error E1006
     // This tests lines 290-291 where syntax_error is called with ErrorCode::E1006
 
@@ -14926,7 +14926,7 @@ TEST_CASE("Parser: parse_function - lines 290-291 (missing function body error)"
     }
 }
 
-TEST_CASE("Parser: parse_function - comprehensive return type scenarios", "[Parser][parse_function][ReturnType][T-PF-010]") {
+TEST_CASE("Parser: parse_function - comprehensive return type scenarios", "[Parser]") {
     // Comprehensive test: All primitive types as return types
     // Tests interaction between lines 275-283 (return type parsing and default)
 
@@ -15053,7 +15053,7 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios", "[Pars
     }
 }
 
-TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)", "[Parser][parse_call][Line578-579][T-PC-001]") {
+TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)", "[Parser]") {
     using namespace jsv;
 
     SECTION("Chiamata di funzione con nessun argomento - caso normale") {
@@ -15368,7 +15368,7 @@ TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)", "[Parser]
     }
 }
 
-TEST_CASE("Parser: parse_array_access - linea 580-581 (accesso ad array)", "[Parser][parse_array_access][Line580-581][T-PAA-001]") {
+TEST_CASE("Parser: parse_array_access - linea 580-581 (accesso ad array)", "[Parser]") {
     using namespace jsv;
 
     SECTION("Accesso ad array con indice letterale - caso normale") {
@@ -15637,7 +15637,7 @@ TEST_CASE("Parser: parse_array_access - linea 580-581 (accesso ad array)", "[Par
 }
 
 TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581",
-          "[Parser][parse_call][parse_array_access][Line578-581][T-PCAA-001]") {
+          "[Parser]") {
     using namespace jsv;
 
     SECTION("Chiamata di funzione con accesso ad array come argomento") {
@@ -15729,7 +15729,7 @@ TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581"
     }
 }
 
-TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser][parse_call][Line578-579][T-PC-002]") {
+TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser]") {
     using namespace jsv;
 
     // =========================================================================
@@ -16260,7 +16260,7 @@ TEST_CASE("Parser: parse_call linee 578-579 - suite completa", "[Parser][parse_c
     }
 }
 
-TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Type][type_kind_name][enum]") {
+TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Type]") {
     using jsv::type_kind_name;
     using jsv::TypeKind;
 
@@ -16303,7 +16303,7 @@ TEST_CASE("type_kind_name returns correct string for all TypeKind values", "[Typ
     }
 }
 
-TEST_CASE("type_kind_name is constexpr", "[Type][type_kind_name][constexpr]") {
+TEST_CASE("type_kind_name is constexpr", "[Type]") {
     using jsv::type_kind_name;
     using jsv::TypeKind;
 
@@ -16312,7 +16312,7 @@ TEST_CASE("type_kind_name is constexpr", "[Type][type_kind_name][constexpr]") {
     STATIC_REQUIRE(type_kind_name(TypeKind::Void) == "void");
 }
 
-TEST_CASE("PrimitiveType singleton instances are created correctly", "[Type][PrimitiveType][singleton]") {
+TEST_CASE("PrimitiveType singleton instances are created correctly", "[Type]") {
     using jsv::PrimitiveType;
 
     SECTION("Signed integer types") {
@@ -16390,7 +16390,7 @@ TEST_CASE("PrimitiveType singleton instances are created correctly", "[Type][Pri
     }
 }
 
-TEST_CASE("PrimitiveType to_string returns correct type names", "[Type][PrimitiveType][to_string]") {
+TEST_CASE("PrimitiveType to_string returns correct type names", "[Type]") {
     using jsv::PrimitiveType;
 
     SECTION("Integer types") {
@@ -16418,7 +16418,7 @@ TEST_CASE("PrimitiveType to_string returns correct type names", "[Type][Primitiv
     }
 }
 
-TEST_CASE("PrimitiveType equality comparison", "[Type][PrimitiveType][equality]") {
+TEST_CASE("PrimitiveType equality comparison", "[Type]") {
     using jsv::PrimitiveType;
 
     SECTION("Same type instances are equal") {
@@ -16440,7 +16440,7 @@ TEST_CASE("PrimitiveType equality comparison", "[Type][PrimitiveType][equality]"
     }
 }
 
-TEST_CASE("PrimitiveType type predicates", "[Type][PrimitiveType][predicates]") {
+TEST_CASE("PrimitiveType type predicates", "[Type]") {
     using jsv::PrimitiveType;
 
     SECTION("is_primitive returns true for all primitive types") {
@@ -16489,7 +16489,7 @@ TEST_CASE("PrimitiveType type predicates", "[Type][PrimitiveType][predicates]") 
     }
 }
 
-TEST_CASE("PrimitiveType classof type check", "[Type][PrimitiveType][classof]") {
+TEST_CASE("PrimitiveType classof type check", "[Type]") {
     using jsv::PrimitiveType;
 
     const auto i32 = PrimitiveType::i32();
@@ -16503,7 +16503,7 @@ TEST_CASE("PrimitiveType classof type check", "[Type][PrimitiveType][classof]") 
     REQUIRE(PrimitiveType::classof(voidType.get()));
 }
 
-TEST_CASE("CustomType construction and basic properties", "[Type][CustomType][construction]") {
+TEST_CASE("CustomType construction and basic properties", "[Type]") {
     using jsv::CustomType;
 
     SECTION("Construction with simple name") {
@@ -16531,7 +16531,7 @@ TEST_CASE("CustomType construction and basic properties", "[Type][CustomType][co
     }
 }
 
-TEST_CASE("CustomType to_string returns the type name", "[Type][CustomType][to_string]") {
+TEST_CASE("CustomType to_string returns the type name", "[Type]") {
     using jsv::CustomType;
 
     SECTION("Simple class name") {
@@ -16550,7 +16550,7 @@ TEST_CASE("CustomType to_string returns the type name", "[Type][CustomType][to_s
     }
 }
 
-TEST_CASE("CustomType equality comparison", "[Type][CustomType][equality]") {
+TEST_CASE("CustomType equality comparison", "[Type]") {
     using jsv::CustomType;
 
     SECTION("Same name types are equal") {
@@ -16586,7 +16586,7 @@ TEST_CASE("CustomType equality comparison", "[Type][CustomType][equality]") {
     }
 }
 
-TEST_CASE("CustomType classof type check", "[Type][CustomType][classof]") {
+TEST_CASE("CustomType classof type check", "[Type]") {
     using jsv::CustomType;
 
     const CustomType myType("MyClass");
@@ -16600,7 +16600,7 @@ TEST_CASE("CustomType classof type check", "[Type][CustomType][classof]") {
     REQUIRE(CustomType::classof(basePtr));
 }
 
-TEST_CASE("ArrayType construction and basic properties", "[Type][ArrayType][construction]") {
+TEST_CASE("ArrayType construction and basic properties", "[Type]") {
     using jsv::ArrayType;
 
     SECTION("Construction with primitive element type") {
@@ -16639,7 +16639,7 @@ TEST_CASE("ArrayType construction and basic properties", "[Type][ArrayType][cons
     }
 }
 
-TEST_CASE("ArrayType to_string with IntegerLiteral size", "[Type][ArrayType][to_string]") {
+TEST_CASE("ArrayType to_string with IntegerLiteral size", "[Type]") {
     using jsv::ArrayType;
 
     SECTION("Array of i32 with size 10") {
@@ -16693,7 +16693,7 @@ TEST_CASE("ArrayType to_string with IntegerLiteral size", "[Type][ArrayType][to_
     }
 }
 
-TEST_CASE("ArrayType to_string with non-IntegerLiteral size expression", "[Type][ArrayType][to_string][edge]") {
+TEST_CASE("ArrayType to_string with non-IntegerLiteral size expression", "[Type]") {
     using jsv::ArrayType;
 
     SECTION("Size expression is BinaryExpr") {
@@ -16719,7 +16719,7 @@ TEST_CASE("ArrayType to_string with non-IntegerLiteral size expression", "[Type]
     }
 }
 
-TEST_CASE("ArrayType equality comparison", "[Type][ArrayType][equality]") {
+TEST_CASE("ArrayType equality comparison", "[Type]") {
     using jsv::ArrayType;
 
     SECTION("Same element type and same size expression pointer are equal") {
@@ -16759,7 +16759,7 @@ TEST_CASE("ArrayType equality comparison", "[Type][ArrayType][equality]") {
     }
 }
 
-TEST_CASE("ArrayType classof type check", "[Type][ArrayType][classof]") {
+TEST_CASE("ArrayType classof type check", "[Type]") {
     using jsv::ArrayType;
 
     const auto elementType = jsv::PrimitiveType::i32();
@@ -16771,7 +16771,7 @@ TEST_CASE("ArrayType classof type check", "[Type][ArrayType][classof]") {
     REQUIRE(ArrayType::classof(basePtr));
 }
 
-TEST_CASE("ArrayType is_primitive returns false", "[Type][ArrayType][predicates]") {
+TEST_CASE("ArrayType is_primitive returns false", "[Type]") {
     using jsv::ArrayType;
 
     const auto elementType = jsv::PrimitiveType::i32();
@@ -16783,7 +16783,7 @@ TEST_CASE("ArrayType is_primitive returns false", "[Type][ArrayType][predicates]
     REQUIRE_FALSE(arrayType.is_numeric());
 }
 
-TEST_CASE("VectorType construction and basic properties", "[Type][VectorType][construction]") {
+TEST_CASE("VectorType construction and basic properties", "[Type]") {
     using jsv::VectorType;
 
     SECTION("Construction with primitive element type") {
@@ -16822,7 +16822,7 @@ TEST_CASE("VectorType construction and basic properties", "[Type][VectorType][co
     }
 }
 
-TEST_CASE("VectorType to_string returns Vec<element_type> format", "[Type][VectorType][to_string]") {
+TEST_CASE("VectorType to_string returns Vec<element_type> format", "[Type]") {
     using jsv::VectorType;
 
     SECTION("Vector of i32") {
@@ -16871,7 +16871,7 @@ TEST_CASE("VectorType to_string returns Vec<element_type> format", "[Type][Vecto
     }
 }
 
-TEST_CASE("VectorType equality comparison", "[Type][VectorType][equality]") {
+TEST_CASE("VectorType equality comparison", "[Type]") {
     using jsv::VectorType;
 
     SECTION("Same element type are equal") {
@@ -16908,7 +16908,7 @@ TEST_CASE("VectorType equality comparison", "[Type][VectorType][equality]") {
     }
 }
 
-TEST_CASE("VectorType classof type check", "[Type][VectorType][classof]") {
+TEST_CASE("VectorType classof type check", "[Type]") {
     using jsv::VectorType;
 
     const auto elementType = jsv::PrimitiveType::i32();
@@ -16919,7 +16919,7 @@ TEST_CASE("VectorType classof type check", "[Type][VectorType][classof]") {
     REQUIRE(VectorType::classof(basePtr));
 }
 
-TEST_CASE("VectorType is_primitive returns false", "[Type][VectorType][predicates]") {
+TEST_CASE("VectorType is_primitive returns false", "[Type]") {
     using jsv::VectorType;
 
     const auto elementType = jsv::PrimitiveType::i32();
@@ -16930,7 +16930,7 @@ TEST_CASE("VectorType is_primitive returns false", "[Type][VectorType][predicate
     REQUIRE_FALSE(vectorType.is_numeric());
 }
 
-TEST_CASE("TypeBase polymorphic to_string", "[Type][TypeBase][polymorphism]") {
+TEST_CASE("TypeBase polymorphic to_string", "[Type]") {
     using jsv::ArrayType;
     using jsv::CustomType;
     using jsv::PrimitiveType;
@@ -16961,7 +16961,7 @@ TEST_CASE("TypeBase polymorphic to_string", "[Type][TypeBase][polymorphism]") {
     }
 }
 
-TEST_CASE("TypeBase polymorphic equality", "[Type][TypeBase][polymorphism][equality]") {
+TEST_CASE("TypeBase polymorphic equality", "[Type]") {
     using jsv::CustomType;
     using jsv::PrimitiveType;
     using jsv::TypeBase;
@@ -16985,7 +16985,7 @@ TEST_CASE("TypeBase polymorphic equality", "[Type][TypeBase][polymorphism][equal
     }
 }
 
-TEST_CASE("TypeBase kind() accessor", "[Type][TypeBase][kind]") {
+TEST_CASE("TypeBase kind() accessor", "[Type]") {
     using jsv::ArrayType;
     using jsv::CustomType;
     using jsv::PrimitiveType;
@@ -17016,7 +17016,7 @@ TEST_CASE("TypeBase kind() accessor", "[Type][TypeBase][kind]") {
     }
 }
 
-TEST_CASE("TypePtr std::formatter outputs correctly", "[Type][formatter][std]") {
+TEST_CASE("TypePtr std::formatter outputs correctly", "[Type]") {
     using jsv::ArrayType;
     using jsv::CustomType;
     using jsv::PrimitiveType;
@@ -17059,7 +17059,7 @@ TEST_CASE("TypePtr std::formatter outputs correctly", "[Type][formatter][std]") 
     }
 }
 
-TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type][formatter][fmt]") {
+TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type]") {
     using jsv::CustomType;
     using jsv::PrimitiveType;
     using jsv::TypePtr;
@@ -17080,7 +17080,7 @@ TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type][formatter][fmt]") 
     }
 }
 
-TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
+TEST_CASE("Type corner cases", "[Type]") {
     using jsv::ArrayType;
     using jsv::CustomType;
     using jsv::PrimitiveType;
@@ -17130,7 +17130,7 @@ TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
     }
 }
 
-TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
+TEST_CASE("Type equality edge cases", "[Type]") {
     using jsv::ArrayType;
     using jsv::CustomType;
     using jsv::PrimitiveType;
@@ -17171,7 +17171,7 @@ TEST_CASE("Type equality edge cases", "[Type][equality][edge]") {
     }
 }
 
-TEST_CASE("Type virtual destructor is called correctly", "[Type][destructor][virtual]") {
+TEST_CASE("Type virtual destructor is called correctly", "[Type]") {
     using jsv::CustomType;
     using jsv::PrimitiveType;
 
@@ -17188,7 +17188,7 @@ TEST_CASE("Type virtual destructor is called correctly", "[Type][destructor][vir
     }
 }
 
-TEST_CASE("Node: Default construction with minimal parameters", "[ast][node][construction]") {
+TEST_CASE("Node: Default construction with minimal parameters", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::SourceSpan;
@@ -17211,7 +17211,7 @@ TEST_CASE("Node: Default construction with minimal parameters", "[ast][node][con
     }
 }
 
-TEST_CASE("Node: Construction with SourceSpan", "[ast][node][construction][location]") {
+TEST_CASE("Node: Construction with SourceSpan", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::SourceLocation;
@@ -17241,7 +17241,7 @@ TEST_CASE("Node: Construction with SourceSpan", "[ast][node][construction][locat
     }
 }
 
-TEST_CASE("Node: Location mutation", "[ast][node][location][mutation]") {
+TEST_CASE("Node: Location mutation", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::SourceLocation;
@@ -17270,7 +17270,7 @@ TEST_CASE("Node: Location mutation", "[ast][node][location][mutation]") {
     }
 }
 
-TEST_CASE("Node: kind_name() for all NodeKind values", "[ast][node][kind_name][coverage]") {
+TEST_CASE("Node: kind_name() for all NodeKind values", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
@@ -17320,7 +17320,7 @@ TEST_CASE("Node: kind_name() for all NodeKind values", "[ast][node][kind_name][c
     SECTION("Top-level node") { REQUIRE(Node(NodeKind::Program).kind_name() == "Program"); }
 }
 
-TEST_CASE("Node: Move semantics", "[ast][node][move][noexcept]") {
+TEST_CASE("Node: Move semantics", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::SourceLocation;
@@ -17354,7 +17354,7 @@ TEST_CASE("Node: Move semantics", "[ast][node][move][noexcept]") {
     }
 }
 
-TEST_CASE("Node: Copy operations deleted", "[ast][node][copy][deleted]") {
+TEST_CASE("Node: Copy operations deleted", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
@@ -17363,7 +17363,7 @@ TEST_CASE("Node: Copy operations deleted", "[ast][node][copy][deleted]") {
     SECTION("Copy assignment is deleted") { REQUIRE_FALSE(std::is_copy_assignable_v<Node>); }
 }
 
-TEST_CASE("Node: Virtual destructor", "[ast][node][destructor][virtual]") {
+TEST_CASE("Node: Virtual destructor", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
@@ -17375,7 +17375,7 @@ TEST_CASE("Node: Virtual destructor", "[ast][node][destructor][virtual]") {
     }
 }
 
-TEST_CASE("Expr: Intermediate expression class", "[ast][expr][construction]") {
+TEST_CASE("Expr: Intermediate expression class", "[ast]") {
     using jsv::Expr;
     using jsv::NodeKind;
     using jsv::SourceLocation;
@@ -17407,7 +17407,7 @@ TEST_CASE("Expr: Intermediate expression class", "[ast][expr][construction]") {
     }
 }
 
-TEST_CASE("Stmt: Intermediate statement class", "[ast][stmt][construction]") {
+TEST_CASE("Stmt: Intermediate statement class", "[ast]") {
     using jsv::NodeKind;
     using jsv::SourceLocation;
     using jsv::SourceSpan;
@@ -17439,7 +17439,7 @@ TEST_CASE("Stmt: Intermediate statement class", "[ast][stmt][construction]") {
     }
 }
 
-TEST_CASE("node_isa_check: Expression type detection", "[ast][rtti][isa][expr]") {
+TEST_CASE("node_isa_check: Expression type detection", "[ast]") {
     using jsv::Expr;
     using jsv::Node;
     using jsv::NodeKind;
@@ -17485,7 +17485,7 @@ TEST_CASE("node_isa_check: Expression type detection", "[ast][rtti][isa][expr]")
     }
 }
 
-TEST_CASE("node_isa_check: Statement type detection", "[ast][rtti][isa][stmt]") {
+TEST_CASE("node_isa_check: Statement type detection", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::Stmt;
@@ -17541,7 +17541,7 @@ TEST_CASE("node_isa_check: Statement type detection", "[ast][rtti][isa][stmt]") 
     }
 }
 
-TEST_CASE("node_isa: Type checking utility", "[ast][rtti][isa][utility]") {
+TEST_CASE("node_isa: Type checking utility", "[ast]") {
     using jsv::Expr;
     using jsv::Node;
     using jsv::NodeKind;
@@ -17574,7 +17574,7 @@ TEST_CASE("node_isa: Type checking utility", "[ast][rtti][isa][utility]") {
     }
 }
 
-TEST_CASE("node_cast: Safe casting with assertion", "[ast][cast][node_cast][safety]") {
+TEST_CASE("node_cast: Safe casting with assertion", "[ast]") {
     using jsv::Expr;
     using jsv::Node;
     using jsv::NodeKind;
@@ -17611,7 +17611,7 @@ TEST_CASE("node_cast: Safe casting with assertion", "[ast][cast][node_cast][safe
     }
 }
 
-TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast][cast][node_dyn_cast][safety]") {
+TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast]") {
     using jsv::Expr;
     using jsv::Node;
     using jsv::NodeKind;
@@ -17662,7 +17662,7 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast][cast][node
     }
 }
 
-TEST_CASE("Node: classof RTTI for base Node", "[ast][rtti][classof]") {
+TEST_CASE("Node: classof RTTI for base Node", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
@@ -17682,7 +17682,7 @@ TEST_CASE("Node: classof RTTI for base Node", "[ast][rtti][classof]") {
     }
 }
 
-TEST_CASE("NodePtr, ExprPtr, StmtPtr unique_ptr aliases", "[ast][memory][unique_ptr]") {
+TEST_CASE("NodePtr, ExprPtr, StmtPtr unique_ptr aliases", "[ast]") {
     using jsv::ExprPtr;
     using jsv::NodePtr;
     using jsv::StmtPtr;
@@ -17717,7 +17717,7 @@ TEST_CASE("NodePtr, ExprPtr, StmtPtr unique_ptr aliases", "[ast][memory][unique_
     }
 }
 
-TEST_CASE("Node: Comprehensive NodeKind coverage", "[ast][node][NodeKind][exhaustive]") {
+TEST_CASE("Node: Comprehensive NodeKind coverage", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
@@ -17805,7 +17805,7 @@ TEST_CASE("Node: Comprehensive NodeKind coverage", "[ast][node][NodeKind][exhaus
     }
 }
 
-TEST_CASE("Node: Edge cases and corner cases", "[ast][node][edge][corner]") {
+TEST_CASE("Node: Edge cases and corner cases", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::SourceLocation;
@@ -17862,7 +17862,7 @@ TEST_CASE("Node: Edge cases and corner cases", "[ast][node][edge][corner]") {
     }
 }
 
-TEST_CASE("Node: noexcept contract verification", "[ast][node][noexcept][contract]") {
+TEST_CASE("Node: noexcept contract verification", "[ast]") {
     using jsv::Node;
     using jsv::NodeKind;
 
@@ -17882,7 +17882,7 @@ TEST_CASE("Node: noexcept contract verification", "[ast][node][noexcept][contrac
     }
 }
 
-TEST_CASE("AstPrinter: Default construction", "[ast][printer][construction]") {
+TEST_CASE("AstPrinter: Default construction", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Default constructor creates valid printer") { REQUIRE_NOTHROW(AstPrinter{}); }
@@ -17894,7 +17894,7 @@ TEST_CASE("AstPrinter: Default construction", "[ast][printer][construction]") {
     }
 }
 
-TEST_CASE("AstPrinter: IndentGuard functionality", "[ast][printer][indent]") {
+TEST_CASE("AstPrinter: IndentGuard functionality", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("IndentGuard pushes and pops indent correctly") {
@@ -17908,7 +17908,7 @@ TEST_CASE("AstPrinter: IndentGuard functionality", "[ast][printer][indent]") {
     }
 }
 
-TEST_CASE("SExprPrinter: Default construction", "[ast][printer][sexpr][construction]") {
+TEST_CASE("SExprPrinter: Default construction", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Default constructor creates valid printer") { REQUIRE_NOTHROW(SExprPrinter{}); }
@@ -17919,7 +17919,7 @@ TEST_CASE("SExprPrinter: Default construction", "[ast][printer][sexpr][construct
     }
 }
 
-TEST_CASE("SExprPrinter: Literal printing", "[ast][printer][sexpr][literals]") {
+TEST_CASE("SExprPrinter: Literal printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("IntegerLiteral prints as number") {
@@ -17955,7 +17955,7 @@ TEST_CASE("SExprPrinter: Literal printing", "[ast][printer][sexpr][literals]") {
     }
 }
 
-TEST_CASE("SExprPrinter: Identifier printing", "[ast][printer][sexpr][identifier]") {
+TEST_CASE("SExprPrinter: Identifier printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Identifier prints name") {
@@ -17964,7 +17964,7 @@ TEST_CASE("SExprPrinter: Identifier printing", "[ast][printer][sexpr][identifier
     }
 }
 
-TEST_CASE("SExprPrinter: Expression printing", "[ast][printer][sexpr][expressions]") {
+TEST_CASE("SExprPrinter: Expression printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("UnaryExpr prints with operator") {
@@ -18018,7 +18018,7 @@ TEST_CASE("SExprPrinter: Expression printing", "[ast][printer][sexpr][expression
     }
 }
 
-TEST_CASE("SExprPrinter: Statement printing", "[ast][printer][sexpr][statements]") {
+TEST_CASE("SExprPrinter: Statement printing", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("ExprStmt prints expression statement") {
@@ -18082,7 +18082,7 @@ TEST_CASE("SExprPrinter: Statement printing", "[ast][printer][sexpr][statements]
     }
 }
 
-TEST_CASE("SExprPrinter: to_string method", "[ast][printer][sexpr][to_string]") {
+TEST_CASE("SExprPrinter: to_string method", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("to_string returns non-empty string for valid node") {
@@ -18098,7 +18098,7 @@ TEST_CASE("SExprPrinter: to_string method", "[ast][printer][sexpr][to_string]") 
     }
 }
 
-TEST_CASE("AstPrinter: Print method", "[ast][printer][print]") {
+TEST_CASE("AstPrinter: Print method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print method accepts node reference") {
@@ -18113,7 +18113,7 @@ TEST_CASE("AstPrinter: Print method", "[ast][printer][print]") {
     }
 }
 
-TEST_CASE("AstPrinter: Unicode tree output", "[ast][printer][unicode]") {
+TEST_CASE("AstPrinter: Unicode tree output", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Output uses Unicode box-drawing characters") {
@@ -18129,7 +18129,7 @@ TEST_CASE("AstPrinter: Unicode tree output", "[ast][printer][unicode]") {
     }
 }
 
-TEST_CASE("AstPrinter: visit_child method", "[ast][printer][visit]") {
+TEST_CASE("AstPrinter: visit_child method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("visit_child sets next_is_last correctly") {
@@ -18143,7 +18143,7 @@ TEST_CASE("AstPrinter: visit_child method", "[ast][printer][visit]") {
     }
 }
 
-TEST_CASE("AstPrinter: push_indent and pop_indent", "[ast][printer][indent]") {
+TEST_CASE("AstPrinter: push_indent and pop_indent", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("push_indent adds to prefix stack") {
@@ -18165,7 +18165,7 @@ TEST_CASE("AstPrinter: push_indent and pop_indent", "[ast][printer][indent]") {
     }
 }
 
-TEST_CASE("AstPrinter: print_prefix output", "[ast][printer][prefix]") {
+TEST_CASE("AstPrinter: print_prefix output", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print_prefix outputs correct indentation") {
@@ -18181,7 +18181,7 @@ TEST_CASE("AstPrinter: print_prefix output", "[ast][printer][prefix]") {
     }
 }
 
-TEST_CASE("AstPrinter: print_line method", "[ast][printer][line]") {
+TEST_CASE("AstPrinter: print_line method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print_line outputs with connector for last item") {
@@ -18197,7 +18197,7 @@ TEST_CASE("AstPrinter: print_line method", "[ast][printer][line]") {
     }
 }
 
-TEST_CASE("AstPrinter: print_value method", "[ast][printer][value]") {
+TEST_CASE("AstPrinter: print_value method", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("print_value outputs label and value") {
@@ -18213,7 +18213,7 @@ TEST_CASE("AstPrinter: print_value method", "[ast][printer][value]") {
     }
 }
 
-TEST_CASE("AstPrinter: visit methods for expressions", "[ast][printer][visit][expressions]") {
+TEST_CASE("AstPrinter: visit methods for expressions", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("visit_IntegerLiteral prints literal value") {
@@ -18302,7 +18302,7 @@ TEST_CASE("AstPrinter: visit methods for expressions", "[ast][printer][visit][ex
     }
 }
 
-TEST_CASE("AstPrinter: visit methods for statements", "[ast][printer][visit][statements]") {
+TEST_CASE("AstPrinter: visit methods for statements", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("visit_ExprStmt prints expression statement") {
@@ -18366,7 +18366,7 @@ TEST_CASE("AstPrinter: visit methods for statements", "[ast][printer][visit][sta
     }
 }
 
-TEST_CASE("AstPrinter: VarDecl multi-variable handling", "[ast][printer][vardecl]") {
+TEST_CASE("AstPrinter: VarDecl multi-variable handling", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles single variable declaration") {
@@ -18395,7 +18395,7 @@ TEST_CASE("AstPrinter: VarDecl multi-variable handling", "[ast][printer][vardecl
     }
 }
 
-TEST_CASE("AstPrinter: FuncDecl parameter handling", "[ast][printer][funcdecl]") {
+TEST_CASE("AstPrinter: FuncDecl parameter handling", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles function with no parameters") {
@@ -18419,7 +18419,7 @@ TEST_CASE("AstPrinter: FuncDecl parameter handling", "[ast][printer][funcdecl]")
     }
 }
 
-TEST_CASE("AstPrinter: IfStmt else branch handling", "[ast][printer][ifstmt]") {
+TEST_CASE("AstPrinter: IfStmt else branch handling", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles if without else") {
@@ -18433,7 +18433,7 @@ TEST_CASE("AstPrinter: IfStmt else branch handling", "[ast][printer][ifstmt]") {
     }
 }
 
-TEST_CASE("AstPrinter: ForStmt optional components", "[ast][printer][forstmt]") {
+TEST_CASE("AstPrinter: ForStmt optional components", "[ast]") {
     using jsv::AstPrinter;
 
     SECTION("Handles for with all components") {
@@ -18457,7 +18457,7 @@ TEST_CASE("AstPrinter: ForStmt optional components", "[ast][printer][forstmt]") 
     }
 }
 
-TEST_CASE("SExprPrinter: CallExpr argument handling", "[ast][printer][sexpr][call]") {
+TEST_CASE("SExprPrinter: CallExpr argument handling", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Handles call with no arguments") {
@@ -18476,7 +18476,7 @@ TEST_CASE("SExprPrinter: CallExpr argument handling", "[ast][printer][sexpr][cal
     }
 }
 
-TEST_CASE("SExprPrinter: ArrayLiteral element handling", "[ast][printer][sexpr][array]") {
+TEST_CASE("SExprPrinter: ArrayLiteral element handling", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Handles empty array") {
@@ -18495,7 +18495,7 @@ TEST_CASE("SExprPrinter: ArrayLiteral element handling", "[ast][printer][sexpr][
     }
 }
 
-TEST_CASE("SExprPrinter: VarDecl multi-variable format", "[ast][printer][sexpr][vardecl]") {
+TEST_CASE("SExprPrinter: VarDecl multi-variable format", "[ast]") {
     using jsv::SExprPrinter;
 
     SECTION("Handles single variable format") {
@@ -18514,7 +18514,7 @@ TEST_CASE("SExprPrinter: VarDecl multi-variable format", "[ast][printer][sexpr][
     }
 }
 
-TEST_CASE("AstPrinter and SExprPrinter: Type traits", "[ast][printer][traits]") {
+TEST_CASE("AstPrinter and SExprPrinter: Type traits", "[ast]") {
     using jsv::AstPrinter;
     using jsv::SExprPrinter;
 
