@@ -4679,7 +4679,8 @@ TEST_CASE("Severity fmt::format integration", "[error]") {
     SECTION("fmt::format Fatal") { REQUIRE(fmt::format("{}", jsv::Severity::Fatal) == "fatale"); }
 }
 
-TEST_CASE("CompilerPhase to_string tests", "[error]"); }
+TEST_CASE("CompilerPhase to_string tests", "[error]");
+}
 
 TEST_CASE("CompilerPhase std::format integration", "[error]") {
     SECTION("format Lexer") { REQUIRE(FORMAT("{}", jsv::CompilerPhase::Lexer) == "lexer"); }
@@ -5939,7 +5940,8 @@ namespace test_utils {
 
 }  // namespace test_utils
 
-TEST_CASE("strip_ansi empty input", "[ansi_strip]").empty()); }
+TEST_CASE("strip_ansi empty input", "[ansi_strip]").empty());
+}
 
 TEST_CASE("strip_ansi no ansi codes", "[ansi_strip]") {
     SECTION("Plain text unchanged") { REQUIRE(test_utils::strip_ansi("Hello, World!") == "Hello, World!"sv); }
@@ -8661,8 +8663,7 @@ TEST_CASE("Parser helper: parse_numeric_literal function (lines 46-58)", "[Parse
     }
 }
 
-TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scenarios",
-          "[Parser]") {
+TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scenarios", "[Parser]") {
     using namespace jsv;
 
     SECTION("All valid suffix characters at end position") {
@@ -9351,8 +9352,7 @@ TEST_CASE("Parser: parse_for_var_names - line 71 (comma-separated variables)", "
     }
 }
 
-TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initializer)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initializer)", "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with empty initializer - lines 111-112 executed") {
@@ -9671,8 +9671,7 @@ TEST_CASE("Parser: parse_for_initializer_clause - lines 111-112 (empty for initi
     }
 }
 
-TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for condition)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for condition)", "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with empty initializer and empty condition - lines 122-123 executed") {
@@ -10005,8 +10004,7 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 122-123 (empty for conditi
 //                    if(!parser.check(TokenKind::CloseParen)) { return std::nullopt; }
 // -----------------------------------------------------------------------------
 
-TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without semicolon)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without semicolon)", "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with condition followed by CloseParen - lines 131-132 executed") {
@@ -10351,8 +10349,7 @@ TEST_CASE("Parser: parse_for_condition_clause - lines 131-132 (condition without
 // Lines 147-150: Wrapping single statement in BlockStmt
 // -----------------------------------------------------------------------------
 
-TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapping)",
-          "[Parser]") {
+TEST_CASE("Parser: make_for_body_block - lines 147-150 (non-BlockStmt body wrapping)", "[Parser]") {
     using namespace jsv;
 
     SECTION("For-loop with single expression statement body - lines 147-150 executed") {
@@ -12666,8 +12663,7 @@ TEST_CASE("Parser: parse_main_function - error cases", "[Parser]") {
     }
 }
 
-TEST_CASE("Parser: parse_main_function - corner cases with literals",
-          "[Parser]") {
+TEST_CASE("Parser: parse_main_function - corner cases with literals", "[Parser]") {
     using namespace jsv;
 
     SECTION("Main with string literal") {
@@ -13644,8 +13640,7 @@ TEST_CASE("unary_binding_power: Unary operators have lbp=0 - Lines 91-108", "[un
     }
 }
 
-TEST_CASE("unary_binding_power: Unary precedence vs Binary precedence - Lines 91-108",
-          "[unary_binding_power]") {
+TEST_CASE("unary_binding_power: Unary precedence vs Binary precedence - Lines 91-108", "[unary_binding_power]") {
     // Edge case: Verify unary operators have higher precedence than most binary operators
     // This ensures expressions like "-a + b" parse as "(-a) + b" not "-(a + b)"
 
@@ -13975,8 +13970,7 @@ TEST_CASE("Precedence functions integration: Right-associative assignment", "[pr
     // Since rbp(22) > lbp(21), right-associativity is enforced
     // Result: (a = (b = c))
 }
-TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-identifier token)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-identifier token)", "[Parser]") {
     // Corner case: Function parameter is not a valid identifier (e.g., keyword, operator)
     // This tests the error path at line 256-258 where syntax_error is called with ErrorCode::E1002
 
@@ -14035,8 +14029,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - non-id
     }
 }
 
-TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid identifiers)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid identifiers)", "[Parser]") {
     // Standard usage: Function with valid ASCII and Unicode parameter names
     // This tests the success path at line 256 where both identifier types are accepted
 
@@ -14126,8 +14119,7 @@ TEST_CASE("Parser: parse_function - line 256 (parameter name validation - valid 
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - valid types)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - valid types)", "[Parser]") {
     // Standard usage: Function parameters with various valid type annotations
     // This tests lines 261-267 where parse_type() is called and parameters are added
 
@@ -14269,8 +14261,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - vali
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - error cases)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - error cases)", "[Parser]") {
     // Edge case: Function parameter missing type annotation or with invalid type
     // This tests lines 263-266 where syntax_error is called with ErrorCode::E1003
 
@@ -14383,8 +14374,7 @@ TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - erro
     }
 }
 
-TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all primitive types)",
-          "[Parser]") {
+TEST_CASE("Parser: parse_function - lines 261-270 (parameter type parsing - all primitive types)", "[Parser]") {
     // Comprehensive test: All primitive type tokens as parameter types
     // Ensures parse_type() correctly handles each type variant
 
@@ -15636,8 +15626,7 @@ TEST_CASE("Parser: parse_array_access - linea 580-581 (accesso ad array)", "[Par
     }
 }
 
-TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581",
-          "[Parser]") {
+TEST_CASE("Parser: combinazione parse_call e parse_array_access - linee 578-581", "[Parser]") {
     using namespace jsv;
 
     SECTION("Chiamata di funzione con accesso ad array come argomento") {
