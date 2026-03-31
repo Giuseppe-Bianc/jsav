@@ -80,7 +80,7 @@ namespace {
         const jsv::SourceSpan span(filename, start, end);
         return {kind, text, span};
     }
-    
+
     // Helper to create IntegerLiteral for ArrayType size expressions
     std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
 }  // namespace
