@@ -1677,7 +1677,6 @@ TEST_CASE("SourceLocation member field mutability", "[SourceLocation]") {
     }
 }
 
-
 TEST_CASE("SourceSpan default constructor initializes correctly", "[SourceSpan]") {
     const jsv::SourceSpan span;
 
@@ -2981,7 +2980,6 @@ TEST_CASE("Token data-driven tests", "[Token]") {
     }
 }
 
-
 TEST_CASE("Lexer_AsciiOnlySource_TokenizeCorrectly", "[lexer][utf8][phase3]") {
     jsv::Lexer lex{"hello world 42", "test.jsav"};
     const auto [tokens, errors] = lex.tokenize();
@@ -3049,7 +3047,6 @@ TEST_CASE("Lexer_NullByteInStringView_NotTreatedAsTerminator", "[lexer][utf8][ph
     REQUIRE(tokens[3].getKind() == jsv::TokenKind::Eof);
     REQUIRE(errors.size() == 1);
 }
-
 
 TEST_CASE("Lexer_MalformedOrphanedContinuation_EmitsErrorToken", "[lexer][utf8][malformed][phase4]") {
     // 0x80 is an orphaned continuation byte — must produce Error token
@@ -3133,7 +3130,6 @@ TEST_CASE("Lexer_UnclosedCharLiteral_EntireLiteralBecomesError", "[lexer][utf8][
     REQUIRE(errors.size() == 1);
     REQUIRE(errors[0].error_code() == jsv::ErrorCode::E0006);
 }
-
 
 TEST_CASE("Lexer_CJKIdentifier_ReturnsIdentifierUnicode", "[lexer][utf8][identifiers][phase5]") {
     // 变量名 = U+53D8 U+91CF U+540D (3 CJK characters)
@@ -3275,7 +3271,6 @@ TEST_CASE("Lexer_ThirtyPlusScripts_AllTokenizeCorrectly", "[lexer][utf8][identif
     }
 }
 
-
 TEST_CASE("Lexer_BOMAtStart_SkippedTransparently", "[lexer][utf8][ascii-compat][phase6]") {
     // BOM = 0xEF 0xBB 0xBF — must be silently skipped (FR-019)
     const std::string src = "\xEF\xBB\xBF"
@@ -3338,7 +3333,6 @@ TEST_CASE("Lexer_UnicodeWhitespace_LineSeparator_ConsumedSilently", "[lexer][utf
     REQUIRE(tokens[1].getText() == "b");
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
-
 
 TEST_CASE("Lexer_UnicodeWhitespace_VT_SeparatesTokens", "[lexer][utf8][US1][T006]") {
     // U+000B VERTICAL TAB must separate tokens (FR-002)
@@ -3450,7 +3444,6 @@ TEST_CASE("Lexer_UnicodeWhitespace_MultiByteAtEOF_CleanEOFToken", "[lexer][utf8]
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-
 TEST_CASE("Lexer_UnicodeWhitespace_InsideStringLiteral_NotConsumed", "[lexer][utf8][US4][T017]") {
     // U+00A0 NBSP inside a string literal must NOT be consumed as whitespace (FR-024)
     const std::string src = "\"hello\xC2\xA0world\"";  // "hello" + NBSP + "world"
@@ -3538,7 +3531,6 @@ TEST_CASE("Lexer_BackwardCompat_BOM_IdenticalBehavior", "[lexer][utf8][US4][T022
     REQUIRE(tokens[1].getText() == "x");
     REQUIRE(tokens[2].getKind() == jsv::TokenKind::Eof);
 }
-
 
 TEST_CASE("Lexer_LineColumn_LineSeparator_IncrementsLineResetsColumn", "[lexer][utf8][US2][T024]") {
     // U+2028 LINE SEPARATOR must increment line counter and reset column to 1 (FR-008)
@@ -3637,7 +3629,6 @@ TEST_CASE("Lexer_LineColumn_MultipleTerminators_AccumulateCorrectly", "[lexer][u
     REQUIRE(tokens[1].getSpan().start.column == 1);
     REQUIRE(tokens[1].getText() == "x");
 }
-
 
 TEST_CASE("Lexer_Robustness_LoneContinuationByte_NoCrash", "[lexer][utf8][US3][T032]") {
     // Lone continuation byte (0x80) in whitespace position must not crash (FR-004)
@@ -3850,7 +3841,6 @@ TEST_CASE("Lexer_AsciiStringLiteral_UnchangedAfterUtf8", "[lexer][utf8][ascii-co
     REQUIRE(tokens[1].getKind() == jsv::TokenKind::Eof);
 }
 
-
 TEST_CASE("Lexer_NumericBaseFormats_TokenizeCorrectly", "[lexer][numeric][us1][phase3]") {
     SECTION("simple integers produce Numeric tokens") {
         jsv::Lexer lex{"0 1 42 007", "test.jsav"};
@@ -4047,7 +4037,6 @@ TEST_CASE("Lexer_NumericPositionTracking_Correct", "[lexer][numeric][us1][phase3
     }
 }
 
-
 TEST_CASE("Lexer_NumericScientificNotation_TokenizeCorrectly", "[lexer][numeric][us2][phase4]") {
     SECTION("valid exponents produce single Numeric tokens") {
         jsv::Lexer lex{"1e10 3.14E+2 2.5e-3 .5E10", "test.jsav"};
@@ -4142,7 +4131,6 @@ TEST_CASE("Lexer_NumericScientificNotation_PositionTracking", "[lexer][numeric][
         REQUIRE(tokens[0].getSpan().end.absolute_pos == 7);
     }
 }
-
 
 TEST_CASE("Lexer_NumericTypeSuffixes_TokenizeCorrectly", "[lexer][numeric][us3][phase5]") {
     SECTION("valid single-character suffixes d/D and f/F") {
@@ -4298,7 +4286,6 @@ TEST_CASE("Lexer_NumericTypeSuffixes_PositionTracking", "[lexer][numeric][us3][p
         REQUIRE(tokens[0].getSpan().end.absolute_pos == 6);
     }
 }
-
 
 TEST_CASE("Lexer_NumericCombinedPattern_TokenizeCorrectly", "[lexer][numeric][us4][phase6]") {
     SECTION("G1+G2+G3 combinations produce single Numeric tokens") {
@@ -4665,7 +4652,6 @@ TEST_CASE("Lexer_char_escape_long", "[lexer][char]") {
     REQUIRE(tokens[1].getText() == R"('\U10101010')");
 }
 
-
 TEST_CASE("Severity to_string tests", "[error][severity]") {
     REQUIRE(jsv::to_string(jsv::Severity::Note) == "nota");
     REQUIRE(jsv::to_string(jsv::Severity::Warning) == "avviso");
@@ -4756,7 +4742,6 @@ TEST_CASE("ErrorCode suggestions() tests", "[error][suggestions]") {
     REQUIRE(std::string(suggestions[1]) == "Verificare errori di battitura nel nome della variabile");
     REQUIRE(std::string(suggestions[2]) == "Assicurarsi che la variabile sia nello scope");
 }
-
 
 TEST_CASE("to_string(CompilerPhase) default case", "[error][phase][to_string]") {
     // This tests the default case in to_string(CompilerPhase)
@@ -5259,7 +5244,6 @@ TEST_CASE("ErrorCode fmt::format integration", "[error][fmt]") {
     }
 }
 
-
 TEST_CASE("CompileError::Kind enum", "[CompileError][Kind]") {
     SECTION("Kind enum values exist") { REQUIRE(static_cast<int>(jsv::CompileError::Kind::LexerError) >= 0); }
 }
@@ -5605,7 +5589,6 @@ help"));
     }
 }*/
 
-
 TEST_CASE("LineTracker empty source", "[LineTracker][empty]") {
     SECTION("Default constructor creates empty tracker") {
         const jsv::LineTracker tracker;
@@ -5914,7 +5897,6 @@ TEST_CASE("LineTracker source view lifetime", "[LineTracker][lifetime]") {
     }
 }
 
-
 namespace test_utils {
 
     /// Strip ANSI escape sequences from a string for testing purposes.
@@ -6039,7 +6021,6 @@ TEST_CASE("contains_ansi utility", "[ansi_strip][contains]") {
 
     SECTION("ANSI at end returns true") { REQUIRE(test_utils::contains_ansi("Text\x1b[0m")); }
 }
-
 
 TEST_CASE("ErrorReporter simple error without code", "[ErrorReporter][simple]") {
     constexpr std::string_view source = "let x = 5;";
@@ -6373,7 +6354,6 @@ TEST_CASE("ErrorReporter ANSI color verification", "[ErrorReporter][ansi]") {
     }
 }
 
-
 TEST_CASE("UnicodeColumn_marker_alignment_Chinese", "[UnicodeColumn][US1][P1]") {
     // Source with Chinese characters
     constexpr std::string_view source = "let x = 你好;";
@@ -6519,8 +6499,6 @@ TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification", "[UnicodeColumn][US1][P1]"
     // (All US1 tests above should compile and pass since implementation is complete)
     SUCCEED("US1 tests compiled and executed successfully");
 }
-
-
 
 TEST_CASE("UnicodeColumn_invalid_UTF8_detection", "[UnicodeColumn][US2][P2]") {
     // Source with invalid UTF-8 sequence (0xFF 0xFE are invalid UTF-8 bytes)
@@ -6699,8 +6677,6 @@ TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US2", "[UnicodeColumn][US2][
     // (All US2 tests above should compile - implementation pending)
     SUCCEED("US2 tests compiled successfully (implementation pending)");
 }
-
-
 
 TEST_CASE("UnicodeColumn_edge_case_empty_line", "[UnicodeColumn][US3][P3]") {
     // Empty line with error
@@ -6975,8 +6951,6 @@ TEST_CASE("UnicodeColumn_TDD_Red_Phase_Verification_US3", "[UnicodeColumn][US3][
     SUCCEED("US3 tests compiled successfully (implementation pending)");
 }
 
-
-
 TEST_CASE("NFR-002 line length limit enforcement", "[NFR][UnicodeColumn][NFR-002]") {
     // T048c: Verify ErrorReporter enforces 10,000 code points per line limit
     const std::string source(10001, 'a');  // 10,001 code points
@@ -7083,7 +7057,6 @@ TEST_CASE("NFR-003 ANSI color output validation", "[NFR][ErrorReporter][NFR-003]
     }
 }
 
-
 TEST_CASE("SC-002 ASCII backward compatibility", "[UnicodeColumn][SC-002][backward_compat]") {
     // T049: ASCII-only source produces byte-for-byte identical output
     constexpr std::string_view source = "let x = 5; let y = 10; let z = 15;";
@@ -7142,7 +7115,6 @@ TEST_CASE("SC-005 no fallback mixed valid invalid UTF-8", "[UnicodeColumn][SC-00
     REQUIRE((result2.find("Invalid UTF-8") != std::string::npos || result2.find("encoding") != std::string::npos));
 }
 
-
 TEST_CASE("ErrorReporter location formatting", "[ErrorReporter][location]") {
     constexpr std::string_view source = "let x = 5;";
     const jsv::LineTracker tracker(source);
@@ -7187,7 +7159,6 @@ TEST_CASE("ErrorReporter report_errors vector overload", "[ErrorReporter][overlo
         REQUIRE(!result.empty());
     }
 }
-
 
 TEST_CASE("LineTracker and ErrorReporter integration", "[LineTracker][ErrorReporter][integration]") {
     SECTION("Complete error reporting workflow") {
@@ -7277,8 +7248,6 @@ let z = @3;)";
     }
 }
 
-
-
 TEST_CASE("NodeKind enumeration covers all node types", "[NodeKind][AST]") {
     SECTION("Expression kinds are properly defined") {
         STATIC_REQUIRE(static_cast<std::underlying_type_t<jsv::NodeKind>>(jsv::NodeKind::IntegerLiteral) <
@@ -7329,7 +7298,6 @@ TEST_CASE("node_kind_name returns correct string for all node kinds", "[NodeKind
     SECTION("Program node kind") { REQUIRE(jsv::node_kind_name(jsv::NodeKind::Program) == "Program"); }
 }
 
-
 TEST_CASE("unary_op_symbol returns correct symbol for all operators", "[UnaryOp][AST]") {
     SECTION("Negate operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Negate) == "-"); }
     SECTION("Not operator") { REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Not) == "!"); }
@@ -7371,7 +7339,6 @@ TEST_CASE("binary_op_symbol returns correct symbol for all operators", "[BinaryO
         REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Shr) == ">>");
     }
 }
-
 
 TEST_CASE("type_kind_name returns correct string for all type kinds", "[TypeKind][AST]") {
     SECTION("Signed integer types") {
@@ -7553,7 +7520,6 @@ TEST_CASE("CustomType creation and comparison", "[CustomType][AST]") {
         REQUIRE(!(type1 == type3));
     }
 }
-
 
 TEST_CASE("IntegerLiteral node creation and accessors", "[IntegerLiteral][AST][Expressions]") {
     using namespace jsv;
@@ -7901,7 +7867,6 @@ TEST_CASE("GroupingExpr node creation and accessors", "[GroupingExpr][AST][Expre
     }
 }
 
-
 TEST_CASE("ExprStmt node creation and accessors", "[ExprStmt][AST][Statements]") {
     using namespace jsv;
 
@@ -8159,7 +8124,6 @@ TEST_CASE("Program node creation and accessors", "[Program][AST]") {
         REQUIRE(program.statements().size() == 1);
     }
 }
-
 
 TEST_CASE("node_isa type checking works correctly", "[Node][AST][TypeChecking]") {
     using namespace jsv;
@@ -8788,7 +8752,6 @@ TEST_CASE("Parser helper: numeric literal suffix detection - comprehensive scena
         REQUIRE(program != nullptr);
     }
 }
-
 
 TEST_CASE("Parser empty input", "[Parser]") {
     using namespace jsv;
@@ -10787,7 +10750,6 @@ TEST_CASE("Parser error handling", "[Parser]") {
     }
 }
 
-
 TEST_CASE("IntegerLiteral corner cases and edge cases", "[IntegerLiteral][AST][Expressions][CornerCases]") {
     using namespace jsv;
 
@@ -11199,7 +11161,6 @@ TEST_CASE("MemberExpr corner cases and edge cases", "[MemberExpr][AST][Expressio
     }
 }
 
-
 TEST_CASE("VarDecl corner cases and edge cases", "[VarDecl][AST][Statements][CornerCases]") {
     using namespace jsv;
 
@@ -11512,7 +11473,6 @@ TEST_CASE("MainStmt corner cases and edge cases", "[MainStmt][AST][Statements][C
         REQUIRE(dynamic_cast<const BlockStmt &>(stmt.body()).statements().size() == 100);
     }
 }
-
 
 TEST_CASE("Parser corner cases - empty and minimal inputs", "[Parser][CornerCases]") {
     using namespace jsv;
@@ -13355,7 +13315,6 @@ TEST_CASE("get_binary_op: Error help message is present", "[get_binary_op][error
     REQUIRE_THAT(*help_msg.value(), Catch::Matchers::ContainsSubstring("cannot be used"));
 }
 
-
 TEST_CASE("binding_power: Logical OR operator (||) - Lines 30-32", "[binding_power][OrOr][T-BP-001]") {
     // Corner case: Lowest precedence binary operator
     const jsv::Token token = make_precedence_token(jsv::TokenKind::OrOr, "||", 1, 5, 10);
@@ -13600,7 +13559,6 @@ TEST_CASE("binding_power: Precedence ordering is monotonic - Lines 30-77", "[bin
     }
 }
 
-
 TEST_CASE("unary_binding_power: Unary minus (-) - Lines 91-93", "[unary_binding_power][Minus][T-UBP-001]") {
     // Corner case: Unary negation has high precedence
     const jsv::Token token = make_precedence_token(jsv::TokenKind::Minus, "-", 1, 5, 10);
@@ -13706,7 +13664,6 @@ TEST_CASE("unary_binding_power: Unary precedence vs Binary precedence - Lines 91
     // Unary operators have lbp=0 (don't consume left operand)
     REQUIRE(unary_lbp == 0);
 }
-
 
 TEST_CASE("get_binary_op: Additive operators - Lines 135-140", "[get_binary_op][Additive][T-GBOP-001]") {
     // Standard case: Basic arithmetic
@@ -13958,7 +13915,6 @@ TEST_CASE("get_binary_op: Token with different source locations", "[get_binary_o
         REQUIRE(result.value() == jsv::BinaryOp::Add);
     }
 }
-
 
 TEST_CASE("Precedence functions integration: Expression parsing simulation", "[precedence][Integration][T-PREC-001]") {
     // Integration test: Simulate how binding_power and unary_binding_power work together
@@ -15096,7 +15052,6 @@ TEST_CASE("Parser: parse_function - comprehensive return type scenarios", "[Pars
         REQUIRE(func_decl->return_type().value()->kind() == TypeKind::Custom);
     }
 }
-
 
 TEST_CASE("Parser: parse_call - linea 578-579 (chiamata di funzione)", "[Parser][parse_call][Line578-579][T-PC-001]") {
     using namespace jsv;
@@ -16828,7 +16783,6 @@ TEST_CASE("ArrayType is_primitive returns false", "[Type][ArrayType][predicates]
     REQUIRE_FALSE(arrayType.is_numeric());
 }
 
-
 TEST_CASE("VectorType construction and basic properties", "[Type][VectorType][construction]") {
     using jsv::VectorType;
 
@@ -16976,7 +16930,6 @@ TEST_CASE("VectorType is_primitive returns false", "[Type][VectorType][predicate
     REQUIRE_FALSE(vectorType.is_numeric());
 }
 
-
 TEST_CASE("TypeBase polymorphic to_string", "[Type][TypeBase][polymorphism]") {
     using jsv::ArrayType;
     using jsv::CustomType;
@@ -17063,7 +17016,6 @@ TEST_CASE("TypeBase kind() accessor", "[Type][TypeBase][kind]") {
     }
 }
 
-
 TEST_CASE("TypePtr std::formatter outputs correctly", "[Type][formatter][std]") {
     using jsv::ArrayType;
     using jsv::CustomType;
@@ -17127,7 +17079,6 @@ TEST_CASE("TypePtr fmt::formatter outputs correctly", "[Type][formatter][fmt]") 
         REQUIRE(FFORMAT("{}", nullType) == "none");
     }
 }
-
 
 TEST_CASE("Type corner cases", "[Type][corner-cases][edge]") {
     using jsv::ArrayType;
@@ -17236,7 +17187,6 @@ TEST_CASE("Type virtual destructor is called correctly", "[Type][destructor][vir
         REQUIRE_NOTHROW(base.reset());
     }
 }
-
 
 TEST_CASE("Node: Default construction with minimal parameters", "[ast][node][construction]") {
     using jsv::Node;
@@ -17931,7 +17881,6 @@ TEST_CASE("Node: noexcept contract verification", "[ast][node][noexcept][contrac
         REQUIRE(std::is_nothrow_move_assignable_v<Node>);
     }
 }
-
 
 TEST_CASE("AstPrinter: Default construction", "[ast][printer][construction]") {
     using jsv::AstPrinter;
