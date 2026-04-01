@@ -26,6 +26,12 @@
 #include "ast/Program.hpp"
 #include "ast/Visitor.hpp"
 #include "ast/Ast_printer.hpp"
+#include "ast/TypedNode.hpp"
+#include "ast/TypedExpressions.hpp"
+#include "ast/TypedStatements.hpp"
+#include "ast/TypedProgram.hpp"
+#include "ast/TypedVisitor.hpp"
+#include "ast/TypedAst.hpp"
 #include "parser/precedence.hpp"
 #include "parser/Parser.hpp"
 // clang-format on

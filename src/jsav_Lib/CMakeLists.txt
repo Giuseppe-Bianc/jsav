@@ -37,6 +37,14 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/ast/Ast_printer.hpp
         ast/Type.cpp
         ../../include/jsav/ast/Type.hpp
+        ast/TypedNode.cpp
+        ../../include/jsav/ast/TypedNode.hpp
+        ast/TypedExpressions.cpp
+        ../../include/jsav/ast/TypedExpressions.hpp
+        ast/TypedStatements.cpp
+        ../../include/jsav/ast/TypedStatements.hpp
+        ast/TypedProgram.cpp
+        ../../include/jsav/ast/TypedProgram.hpp
         util/AnsiStyles.cpp
         ../../include/jsav/util/AnsiStyles.hpp
         parser/Parser.cpp
