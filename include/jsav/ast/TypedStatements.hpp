@@ -44,10 +44,9 @@ namespace jsv {
      */
     class TypedVarDecl final : public TypedStmt {
     public:
-        TypedVarDecl(std::string name, TypePtr resolved_type, TypedExprPtr initializer, bool is_const = false,
-                     SourceSpan loc = {})
-          : TypedStmt{NodeKind::VarDecl, std::move(resolved_type), loc}, name_{std::move(name)},
-            initializer_{std::move(initializer)}, is_const_{is_const} {}
+        TypedVarDecl(std::string name, TypePtr resolved_type, TypedExprPtr initializer, bool is_const = false, SourceSpan loc = {})
+          : TypedStmt{NodeKind::VarDecl, std::move(resolved_type), loc}, name_{std::move(name)}, initializer_{std::move(initializer)},
+            is_const_{is_const} {}
 
         [[nodiscard]] const std::string &name() const noexcept { return name_; }
         [[nodiscard]] const TypedExpr &initializer() const noexcept { return *initializer_; }
@@ -88,17 +87,17 @@ namespace jsv {
      * Example: `fn foo(a: i32, b: i32) -> i32 { ... }`
      */
     struct TypedFuncParam {
-        std::string name;                  ///< Parameter name
-        TypePtr type_annotation;           ///< Resolved parameter type
-        SourceSpan loc;                    ///< Source location
+        std::string name;         ///< Parameter name
+        TypePtr type_annotation;  ///< Resolved parameter type
+        SourceSpan loc;           ///< Source location
     };
 
     class TypedFuncDecl final : public TypedStmt {
     public:
         TypedFuncDecl(std::string name, std::vector<TypedFuncParam> params, std::optional<TypePtr> return_type,
                       std::unique_ptr<TypedBlockStmt> body, TypePtr node_type, SourceSpan loc = {})
-          : TypedStmt{NodeKind::FuncDecl, std::move(node_type), loc}, name_{std::move(name)},
-            params_{std::move(params)}, return_type_{std::move(return_type)}, body_{std::move(body)} {}
+          : TypedStmt{NodeKind::FuncDecl, std::move(node_type), loc}, name_{std::move(name)}, params_{std::move(params)},
+            return_type_{std::move(return_type)}, body_{std::move(body)} {}
 
         [[nodiscard]] const std::string &name() const noexcept { return name_; }
         [[nodiscard]] const std::vector<TypedFuncParam> &params() const noexcept { return params_; }
@@ -142,10 +141,9 @@ namespace jsv {
      */
     class TypedIfStmt final : public TypedStmt {
     public:
-        TypedIfStmt(TypedExprPtr condition, TypedStmtPtr then_branch, TypedStmtPtr else_branch, TypePtr node_type,
-                    SourceSpan loc = {})
-          : TypedStmt{NodeKind::IfStmt, std::move(node_type), loc}, condition_{std::move(condition)},
-            then_branch_{std::move(then_branch)}, else_branch_{std::move(else_branch)} {}
+        TypedIfStmt(TypedExprPtr condition, TypedStmtPtr then_branch, TypedStmtPtr else_branch, TypePtr node_type, SourceSpan loc = {})
+          : TypedStmt{NodeKind::IfStmt, std::move(node_type), loc}, condition_{std::move(condition)}, then_branch_{std::move(then_branch)},
+            else_branch_{std::move(else_branch)} {}
 
         [[nodiscard]] const TypedExpr &condition() const noexcept { return *condition_; }
         [[nodiscard]] const TypedStmt &then_branch() const noexcept { return *then_branch_; }
@@ -169,8 +167,7 @@ namespace jsv {
     class TypedWhileStmt final : public TypedStmt {
     public:
         TypedWhileStmt(TypedExprPtr condition, TypedStmtPtr body, TypePtr node_type, SourceSpan loc = {})
-          : TypedStmt{NodeKind::WhileStmt, std::move(node_type), loc}, condition_{std::move(condition)},
-            body_{std::move(body)} {}
+          : TypedStmt{NodeKind::WhileStmt, std::move(node_type), loc}, condition_{std::move(condition)}, body_{std::move(body)} {}
 
         [[nodiscard]] const TypedExpr &condition() const noexcept { return *condition_; }
         [[nodiscard]] const TypedStmt &body() const noexcept { return *body_; }
@@ -190,10 +187,10 @@ namespace jsv {
      */
     class TypedForStmt final : public TypedStmt {
     public:
-        TypedForStmt(TypedStmtPtr init, TypedExprPtr condition, TypedExprPtr increment, TypedStmtPtr body,
-                     TypePtr node_type, SourceSpan loc = {})
-          : TypedStmt{NodeKind::ForStmt, std::move(node_type), loc}, init_{std::move(init)},
-            condition_{std::move(condition)}, increment_{std::move(increment)}, body_{std::move(body)} {}
+        TypedForStmt(TypedStmtPtr init, TypedExprPtr condition, TypedExprPtr increment, TypedStmtPtr body, TypePtr node_type,
+                     SourceSpan loc = {})
+          : TypedStmt{NodeKind::ForStmt, std::move(node_type), loc}, init_{std::move(init)}, condition_{std::move(condition)},
+            increment_{std::move(increment)}, body_{std::move(body)} {}
 
         [[nodiscard]] bool has_init() const noexcept { return init_ != nullptr; }
         [[nodiscard]] bool has_condition() const noexcept { return condition_ != nullptr; }
@@ -232,8 +229,7 @@ namespace jsv {
      */
     class TypedContinueStmt final : public TypedStmt {
     public:
-        TypedContinueStmt(TypePtr node_type, SourceSpan loc = {})
-          : TypedStmt{NodeKind::ContinueStmt, std::move(node_type), loc} {}
+        TypedContinueStmt(TypePtr node_type, SourceSpan loc = {}) : TypedStmt{NodeKind::ContinueStmt, std::move(node_type), loc} {}
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::ContinueStmt; }
     };

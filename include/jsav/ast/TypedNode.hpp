@@ -30,8 +30,7 @@ namespace jsv {
          * @param node_type The resolved type for this node.
          * @param loc Source location span.
          */
-        TypedNode(NodeKind kind, TypePtr node_type, const SourceSpan &loc = {})
-          : Node{kind, loc}, node_type_{std::move(node_type)} {}
+        TypedNode(NodeKind kind, TypePtr node_type, const SourceSpan &loc = {}) : Node{kind, loc}, node_type_{std::move(node_type)} {}
 
         /**
          * @brief Get the resolved type of this node.
@@ -69,8 +68,7 @@ namespace jsv {
      */
     class TypedExpr : public TypedNode {
     public:
-        TypedExpr(NodeKind kind, TypePtr node_type, const SourceSpan &loc = {})
-          : TypedNode{kind, std::move(node_type), loc} {}
+        TypedExpr(NodeKind kind, TypePtr node_type, const SourceSpan &loc = {}) : TypedNode{kind, std::move(node_type), loc} {}
 
         /**
          * @brief Type check for TypedExpr.
@@ -113,8 +111,7 @@ namespace jsv {
      */
     class TypedStmt : public TypedNode {
     public:
-        TypedStmt(NodeKind kind, TypePtr node_type, const SourceSpan &loc = {})
-          : TypedNode{kind, std::move(node_type), loc} {}
+        TypedStmt(NodeKind kind, TypePtr node_type, const SourceSpan &loc = {}) : TypedNode{kind, std::move(node_type), loc} {}
 
         /**
          * @brief Type check for TypedStmt.

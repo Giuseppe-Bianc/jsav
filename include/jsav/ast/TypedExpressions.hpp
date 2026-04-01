@@ -25,8 +25,7 @@ namespace jsv {
     public:
         TypedIntegerLiteral(std::int64_t value, TypePtr node_type, SourceSpan loc = {},
                             std::optional<std::string> type_suffix = std::nullopt)
-          : TypedExpr{NodeKind::IntegerLiteral, std::move(node_type), loc}, value_{value},
-            type_suffix_{std::move(type_suffix)} {}
+          : TypedExpr{NodeKind::IntegerLiteral, std::move(node_type), loc}, value_{value}, type_suffix_{std::move(type_suffix)} {}
 
         [[nodiscard]] std::int64_t value() const noexcept { return value_; }
         [[nodiscard]] const std::optional<std::string> &type_suffix() const noexcept { return type_suffix_; }
@@ -118,8 +117,7 @@ namespace jsv {
      */
     class TypedNullLiteral final : public TypedExpr {
     public:
-        TypedNullLiteral(TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::NullLiteral, std::move(node_type), loc} {}
+        TypedNullLiteral(TypePtr node_type, SourceSpan loc = {}) : TypedExpr{NodeKind::NullLiteral, std::move(node_type), loc} {}
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::NullLiteral; }
     };
@@ -182,8 +180,7 @@ namespace jsv {
     class TypedBinaryExpr final : public TypedExpr {
     public:
         TypedBinaryExpr(BinaryOp op, TypedExprPtr lhs, TypedExprPtr rhs, TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::BinaryExpr, std::move(node_type), loc}, op_{op}, lhs_{std::move(lhs)},
-            rhs_{std::move(rhs)} {}
+          : TypedExpr{NodeKind::BinaryExpr, std::move(node_type), loc}, op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
         [[nodiscard]] BinaryOp op() const noexcept { return op_; }
         [[nodiscard]] const TypedExpr &lhs() const noexcept { return *lhs_; }
@@ -207,10 +204,9 @@ namespace jsv {
      */
     class TypedTernaryExpr final : public TypedExpr {
     public:
-        TypedTernaryExpr(TypedExprPtr condition, TypedExprPtr then_expr, TypedExprPtr else_expr, TypePtr node_type,
-                         SourceSpan loc = {})
-          : TypedExpr{NodeKind::TernaryExpr, std::move(node_type), loc}, condition_{std::move(condition)},
-            then_expr_{std::move(then_expr)}, else_expr_{std::move(else_expr)} {}
+        TypedTernaryExpr(TypedExprPtr condition, TypedExprPtr then_expr, TypedExprPtr else_expr, TypePtr node_type, SourceSpan loc = {})
+          : TypedExpr{NodeKind::TernaryExpr, std::move(node_type), loc}, condition_{std::move(condition)}, then_expr_{std::move(then_expr)},
+            else_expr_{std::move(else_expr)} {}
 
         [[nodiscard]] const TypedExpr &condition() const noexcept { return *condition_; }
         [[nodiscard]] const TypedExpr &then_expr() const noexcept { return *then_expr_; }
@@ -233,8 +229,7 @@ namespace jsv {
     class TypedCallExpr final : public TypedExpr {
     public:
         TypedCallExpr(TypedExprPtr callee, std::vector<TypedExprPtr> args, TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::CallExpr, std::move(node_type), loc}, callee_{std::move(callee)},
-            args_{std::move(args)} {}
+          : TypedExpr{NodeKind::CallExpr, std::move(node_type), loc}, callee_{std::move(callee)}, args_{std::move(args)} {}
 
         [[nodiscard]] const TypedExpr &callee() const noexcept { return *callee_; }
         [[nodiscard]] const std::vector<TypedExprPtr> &args() const noexcept { return args_; }
@@ -255,8 +250,7 @@ namespace jsv {
     class TypedIndexExpr final : public TypedExpr {
     public:
         TypedIndexExpr(TypedExprPtr object, TypedExprPtr index, TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::IndexExpr, std::move(node_type), loc}, object_{std::move(object)},
-            index_{std::move(index)} {}
+          : TypedExpr{NodeKind::IndexExpr, std::move(node_type), loc}, object_{std::move(object)}, index_{std::move(index)} {}
 
         [[nodiscard]] const TypedExpr &object() const noexcept { return *object_; }
         [[nodiscard]] const TypedExpr &index() const noexcept { return *index_; }
@@ -277,8 +271,7 @@ namespace jsv {
     class TypedMemberExpr final : public TypedExpr {
     public:
         TypedMemberExpr(TypedExprPtr object, std::string member, TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::MemberExpr, std::move(node_type), loc}, object_{std::move(object)},
-            member_{std::move(member)} {}
+          : TypedExpr{NodeKind::MemberExpr, std::move(node_type), loc}, object_{std::move(object)}, member_{std::move(member)} {}
 
         [[nodiscard]] const TypedExpr &object() const noexcept { return *object_; }
         [[nodiscard]] const std::string &member() const noexcept { return member_; }
@@ -299,8 +292,7 @@ namespace jsv {
     class TypedAssignExpr final : public TypedExpr {
     public:
         TypedAssignExpr(TypedExprPtr target, TypedExprPtr value, TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::AssignExpr, std::move(node_type), loc}, target_{std::move(target)},
-            value_{std::move(value)} {}
+          : TypedExpr{NodeKind::AssignExpr, std::move(node_type), loc}, target_{std::move(target)}, value_{std::move(value)} {}
 
         [[nodiscard]] const TypedExpr &target() const noexcept { return *target_; }
         [[nodiscard]] const TypedExpr &value() const noexcept { return *value_; }
@@ -321,8 +313,7 @@ namespace jsv {
     class TypedCastExpr final : public TypedExpr {
     public:
         TypedCastExpr(std::string target_type, TypedExprPtr operand, TypePtr node_type, SourceSpan loc = {})
-          : TypedExpr{NodeKind::CastExpr, std::move(node_type), loc}, target_type_{std::move(target_type)},
-            operand_{std::move(operand)} {}
+          : TypedExpr{NodeKind::CastExpr, std::move(node_type), loc}, target_type_{std::move(target_type)}, operand_{std::move(operand)} {}
 
         [[nodiscard]] const std::string &target_type() const noexcept { return target_type_; }
         [[nodiscard]] const TypedExpr &operand() const noexcept { return *operand_; }
