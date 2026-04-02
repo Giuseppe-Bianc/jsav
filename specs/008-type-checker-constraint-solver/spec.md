@@ -297,8 +297,8 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **FR-011**: System MUST instantiate fresh type variables for each call site of a generic function and solve constraints independently per call.
 - **FR-012**: System MUST enforce binary operation type rules: arithmetic operands must have identical types (no implicit promotions), result type matches operand type; comparison operands must match, result is bool; logical operands must be bool, result is bool.
 - **FR-013**: System MUST enforce unary operation type rules: negation requires numeric operand, logical not requires bool operand.
-- **FR-014**: System MUST enforce assignment type rules: left-hand side must be mutable lvalue, right-hand side type must match or be convertible.
-- **FR-015**: System MUST enforce control flow type rules: if conditions must be bool, both branches of if expressions must have compatible types (join type), return expressions must match function's declared return type.
+- **FR-014**: System MUST enforce assignment type rules: left-hand side must be mutable lvalue, right-hand side type must match exactly; explicit casts are required for any type change.
+- **FR-015**: System MUST enforce control flow type rules: if conditions must be bool, both branches of if expressions must have the same type exactly, return expressions must match function's declared return type.
 - **FR-016**: System MUST enforce array type rules: all elements must have the same type, size must be compile-time constant.
 - **FR-017**: System MUST support primitive types (i8, i16, i32, i64, u8, u16, u32, u64, f32, f64, char, string, bool, void, nullptr) as defined in Type.hpp.
 - **FR-018**: System MUST support compound types (arrays `[T; N]`, vectors `Vec<T>`) as defined in Type.hpp.
@@ -373,3 +373,5 @@ As a compiler developer, I want the type checker to support generic functions wi
 - Q: How should the three distinct AST typing states be named to avoid ambiguity? → A: Three distinct names - "Resolved AST" (post-name-resolution), "Partially-Typed AST" (post-constraint-generation), "Fully-Typed AST" (post-zonking)
 - Q: What structured logging format should the type checker use for constraint solving diagnostics? → A: Project standard format - logging format already specified in project configuration
 - Q: Should the type checker define per-phase latency targets or only end-to-end targets? → A: End-to-end only - only SC-004 end-to-end target matters; developers profile and optimize hotspots empirically
+- Q: What should assignment type checking do when the right-hand side is not exactly the left-hand side type? → A: Exact match only - explicit casts required for any type change
+- Q: What should control-flow type checking do when the two branches of an if expression differ in type? → A: Exact match only - both branches must have the same type; otherwise it is an error
