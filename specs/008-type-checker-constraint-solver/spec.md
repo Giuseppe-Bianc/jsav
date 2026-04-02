@@ -213,6 +213,7 @@ Where:
 - std::vector<CompileError> contains all type errors encountered (empty if successful)
 - Errors are sorted by source location for deterministic reporting
 - Typed AST nodes are accessible via TypedVisitor.hpp pattern matching
+- **Interface stability**: Internal-only interface with no backward compatibility guarantees; downstream compiler phases (optimizer, code generator) must be rebuilt with each compiler version
 "
 
 ## User Scenarios & Testing
@@ -302,12 +303,13 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **FR-019**: System MUST integrate with existing TypedAst.hpp infrastructure (TypedNode, TypedExpr, TypedStmt, TypedProgram).
 - **FR-020**: System MUST perform name resolution as a pre-type-checking phase, resolving identifiers to declarations using a symbol table.
 - **FR-021**: System MUST provide debug logging via spdlog for constraint generation, unification steps, and substitution application to aid troubleshooting of type inference failures.
+- **FR-022**: System MUST NOT collect or expose structured performance metrics; all performance debugging information is written to spdlog sinks only.
 
 ### Key Entities
 
 - **Raw AST**: Input structure containing untyped expressions and statements produced by the parser. Every node lacks type information (node_type() returns nullptr).
 - **Typed AST**: Output structure where every node carries resolved type information (TypePtr). Produced by applying the substitution from constraint solving to the initial typed AST with type variables.
-- **Type Variables**: Placeholder types (`?T`, `?R`, etc.) representing unknown types during inference. Created fresh for each expression without explicit type annotation.
+- **Type Variables**: Placeholder types (`?T`, `?R`, etc.) representing unknown types during inference. Created fresh for each expression without explicit type annotation. Uniqueness guaranteed via sequential counter with thread-local storage (TLS), generating `?T1`, `?T2`, `?T3`... in sequence. Lifecycle: creation (fresh ID allocation) → constraint generation (equations added) → unification (bound to concrete type or another variable) → zonking (substituted with final concrete type).
 - **Constraints**: Equations between types generated during type checking (e.g., `?T = Int → ?R`, `argument_type = parameter_type`). Represent the type relationships that must be satisfied.
 - **Substitution**: Mapping from type variables to concrete types produced by the unification solver (e.g., `S = [?T ↦ Int → Bool, ?R ↦ Bool]`). Applied to eliminate type variables.
 - **Symbol Table**: Environment mapping identifiers to their type schemes during name resolution. Maintains scope hierarchy for variable and function lookups.
@@ -322,11 +324,12 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **SC-001**: Type checker successfully processes well-typed programs with 100% type resolution (all nodes have concrete types, zero unresolved type variables).
 - **SC-002**: Type checker detects and reports 100% of type errors in ill-typed programs (no false negatives) when validated against a comprehensive test suite of known type violations.
 - **SC-003**: Error messages enable users to fix type errors in one edit cycle: 90% of type errors include specific fix suggestions that, when applied, resolve the error.
-- **SC-004**: Type checker handles programs with 10,000+ AST nodes without performance degradation (completes type checking in under 5 seconds on standard development hardware).
+- **SC-004**: Type checker handles programs with 10,000+ AST nodes without performance degradation (completes type checking in under 5 seconds on CI runner hardware as defined in GitLab CI pipeline configuration).
 - **SC-005**: Constraint solver correctly handles polymorphic functions: generic functions called with 10+ different concrete types all resolve correctly without cross-contamination.
 - **SC-006**: Error reports are actionable: 100% of type errors include source spans pinpointing the exact error location and show expected vs. actual types.
 - **SC-007**: Type checker collects all errors in a single pass: programs with 5+ independent type errors report all errors, not just the first one.
 - **SC-008**: Occurs check correctly prevents infinite types: all recursive type definitions (e.g., `?T = ?T → ?T`) are detected and reported as errors.
+- **SC-009**: Type checker operates within moderate memory bounds: should handle 100K constraints in <50MB; exceeding bounds causes graceful performance degradation rather than hard failure.
 
 ## Assumptions
 
@@ -348,3 +351,9 @@ As a compiler developer, I want the type checker to support generic functions wi
 - Q: What type promotion rules should the type checker enforce for mixed-type arithmetic operations? → A: No promotions - operands must have identical types; all mixed-type operations are errors requiring explicit casts
 - Q: Should the type checker include debug logging/tracing capabilities for constraint solving? → A: Runtime configurable logging - spdlog-based logging with runtime level control (trace/debug/info); logs to file/console like the rest of jsav compiler
 - Q: How should type checker error codes be structured and categorized? → A: Use your existing E2xxx range and taxonomy as-is, add ~4 new codes for constraint solver errors starting at E2033
+- Q: How should type variable uniqueness be guaranteed during constraint generation to prevent collisions across different scopes and function instantiations? → A: Sequential counter with thread-local storage (TLS)
+- Q: Should the Typed AST interface guarantee backward compatibility for downstream compiler phases (optimizer, code generator)? → A: Internal-only interface - no compatibility guarantees; downstream phases must be rebuilt with each compiler version
+- Q: Should the type checker expose performance metrics (constraint count, unification steps, solving time) beyond basic spdlog logging? → A: No metrics beyond logging - performance debugging via log analysis only
+- Q: What is the precise distinction between "Resolved AST" (post-name-resolution) and "Typed AST" (post-constraint-solving)? → A: Resolved AST has identifiers bound but no types; Typed AST has all types resolved - Clear phase boundary
+- Q: What constitutes "standard development hardware" for the SC-004 benchmark (10,000+ nodes in under 5 seconds)? → A: CI runner specification - exact hardware/VM specs used in GitLab CI pipeline
+- Q: What memory consumption bounds and resource limits should the type checker enforce? → A: Moderate limits with graceful degradation - soft targets (e.g., "should handle 100K constraints in <50MB"); exceed → slower but continues
