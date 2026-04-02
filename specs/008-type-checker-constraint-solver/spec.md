@@ -289,7 +289,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **FR-005**: System MUST solve constraints using a union-find based unification algorithm that produces a substitution mapping type variables to concrete types.
 - **FR-006**: System MUST perform occurs check during unification to prevent infinite types and report recursive type errors when detected.
 - **FR-007**: System MUST collect ALL type errors encountered during type checking (not fail-fast) to provide comprehensive diagnostic feedback.
-- **FR-008**: System MUST report type errors with source spans, error codes, expected vs. actual types, and helpful fix suggestions.
+- **FR-008**: System MUST report type errors with source spans, error codes, expected vs. actual types, and helpful fix suggestions. When cascading errors are detected, annotate likely root causes with "this error may be a consequence of earlier error at line X".
 - **FR-009**: System MUST apply the computed substitution to all type variables in the Typed AST (zonking) to produce a fully resolved AST with no remaining type variables.
 - **FR-010**: System MUST support parametric polymorphism by allowing function definitions to have type schemes with quantified type variables.
 - **FR-011**: System MUST instantiate fresh type variables for each call site of a generic function and solve constraints independently per call.
@@ -302,8 +302,9 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **FR-018**: System MUST support compound types (arrays `[T; N]`, vectors `Vec<T>`) as defined in Type.hpp.
 - **FR-019**: System MUST integrate with existing TypedAst.hpp infrastructure (TypedNode, TypedExpr, TypedStmt, TypedProgram).
 - **FR-020**: System MUST perform name resolution as a pre-type-checking phase, resolving identifiers to declarations using a symbol table.
-- **FR-021**: System MUST provide debug logging via spdlog for constraint generation, unification steps, and substitution application to aid troubleshooting of type inference failures.
+- **FR-021**: System MUST provide debug logging via spdlog for constraint generation, unification steps, and substitution application to aid troubleshooting of type inference failures. Log levels: trace=per-constraint details, debug=per-function summary, info=overall type checking statistics.
 - **FR-022**: System MUST NOT collect or expose structured performance metrics; all performance debugging information is written to spdlog sinks only.
+- **FR-023**: System MUST insert an ErrorType placeholder when a type error is detected and propagate it through dependent expressions to enable continued type checking without cascading errors.
 
 ### Key Entities
 
@@ -314,6 +315,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **Substitution**: Mapping from type variables to concrete types produced by the unification solver (e.g., `S = [?T ↦ Int → Bool, ?R ↦ Bool]`). Applied to eliminate type variables.
 - **Symbol Table**: Environment mapping identifiers to their type schemes during name resolution. Maintains scope hierarchy for variable and function lookups.
 - **CompileError**: Type errors with source locations (SourceSpan), error codes (e.g., E001: type mismatch), and helpful messages suggesting fixes.
+- **ErrorType**: Special placeholder type representing a type error that has been encountered; propagates through expressions to allow type checking to continue without cascading errors.
 - **Type Scheme**: Quantified type representation for generic functions (e.g., `∀T. T → T`). Instantiated with fresh type variables at each call site.
 - **Union-Find Data Structure**: Efficient disjoint-set data structure for tracking type variable equivalences during constraint solving. Supports near-constant-time union and find operations with path compression and union by rank.
 
@@ -336,7 +338,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **Name resolution is a separate pre-phase**: The type checker assumes identifiers have been resolved to declarations in a prior name resolution phase. Unresolved identifiers produce errors before constraint generation.
 - **Type annotations are provided by the parser**: Function parameter types, return types, and variable declaration types are present in the Raw AST from parsing. Type inference fills in missing types for intermediate expressions.
 - **No implicit type conversions**: The type system does not perform implicit coercions (e.g., int to float). All type conversions must be explicit via cast expressions.
-- **Single-threaded type checking**: The implementation is single-threaded. Parallel type checking is out of scope for this version.
+- **Single-threaded type checking**: The implementation is single-threaded. Parallel type checking is out of scope for this version. The type checker is NOT thread-safe: callers must ensure no concurrent invocations; no internal synchronization is provided.
 - **Full re-check on each compilation**: The type checker does not support incremental type checking. The entire program is re-checked on each compilation.
 - **Standard development environment**: Users have stable internet connectivity and a C++23-compliant compiler (GCC 13+, Clang 16+, or MSVC 2022+) as specified in the project build requirements.
 - **Existing infrastructure is available**: The type checker builds on existing TypedAst.hpp, Type.hpp, and NodeKind.hpp infrastructure. No changes to these base files are required beyond their current design.
@@ -357,3 +359,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - Q: What is the precise distinction between "Resolved AST" (post-name-resolution) and "Typed AST" (post-constraint-solving)? → A: Resolved AST has identifiers bound but no types; Typed AST has all types resolved - Clear phase boundary
 - Q: What constitutes "standard development hardware" for the SC-004 benchmark (10,000+ nodes in under 5 seconds)? → A: CI runner specification - exact hardware/VM specs used in GitLab CI pipeline
 - Q: What memory consumption bounds and resource limits should the type checker enforce? → A: Moderate limits with graceful degradation - soft targets (e.g., "should handle 100K constraints in <50MB"); exceed → slower but continues
+- Q: How should the type checker continue type checking after encountering a type error in a subtree? → A: Insert error types and continue - create ErrorType placeholder; propagate through expressions to minimize cascading errors
+- Q: Should the type checker support concurrent invocations from multiple threads (parallel compilation)? → A: Not thread-safe - single-threaded only; caller must ensure no concurrent invocations; no internal synchronization
+- Q: What log level verbosity hierarchy should the type checker use for constraint solving diagnostics? → A: Unstructured logs with level hierarchy - trace=per-constraint, debug=per-function, info=summary; human-readable text
+- Q: Should cascading errors from a single root cause be deduplicated or all reported? → A: Report all errors with root cause hint - show all errors but annotate likely root causes with "this error may be a consequence of earlier error at line X"
