@@ -304,7 +304,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **FR-018**: System MUST support compound types (arrays `[T; N]`, vectors `Vec<T>`) as defined in Type.hpp.
 - **FR-019**: System MUST integrate with existing TypedAst.hpp infrastructure (TypedNode, TypedExpr, TypedStmt, TypedProgram).
 - **FR-020**: System MUST perform name resolution as a pre-type-checking phase, resolving identifiers to declarations using a symbol table.
-- **FR-021**: System MUST provide debug logging via spdlog for constraint generation, unification steps, and substitution application to aid troubleshooting of type inference failures. Log levels: trace=per-constraint details, debug=per-function summary, info=overall type checking statistics.
+- **FR-021**: System MUST provide debug logging via spdlog for constraint generation, unification steps, and substitution application to aid troubleshooting of type inference failures. Log levels: trace=per-constraint details, debug=per-function summary, info=overall type checking statistics. **Log message format follows the existing project-wide logging format configuration**.
 - **FR-022**: System MUST NOT collect or expose structured performance metrics; all performance debugging information is written to spdlog sinks only.
 - **FR-023**: System MUST insert an ErrorType placeholder when a type error is detected and propagate it through dependent expressions to enable continued type checking without cascading errors.
 
@@ -313,13 +313,13 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **Raw AST**: Input structure containing untyped expressions and statements produced by the parser. Every node lacks type information (node_type() returns nullptr).
 - **Typed AST**: Output structure where every node carries resolved type information (TypePtr). Produced by applying the substitution from constraint solving to the initial typed AST with type variables.
 - **Type Variables**: Placeholder types (`?T`, `?R`, etc.) representing unknown types during inference. Created fresh for each expression without explicit type annotation. Uniqueness guaranteed via sequential counter with thread-local storage (TLS), generating `?T1`, `?T2`, `?T3`... in sequence. Lifecycle: creation (fresh ID allocation) → constraint generation (equations added) → unification (bound to concrete type or another variable) → zonking (substituted with final concrete type). **Unbound variables**: Any type variable still unbound after constraint solving produces an "unresolved type variable" error with source location; zonking proceeds with partially-typed AST.
-- **Constraints**: Equations between types generated during type checking (e.g., `?T = Int → ?R`, `argument_type = parameter_type`). Represent the type relationships that must be satisfied.
+- **Constraints**: Equations between types generated during type checking (e.g., `?T = Int → ?R`, `argument_type = parameter_type`). Represent the type relationships that must be satisfied. Each constraint receives a unique sequential ID (`C1`, `C2`, `C3`, ...) used for error reporting, debugging logs, and union-find operations.
 - **Substitution**: Mapping from type variables to concrete types produced by the unification solver (e.g., `S = [?T ↦ Int → Bool, ?R ↦ Bool]`). Applied to eliminate type variables.
 - **Symbol Table**: Environment mapping identifiers to their type schemes during name resolution. Maintains scope hierarchy for variable and function lookups. **Shadowing**: Inner scope declarations hide outer scope bindings; lexical scoping implemented via stack-based scope entries with push/pop operations.
 - **CompileError**: Type errors with source locations (SourceSpan), error codes (e.g., E001: type mismatch), and helpful messages suggesting fixes.
 - **ErrorType**: Special placeholder type representing a type error that has been encountered; propagates through expressions to allow type checking to continue without cascading errors.
 - **Type Scheme**: Quantified type representation for generic functions (e.g., `∀T. T → T`). Instantiated with fresh type variables at each call site.
-- **Union-Find Data Structure**: Efficient disjoint-set data structure for tracking type variable equivalences during constraint solving. Supports near-constant-time union and find operations with path compression and union by rank.
+- **Union-Find Data Structure**: Efficient disjoint-set data structure for tracking type variable equivalences during constraint solving. Supports near-constant-time union and find operations with path compression and union by rank. Operations are indexed by constraint IDs (`C1`, `C2`, ...) for precise error reporting and debug tracing.
 
 ## Success Criteria
 
@@ -328,7 +328,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **SC-001**: Type checker successfully processes well-typed programs with 100% type resolution (all nodes have concrete types, zero unresolved type variables).
 - **SC-002**: Type checker detects and reports 100% of type errors in ill-typed programs (no false negatives) when validated against a comprehensive test suite of known type violations.
 - **SC-003**: Error messages enable users to fix type errors in one edit cycle: 90% of type errors include specific fix suggestions that, when applied, resolve the error.
-- **SC-004**: Type checker handles programs with 10,000+ AST nodes without performance degradation (completes type checking in under 5 seconds on CI runner hardware as defined in GitLab CI pipeline configuration).
+- **SC-004**: Type checker handles programs with 10,000+ AST nodes without performance degradation (completes type checking in under 5 seconds on CI runner hardware as defined in GitLab CI pipeline configuration). **This is an end-to-end target; no per-phase latency budgets are specified.**
 - **SC-005**: Constraint solver correctly handles polymorphic functions: generic functions called with 10+ different concrete types all resolve correctly without cross-contamination.
 - **SC-006**: Error reports are actionable: 100% of type errors include source spans pinpointing the exact error location and show expected vs. actual types.
 - **SC-007**: Type checker collects all errors in a single pass: programs with 5+ independent type errors report all errors, not just the first one.
@@ -369,3 +369,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - Q: How should constraint solver error codes (E2033-E2036) be semantically mapped to specific failure modes? → A: Phase-based mapping - E2033=Constraint Generation Error, E2034=Unification Failure, E2035=Occurs Check (recursive type), E2036=Unresolved Type Variable
 - Q: What testing strategy should be used for constraint solver validation (golden files, property-based, or example-based)? → A: Hybrid approach - example-based unit tests for constraint rules + integration tests with golden Typed AST output
 - Q: How should nested scopes and variable shadowing be handled in the symbol table during name resolution? → A: Allow shadowing - inner scope hides outer scope binding; lexical scoping with stack-based push/pop operations
+- Q: How should constraint identity be tracked in the union-find data structure? → A: Constraint handles with explicit IDs - each constraint receives unique sequential ID (C1, C2, C3) for error reporting, debugging logs, and union-find operations
+- Q: How should the three distinct AST typing states be named to avoid ambiguity? → A: Three distinct names - "Resolved AST" (post-name-resolution), "Partially-Typed AST" (post-constraint-generation), "Fully-Typed AST" (post-zonking)
+- Q: What structured logging format should the type checker use for constraint solving diagnostics? → A: Project standard format - logging format already specified in project configuration
+- Q: Should the type checker define per-phase latency targets or only end-to-end targets? → A: End-to-end only - only SC-004 end-to-end target matters; developers profile and optimize hotspots empirically
