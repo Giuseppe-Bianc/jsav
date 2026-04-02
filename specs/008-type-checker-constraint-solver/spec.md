@@ -218,6 +218,8 @@ Where:
 
 ## User Scenarios & Testing
 
+**Testing Strategy**: Hybrid approach — example-based unit tests for individual constraint rules (e.g., `i32 + string → error E2034`) combined with integration tests using golden Typed AST output files for end-to-end validation.
+
 ### User Story 1 - Type Check Well-Typed Programs (Priority: P1)
 
 As a compiler developer, I want to invoke the type checker on a well-typed Raw AST and receive a fully typed AST with all type information resolved, so that I can proceed to subsequent compilation phases (optimization, code generation) with complete type safety guarantees.
@@ -310,10 +312,10 @@ As a compiler developer, I want the type checker to support generic functions wi
 
 - **Raw AST**: Input structure containing untyped expressions and statements produced by the parser. Every node lacks type information (node_type() returns nullptr).
 - **Typed AST**: Output structure where every node carries resolved type information (TypePtr). Produced by applying the substitution from constraint solving to the initial typed AST with type variables.
-- **Type Variables**: Placeholder types (`?T`, `?R`, etc.) representing unknown types during inference. Created fresh for each expression without explicit type annotation. Uniqueness guaranteed via sequential counter with thread-local storage (TLS), generating `?T1`, `?T2`, `?T3`... in sequence. Lifecycle: creation (fresh ID allocation) → constraint generation (equations added) → unification (bound to concrete type or another variable) → zonking (substituted with final concrete type).
+- **Type Variables**: Placeholder types (`?T`, `?R`, etc.) representing unknown types during inference. Created fresh for each expression without explicit type annotation. Uniqueness guaranteed via sequential counter with thread-local storage (TLS), generating `?T1`, `?T2`, `?T3`... in sequence. Lifecycle: creation (fresh ID allocation) → constraint generation (equations added) → unification (bound to concrete type or another variable) → zonking (substituted with final concrete type). **Unbound variables**: Any type variable still unbound after constraint solving produces an "unresolved type variable" error with source location; zonking proceeds with partially-typed AST.
 - **Constraints**: Equations between types generated during type checking (e.g., `?T = Int → ?R`, `argument_type = parameter_type`). Represent the type relationships that must be satisfied.
 - **Substitution**: Mapping from type variables to concrete types produced by the unification solver (e.g., `S = [?T ↦ Int → Bool, ?R ↦ Bool]`). Applied to eliminate type variables.
-- **Symbol Table**: Environment mapping identifiers to their type schemes during name resolution. Maintains scope hierarchy for variable and function lookups.
+- **Symbol Table**: Environment mapping identifiers to their type schemes during name resolution. Maintains scope hierarchy for variable and function lookups. **Shadowing**: Inner scope declarations hide outer scope bindings; lexical scoping implemented via stack-based scope entries with push/pop operations.
 - **CompileError**: Type errors with source locations (SourceSpan), error codes (e.g., E001: type mismatch), and helpful messages suggesting fixes.
 - **ErrorType**: Special placeholder type representing a type error that has been encountered; propagates through expressions to allow type checking to continue without cascading errors.
 - **Type Scheme**: Quantified type representation for generic functions (e.g., `∀T. T → T`). Instantiated with fresh type variables at each call site.
@@ -344,7 +346,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **Existing infrastructure is available**: The type checker builds on existing TypedAst.hpp, Type.hpp, and NodeKind.hpp infrastructure. No changes to these base files are required beyond their current design.
 - **Scope boundaries**: Advanced type system features (subtyping, type classes, traits, bidirectional type checking, type holes) are out of scope for this version.
 - **Logging infrastructure available**: The type checker integrates with the project's existing spdlog-based logging system for debug tracing and constraint solving diagnostics.
-- **Error code taxonomy**: Type checker uses the existing E2xxx semantic analysis error codes (E2001-E2999) from error_codes.hpp; four new codes (E2033-E2036) will be added for constraint solver-specific errors (unification failure, occurs check, unresolved type variable, constraint generation error).
+- **Error code taxonomy**: Type checker uses the existing E2xxx semantic analysis error codes (E2001-E2999) from error_codes.hpp; four new codes (E2033-E2036) added for constraint solver-specific errors: **E2033=Constraint Generation Error, E2034=Unification Failure, E2035=Occurs Check (recursive type), E2036=Unresolved Type Variable**.
 
 ## Clarifications
 
@@ -361,5 +363,9 @@ As a compiler developer, I want the type checker to support generic functions wi
 - Q: What memory consumption bounds and resource limits should the type checker enforce? → A: Moderate limits with graceful degradation - soft targets (e.g., "should handle 100K constraints in <50MB"); exceed → slower but continues
 - Q: How should the type checker continue type checking after encountering a type error in a subtree? → A: Insert error types and continue - create ErrorType placeholder; propagate through expressions to minimize cascading errors
 - Q: Should the type checker support concurrent invocations from multiple threads (parallel compilation)? → A: Not thread-safe - single-threaded only; caller must ensure no concurrent invocations; no internal synchronization
-- Q: What log level verbosity hierarchy should the type checker use for constraint solving diagnostics? → A: Unstructured logs with level hierarchy - trace=per-constraint, debug=per-function, info=summary; human-readable text
+- Q: What log level verbosity hierarchy should the type checker use for constraint solving diagnostics? → A: Unstructured logs with level hierarchy - trace=per-constraint, debug=per-function, info=summary; human-readable text; **logging format already configured in project**
 - Q: Should cascading errors from a single root cause be deduplicated or all reported? → A: Report all errors with root cause hint - show all errors but annotate likely root causes with "this error may be a consequence of earlier error at line X"
+- Q: What happens to type variables that remain unbound after constraint solving completes? → A: Report as errors - unbound variables produce "unresolved type variable" error with source location; zonking produces partially-typed AST
+- Q: How should constraint solver error codes (E2033-E2036) be semantically mapped to specific failure modes? → A: Phase-based mapping - E2033=Constraint Generation Error, E2034=Unification Failure, E2035=Occurs Check (recursive type), E2036=Unresolved Type Variable
+- Q: What testing strategy should be used for constraint solver validation (golden files, property-based, or example-based)? → A: Hybrid approach - example-based unit tests for constraint rules + integration tests with golden Typed AST output
+- Q: How should nested scopes and variable shadowing be handled in the symbol table during name resolution? → A: Allow shadowing - inner scope hides outer scope binding; lexical scoping with stack-based push/pop operations
