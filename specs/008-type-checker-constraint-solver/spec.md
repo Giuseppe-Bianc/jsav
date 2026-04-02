@@ -52,7 +52,7 @@ Users will see:
 
 - All type errors collected in a single pass (not just the first error)
 - Source spans pinpointing exact error locations
-- Error codes for categorization and documentation lookup
+- Error codes from the existing E2xxx semantic analysis range (E2001-E2999), with new constraint solver codes E2033-E2036
 - Helpful messages suggesting fixes (e.g., "did you mean to cast?")
 - Type mismatch details showing expected vs. actual types
 
@@ -339,6 +339,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **Existing infrastructure is available**: The type checker builds on existing TypedAst.hpp, Type.hpp, and NodeKind.hpp infrastructure. No changes to these base files are required beyond their current design.
 - **Scope boundaries**: Advanced type system features (subtyping, type classes, traits, bidirectional type checking, type holes) are out of scope for this version.
 - **Logging infrastructure available**: The type checker integrates with the project's existing spdlog-based logging system for debug tracing and constraint solving diagnostics.
+- **Error code taxonomy**: Type checker uses the existing E2xxx semantic analysis error codes (E2001-E2999) from error_codes.hpp; four new codes (E2033-E2036) will be added for constraint solver-specific errors (unification failure, occurs check, unresolved type variable, constraint generation error).
 
 ## Clarifications
 
@@ -346,3 +347,4 @@ As a compiler developer, I want the type checker to support generic functions wi
 
 - Q: What type promotion rules should the type checker enforce for mixed-type arithmetic operations? → A: No promotions - operands must have identical types; all mixed-type operations are errors requiring explicit casts
 - Q: Should the type checker include debug logging/tracing capabilities for constraint solving? → A: Runtime configurable logging - spdlog-based logging with runtime level control (trace/debug/info); logs to file/console like the rest of jsav compiler
+- Q: How should type checker error codes be structured and categorized? → A: Use your existing E2xxx range and taxonomy as-is, add ~4 new codes for constraint solver errors starting at E2033
