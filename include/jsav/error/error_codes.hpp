@@ -137,6 +137,10 @@ namespace jsv {
         E2030,  ///< Array index must be integer type
         E2031,  ///< Cannot index non-array type
         E2032,  ///< Duplicate declaration of same identifier
+        E2033,  ///< Constraint generation failed (malformed expression during type checking)
+        E2034,  ///< Type mismatch during unification (expected vs. actual type conflict)
+        E2035,  ///< Occurs check failure (recursive/infinite type detected)
+        E2036,  ///< Unresolved type variable (no binding after constraint solving)
 
         // -------------------------------------------------------------------------
         // IR Generation Errors (E3001-E3999)

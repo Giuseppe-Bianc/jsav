@@ -49,6 +49,10 @@
 - [ ] T009 [P] Add SymbolTable tests in `test/tests.cpp`: push_scope, pop_scope, define, lookup with shadowing, depth()
 - [ ] T010 [P] Add TypeScheme tests in `test/tests.cpp`: mono() creation, instantiate() generates fresh variables
 - [ ] T011 [P] Add Constraint tests in `test/tests.cpp`: ConstraintSet.add returns sequential IDs (C1, C2), get by ID, constraints() iteration
+- [ ] T011e [P] [FR-005] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.solve() returns correct substitution for trivial constraints (?T = Int)
+- [ ] T011f [P] [FR-006] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.occurs_in() detects recursive types (?T = ?T → ?R fails, ?T = Int passes)
+- [ ] T011g [P] [FR-007,FR-023] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.unify() with ErrorType succeeds silently (ErrorType unifies with any type)
+- [ ] T011h [P] [FR-005] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.unify() reports type mismatch for incompatible primitives (Int ≠ Bool → error E2034)
 
 ### Compile-Time Tests (constexpr — per Constitution Principle IV, three-tier test pyramid)
 
@@ -103,6 +107,9 @@
 - [ ] T036b [P] [US1] Add test TypeChecker_Assignment_TypeMismatch in `test/tests.cpp`: verify RHS type must match LHS type exactly (e.g., `i32 = string` → error E2034)
 - [ ] T037 [P] [US1] Add test TypeChecker_NestedExpressions_AllNodesTyped in `test/tests.cpp`
 - [ ] T038 [P] [US1] Add test TypeChecker_WellTypedProgram_EmptyErrorVector in `test/tests.cpp`
+- [ ] T038a [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_ResolvesIdentifiers in `test/tests.cpp`: provide Raw AST with valid variable and function declarations, invoke type checker, verify SymbolTable contains resolved bindings for all identifiers and no unresolved-identifier errors
+- [ ] T038b [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_UndeclaredIdentifier_Error in `test/tests.cpp`: provide Raw AST referencing undeclared variable `z`, verify type checker produces error before constraint generation begins and error vector is non-empty
+- [ ] T038c [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_Shadowing_InnerScopeHidesOuter in `test/tests.cpp`: provide Raw AST with outer-scope `var x: i32` and inner-scope `var x: string`, verify inner scope resolves to string type and outer binding is preserved after scope exit
 
 ### Implementation for User Story 1
 
@@ -247,7 +254,7 @@ T001, T002 → then T003, T004 in parallel
 **Phase 2 Foundational** (all tests can run in parallel, all implementations in parallel):
 
 ```text
-Tests:  T005, T006, T007, T008, T009, T010, T011 (parallel)
+Tests:  T005, T006, T007, T008, T009, T010, T011, T011e, T011f, T011g, T011h (parallel)
 Impls:  T012-T025 (parallel after tests pass)
 ```
 
@@ -299,12 +306,12 @@ With multiple developers after Foundational:
 | Phase | Description | Task Count | Parallel Opportunities |
 |-------|-------------|------------|------------------------|
 | Phase 1 | Setup | 5 | T003, T004, T004a parallel |
-| Phase 2 | Foundational | 25 | All tests parallel; all impls parallel |
-| Phase 3 | User Story 1 | 36 | 15 tests parallel; solver→typechecker |
+| Phase 2 | Foundational | 29 | All tests parallel; all impls parallel |
+| Phase 3 | User Story 1 | 39 | 18 tests parallel; solver→typechecker |
 | Phase 4 | User Story 2 | 22 | 11 tests parallel; sequential impls |
 | Phase 5 | User Story 3 | 13 | 7 tests parallel; sequential impls |
 | Phase 6 | Polish | 7 | T094-T096 parallel |
-| **Total** | | **108** | |
+| **Total** | | **115** | |
 
 ---
 

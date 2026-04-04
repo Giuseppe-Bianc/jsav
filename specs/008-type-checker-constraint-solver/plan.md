@@ -10,14 +10,14 @@ Build a type checker for the jsav compiler that transforms Raw AST to Typed AST 
 ## Technical Context
 
 **Language/Version**: C++23 (Visual Studio 2026 compatible features only)
-**Primary Dependencies**: None (C++23 standard library exclusively, per constitution Principle I)
+**Primary Dependencies**: spdlog (existing, per Constitution Principle V) — no additional external dependencies
 **Storage**: N/A (all in-memory processing)
 **Testing**: Catch2 (existing infrastructure) — runtime tests in `test/tests.cpp`
 **Target Platform**: Windows/Linux/macOS (cross-platform via C++23 standard library)
 **Project Type**: Compiler module (library component of jsav compiler)
 **Performance Goals**: 10,000+ AST nodes in <5 seconds (SC-004), 100K constraints in <50MB (SC-009)
-**Constraints**: Single-threaded, no external dependencies, graceful degradation on resource limits
-**Scale/Scope**: Support all 28 NodeKind variants, 18 primitive/compound types, 4 new error codes (E2033-E2036)
+**Constraints**: Single-threaded, no additional external dependencies beyond spdlog (existing) and Catch2 (test-only), graceful degradation on resource limits
+**Scale/Scope**: Support all 28 NodeKind variants, 17 primitive/compound types, 4 new error codes (E2033-E2036)
 
 ## Constitution Check
 
