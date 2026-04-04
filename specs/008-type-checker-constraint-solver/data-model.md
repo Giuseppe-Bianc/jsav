@@ -310,37 +310,35 @@ Main type checking interface.
 ```cpp
 namespace jsv {
 
-/// Type checking result
-struct TypeCheckResult {
-    std::unique_ptr<TypedProgram> typed_ast;  ///< Fully typed AST
-    std::vector<CompileError> errors;          ///< All type errors collected
-};
+/// Type checking result — matches spec.md Output Contract (FR-001)
+using TypeCheckResult = std::pair<TypedProgram, std::vector<CompileError>>;
 
 /// Main type checker class
 class TypeChecker {
 public:
-    /// Type check a program, producing typed AST and errors
-    [[nodiscard]] TypeCheckResult check(const Program& program);
+    /// Type check a program, producing fully typed AST and error collection
+    /// @return std::pair<TypedProgram, std::vector<CompileError>> per spec.md Output Contract
+    [[nodiscard]] std::pair<TypedProgram, std::vector<CompileError>> check(const Program& program);
 
 private:
     /// Phase 1: Name resolution (populate symbol table)
     void resolve_names(const Program& program);
-    
+
     /// Phase 2: Constraint generation (traverse AST, emit constraints)
     void generate_constraints(const Program& program);
-    
+
     /// Phase 3: Constraint solving (unification)
     SolverResult solve_constraints();
-    
+
     /// Phase 4: Zonking (apply substitution to typed AST)
-    std::unique_ptr<TypedProgram> zonk(const Substitution& subst);
-    
+    TypedProgram zonk(const Substitution& subst);
+
     /// Type a single expression (recursive)
     [[nodiscard]] TypedExprPtr type_expr(const Expr& expr);
-    
+
     /// Type a single statement (recursive)
     [[nodiscard]] TypedStmtPtr type_stmt(const Stmt& stmt);
-    
+
     SymbolTable symbols_;
     ConstraintSet constraints_;
     std::vector<CompileError> errors_;
@@ -441,7 +439,8 @@ private:
 | `+`, `-`, `*`, `/`, `%` | Both operands must have identical numeric type | Same as operands |
 | `==`, `!=`, `<`, `>`, `<=`, `>=` | Both operands must have identical type | `bool` |
 | `&&`, `\|\|` | Both operands must be `bool` | `bool` |
-| `&`, `\|`, `^`, `<<`, `>>` | Both operands must be integer | Same as operands |
+| `&`, `\|`, `^` | Both operands must have identical integer type | Same as operands |
+| `<<`, `>>` | Left operand: integer type; Right operand: integer type | Same as left operand |
 
 ### Unary Expression Type Rules
 
@@ -450,7 +449,7 @@ private:
 | `-` (negate) | Operand must be numeric | Same as operand |
 | `!` (logical not) | Operand must be `bool` | `bool` |
 | `~` (bitwise not) | Operand must be integer | Same as operand |
-| `++`, `--` | Operand must be numeric | Same as operand |
+| `++`, `--` | Operand must be mutable lvalue of numeric type | Same as operand |
 
 ### Control Flow Type Rules
 

@@ -50,6 +50,15 @@
 - [ ] T010 [P] Add TypeScheme tests in `test/tests.cpp`: mono() creation, instantiate() generates fresh variables
 - [ ] T011 [P] Add Constraint tests in `test/tests.cpp`: ConstraintSet.add returns sequential IDs (C1, C2), get by ID, constraints() iteration
 
+### Compile-Time Tests (constexpr — per Constitution Principle IV, three-tier test pyramid)
+
+> **Rationale**: Per Constitution Principle IV, constexpr-capable pure functions and value types MUST receive `STATIC_REQUIRE` coverage in `test/constexpr_tests.cpp` (and `test/relaxed_constexpr_tests.cpp` for debugging). The following components are constexpr-capable:
+
+- [ ] T011a [P] Add constexpr test in `test/constexpr_tests.cpp`: `STATIC_REQUIRE` TypeScheme::mono() creates monomorphic scheme with empty quantified_vars
+- [ ] T011b [P] Add constexpr test in `test/constexpr_tests.cpp`: `STATIC_REQUIRE` TypeVariable constexpr properties (TypeVarId is std::size_t, sizeof checks)
+- [ ] T011c [P] Add constexpr test in `test/constexpr_tests.cpp`: `STATIC_REQUIRE` ErrorCode enum values (E2033=2033, E2034=2034, E2035=2035, E2036=2036) — once ErrorCode enum is defined in data-model.md
+- [ ] T011d [P] Add constexpr test in `test/constexpr_tests.cpp`: `STATIC_REQUIRE` Constraint struct is trivially copyable and sizeof is as expected for value-type semantics
+
 ### Implementation for Foundational Components
 
 - [ ] T012 [P] Create TypeVariable class in `include/jsav/typechecker/TypeVariable.hpp` with id(), to_string(), classof()
@@ -90,6 +99,8 @@
 - [ ] T034 [P] [US1] Add test TypeChecker_FunctionCall_ResolvesReturnType in `test/tests.cpp`
 - [ ] T035 [P] [US1] Add test TypeChecker_IfExpression_JoinsBranchTypes in `test/tests.cpp`
 - [ ] T036 [P] [US1] Add test TypeChecker_ArrayLiteral_InfersElementType in `test/tests.cpp`
+- [ ] T036a [P] [US1] Add test TypeChecker_Assignment_MutableLvalueRequired in `test/tests.cpp`: verify assignment to immutable binding produces error
+- [ ] T036b [P] [US1] Add test TypeChecker_Assignment_TypeMismatch in `test/tests.cpp`: verify RHS type must match LHS type exactly (e.g., `i32 = string` → error E2034)
 - [ ] T037 [P] [US1] Add test TypeChecker_NestedExpressions_AllNodesTyped in `test/tests.cpp`
 - [ ] T038 [P] [US1] Add test TypeChecker_WellTypedProgram_EmptyErrorVector in `test/tests.cpp`
 
@@ -99,7 +110,7 @@
 - [ ] T040 [US1] Implement ConstraintSolver.unify() for primitive types in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
 - [ ] T041 [US1] Implement ConstraintSolver.unify() for type variables in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
 - [ ] T042 [US1] Implement ConstraintSolver.occurs_in() recursive check in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T043 [US1] Create TypeChecker class in `include/jsav/typechecker/TypeChecker.hpp` with check(), type_expr(), type_stmt()
+- [ ] T043 [US1] Create TypeChecker class in `include/jsav/typechecker/TypeChecker.hpp` with check() returning `std::pair<TypedProgram, std::vector<CompileError>>`, type_expr(), type_stmt()
 - [ ] T044 [US1] Implement TypeChecker.resolve_names() for symbol table population in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T045 [US1] Implement TypeChecker.generate_constraints() for literals (integer, bool, string, char) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T046 [US1] Implement TypeChecker.generate_constraints() for binary expressions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
@@ -110,9 +121,10 @@
 - [ ] T051 [US1] Implement TypeChecker.generate_constraints() for if/else statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T052 [US1] Implement TypeChecker.generate_constraints() for return statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T053 [US1] Implement TypeChecker.generate_constraints() for array literals in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [ ] T053a [US1] Implement TypeChecker.generate_constraints() for assignment statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`: generate constraint LHS_type = RHS_type; verify LHS is mutable lvalue; on mismatch, insert ErrorType and report E2034 per FR-014
 - [ ] T054 [US1] Implement TypeChecker.solve_constraints() wrapper in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T055 [US1] Implement TypeChecker.zonk() for substitution application in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T056 [US1] Implement TypeChecker.check() orchestrating all phases in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [ ] T056 [US1] Implement TypeChecker.check() returning `std::pair<TypedProgram, std::vector<CompileError>>` per spec.md Output Contract, orchestrating all phases in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T057 [US1] Add spdlog trace logging for constraint generation in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 - [ ] T058 [US1] Add spdlog debug logging for unification steps in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
 
@@ -287,12 +299,12 @@ With multiple developers after Foundational:
 | Phase | Description | Task Count | Parallel Opportunities |
 |-------|-------------|------------|------------------------|
 | Phase 1 | Setup | 5 | T003, T004, T004a parallel |
-| Phase 2 | Foundational | 21 | All tests parallel; all impls parallel |
-| Phase 3 | User Story 1 | 33 | 13 tests parallel; solver→typechecker |
+| Phase 2 | Foundational | 25 | All tests parallel; all impls parallel |
+| Phase 3 | User Story 1 | 36 | 15 tests parallel; solver→typechecker |
 | Phase 4 | User Story 2 | 22 | 11 tests parallel; sequential impls |
 | Phase 5 | User Story 3 | 13 | 7 tests parallel; sequential impls |
 | Phase 6 | Polish | 7 | T094-T096 parallel |
-| **Total** | | **101** | |
+| **Total** | | **108** | |
 
 ---
 

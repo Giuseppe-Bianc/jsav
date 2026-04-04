@@ -23,21 +23,19 @@ const jsv::Program& raw_ast = /* from parser */;
 // Create type checker and run
 jsv::TypeChecker checker;
 auto result = checker.check(raw_ast);
+auto& [typed_ast, errors] = result;
 
 // Check for errors
-if (result.errors.empty()) {
+if (errors.empty()) {
     // Success! Access the fully typed AST
-    const jsv::TypedProgram& typed_ast = *result.typed_ast;
-    
-    // Every node now has type information
     for (const auto& stmt : typed_ast.statements()) {
         LINFO("Statement type: {}", stmt->node_type()->to_string());
     }
 } else {
     // Handle errors
-    for (const auto& error : result.errors) {
-        LERROR("[{}] {} at {}:{}", 
-               error.code(), 
+    for (const auto& error : errors) {
+        LERROR("[{}] {} at {}:{}",
+               error.code(),
                error.message(),
                error.span().start().line(),
                error.span().start().column());
@@ -155,12 +153,13 @@ TEST_CASE("TypeChecker_Arithmetic_InfersCorrectTypes", "[typechecker]") {
     
     jsv::TypeChecker checker;
     auto result = checker.check(*program);
-    
-    REQUIRE(result.errors.empty());
-    REQUIRE(result.typed_ast->statements().size() == 1);
-    
+    auto& [typed_ast, errors] = result;
+
+    REQUIRE(errors.empty());
+    REQUIRE(typed_ast.statements().size() == 1);
+
     const auto& var_decl = node_cast<TypedVarDecl>(
-        result.typed_ast->statements()[0].get());
+        typed_ast.statements()[0].get());
     REQUIRE(var_decl.node_type()->kind() == TypeKind::I32);
 }
 ```
@@ -175,14 +174,15 @@ TEST_CASE("TypeChecker_TypeMismatch_ReportsError", "[typechecker]") {
     auto program = make_program({
         make_var_decl("x", "i32", make_string_literal("hello"))
     });
-    
+
     jsv::TypeChecker checker;
     auto result = checker.check(*program);
-    
-    REQUIRE(result.errors.size() == 1);
-    REQUIRE(result.errors[0].code() == ErrorCode::E2034);
-    REQUIRE(result.errors[0].message().contains("i32"));
-    REQUIRE(result.errors[0].message().contains("string"));
+    auto& [typed_ast, errors] = result;
+
+    REQUIRE(errors.size() == 1);
+    REQUIRE(errors[0].code() == ErrorCode::E2034);
+    REQUIRE(errors[0].message().contains("i32"));
+    REQUIRE(errors[0].message().contains("string"));
 }
 ```
 
@@ -196,7 +196,7 @@ TEST_CASE("TypeChecker_TypeMismatch_ReportsError", "[typechecker]") {
 
 TEST_CASE("TypeChecker_Function_InfersReturnType", "[typechecker]") {
     auto program = make_program({
-        make_func_decl("add", 
+        make_func_decl("add",
             {{"a", "i32"}, {"b", "i32"}},
             "i32",
             make_block({
@@ -208,18 +208,19 @@ TEST_CASE("TypeChecker_Function_InfersReturnType", "[typechecker]") {
             })
         )
     });
-    
+
     jsv::TypeChecker checker;
     auto result = checker.check(*program);
-    
-    REQUIRE(result.errors.empty());
+    auto& [typed_ast, errors] = result;
+
+    REQUIRE(errors.empty());
 }
 ```
 
 ### Scenario 4: Polymorphic Function Instantiation
 
 ```cpp
-// Input: 
+// Input:
 //   fn id<T>(x: T) -> T { return x; }
 //   var a: i32 = id(42);
 //   var b: string = id("hello");
@@ -232,16 +233,17 @@ TEST_CASE("TypeChecker_Polymorphic_InstantiatesPerCallSite", "[typechecker]") {
             "T",
             make_block({make_return(make_identifier("x"))})
         ),
-        make_var_decl("a", "i32", 
+        make_var_decl("a", "i32",
             make_call(make_identifier("id"), {make_int_literal(42)})),
         make_var_decl("b", "string",
             make_call(make_identifier("id"), {make_string_literal("hello")}))
     });
-    
+
     jsv::TypeChecker checker;
     auto result = checker.check(*program);
-    
-    REQUIRE(result.errors.empty());
+    auto& [typed_ast, errors] = result;
+
+    REQUIRE(errors.empty());
     // Both call sites resolved independently
 }
 ```

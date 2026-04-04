@@ -41,7 +41,7 @@ Type Checker Interface:
 
 Users (compiler developers) will:
 
-1. Invoke the type checker on a parsed AST and receive a std::pair<TypedAST, std::vector<CompileError>>
+1. Invoke the type checker on a parsed AST and receive a std::pair<TypedProgram, std::vector<CompileError>>
 2. Inspect typed nodes to access resolved type information via node_type() method on every TypedNode
 3. Review comprehensive error reports with source locations, error codes, and helpful suggestions for all type violations
 4. Query type information for debugging and analysis through the typed AST structure
@@ -74,14 +74,18 @@ Type Constraints:
 
 1. Binary Operations: Both operands must have identical types (no implicit promotions); result type depends on operation
 
-- Arithmetic (+, -, *, /): Operands must have identical types; result has that same type
+- Arithmetic (+, -, *, /, %): Operands must have identical types; result has that same type
 - Comparison (==, !=, <, >, <=, >=): Operands must have identical types; result is bool
 - Logical (&&, ||): Operands must be bool; result is bool
+- Bitwise (&, |, ^): Operands must have identical integer types; result has that same type
+- Shift (<<, >>): Left operand must be integer type; right operand must be integer type; result has type of left operand
 
 2. Unary Operations: Operand type must match operation requirements
 
 - Negation (-): Operand must be numeric; result has same type
 - Logical not (!): Operand must be bool; result is bool
+- Bitwise not (~): Operand must be integer type; result has same type
+- Increment/decrement (++x, x++, --x, x--): Operand must be mutable lvalue of numeric type; result has same type
 
 3. Assignment: Left-hand side must be mutable lvalue; right-hand side type must match or be convertible
 
@@ -91,6 +95,8 @@ Type Constraints:
 
 - if condition must be bool
 - Both branches of if expression must have compatible types (join type)
+- while condition must be bool
+- for condition must be bool
 - return expression type must match function's declared return type
 
 6. Arrays: All elements must have the same type; size must be compile-time constant
@@ -136,7 +142,7 @@ Type Error Scenarios:
 - Input: AST with type violations (e.g., 3 + "hello")
 - Output: Typed AST (possibly partial) with error nodes
 - Error vector contains TypeError entries with:
-    - Error code (e.g., E001: type mismatch)
+    - Error code (e.g., E2034: type mismatch)
     - Source span showing error location
     - Message: "cannot add i32 and string"
     - Optional help: "consider converting one operand to match the other type"
@@ -205,7 +211,9 @@ Output Contract
 
 The type checker provides the following interface:
 
- 1 std::pair<TypedProgram, std::vector<CompileError>> typeCheck(const Program &rawAST);
+```cpp
+std::pair<TypedProgram, std::vector<CompileError>> check(const Program& program);
+```
 
 Where:
 
@@ -316,7 +324,7 @@ As a compiler developer, I want the type checker to support generic functions wi
 - **Constraints**: Equations between types generated during type checking (e.g., `?T = Int → ?R`, `argument_type = parameter_type`). Represent the type relationships that must be satisfied. Each constraint receives a unique sequential ID (`C1`, `C2`, `C3`, ...) used for error reporting, debugging logs, and union-find operations.
 - **Substitution**: Mapping from type variables to concrete types produced by the unification solver (e.g., `S = [?T ↦ Int → Bool, ?R ↦ Bool]`). Applied to eliminate type variables.
 - **Symbol Table**: Environment mapping identifiers to their type schemes during name resolution. Maintains scope hierarchy for variable and function lookups. **Shadowing**: Inner scope declarations hide outer scope bindings; lexical scoping implemented via stack-based scope entries with push/pop operations.
-- **CompileError**: Type errors with source locations (SourceSpan), error codes (e.g., E001: type mismatch), and helpful messages suggesting fixes.
+- **CompileError**: Type errors with source locations (SourceSpan), error codes (e.g., E2034: type mismatch), and helpful messages suggesting fixes.
 - **ErrorType**: Special placeholder type representing a type error that has been encountered; propagates through expressions to allow type checking to continue without cascading errors.
 - **Type Scheme**: Quantified type representation for generic functions (e.g., `∀T. T → T`). Instantiated with fresh type variables at each call site.
 - **Union-Find Data Structure**: Efficient disjoint-set data structure for tracking type variable equivalences during constraint solving. Supports near-constant-time union and find operations with path compression and union by rank. Operations are indexed by constraint IDs (`C1`, `C2`, ...) for precise error reporting and debug tracing.

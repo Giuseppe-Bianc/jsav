@@ -34,7 +34,7 @@ Build a type checker for the jsav compiler that transforms Raw AST to Typed AST 
 | **III.b Pervasive Const Correctness** | ✅ Compliant | All read-only parameters will be const&, visitor methods const |
 | **III.c Conscious Move Semantics** | ✅ Compliant | Typed AST nodes move-only; noexcept move operations |
 | **III.d Structured Error Handling** | ✅ Compliant | CompileError collection, no exceptions for type errors |
-| **IV. Test-Driven Development** | ✅ Compliant | Tests first in test/tests.cpp following Red-Green-Refactor |
+| **IV. Test-Driven Development** | ✅ Compliant | Three-tier test pyramid per Constitution Principle IV: (1) `test/constexpr_tests.cpp` — `STATIC_REQUIRE` for constexpr-capable pure functions and value types (TypeScheme::mono(), TypeVariable properties, ErrorCode enum values, Constraint struct). (2) `test/relaxed_constexpr_tests.cpp` — runtime debugging version of constexpr tests. (3) `test/tests.cpp` — runtime tests for all type checking logic, error reporting, and polymorphism via `REQUIRE` assertions. All tests written FIRST following Red-Green-Refactor. |
 | **V. Dependency Management** | ✅ Compliant | No new dependencies; uses existing spdlog for logging |
 | **VI. Documentation Standards** | ✅ Compliant | Doxygen comments for all public interfaces |
 | **VII. Algorithmic Design Excellence** | ✅ Compliant | Union-find with path compression (O(α(n)) amortized) |
