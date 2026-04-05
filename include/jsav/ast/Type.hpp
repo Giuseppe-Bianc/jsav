@@ -50,6 +50,10 @@ namespace jsv {
         // Special types
         Void,     // No value (function return type)
         NullPtr,  // Null pointer type
+
+        // Type inference types (constraint-based type checking)
+        TypeVar,  // Type variable (?T1, ?T2, ...) for unification
+        Error,    // Error type placeholder for error recovery
     };
 
     /**
@@ -99,6 +103,10 @@ namespace jsv {
             return "void";
         case TypeKind::NullPtr:
             return "nullptr";
+        case TypeKind::TypeVar:
+            return "typevar";
+        case TypeKind::Error:
+            return "error";
         default:
             std::unreachable();
         }
@@ -150,6 +158,8 @@ namespace jsv {
             case TypeKind::Custom:
             case TypeKind::Array:
             case TypeKind::Vector:
+            case TypeKind::TypeVar:
+            case TypeKind::Error:
                 return false;
             }
             return false;  // Unreachable, but satisfies compiler warnings
