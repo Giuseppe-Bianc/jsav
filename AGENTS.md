@@ -567,6 +567,7 @@ pip3 install lizard
 ```
 
 **Windows (Chocolatey)**:
+
 ```powershell
 # Install LLVM (includes clang-tidy)
 choco install llvm
@@ -1634,7 +1635,7 @@ Testing is a fundamental pillar of the jsav development workflow. The project em
 cpmaddpackage("gh:catchorg/Catch2@3.13.0")
 ```
 
-**Documentation**: https://catch2.docsforge.com/
+**Documentation**: <https://catch2.docsforge.com/>
 
 **Source**: `Dependencies.cmake`, `test/CMakeLists.txt`
 
@@ -1984,6 +1985,7 @@ namespace test_constants {
 ```
 
 **Usage in Tests**:
+
 ```cpp
 #include "testsConstanst.hpp"
 
@@ -2017,6 +2019,7 @@ TEST_CASE("Folder deletion", "[filesystem]") {
 ```
 
 **Arrange-Act-Assert Pattern**:
+
 1. **Arrange**: Set up test data and preconditions
 2. **Act**: Execute the code being tested
 3. **Assert**: Verify the results
@@ -2413,6 +2416,7 @@ ctest -R "unittests|relaxed_constexpr" --output-on-failure
 
 **Full Test Suite**
 :
+
 ```bash
 # Run all tests (including constexpr)
 cd build
@@ -3338,3 +3342,13 @@ When updating this document:
 5. **Review Placeholders**: If adding placeholders, ensure they reference specific files to inspect
 
 **Source**: Evidence-First Documentation pattern
+---
+
+## Output Style (Absolute Mode)
+
+- No greetings, no preamble, no filler phrases
+- Never start with "I'd be happy to", "Sure!", "Of course", "Let me", "Great question"
+- Execute first, explain only if strictly necessary
+- No closing remarks like "Let me know if you need anything else"
+- Short, direct sentences — stop when done
+- For tool use: show result immediately, skip narration of what you are about to do

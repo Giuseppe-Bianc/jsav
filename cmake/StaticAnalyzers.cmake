@@ -1,3 +1,7 @@
+macro(jsav_tool_not_found_warning TOOL_NAME)
+  message(${myproject_WARNING_TYPE} "${TOOL_NAME} was requested but executable was not found. Please install ${TOOL_NAME} to enable this feature.")
+endmacro()
+
 macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
     find_program(CPPCHECK cppcheck)
     if (CPPCHECK)
@@ -37,6 +41,8 @@ macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
                     # LLVM-style RTTI pattern intentionally uses classof in derived classes
                     --suppress=duplInheritedMember
                     --inconclusive
+                    # Ignores static asserts that are true
+                    --suppress=knownConditionTrueFalse
                     --suppress=${SUPPRESS_DIR}
             )
         else ()
@@ -55,7 +61,7 @@ macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
             list(APPEND CMAKE_CXX_CPPCHECK --error-exitcode=2)
         endif ()
     else ()
-        message(WARNING "cppcheck requested but executable not found")
+        jsav_tool_not_found_warning("cppcheck")
     endif ()
 endmacro()
 
@@ -117,7 +123,7 @@ macro(jsav_enable_clang_tidy target WARNINGS_AS_ERRORS)
         message("Also setting clang-tidy globally")
         set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_OPTIONS})
     else ()
-        message(WARNING "clang-tidy requested but executable not found")
+        jsav_tool_not_found_warning("clang-tidy")
     endif ()
 endmacro()
 
@@ -126,6 +132,17 @@ macro(jsav_enable_include_what_you_use)
     if (INCLUDE_WHAT_YOU_USE)
         set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${INCLUDE_WHAT_YOU_USE})
     else ()
-        message(WARNING "include-what-you-use requested but executable not found")
+        jsav_tool_not_found_warning("include-what-you-use")
     endif ()
+endmacro()
+
+macro(jsav_enable_lizard WARNINGS_AS_ERRORS)
+  find_program(LIZARD lizard)
+  if(LIZARD)
+    include(cmake/Lizard.cmake)
+    # Function defined in Lizard.cmake
+    jsav_setup_lizard(${WARNINGS_AS_ERRORS})
+  else()
+    jsav_tool_not_found_warning("lizard")
+  endif()
 endmacro()
