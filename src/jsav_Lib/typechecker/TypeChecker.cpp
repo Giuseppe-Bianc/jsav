@@ -17,6 +17,24 @@ DISABLE_WARNINGS_PUSH(4834 4100 26461)
 
 namespace jsv {
 
+// Helper: check if a type is an integer type (signed or unsigned)
+[[nodiscard]] static bool is_integer_type(const TypePtr& t) noexcept {
+    if(!t || t->kind() == TypeKind::TypeVar || t->kind() == TypeKind::Error) { return false; }
+    switch(t->kind()) {
+    case TypeKind::I8:
+    case TypeKind::I16:
+    case TypeKind::I32:
+    case TypeKind::I64:
+    case TypeKind::U8:
+    case TypeKind::U16:
+    case TypeKind::U32:
+    case TypeKind::U64:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // ============================================================
 // Helper: parse type annotation string into TypePtr
 // ============================================================
@@ -520,9 +538,47 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
             constraints_.add(rhs_type, PrimitiveType::bool_(), bin->location(), "logical op: rhs must be bool");
             result_type = PrimitiveType::bool_();
             break;
+        case BinaryOp::BitAnd:
+        case BinaryOp::BitOr:
+        case BinaryOp::BitXor:
+        case BinaryOp::Shl:
+        case BinaryOp::Shr:
+            {
+                constraints_.add(lhs_type, rhs_type, bin->location(), "bitwise op: operands must match");
+                result_type = lhs_type;
+                // Defer integer-type check to constraint solver for precise E2011 reporting
+                // (handled below after switch)
+            }
+            break;
         default:
             result_type = fresh_type_variable();
             constraints_.add(result_type, lhs_type, bin->location(), "binary expression default");
+            break;
+        }
+
+        // Bitwise operators require integer types — check here once types are resolved
+        switch(bin->op()) {
+        case BinaryOp::BitAnd:
+        case BinaryOp::BitOr:
+        case BinaryOp::BitXor:
+        case BinaryOp::Shl:
+        case BinaryOp::Shr:
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                if(!is_integer_type(lhs_type) || !is_integer_type(rhs_type)) {
+                    message_storage_.push_back(
+                        FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
+                               binary_op_symbol(bin->op()),
+                               lhs_type->to_string(),
+                               rhs_type->to_string()));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2011,
+                        message_storage_.back(),
+                        bin->location(),
+                        "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
+                }
+            }
+            break;
+        default:
             break;
         }
 
