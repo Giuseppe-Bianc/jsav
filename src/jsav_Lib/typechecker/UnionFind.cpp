@@ -7,8 +7,8 @@
 namespace jsv {
 
 void UnionFind::make_set(TypeVarId var) {
-    if(parent_.find(var) == parent_.end()) {
-        parent_[var] = var;
+    auto [it, inserted] = parent_.try_emplace(var, var);
+    if (inserted) {
         rank_[var] = 0;
     }
 }

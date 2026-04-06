@@ -15,9 +15,6 @@ DISABLE_WARNINGS_PUSH(
 #include <iostream>
 #include <string>
 
-#include "jsav/ast/TypedAst_printer.hpp"
-#include "jsav/typechecker/TypeChecker.hpp"
-
 DISABLE_WARNINGS_POP()
 
 std::string toLower(std::string str) {
@@ -119,7 +116,6 @@ auto main(int argc, const char *const argv[]) -> int {
         const auto [parsed_program, parse_errors] = parser.parse();
         LINFO("{}", parsingTimer);
         if(!parse_errors.empty()) {
-            LERROR("Parser produced {} error(s)", parse_errors.size());
             const std::string diagnostic = reporter.report_errors(parse_errors);
             fmt::print("{}", diagnostic);
         }

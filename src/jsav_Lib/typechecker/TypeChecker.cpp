@@ -52,7 +52,7 @@ namespace jsv {
 // ============================================================
 // Helper: parse type annotation string into TypePtr
 // ============================================================
-static TypePtr parse_type_annotation(std::string_view annot) {
+[[nodiscard]] static TypePtr parse_type_annotation(std::string_view annot) {
     if(annot == "i8") return PrimitiveType::i8();
     if(annot == "i16") return PrimitiveType::i16();
     if(annot == "i32") return PrimitiveType::i32();
@@ -75,7 +75,7 @@ static TypePtr parse_type_annotation(std::string_view annot) {
 // ============================================================
 // Helper: recursively apply substitution to a TypePtr
 // ============================================================
-static TypePtr zonk_type(const Substitution& subst, const TypePtr& type) {
+[[nodiscard]] static TypePtr zonk_type(const Substitution &subst, const TypePtr &type) {
     if(!type) return type;
 
     if(const auto* tvar = dynamic_cast<const TypeVariable*>(type.get())) {
@@ -465,7 +465,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
             // No suffix — default to i64
             type = PrimitiveType::i64();
         }
-        (void)constraints_.add(type, type, lit->location(), FORMAT("integer literal type: {}", type->to_string()));
+        constraints_.add(type, type, lit->location(), FORMAT("integer literal type: {}", type->to_string()));
         return std::make_unique<TypedIntegerLiteral>(lit->value(), std::move(type), lit->location(), lit->type_suffix());
     }
     case NodeKind::FloatLiteral: {
@@ -474,31 +474,31 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         // The FloatLiteral doesn't have a type_suffix field, so we default to f64.
         // If the parser ever adds suffix support, check it here.
         auto type = PrimitiveType::f64();
-        (void)constraints_.add(type, type, lit->location(), "float literal defaults to f64");
+        constraints_.add(type, type, lit->location(), "float literal defaults to f64");
         return std::make_unique<TypedFloatLiteral>(lit->value(), std::move(type), lit->location());
     }
     case NodeKind::StringLiteral: {
         const auto* lit = static_cast<const StringLiteral*>(&expr);
         auto type = PrimitiveType::string();
-        (void)constraints_.add(type, type, lit->location(), "string literal type");
+        constraints_.add(type, type, lit->location(), "string literal type");
         return std::make_unique<TypedStringLiteral>(lit->value(), std::move(type), lit->location());
     }
     case NodeKind::CharLiteral: {
         const auto* lit = static_cast<const CharLiteral*>(&expr);
         auto type = PrimitiveType::char_();
-        (void)constraints_.add(type, type, lit->location(), "char literal type");
+        constraints_.add(type, type, lit->location(), "char literal type");
         return std::make_unique<TypedCharLiteral>(lit->value(), std::move(type), lit->location());
     }
     case NodeKind::BoolLiteral: {
         const auto* lit = static_cast<const BoolLiteral*>(&expr);
         auto type = PrimitiveType::bool_();
-        (void)constraints_.add(type, type, lit->location(), "bool literal type");
+        constraints_.add(type, type, lit->location(), "bool literal type");
         return std::make_unique<TypedBoolLiteral>(lit->value(), std::move(type), lit->location());
     }
     case NodeKind::NullLiteral: {
         const auto* lit = static_cast<const NullLiteral*>(&expr);
         auto type = PrimitiveType::nullptr_();
-        (void)constraints_.add(type, type, lit->location(), "null literal type");
+        constraints_.add(type, type, lit->location(), "null literal type");
         return std::make_unique<TypedNullLiteral>(std::move(type), lit->location());
     }
     case NodeKind::Identifier: {
@@ -550,7 +550,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         case BinaryOp::Div:
         case BinaryOp::Mod:
             {
-                (void)constraints_.add(lhs_type, rhs_type, bin->location(), "binary arithmetic: operands must match");
+                constraints_.add(lhs_type, rhs_type, bin->location(), "binary arithmetic: operands must match");
                 result_type = lhs_type;
                 // Early check: concrete non-numeric types → E2013 (only for non-Add ops)
                 if(bin->op() != BinaryOp::Add) {
@@ -599,7 +599,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         case BinaryOp::Gt:
         case BinaryOp::Le:
         case BinaryOp::Ge:
-            (void)constraints_.add(lhs_type, rhs_type, bin->location(), "comparison: operands must match");
+            constraints_.add(lhs_type, rhs_type, bin->location(), "comparison: operands must match");
             result_type = PrimitiveType::bool_();
             break;
         case BinaryOp::And:
@@ -625,8 +625,8 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
                 }
                 if(!mismatch_reported) {
                     // Defer to constraint solver for type variables
-                    (void)constraints_.add(lhs_type, PrimitiveType::bool_(), bin->location(), "logical op: lhs must be bool");
-                    (void)constraints_.add(rhs_type, PrimitiveType::bool_(), bin->location(), "logical op: rhs must be bool");
+                    constraints_.add(lhs_type, PrimitiveType::bool_(), bin->location(), "logical op: lhs must be bool");
+                    constraints_.add(rhs_type, PrimitiveType::bool_(), bin->location(), "logical op: rhs must be bool");
                 }
             }
             break;
@@ -636,7 +636,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         case BinaryOp::Shl:
         case BinaryOp::Shr:
             {
-                (void)constraints_.add(lhs_type, rhs_type, bin->location(), "bitwise op: operands must match");
+                constraints_.add(lhs_type, rhs_type, bin->location(), "bitwise op: operands must match");
                 result_type = lhs_type;
                 // Defer integer-type check to constraint solver for precise E2011 reporting
                 // (handled below after switch)
@@ -644,7 +644,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
             break;
         default:
             result_type = fresh_type_variable();
-            (void)constraints_.add(result_type, lhs_type, bin->location(), "binary expression default");
+            constraints_.add(result_type, lhs_type, bin->location(), "binary expression default");
             break;
         }
 
@@ -713,19 +713,19 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
                         "Use a boolean type (bool) for logical not."));
                 }
             }
-            (void)constraints_.add(operand_type, PrimitiveType::bool_(), un->location(), "not: operand must be bool");
+            constraints_.add(operand_type, PrimitiveType::bool_(), un->location(), "not: operand must be bool");
             result_type = PrimitiveType::bool_();
             break;
         case UnaryOp::PreInc:
         case UnaryOp::PostInc:
         case UnaryOp::PreDec:
         case UnaryOp::PostDec:
-            (void)constraints_.add(operand_type, PrimitiveType::i32(), un->location(), "inc/dec: operand must be integer");
+            constraints_.add(operand_type, PrimitiveType::i32(), un->location(), "inc/dec: operand must be integer");
             result_type = operand_type;
             break;
         default:
             result_type = fresh_type_variable();
-            (void)constraints_.add(result_type, operand_type, un->location(), "unary expression default");
+            constraints_.add(result_type, operand_type, un->location(), "unary expression default");
             break;
         }
 
@@ -772,7 +772,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         // Generate constraint: callee type must be compatible with (arg_types) -> result_type
         // This requires a proper function type representation
         // For now, we just ensure the callee is typed and args are typed
-        (void)constraints_.add(callee_type, callee_type, call->location(), "call expression callee");
+        constraints_.add(callee_type, callee_type, call->location(), "call expression callee");
 
         return std::make_unique<TypedCallExpr>(std::move(callee_typed), std::move(typed_args), std::move(result_type), call->location());
     }
@@ -858,7 +858,7 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
             return nullptr;
         }
 
-        (void)constraints_.add(target_typed->node_type(), value_typed->node_type(), assign->location(),
+        constraints_.add(target_typed->node_type(), value_typed->node_type(), assign->location(),
                          "assignment: LHS type must match RHS type");
 
         return std::make_unique<TypedAssignExpr>(std::move(target_typed), std::move(value_typed),
@@ -867,13 +867,13 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
     case NodeKind::TernaryExpr: {
         const auto* ter = static_cast<const TernaryExpr*>(&expr);
         auto cond_typed = type_expr(ter->condition());
-        (void)constraints_.add(cond_typed->node_type(), PrimitiveType::bool_(), ter->location(), "ternary condition must be bool");
+        constraints_.add(cond_typed->node_type(), PrimitiveType::bool_(), ter->location(), "ternary condition must be bool");
 
         auto then_typed = type_expr(ter->then_expr());
         auto else_typed = type_expr(ter->else_expr());
 
         // Both branches must have the same type
-        (void)constraints_.add(then_typed->node_type(), else_typed->node_type(), ter->location(), "ternary branches must match type");
+        constraints_.add(then_typed->node_type(), else_typed->node_type(), ter->location(), "ternary branches must match type");
 
         return std::make_unique<TypedTernaryExpr>(std::move(cond_typed), std::move(then_typed), std::move(else_typed),
                                                    then_typed->node_type(), ter->location());
@@ -983,7 +983,7 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                     return std::make_unique<TypedVarDecl>(names[0], std::move(var_type), nullptr, vd->is_const(), vd->location());
                 }
                 if(var_type) {
-                    (void)constraints_.add(var_type, typed_init->node_type(), vd->location(),
+                    constraints_.add(var_type, typed_init->node_type(), vd->location(),
                                      FORMAT("variable '{}' type annotation vs initializer", names[0]));
                 } else {
                     var_type = typed_init->node_type();
@@ -1006,7 +1006,7 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                     auto typed_init = type_expr(*initializers[i]);
                     if(typed_init) {
                         if(elem_type) {
-                            (void)constraints_.add(elem_type, typed_init->node_type(), vd->location(),
+                            constraints_.add(elem_type, typed_init->node_type(), vd->location(),
                                              FORMAT("variable '{}' type annotation vs initializer", names[i]));
                         } else {
                             elem_type = typed_init->node_type();
@@ -1106,7 +1106,7 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                 }
                 // Only add constraint if no concrete mismatch was already reported
                 if(!mismatch_reported) {
-                    (void)constraints_.add(return_type, *current_function_return_type_, rs->location(),
+                    constraints_.add(return_type, *current_function_return_type_, rs->location(),
                                      "return type must match function declaration");
                 }
             }
@@ -1129,7 +1129,7 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
     case NodeKind::IfStmt: {
         const auto* is = static_cast<const IfStmt*>(&stmt);
         auto typed_cond = type_expr(is->condition());
-        (void)constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), is->location(), "if condition must be bool");
+        constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), is->location(), "if condition must be bool");
 
         auto typed_then = type_stmt(is->then_branch());
         TypedStmtPtr typed_else;
@@ -1141,7 +1141,7 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
     case NodeKind::WhileStmt: {
         const auto* ws = static_cast<const WhileStmt*>(&stmt);
         auto typed_cond = type_expr(ws->condition());
-        (void)constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), ws->location(), "while condition must be bool");
+        constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), ws->location(), "while condition must be bool");
 
         ++loop_depth_;
         auto typed_body = type_stmt(ws->body());
@@ -1159,7 +1159,7 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
         TypedExprPtr typed_cond;
         if(fs->has_condition()) {
             typed_cond = type_expr(fs->condition());
-            (void)constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), fs->location(), "for condition must be bool");
+            constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), fs->location(), "for condition must be bool");
         }
 
         TypedExprPtr typed_incr;

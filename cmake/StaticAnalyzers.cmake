@@ -1,5 +1,5 @@
 macro(jsav_tool_not_found_warning TOOL_NAME)
-  message(${myproject_WARNING_TYPE} "${TOOL_NAME} was requested but executable was not found. Please install ${TOOL_NAME} to enable this feature.")
+  message(${jsav_WARNING_TYPE} "${TOOL_NAME} was requested but executable was not found. Please install ${TOOL_NAME} to enable this feature.")
 endmacro()
 
 macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)

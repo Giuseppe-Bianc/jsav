@@ -42,7 +42,7 @@ namespace jsv {
         return suffix_start;
     }
 
-    static bool has_decimal_point(std::string_view text) {
+    [[nodiscard]] static bool has_decimal_point(std::string_view text) {
         const auto suffix_start = find_suffix_start(text);
         const auto core = text.substr(0, suffix_start);
         return core.find('.') != std::string_view::npos;
@@ -62,7 +62,7 @@ namespace jsv {
         return {value, std::move(type_suffix)};
     }
 
-    static std::pair<double, std::optional<std::string>> parse_float_literal(std::string_view text) {
+    [[nodiscard]] static std::pair<double, std::optional<std::string>> parse_float_literal(std::string_view text) {
         if(text.empty()) { return {0.0, std::nullopt}; }
 
         const std::size_t suffix_start = find_suffix_start(text);

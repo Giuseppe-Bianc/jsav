@@ -164,9 +164,9 @@ namespace jsv {
         print_value(ansi::green("Arguments: "), FORMAT("({})", node.args().size()), true);
         if(!node.args().empty()) {
             const IndentGuard guard2{*this, true};
-            for(std::size_t i = 0; i < node.args().size(); ++i) {
-                const bool arg_last = (i == node.args().size() - 1);
-                visit_child(*node.args()[i], arg_last);
+            const auto &args = node.args();
+            for(const auto &[i, arg] : std::views::enumerate(args)) {
+                visit_child(*arg, i == std::ssize(args) - 1);
             }
         }
     }

@@ -32,6 +32,13 @@
 #include "ast/TypedProgram.hpp"
 #include "ast/TypedVisitor.hpp"
 #include "ast/TypedAst.hpp"
+#include "ast/TypedAst_printer.hpp"
 #include "parser/precedence.hpp"
 #include "parser/Parser.hpp"
+#include "typechecker/TypeVariable.hpp"
+#include "typechecker/TypeScheme.hpp"
+#include "typechecker/Constraint.hpp"
+#include "typechecker/ConstraintSolver.hpp"
+#include "typechecker/TypeChecker.hpp"
+#include "typechecker/ErrorType.hpp"
 // clang-format on

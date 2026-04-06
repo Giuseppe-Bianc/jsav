@@ -6,7 +6,6 @@
 
 // clang-format off
 #include "Node.hpp"
-#include "Expressions.hpp"
 // clang-format on
 
 namespace jsv {
@@ -542,16 +541,7 @@ namespace jsv {
 
     private:
         /// @brief Compare two size expressions structurally (supports IntegerLiteral).
-        [[nodiscard]] static bool sizes_equal(const Expr &a, const Expr &b) noexcept {
-            // Most common case: both are IntegerLiteral
-            if(const auto* ia = node_dyn_cast<const IntegerLiteral>(&a)) {
-                if(const auto* ib = node_dyn_cast<const IntegerLiteral>(&b)) {
-                    return ia->value() == ib->value();
-                }
-            }
-            // Fallback: pointer equality for unknown expression types
-            return &a == &b;
-        }
+        [[nodiscard]] static bool sizes_equal(const Expr &a, const Expr &b) noexcept;
 
         std::shared_ptr<const TypeBase> element_type_;
         std::shared_ptr<const Expr> size_expr_;

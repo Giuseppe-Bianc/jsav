@@ -15,10 +15,18 @@
 
 namespace jsv {
 
-/// Type checking result — matches spec.md Output Contract (FR-001)
+/**
+ * @brief Result of type checking a program.
+ *
+ * Contains the fully typed AST and any errors encountered during type checking.
+ * Matches spec.md Output Contract (FR-001).
+ *
+ * @note If `errors` is non-empty, the `program` may be partially typed or contain
+ *       placeholder types where inference failed.
+ */
 struct TypeCheckResult {
-    TypedProgram program;
-    std::vector<CompileError> errors;
+    TypedProgram program;                ///< The fully typed AST (may be incomplete if errors occurred)
+    std::vector<CompileError> errors;    ///< Collection of type errors encountered during checking
 };
 
 /**
@@ -35,13 +43,44 @@ struct TypeCheckResult {
  */
 class TypeChecker {
 public:
-    /// Type check a program, producing fully typed AST and error collection
+    /**
+     * @brief Type check a complete program.
+     *
+     * Performs the full type checking pipeline: name resolution, constraint
+     * generation, constraint solving (unification), and zonking to produce
+     * a fully typed AST.
+     *
+     * @param program The raw (untyped) program AST to type check.
+     * @return TypeCheckResult containing the typed program and any errors.
+     *
+     * @code
+     * TypeChecker checker;
+     * auto result = checker.check(parsedProgram);
+     * if (result.errors.empty()) {
+     *     // Successfully typed
+     * }
+     * @endcode
+     */
     [[nodiscard]] TypeCheckResult check(const Program& program);
 
-    /// Type a single expression (recursive) — public for unit testing
+    /**
+     * @brief Type a single expression (recursive).
+     *
+     * Exposed publicly for unit testing individual expression typing.
+     *
+     * @param expr The raw expression to type.
+     * @return Typed expression with inferred type annotation.
+     */
     [[nodiscard]] TypedExprPtr type_expr(const Expr& expr);
 
-    /// Type a single statement (recursive) — public for unit testing
+    /**
+     * @brief Type a single statement (recursive).
+     *
+     * Exposed publicly for unit testing individual statement typing.
+     *
+     * @param stmt The raw statement to type.
+     * @return Typed statement with all contained expressions typed.
+     */
     [[nodiscard]] TypedStmtPtr type_stmt(const Stmt& stmt);
 
 private:
@@ -74,7 +113,7 @@ private:
     /// Tracks the name of the enclosing function (for error messages)
     std::optional<std::string> current_function_name_;
     /// Tracks nesting depth inside loops (for break/continue validation)
-    int loop_depth_ = 0;
+    std::size_t loop_depth_ = 0;
 };
 
 }  // namespace jsv

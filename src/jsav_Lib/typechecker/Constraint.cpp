@@ -12,15 +12,13 @@ ConstraintId ConstraintSet::add(TypePtr lhs, TypePtr rhs, SourceSpan origin, std
     return id;
 }
 
-const std::vector<Constraint>& ConstraintSet::constraints() const noexcept { return constraints_; }
+[[nodiscard]] const std::vector<Constraint> &ConstraintSet::constraints() const noexcept { return constraints_; }
 
-const Constraint* ConstraintSet::get(ConstraintId id) const noexcept {
-    for(const auto& c : constraints_) {
-        if(c.id == id) { return &c; }
-    }
-    return nullptr;
+const Constraint *ConstraintSet::get(ConstraintId id) const noexcept {
+    const auto it = std::ranges::find(constraints_, id, &Constraint::id);
+    return it != constraints_.end() ? &*it : nullptr;
 }
 
-std::size_t ConstraintSet::size() const noexcept { return constraints_.size(); }
+[[nodiscard]]  std::size_t ConstraintSet::size() const noexcept { return constraints_.size(); }
 
 }  // namespace jsv

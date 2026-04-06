@@ -20,22 +20,62 @@ namespace jsv {
  */
 class SymbolTable {
 public:
-    /// Enter a new scope
+    /**
+     * @brief Enter a new (inner) scope.
+     *
+     * Creates an empty scope frame and pushes it onto the scope stack.
+     * All subsequent `define` calls will bind to this new scope until
+     * `popScope` is called.
+     */
     void push_scope();
 
-    /// Exit the current scope
+    /**
+     * @brief Exit the current (innermost) scope.
+     *
+     * Removes the innermost scope frame and all its bindings.
+     * @pre The scope stack must not be empty (depth() > 0).
+     */
     void pop_scope();
 
-    /// Define a symbol in the current scope
+    /**
+     * @brief Define a symbol in the current (innermost) scope.
+     *
+     * Binds @p name to @p scheme in the current scope. If @p name is
+     * already defined in the current scope, the binding is overwritten.
+     *
+     * @param name   The identifier to bind.
+     * @param scheme The type scheme to associate with the identifier.
+     * @pre At least one scope must exist (depth() > 0).
+     */
     void define(std::string_view name, TypeScheme scheme);
 
-    /// Lookup a symbol (searches from innermost to outermost scope)
+    /**
+     * @brief Lookup a symbol across all scopes.
+     *
+     * Searches for @p name starting from the innermost scope and
+     * proceeding outward. Returns the first binding found.
+     *
+     * @param name The identifier to look up.
+     * @return The associated TypeScheme if found; std::nullopt otherwise.
+     */
     [[nodiscard]] std::optional<TypeScheme> lookup(std::string_view name) const;
 
-    /// Check if a symbol exists in current scope only
+    /**
+     * @brief Check if a symbol is defined in the current scope only.
+     *
+     * Does not search outer scopes. Useful for detecting redefinitions
+     * or shadowing within the same scope level.
+     *
+     * @param name The identifier to check.
+     * @return true if @p name is bound in the innermost scope; false otherwise.
+     */
     [[nodiscard]] bool defined_in_current_scope(std::string_view name) const;
 
-    /// Current scope depth
+    /**
+     * @brief Get the current scope depth.
+     *
+     * @return The number of active scope frames (0 if no scopes have been pushed).
+     */
     [[nodiscard]] std::size_t depth() const noexcept;
 
 private:
