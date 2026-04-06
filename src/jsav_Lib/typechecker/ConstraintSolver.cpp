@@ -3,8 +3,6 @@
  * Copyright (c) 2026 All rights reserved.
  */
 #include "jsav/typechecker/ConstraintSolver.hpp"
-#include "jsavCore/format.hpp"
-#include "jsavCore/Log.hpp"
 #include "jsav/typechecker/ErrorType.hpp"
 
 namespace jsv {
@@ -156,7 +154,6 @@ std::expected<void, CompileError> ConstraintSolver::unify(const TypePtr& t1, con
     }
     default:
         // Primitive types with matching kinds are unified
-        LDEBUG("Unified primitive types: {}", t1->to_string());
         return {};
     }
 }

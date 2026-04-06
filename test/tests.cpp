@@ -16736,14 +16736,24 @@ TEST_CASE("ArrayType equality comparison", "[Type]") {
         REQUIRE(arrayType1 != arrayType2);
     }
 
-    SECTION("Different size expression pointers are not equal (pointer comparison)") {
+    SECTION("Different size expression pointers with same value are equal (structural comparison)") {
         const auto elementType = jsv::PrimitiveType::i32();
         const auto sizeExpr1 = makeIntegerLiteral(10);
         const auto sizeExpr2 = makeIntegerLiteral(10);
         const ArrayType arrayType1(elementType, sizeExpr1);
         const ArrayType arrayType2(elementType, sizeExpr2);
 
-        // Note: Currently uses pointer equality for size expressions
+        // Structural equality: same IntegerLiteral value means equal types
+        REQUIRE(arrayType1 == arrayType2);
+    }
+
+    SECTION("Different size expression values are not equal") {
+        const auto elementType = jsv::PrimitiveType::i32();
+        const auto sizeExpr1 = makeIntegerLiteral(10);
+        const auto sizeExpr2 = makeIntegerLiteral(20);
+        const ArrayType arrayType1(elementType, sizeExpr1);
+        const ArrayType arrayType2(elementType, sizeExpr2);
+
         REQUIRE(arrayType1 != arrayType2);
     }
 
@@ -17152,7 +17162,17 @@ TEST_CASE("Type equality edge cases", "[Type]") {
         const ArrayType array1(elementType, sizeExpr1);
         const ArrayType array2(elementType, sizeExpr2);
 
-        // Current implementation uses pointer equality for size expressions
+        // Structural equality: same IntegerLiteral value means equal types
+        REQUIRE(array1 == array2);
+    }
+
+    SECTION("Array type with same element but different size values") {
+        const auto elementType = PrimitiveType::i32();
+        const auto sizeExpr1 = makeIntegerLiteral(10);
+        const auto sizeExpr2 = makeIntegerLiteral(20);
+        const ArrayType array1(elementType, sizeExpr1);
+        const ArrayType array2(elementType, sizeExpr2);
+
         REQUIRE(array1 != array2);
     }
 

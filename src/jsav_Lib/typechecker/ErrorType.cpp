@@ -3,7 +3,6 @@
  * Copyright (c) 2026 All rights reserved.
  */
 #include "jsav/typechecker/ErrorType.hpp"
-#include "jsavCore/format.hpp"
 
 namespace jsv {
 

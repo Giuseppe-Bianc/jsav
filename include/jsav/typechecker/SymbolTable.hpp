@@ -5,6 +5,7 @@
 #pragma once
 
 // clang-format off
+#include "../headers.hpp"
 #include "jsav/typechecker/TypeScheme.hpp"
 // clang-format on
 

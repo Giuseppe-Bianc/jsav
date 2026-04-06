@@ -5,7 +5,7 @@
 #pragma once
 
 // clang-format off
-#include <optional>
+#include "../headers.hpp"
 #include "jsav/ast/Program.hpp"
 #include "jsav/ast/TypedProgram.hpp"
 #include "jsav/typechecker/Constraint.hpp"
