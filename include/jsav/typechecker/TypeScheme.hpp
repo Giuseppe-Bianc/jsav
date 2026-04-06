@@ -23,12 +23,16 @@ namespace jsv {
 struct TypeScheme {
     std::vector<TypeVarId> quantified_vars;  ///< Bound type variables
     TypePtr body;                             ///< Type body with references to vars
+    bool is_const{false};                     ///< Whether the binding is immutable (const)
 
     /// Instantiate with fresh type variables
     [[nodiscard]] TypePtr instantiate() const;
 
     /// Create monomorphic scheme (no quantified variables)
     [[nodiscard]] static TypeScheme mono(TypePtr type);
+
+    /// Create monomorphic scheme with mutability flag
+    [[nodiscard]] static TypeScheme mono(TypePtr type, bool const_flag);
 };
 
 }  // namespace jsv

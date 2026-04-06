@@ -35,6 +35,26 @@ namespace jsv {
     }
 }
 
+// Helper: check if a type is a numeric type (integer or float)
+[[nodiscard]] static bool is_numeric_type(const TypePtr& t) noexcept {
+    if(!t || t->kind() == TypeKind::TypeVar || t->kind() == TypeKind::Error) { return false; }
+    switch(t->kind()) {
+    case TypeKind::I8:
+    case TypeKind::I16:
+    case TypeKind::I32:
+    case TypeKind::I64:
+    case TypeKind::U8:
+    case TypeKind::U16:
+    case TypeKind::U32:
+    case TypeKind::U64:
+    case TypeKind::F32:
+    case TypeKind::F64:
+        return true;
+    default:
+        return false;
+    }
+}
+
 // ============================================================
 // Helper: parse type annotation string into TypePtr
 // ============================================================
@@ -516,12 +536,70 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         TypePtr result_type;
         switch(bin->op()) {
         case BinaryOp::Add:
+            // Special cases for string concatenation:
+            // string + string → string
+            // char + char → string
+            // string + char → string
+            // char + string → string
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                const bool lhs_str = lhs_type->kind() == TypeKind::String;
+                const bool rhs_str = rhs_type->kind() == TypeKind::String;
+                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                if((lhs_str || lhs_chr) && (rhs_str || rhs_chr)) {
+                    result_type = PrimitiveType::string();
+                    break;
+                }
+            }
+            // Fall through to numeric check
+            [[fallthrough]];
         case BinaryOp::Sub:
         case BinaryOp::Mul:
         case BinaryOp::Div:
         case BinaryOp::Mod:
-            constraints_.add(lhs_type, rhs_type, bin->location(), "binary arithmetic: operands must match");
-            result_type = lhs_type;
+            {
+                constraints_.add(lhs_type, rhs_type, bin->location(), "binary arithmetic: operands must match");
+                result_type = lhs_type;
+                // Early check: concrete non-numeric types → E2013 (only for non-Add ops)
+                if(bin->op() != BinaryOp::Add) {
+                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                        if(!is_numeric_type(lhs_type) || !is_numeric_type(rhs_type)) {
+                            message_storage_.push_back(
+                                FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                       binary_op_symbol(bin->op()),
+                                       lhs_type->to_string(),
+                                       rhs_type->to_string()));
+                            errors_.push_back(CompileError::TypeError(
+                                ErrorCode::E2013,
+                                message_storage_.back(),
+                                bin->location(),
+                                "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+                        }
+                    }
+                } else {
+                    // Add: allow numeric, string, char, or any string/char combo
+                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                        bool both_numeric = is_numeric_type(lhs_type) && is_numeric_type(rhs_type);
+                        bool lhs_str = lhs_type->kind() == TypeKind::String;
+                        bool rhs_str = rhs_type->kind() == TypeKind::String;
+                        bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                        bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                        bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
+                        if(!both_numeric && !string_char_combo) {
+                            message_storage_.push_back(
+                                FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
+                                       binary_op_symbol(bin->op()),
+                                       lhs_type->to_string(),
+                                       rhs_type->to_string()));
+                            errors_.push_back(CompileError::TypeError(
+                                ErrorCode::E2013,
+                                message_storage_.back(),
+                                bin->location(),
+                                "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
+                        }
+                    }
+                }
+            }
             break;
         case BinaryOp::Eq:
         case BinaryOp::Neq:
@@ -615,8 +693,34 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         switch(un->op()) {
         case UnaryOp::Negate:
             result_type = operand_type;
+            // Early check: concrete non-numeric type → E2018
+            if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
+                if(!is_numeric_type(operand_type)) {
+                    message_storage_.push_back(
+                        FORMAT("Negation requires numeric type operand, found {}",
+                               operand_type->to_string()));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2018,
+                        message_storage_.back(),
+                        un->location(),
+                        "Use a numeric type (i8-i64, u8-u64, f32, f64) for negation."));
+                }
+            }
             break;
         case UnaryOp::Not:
+            // Early check: concrete non-bool type → E2019
+            if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
+                if(operand_type->kind() != TypeKind::Bool) {
+                    message_storage_.push_back(
+                        FORMAT("Logical not requires boolean type operand, found {}",
+                               operand_type->to_string()));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2019,
+                        message_storage_.back(),
+                        un->location(),
+                        "Use a boolean type (bool) for logical not."));
+                }
+            }
             constraints_.add(operand_type, PrimitiveType::bool_(), un->location(), "not: operand must be bool");
             result_type = PrimitiveType::bool_();
             break;
@@ -682,19 +786,52 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
     }
     case NodeKind::ArrayLiteral: {
         const auto* arr = static_cast<const ArrayLiteral*>(&expr);
-        auto elem_type = fresh_type_variable();
+
+        if(arr->elements().empty()) {
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2020,
+                "Array literals must have at least one element for type inference",
+                arr->location(),
+                "Add at least one element to the array literal so the compiler can infer the element type"));
+            return nullptr;
+        }
+
         std::vector<TypedExprPtr> typed_elements;
         typed_elements.reserve(arr->elements().size());
 
-        for(const auto& elem : arr->elements()) {
-            auto typed_elem = type_expr(*elem);
-            constraints_.add(typed_elem->node_type(), elem_type, elem->location(), "array element type consistency");
+        // Type first element to establish expected element type
+        auto first_typed = type_expr(*arr->elements()[0]);
+        if(!first_typed) {
+            return nullptr;
+        }
+        const TypePtr& expected_type = first_typed->node_type();
+        typed_elements.push_back(std::move(first_typed));
+
+        // Type remaining elements and check consistency
+        for(std::size_t i = 1; i < arr->elements().size(); ++i) {
+            auto typed_elem = type_expr(*arr->elements()[i]);
+            if(!typed_elem) {
+                return nullptr;
+            }
+
+            const TypePtr& actual_type = typed_elem->node_type();
+            if(!(*expected_type == *actual_type)) {
+                message_storage_.push_back(
+                    FORMAT("All array elements must be same type, found mixed types: {} and {}",
+                           expected_type->to_string(), actual_type->to_string()));
+                errors_.push_back(CompileError::TypeError(
+                    ErrorCode::E2021,
+                    message_storage_.back(),
+                    typed_elem->location(),
+                    "Ensure all elements in the array literal have the same type"));
+                return nullptr;
+            }
+
             typed_elements.push_back(std::move(typed_elem));
         }
 
         auto size_expr = std::make_unique<IntegerLiteral>(static_cast<std::int64_t>(arr->elements().size()));
-        auto array_type = std::make_shared<ArrayType>(elem_type, std::move(size_expr));
-        constraints_.add(array_type, array_type, arr->location(), "array literal type");
+        auto array_type = std::make_shared<ArrayType>(expected_type, std::move(size_expr));
         return std::make_unique<TypedArrayLiteral>(std::move(typed_elements), std::move(array_type), arr->location());
     }
     case NodeKind::GroupingExpr: {
@@ -706,6 +843,28 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         const auto* assign = static_cast<const AssignExpr*>(&expr);
         auto target_typed = type_expr(assign->target());
         auto value_typed = type_expr(assign->value());
+
+        // Check if target is an immutable variable
+        if(target_typed && target_typed->kind() == NodeKind::Identifier) {
+            const auto* ident = static_cast<const TypedIdentifier*>(target_typed.get());
+            if(ident) {
+                auto sym = symbols_.lookup(ident->name());
+                if(sym && sym->is_const) {
+                    message_storage_.push_back(
+                        FORMAT("Cannot assign to immutable variable '{}'", ident->name()));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2024,
+                        message_storage_.back(),
+                        assign->location(),
+                        FORMAT("Variable '{}' was declared as const and cannot be modified", ident->name())));
+                    return nullptr;
+                }
+            }
+        }
+
+        if(!target_typed || !value_typed) {
+            return nullptr;
+        }
 
         constraints_.add(target_typed->node_type(), value_typed->node_type(), assign->location(),
                          "assignment: LHS type must match RHS type");
@@ -778,6 +937,10 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
     case NodeKind::ExprStmt: {
         const auto* es = static_cast<const ExprStmt*>(&stmt);
         auto typed_expr = type_expr(es->expression());
+        if(!typed_expr) {
+            // Error in expression — create placeholder
+            return std::make_unique<TypedExprStmt>(std::make_unique<TypedNullLiteral>(error_type()), PrimitiveType::void_(), es->location());
+        }
         return std::make_unique<TypedExprStmt>(std::move(typed_expr), PrimitiveType::void_(), es->location());
     }
     case NodeKind::VarDecl: {
@@ -795,18 +958,24 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
             // Single variable declaration
             if(!initializers.empty() && initializers[0]) {
                 auto typed_init = type_expr(*initializers[0]);
+                if(!typed_init) {
+                    // Type error in initializer — propagate fresh type variable
+                    if(!var_type) { var_type = fresh_type_variable(); }
+                    symbols_.define(names[0], TypeScheme::mono(var_type));
+                    return std::make_unique<TypedVarDecl>(names[0], std::move(var_type), nullptr, vd->is_const(), vd->location());
+                }
                 if(var_type) {
                     constraints_.add(var_type, typed_init->node_type(), vd->location(),
                                      FORMAT("variable '{}' type annotation vs initializer", names[0]));
                 } else {
                     var_type = typed_init->node_type();
                 }
-                symbols_.define(names[0], TypeScheme::mono(var_type));
+                symbols_.define(names[0], TypeScheme::mono(var_type, vd->is_const()));
                 return std::make_unique<TypedVarDecl>(names[0], std::move(var_type), std::move(typed_init), vd->is_const(), vd->location());
             } else {
                 // No initializer — use annotation or fresh type variable
                 if(!var_type) { var_type = fresh_type_variable(); }
-                symbols_.define(names[0], TypeScheme::mono(var_type));
+                symbols_.define(names[0], TypeScheme::mono(var_type, vd->is_const()));
                 return std::make_unique<TypedVarDecl>(names[0], std::move(var_type), nullptr, vd->is_const(), vd->location());
             }
         } else {
@@ -817,16 +986,18 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                 TypePtr elem_type = multi_type;
                 if(i < initializers.size() && initializers[i]) {
                     auto typed_init = type_expr(*initializers[i]);
-                    if(elem_type) {
-                        constraints_.add(elem_type, typed_init->node_type(), vd->location(),
-                                         FORMAT("variable '{}' type annotation vs initializer", names[i]));
-                    } else {
-                        elem_type = typed_init->node_type();
+                    if(typed_init) {
+                        if(elem_type) {
+                            constraints_.add(elem_type, typed_init->node_type(), vd->location(),
+                                             FORMAT("variable '{}' type annotation vs initializer", names[i]));
+                        } else {
+                            elem_type = typed_init->node_type();
+                        }
                     }
                 } else if(!elem_type) {
                     elem_type = fresh_type_variable();
                 }
-                symbols_.define(names[i], TypeScheme::mono(elem_type));
+                symbols_.define(names[i], TypeScheme::mono(elem_type, vd->is_const()));
             }
             // Return a simplified single var decl for the first variable
             TypedExprPtr first_init;

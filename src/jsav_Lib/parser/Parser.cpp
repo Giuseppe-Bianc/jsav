@@ -42,13 +42,37 @@ namespace jsv {
         return suffix_start;
     }
 
-    static std::pair<std::int64_t, std::optional<std::string>> parse_numeric_literal(std::string_view text) {
+    static bool has_decimal_point(std::string_view text) {
+        const auto suffix_start = find_suffix_start(text);
+        const auto core = text.substr(0, suffix_start);
+        return core.find('.') != std::string_view::npos;
+    }
+
+    static std::pair<std::int64_t, std::optional<std::string>> parse_integer_literal(std::string_view text) {
         if(text.empty()) { return {0, std::nullopt}; }
 
         const std::size_t suffix_start = find_suffix_start(text);
 
         std::int64_t value = 0;
         std::from_chars(text.data(), text.data() + suffix_start, value);
+
+        std::optional<std::string> type_suffix;
+        if(suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
+
+        return {value, std::move(type_suffix)};
+    }
+
+    static std::pair<double, std::optional<std::string>> parse_float_literal(std::string_view text) {
+        if(text.empty()) { return {0.0, std::nullopt}; }
+
+        const std::size_t suffix_start = find_suffix_start(text);
+
+        double value = 0.0;
+        const auto result = std::from_chars(text.data(), text.data() + suffix_start, value);
+        if(result.ec != std::errc{}) {
+            // Fallback for parsing errors
+            value = 0.0;
+        }
 
         std::optional<std::string> type_suffix;
         if(suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
@@ -512,8 +536,13 @@ namespace jsv {
         switch(token.getKind()) {
         case TokenKind::Numeric:
             {
-                const auto [value, type_suffix] = parse_numeric_literal(token.getText());
-                return std::make_unique<IntegerLiteral>(value, token.getSpan(), type_suffix);
+                if(has_decimal_point(token.getText())) {
+                    const auto [value, type_suffix] = parse_float_literal(token.getText());
+                    return std::make_unique<FloatLiteral>(value, token.getSpan());
+                } else {
+                    const auto [value, type_suffix] = parse_integer_literal(token.getText());
+                    return std::make_unique<IntegerLiteral>(value, token.getSpan(), type_suffix);
+                }
             }
         case TokenKind::KeywordBool:
             {
@@ -819,7 +848,7 @@ namespace jsv {
         while(match_token(TokenKind::OpenBracket)) {
             const auto &dim_token = peek();  // PERF: reference
             if(dim_token.getKind() == TokenKind::Numeric) {
-                const auto [dim_value, dim_suffix_unused] = parse_numeric_literal(dim_token.getText());
+                const auto [dim_value, dim_suffix_unused] = parse_integer_literal(dim_token.getText());
                 if(dim_value <= 0) {
                     syntax_error("Array dimension must be positive", dim_token, "Provide a positive integer greater than 0",
                                  ErrorCode::E1002);

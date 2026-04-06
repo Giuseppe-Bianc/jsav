@@ -11646,7 +11646,7 @@ TEST_CASE("Parser corner cases - unary operators", "[Parser]") {
 TEST_CASE("Parser corner cases - array literals", "[Parser]") {
     using namespace jsv;
 
-    SECTION("Parse empty array literal") {
+    SECTION("Parse empty array literal - should produce E2020 error") {
         std::vector<Token> tokens;
         tokens.emplace_back(TokenKind::OpenBrace, "{", SourceSpan{});
         tokens.emplace_back(TokenKind::CloseBrace, "}", SourceSpan{});
@@ -11656,7 +11656,17 @@ TEST_CASE("Parser corner cases - array literals", "[Parser]") {
         auto [program, errors] = parser.parse();
 
         REQUIRE(program != nullptr);
-        REQUIRE(errors.empty());
+        REQUIRE_FALSE(errors.empty());
+        
+        bool found_e2020 = false;
+        for(const auto &error : errors) {
+            if(error.error_code().has_value() && error.error_code() == ErrorCode::E2020) {
+                found_e2020 = true;
+                REQUIRE(error.message().find("at least one element") != std::string_view::npos);
+                break;
+            }
+        }
+        REQUIRE(found_e2020);
     }
 
     SECTION("Parse array with single element") {

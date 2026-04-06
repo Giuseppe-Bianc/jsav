@@ -7,7 +7,9 @@
 
 namespace jsv {
 
-TypeScheme TypeScheme::mono(TypePtr type) { return TypeScheme{.quantified_vars = {}, .body = std::move(type)}; }
+TypeScheme TypeScheme::mono(TypePtr type) { return TypeScheme{.quantified_vars = {}, .body = std::move(type), .is_const = false}; }
+
+TypeScheme TypeScheme::mono(TypePtr type, bool const_flag) { return TypeScheme{.quantified_vars = {}, .body = std::move(type), .is_const = const_flag}; }
 
 TypePtr TypeScheme::instantiate() const {
     if(quantified_vars.empty()) { return body; }

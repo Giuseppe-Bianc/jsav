@@ -9,6 +9,26 @@
 
 namespace jsv {
 
+// Helper: check if a type is a numeric type (integer or float)
+[[nodiscard]] static bool is_numeric_type(const TypePtr& t) noexcept {
+    if(!t || t->kind() == TypeKind::TypeVar || t->kind() == TypeKind::Error) { return false; }
+    switch(t->kind()) {
+    case TypeKind::I8:
+    case TypeKind::I16:
+    case TypeKind::I32:
+    case TypeKind::I64:
+    case TypeKind::U8:
+    case TypeKind::U16:
+    case TypeKind::U32:
+    case TypeKind::U64:
+    case TypeKind::F32:
+    case TypeKind::F64:
+        return true;
+    default:
+        return false;
+    }
+}
+
 SolverResult ConstraintSolver::solve(const ConstraintSet& constraints) {
     SolverResult result;
     union_find_ = UnionFind{};
@@ -104,11 +124,22 @@ std::expected<void, CompileError> ConstraintSolver::unify(const TypePtr& t1, con
 
     // Both are concrete types - check structural equality
     if(t1->kind() != t2->kind()) {
+        // Special case: numeric type mismatches (i64 vs f64)
+        const bool is_numeric_mismatch = is_numeric_type(t1) && is_numeric_type(t2);
+        
+        std::string hint;
+        if(is_numeric_mismatch) {
+            hint = FORMAT("Did you mean to cast {} to {}? Example: `static_cast<{}>(value)` or `{}(value)`.", 
+                         t2->to_string(), t1->to_string(), t1->to_string(), t1->to_string());
+        } else {
+            hint = FORMAT("Did you mean to cast {} to {}?", t2->to_string(), t1->to_string());
+        }
+        
         return std::unexpected{CompileError::TypeError(
             ErrorCode::E2034,
             "Type mismatch",
             constraint.origin,
-            FORMAT("Did you mean to cast {} to {}?", t2->to_string(), t1->to_string()))};
+            std::move(hint))};
     }
 
     // Same kind - check compound types recursively
