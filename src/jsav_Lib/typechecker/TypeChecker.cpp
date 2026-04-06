@@ -534,9 +534,31 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
             break;
         case BinaryOp::And:
         case BinaryOp::Or:
-            constraints_.add(lhs_type, PrimitiveType::bool_(), bin->location(), "logical op: lhs must be bool");
-            constraints_.add(rhs_type, PrimitiveType::bool_(), bin->location(), "logical op: rhs must be bool");
-            result_type = PrimitiveType::bool_();
+            {
+                result_type = PrimitiveType::bool_();
+                bool mismatch_reported = false;
+                // Early check: concrete non-bool types → E2012
+                if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                    if(lhs_type->kind() != TypeKind::Bool || rhs_type->kind() != TypeKind::Bool) {
+                        message_storage_.push_back(
+                            FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
+                                   binary_op_symbol(bin->op()),
+                                   lhs_type->to_string(),
+                                   rhs_type->to_string()));
+                        errors_.push_back(CompileError::TypeError(
+                            ErrorCode::E2012,
+                            message_storage_.back(),
+                            bin->location(),
+                            "Use boolean values (true/false) for logical operations."));
+                        mismatch_reported = true;
+                    }
+                }
+                if(!mismatch_reported) {
+                    // Defer to constraint solver for type variables
+                    constraints_.add(lhs_type, PrimitiveType::bool_(), bin->location(), "logical op: lhs must be bool");
+                    constraints_.add(rhs_type, PrimitiveType::bool_(), bin->location(), "logical op: rhs must be bool");
+                }
+            }
             break;
         case BinaryOp::BitAnd:
         case BinaryOp::BitOr:
