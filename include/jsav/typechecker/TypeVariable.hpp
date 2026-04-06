@@ -92,8 +92,7 @@ private:
  * type inference operations. Each call returns a new TypeVariable with
  * an ID guaranteed to be unique within the current thread.
  *
- * @return A TypePtr (smart pointer) to a newly allocated TypeVariable.
- * @throws std::bad_alloc if memory allocation fails.
+ * @return A TypePtr to a newly allocated TypeVariable, or nullptr if allocation fails.
  *
  * @code
  * auto tv1 = fresh_type_variable();  // e.g., ?T1

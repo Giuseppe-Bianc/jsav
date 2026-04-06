@@ -1236,5 +1236,3 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
 
 }  // namespace jsv
 
-
-

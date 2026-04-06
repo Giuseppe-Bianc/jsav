@@ -72,6 +72,8 @@ public:
      * @param reason Human-readable explanation of why this constraint was generated
      * @throws std::bad_alloc if memory allocation fails
      *
+     * @return The unique ConstraintId assigned to the newly created constraint (1-based).
+     *
      * @par Example
      * @code
      * ConstraintSet cs;
