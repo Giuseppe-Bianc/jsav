@@ -475,9 +475,11 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         const auto* id = static_cast<const Identifier*>(&expr);
         auto sym = symbols_.lookup(id->name());
         if(!sym) {
+            message_storage_.push_back(
+                FORMAT("Undeclared identifier: {}", id->name()));
             errors_.push_back(CompileError::TypeError(
                 ErrorCode::E2033,
-                "Undeclared identifier",
+                message_storage_.back(),
                 id->location(),
                 FORMAT("Identifier '{}' was not declared in this scope", id->name())));
             return std::make_unique<TypedIdentifier>(id->name(), error_type(), id->location());
@@ -823,13 +825,15 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                 if(return_type->kind() != TypeKind::TypeVar &&
                    (*current_function_return_type_)->kind() != TypeKind::TypeVar) {
                     if(return_type->to_string() != (*current_function_return_type_)->to_string()) {
+                        message_storage_.push_back(
+                            FORMAT("Return type mismatch, expected {} found {}",
+                                   (*current_function_return_type_)->to_string(),
+                                   return_type->to_string()));
                         errors_.push_back(CompileError::TypeError(
                             ErrorCode::E2007,
-                            "Return type mismatch",
+                            message_storage_.back(),
                             rs->location(),
-                            FORMAT("Expected {} but found {}",
-                                   (*current_function_return_type_)->to_string(),
-                                   return_type->to_string())));
+                            "Change the return value type or update the function's return type."));
                         mismatch_reported = true;
                     }
                 }
@@ -840,15 +844,16 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                 }
             }
         } else {
-            // Void return — constrain void against function return type
+            // Void return — function expects a value but none provided
             if(*current_function_return_type_ && (*current_function_return_type_)->kind() != TypeKind::Void) {
+                message_storage_.push_back(
+                    FORMAT("Return type mismatch, expected {} found void",
+                           (*current_function_return_type_)->to_string()));
                 errors_.push_back(CompileError::TypeError(
-                    ErrorCode::E2034,
-                    "Return value missing",
+                    ErrorCode::E2008,
+                    message_storage_.back(),
                     rs->location(),
-                    FORMAT("Function '{}' is declared to return {}, but return statement has no value",
-                           current_function_name_.value_or("unknown"),
-                           (*current_function_return_type_)->to_string())));
+                    "Return statement has no value but function expects a return type."));
             }
         }
 
@@ -871,7 +876,9 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
         auto typed_cond = type_expr(ws->condition());
         constraints_.add(typed_cond->node_type(), PrimitiveType::bool_(), ws->location(), "while condition must be bool");
 
+        ++loop_depth_;
         auto typed_body = type_stmt(ws->body());
+        --loop_depth_;
         return std::make_unique<TypedWhileStmt>(std::move(typed_cond), std::move(typed_body), PrimitiveType::void_(), ws->location());
     }
     case NodeKind::ForStmt: {
@@ -891,7 +898,9 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
         TypedExprPtr typed_incr;
         if(fs->has_increment()) { typed_incr = type_expr(fs->increment()); }
 
+        ++loop_depth_;
         auto typed_body = type_stmt(fs->body());
+        --loop_depth_;
 
         symbols_.pop_scope();
 
@@ -908,9 +917,23 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
         return std::make_unique<TypedBlockStmt>(std::move(typed_stmts), PrimitiveType::void_(), bs->location());
     }
     case NodeKind::BreakStmt: {
+        if(loop_depth_ <= 0) {
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2009,
+                "Break statement outside loop",
+                stmt.location(),
+                "Break is only valid inside for or while loops."));
+        }
         return std::make_unique<TypedBreakStmt>(PrimitiveType::void_(), stmt.location());
     }
     case NodeKind::ContinueStmt: {
+        if(loop_depth_ <= 0) {
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2010,
+                "Continue statement outside loop",
+                stmt.location(),
+                "Continue is only valid inside for or while loops."));
+        }
         return std::make_unique<TypedContinueStmt>(PrimitiveType::void_(), stmt.location());
     }
     case NodeKind::MainStmt: {

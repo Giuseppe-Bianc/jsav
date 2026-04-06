@@ -66,12 +66,15 @@ private:
     SymbolTable symbols_;
     ConstraintSet constraints_;
     std::vector<CompileError> errors_;
+    std::vector<std::string> message_storage_;  // Owns dynamic strings for CompileError::message_ (std::string_view)
     std::vector<TypedStmtPtr> typed_stmts_;  // Stored during constraint generation
 
     /// Tracks the expected return type of the enclosing function (for return statement checking)
     std::optional<TypePtr> current_function_return_type_;
     /// Tracks the name of the enclosing function (for error messages)
     std::optional<std::string> current_function_name_;
+    /// Tracks nesting depth inside loops (for break/continue validation)
+    int loop_depth_ = 0;
 };
 
 }  // namespace jsv
