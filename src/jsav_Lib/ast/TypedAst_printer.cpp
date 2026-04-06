@@ -50,31 +50,36 @@ namespace jsv {
         } else {
             value_str = FORMAT("{}", node.value());
         }
-        print_value(ansi::green("TypedLiteral "), FORMAT("{} [{}]", value_str, node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::green("TypedLiteral "), FORMAT("{} [{}]", value_str, node.node_type() ? node.node_type()->to_string() : "none"),
+                    is_last);
     }
 
     // cppcheck-suppress functionConst
     void TypedAstPrinter::visit_FloatLiteral(const TypedFloatLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::green("TypedLiteral "), FORMAT("{}f [{}]", node.value(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::green("TypedLiteral "),
+                    FORMAT("{}f [{}]", node.value(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
     }
 
     // cppcheck-suppress functionConst
     void TypedAstPrinter::visit_StringLiteral(const TypedStringLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::green("TypedLiteral "), FORMAT("\"{}\" [{}]", node.value(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::green("TypedLiteral "),
+                    FORMAT("\"{}\" [{}]", node.value(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
     }
 
     // cppcheck-suppress functionConst
     void TypedAstPrinter::visit_CharLiteral(const TypedCharLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::green("TypedLiteral "), FORMAT("'{}' [{}]", node.value(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::green("TypedLiteral "),
+                    FORMAT("'{}' [{}]", node.value(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
     }
 
     // cppcheck-suppress functionConst
     void TypedAstPrinter::visit_BoolLiteral(const TypedBoolLiteral &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::green("TypedLiteral "), FORMAT("{} [{}]", node.value() ? "true" : "false", node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::green("TypedLiteral "),
+                    FORMAT("{} [{}]", node.value() ? "true" : "false", node.node_type() ? node.node_type()->to_string() : "none"), is_last);
     }
 
     // cppcheck-suppress functionConst
@@ -86,7 +91,8 @@ namespace jsv {
     // cppcheck-suppress functionConst
     void TypedAstPrinter::visit_Identifier(const TypedIdentifier &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::blue("TypedIdentifier "), FORMAT("{} [{}]", node.name(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::blue("TypedIdentifier "),
+                    FORMAT("{} [{}]", node.name(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
     }
 
     void TypedAstPrinter::visit_UnaryExpr(const TypedUnaryExpr &node) {
@@ -98,7 +104,8 @@ namespace jsv {
         } else if(node.op() == UnaryOp::PostInc || node.op() == UnaryOp::PostDec) {
             position = " (postfix)";
         }
-        print_value(ansi::cyan("TypedUnaryExpr "), FORMAT("'{}'{} [{}]", op_str, position, node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::cyan("TypedUnaryExpr "),
+                    FORMAT("'{}'{} [{}]", op_str, position, node.node_type() ? node.node_type()->to_string() : "none"), is_last);
         const IndentGuard guard{*this, is_last};
 
         print_line(ansi::cyan("Operand:"), true);
@@ -110,7 +117,8 @@ namespace jsv {
 
     void TypedAstPrinter::visit_BinaryExpr(const TypedBinaryExpr &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::cyan("TypedBinaryExpr "), FORMAT("'{}' [{}]", binary_op_symbol(node.op()), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::cyan("TypedBinaryExpr "),
+                    FORMAT("'{}' [{}]", binary_op_symbol(node.op()), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
         const IndentGuard guard{*this, is_last};
 
         print_line(ansi::cyan("Left:"), false);
@@ -165,9 +173,7 @@ namespace jsv {
         if(!node.args().empty()) {
             const IndentGuard guard2{*this, true};
             const auto &args = node.args();
-            for(const auto &[i, arg] : std::views::enumerate(args)) {
-                visit_child(*arg, i == std::ssize(args) - 1);
-            }
+            for(const auto &[i, arg] : std::views::enumerate(args)) { visit_child(*arg, i == std::ssize(args) - 1); }
         }
     }
 
@@ -191,7 +197,8 @@ namespace jsv {
 
     void TypedAstPrinter::visit_MemberExpr(const TypedMemberExpr &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::cyan("TypedMemberExpr "), FORMAT(".{} [{}]", node.member(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::cyan("TypedMemberExpr "),
+                    FORMAT(".{} [{}]", node.member(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
         const IndentGuard guard{*this, is_last};
 
         print_line(ansi::blue("Object:"), true);
@@ -221,7 +228,8 @@ namespace jsv {
 
     void TypedAstPrinter::visit_CastExpr(const TypedCastExpr &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::cyan("TypedCastExpr "), FORMAT("-> {} [{}]", node.target_type(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::cyan("TypedCastExpr "),
+                    FORMAT("-> {} [{}]", node.target_type(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
         const IndentGuard guard{*this, is_last};
 
         print_line(ansi::green("Operand:"), true);
@@ -281,7 +289,8 @@ namespace jsv {
 
     void TypedAstPrinter::visit_FuncDecl(const TypedFuncDecl &node) {
         const bool is_last = next_is_last_;
-        print_value(ansi::blue_bold("TypedFunction"), FORMAT(" {} [{}]", node.name(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(ansi::blue_bold("TypedFunction"),
+                    FORMAT(" {} [{}]", node.name(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
         const IndentGuard guard{*this, is_last};
 
         const bool has_params = !node.params().empty();

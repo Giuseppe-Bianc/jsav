@@ -11,75 +11,75 @@
 
 namespace jsv {
 
-/**
- * @brief Symbol table with lexical scoping.
- *
- * Manages identifier-to-TypeScheme mappings with nested scope
- * support. Implements shadowing: inner-scope bindings hide
- * outer-scope bindings with the same name.
- */
-class SymbolTable {
-public:
     /**
-     * @brief Enter a new (inner) scope.
+     * @brief Symbol table with lexical scoping.
      *
-     * Creates an empty scope frame and pushes it onto the scope stack.
-     * All subsequent `define` calls will bind to this new scope until
-     * `popScope` is called.
+     * Manages identifier-to-TypeScheme mappings with nested scope
+     * support. Implements shadowing: inner-scope bindings hide
+     * outer-scope bindings with the same name.
      */
-    void push_scope();
+    class SymbolTable {
+    public:
+        /**
+         * @brief Enter a new (inner) scope.
+         *
+         * Creates an empty scope frame and pushes it onto the scope stack.
+         * All subsequent `define` calls will bind to this new scope until
+         * `popScope` is called.
+         */
+        void push_scope();
 
-    /**
-     * @brief Exit the current (innermost) scope.
-     *
-     * Removes the innermost scope frame and all its bindings.
-     * @pre The scope stack must not be empty (depth() > 0).
-     */
-    void pop_scope();
+        /**
+         * @brief Exit the current (innermost) scope.
+         *
+         * Removes the innermost scope frame and all its bindings.
+         * @pre The scope stack must not be empty (depth() > 0).
+         */
+        void pop_scope();
 
-    /**
-     * @brief Define a symbol in the current (innermost) scope.
-     *
-     * Binds @p name to @p scheme in the current scope. If @p name is
-     * already defined in the current scope, the binding is overwritten.
-     *
-     * @param name   The identifier to bind.
-     * @param scheme The type scheme to associate with the identifier.
-     * @pre At least one scope must exist (depth() > 0).
-     */
-    void define(std::string_view name, TypeScheme scheme);
+        /**
+         * @brief Define a symbol in the current (innermost) scope.
+         *
+         * Binds @p name to @p scheme in the current scope. If @p name is
+         * already defined in the current scope, the binding is overwritten.
+         *
+         * @param name   The identifier to bind.
+         * @param scheme The type scheme to associate with the identifier.
+         * @pre At least one scope must exist (depth() > 0).
+         */
+        void define(std::string_view name, TypeScheme scheme);
 
-    /**
-     * @brief Lookup a symbol across all scopes.
-     *
-     * Searches for @p name starting from the innermost scope and
-     * proceeding outward. Returns the first binding found.
-     *
-     * @param name The identifier to look up.
-     * @return The associated TypeScheme if found; std::nullopt otherwise.
-     */
-    [[nodiscard]] std::optional<TypeScheme> lookup(std::string_view name) const;
+        /**
+         * @brief Lookup a symbol across all scopes.
+         *
+         * Searches for @p name starting from the innermost scope and
+         * proceeding outward. Returns the first binding found.
+         *
+         * @param name The identifier to look up.
+         * @return The associated TypeScheme if found; std::nullopt otherwise.
+         */
+        [[nodiscard]] std::optional<TypeScheme> lookup(std::string_view name) const;
 
-    /**
-     * @brief Check if a symbol is defined in the current scope only.
-     *
-     * Does not search outer scopes. Useful for detecting redefinitions
-     * or shadowing within the same scope level.
-     *
-     * @param name The identifier to check.
-     * @return true if @p name is bound in the innermost scope; false otherwise.
-     */
-    [[nodiscard]] bool defined_in_current_scope(std::string_view name) const;
+        /**
+         * @brief Check if a symbol is defined in the current scope only.
+         *
+         * Does not search outer scopes. Useful for detecting redefinitions
+         * or shadowing within the same scope level.
+         *
+         * @param name The identifier to check.
+         * @return true if @p name is bound in the innermost scope; false otherwise.
+         */
+        [[nodiscard]] bool defined_in_current_scope(std::string_view name) const;
 
-    /**
-     * @brief Get the current scope depth.
-     *
-     * @return The number of active scope frames (0 if no scopes have been pushed).
-     */
-    [[nodiscard]] std::size_t depth() const noexcept;
+        /**
+         * @brief Get the current scope depth.
+         *
+         * @return The number of active scope frames (0 if no scopes have been pushed).
+         */
+        [[nodiscard]] std::size_t depth() const noexcept;
 
-private:
-    std::vector<std::unordered_map<std::string, TypeScheme>> scopes_;
-};
+    private:
+        std::vector<std::unordered_map<std::string, TypeScheme>> scopes_;
+    };
 
 }  // namespace jsv

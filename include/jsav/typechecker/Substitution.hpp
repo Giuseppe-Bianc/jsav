@@ -12,31 +12,31 @@
 
 namespace jsv {
 
-/**
- * @brief Substitution: maps type variables to their resolved types.
- *
- * Produced by the constraint solver and applied (zonked) to the
- * typed AST to produce concrete types.
- */
-class Substitution {
-public:
-    /// Bind a type variable to a type
-    void bind(TypeVarId var, TypePtr type);
+    /**
+     * @brief Substitution: maps type variables to their resolved types.
+     *
+     * Produced by the constraint solver and applied (zonked) to the
+     * typed AST to produce concrete types.
+     */
+    class Substitution {
+    public:
+        /// Bind a type variable to a type
+        void bind(TypeVarId var, TypePtr type);
 
-    /// Lookup the binding for a type variable
-    [[nodiscard]] std::optional<TypePtr> lookup(TypeVarId var) const noexcept;
+        /// Lookup the binding for a type variable
+        [[nodiscard]] std::optional<TypePtr> lookup(TypeVarId var) const noexcept;
 
-    /// Apply substitution to a type (resolve all type variables)
-    [[nodiscard]] TypePtr apply(const TypePtr& type) const;
+        /// Apply substitution to a type (resolve all type variables)
+        [[nodiscard]] TypePtr apply(const TypePtr &type) const;
 
-    /// Check if a variable is bound
-    [[nodiscard]] bool contains(TypeVarId var) const noexcept;
+        /// Check if a variable is bound
+        [[nodiscard]] bool contains(TypeVarId var) const noexcept;
 
-    /// Number of bindings
-    [[nodiscard]] std::size_t size() const noexcept;
+        /// Number of bindings
+        [[nodiscard]] std::size_t size() const noexcept;
 
-private:
-    std::unordered_map<TypeVarId, TypePtr> bindings_;
-};
+    private:
+        std::unordered_map<TypeVarId, TypePtr> bindings_;
+    };
 
 }  // namespace jsv

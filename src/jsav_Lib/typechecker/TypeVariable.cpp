@@ -6,16 +6,16 @@
 
 namespace jsv {
 
-std::string TypeVariable::to_string() const { return FORMAT("?T{}", id_); }
+    std::string TypeVariable::to_string() const { return FORMAT("?T{}", id_); }
 
-namespace {
-    /// Thread-local counter for generating unique type variable IDs
-    [[nodiscard]] std::size_t next_type_var_id() noexcept {
-        static thread_local std::size_t counter = 0;
-        return ++counter;
-    }
-}  // namespace
+    namespace {
+        /// Thread-local counter for generating unique type variable IDs
+        [[nodiscard]] std::size_t next_type_var_id() noexcept {
+            static thread_local std::size_t counter = 0;
+            return ++counter;
+        }
+    }  // namespace
 
-TypePtr fresh_type_variable() noexcept { return std::make_shared<TypeVariable>(next_type_var_id()); }
+    TypePtr fresh_type_variable() noexcept { return std::make_shared<TypeVariable>(next_type_var_id()); }
 
 }  // namespace jsv
