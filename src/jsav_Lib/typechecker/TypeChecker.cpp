@@ -817,9 +817,27 @@ TypedStmtPtr TypeChecker::type_stmt(const Stmt& stmt) {
                     rs->location(),
                     "Remove the return value or change the function's return type."));
             } else if(current_function_return_type_) {
-                // Constrain return type against enclosing function's declared return type
-                constraints_.add(return_type, *current_function_return_type_, rs->location(),
-                                 "return type must match function declaration");
+                // Early check: concrete type mismatch for return statements → E2007
+                // Both types are resolved (not type variables) — compare directly
+                bool mismatch_reported = false;
+                if(return_type->kind() != TypeKind::TypeVar &&
+                   (*current_function_return_type_)->kind() != TypeKind::TypeVar) {
+                    if(return_type->to_string() != (*current_function_return_type_)->to_string()) {
+                        errors_.push_back(CompileError::TypeError(
+                            ErrorCode::E2007,
+                            "Return type mismatch",
+                            rs->location(),
+                            FORMAT("Expected {} but found {}",
+                                   (*current_function_return_type_)->to_string(),
+                                   return_type->to_string())));
+                        mismatch_reported = true;
+                    }
+                }
+                // Only add constraint if no concrete mismatch was already reported
+                if(!mismatch_reported) {
+                    constraints_.add(return_type, *current_function_return_type_, rs->location(),
+                                     "return type must match function declaration");
+                }
             }
         } else {
             // Void return — constrain void against function return type
