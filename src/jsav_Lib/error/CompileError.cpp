@@ -63,21 +63,17 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-            /*case Kind::TypeError:
-            case Kind::IrGeneratorError:
-            case Kind::AsmGeneratorError:*/
+        case Kind::TypeError:
             return code_;
         }
-        return code_;  // fallback (code_ sarà nullopt per i kind senza codice)
+        return code_;
     }
 
     std::string_view CompileError::message() const {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-            /*case Kind::TypeError:
-            case Kind::IrGeneratorError:
-            case Kind::AsmGeneratorError:*/
+        case Kind::TypeError:
             return message_;
         }
         return std::string_view{};
@@ -87,8 +83,8 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-        /*case Kind::TypeError:
-        case Kind::IrGeneratorError:*/
+        case Kind::TypeError:
+            return span_;
         default:
             return span_;
         }
@@ -98,8 +94,7 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-            /*case Kind::TypeError:
-            case Kind::IrGeneratorError:*/
+        case Kind::TypeError:
             return help_ ? std::optional<const std::string *>(&(*help_)) : std::nullopt;
         default:
             return std::nullopt;
@@ -116,9 +111,7 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-            /*case Kind::TypeError:
-            case Kind::IrGeneratorError:
-            case Kind::AsmGeneratorError:*/
+        case Kind::TypeError:
             message_ = new_message;
             break;
         }
@@ -128,8 +121,7 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-            /*case Kind::TypeError:
-            case Kind::IrGeneratorError:*/
+        case Kind::TypeError:
             span_ = vnd_move(new_span);
             break;
         default:
@@ -141,8 +133,7 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
-            /*case Kind::TypeError:
-            case Kind::IrGeneratorError:*/
+        case Kind::TypeError:
             help_ = vnd_move(new_help);
             break;
         default:

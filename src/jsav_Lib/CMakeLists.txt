@@ -35,6 +35,8 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/ast/Visitor.hpp
         ast/Ast_printer.cpp
         ../../include/jsav/ast/Ast_printer.hpp
+        ast/TypedAst_printer.cpp
+        ../../include/jsav/ast/TypedAst_printer.hpp
         ast/Type.cpp
         ../../include/jsav/ast/Type.hpp
         ast/TypedNode.cpp
@@ -49,24 +51,24 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/util/AnsiStyles.hpp
         parser/Parser.cpp
         ../../include/jsav/parser/Parser.hpp
-        #[[lexer/Token.cpp
-                lexer/Tokenizer.cpp
-                lexer/TokenizerUtility.cpp
-                parser/Parser.cpp
-                parser/ASTNode.cpp
-                parser/BinaryExpressionNode.cpp
-                parser/UnaryExpressionNode.cpp
-                parser/NumberNode.cpp
-                parser/VariableNode.cpp
-                parser/TypeNode.cpp
-                parser/IndexNode.cpp
-                parser/ArrayNode.cpp
-                parser/NullptrNode.cpp
-                parser/Statement.cpp
-                transpiler/Transpiler.cpp
-                transpiler/ProjectBuilder.cpp
-                parser/AST.cpp
-                lexer/ErrorHandler.cpp]]
+        typechecker/TypeVariable.cpp
+        ../../include/jsav/typechecker/TypeVariable.hpp
+        typechecker/ErrorType.cpp
+        ../../include/jsav/typechecker/ErrorType.hpp
+        typechecker/UnionFind.cpp
+        ../../include/jsav/typechecker/UnionFind.hpp
+        typechecker/Substitution.cpp
+        ../../include/jsav/typechecker/Substitution.hpp
+        typechecker/SymbolTable.cpp
+        ../../include/jsav/typechecker/SymbolTable.hpp
+        typechecker/TypeScheme.cpp
+        ../../include/jsav/typechecker/TypeScheme.hpp
+        typechecker/Constraint.cpp
+        ../../include/jsav/typechecker/Constraint.hpp
+        typechecker/ConstraintSolver.cpp
+        ../../include/jsav/typechecker/ConstraintSolver.hpp
+        typechecker/TypeChecker.cpp
+        ../../include/jsav/typechecker/TypeChecker.hpp
 )
 
 add_library(jsav::jsav_lib ALIAS jsav_lib)

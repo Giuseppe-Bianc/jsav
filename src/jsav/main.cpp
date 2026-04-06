@@ -15,6 +15,9 @@ DISABLE_WARNINGS_PUSH(
 #include <iostream>
 #include <string>
 
+#include "jsav/ast/TypedAst_printer.hpp"
+#include "jsav/typechecker/TypeChecker.hpp"
+
 DISABLE_WARNINGS_POP()
 
 std::string toLower(std::string str) {
@@ -114,13 +117,29 @@ auto main(int argc, const char *const argv[]) -> int {
         const vnd::Timer parsingTimer("Parsing");
         const auto [parsed_program, parse_errors] = parser.parse();
         LINFO("{}", parsingTimer);
-        if(!errors.empty()) {
+        if(!parse_errors.empty()) {
             LERROR("Parser produced {} error(s)", parse_errors.size());
             const std::string diagnostic = reporter.report_errors(parse_errors);
-            // fmt::print(stderr, "{}", diagnostic);
             fmt::print("{}", diagnostic);
         }
+
+        // Type checking phase
+        jsv::TypeChecker type_checker;
+        const vnd::Timer typeCheckingTimer("Type Checking");
+        auto [typed_program, type_errors] = type_checker.check(*parsed_program);
+        LINFO("{}", typeCheckingTimer);
+        LINFO("Typed program has {} statement(s)", typed_program.statements().size());
+        if(!type_errors.empty()) {
+            LERROR("Type checker produced {} error(s)", type_errors.size());
+            const std::string diagnostic = reporter.report_errors(type_errors);
+            fmt::print("{}", diagnostic);
+        }
+
+        // Print both untyped and typed ASTs
         tree_printer.print(*parsed_program);
+        
+        jsv::TypedAstPrinter typed_tree_printer;
+        typed_tree_printer.print(typed_program);
     } catch(const std::exception &e) {
         // Handle any other types of exceptions
         LERROR("Unhandled exception in main: {}", e.what());

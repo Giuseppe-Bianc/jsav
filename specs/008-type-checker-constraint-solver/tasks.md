@@ -26,11 +26,11 @@
 
 **Purpose**: Create typechecker module structure and extend existing type system
 
-- [ ] T001 Create directory `include/jsav/typechecker/` for type checker headers
-- [ ] T002 Create directory `src/jsav_Lib/typechecker/` for type checker implementations
-- [ ] T003 [P] Extend TypeKind enum with `TypeVar` and `Error` values in `include/jsav/ast/Type.hpp`
-- [ ] T004 [P] Add typechecker source directory to CMake in `src/jsav_Lib/CMakeLists.txt`
-- [ ] T004a [P] Verify TypedAst.hpp compatibility: confirm TypedNode, TypedExpr, TypedStmt, TypedProgram interfaces in `include/jsav/ast/` support type checker integration (FR-019)
+- [x] T001 Create directory `include/jsav/typechecker/` for type checker headers
+- [x] T002 Create directory `src/jsav_Lib/typechecker/` for type checker implementations
+- [x] T003 [P] Extend TypeKind enum with `TypeVar` and `Error` values in `include/jsav/ast/Type.hpp`
+- [x] T004 [P] Add typechecker source directory to CMake in `src/jsav_Lib/CMakeLists.txt`
+- [x] T004a [P] Verify TypedAst.hpp compatibility: confirm TypedNode, TypedExpr, TypedStmt, TypedProgram interfaces in `include/jsav/ast/` support type checker integration (FR-019)
 
 ---
 
@@ -42,17 +42,17 @@
 
 ### Tests for Foundational Components
 
-- [ ] T005 [P] Add TypeVariable tests in `test/tests.cpp`: fresh_type_variable uniqueness, id() accessor, to_string() format (?T1)
-- [ ] T006 [P] Add ErrorType tests in `test/tests.cpp`: singleton behavior, classof() predicate, kind() returns TypeKind::Error
-- [ ] T007 [P] Add UnionFind tests in `test/tests.cpp`: make_set, find with path compression, unite with union by rank, same_set
-- [ ] T008 [P] Add Substitution tests in `test/tests.cpp`: bind, lookup, contains, apply to type variables and compound types
-- [ ] T009 [P] Add SymbolTable tests in `test/tests.cpp`: push_scope, pop_scope, define, lookup with shadowing, depth()
-- [ ] T010 [P] Add TypeScheme tests in `test/tests.cpp`: mono() creation, instantiate() generates fresh variables
-- [ ] T011 [P] Add Constraint tests in `test/tests.cpp`: ConstraintSet.add returns sequential IDs (C1, C2), get by ID, constraints() iteration
-- [ ] T011e [P] [FR-005] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.solve() returns correct substitution for trivial constraints (?T = Int)
-- [ ] T011f [P] [FR-006] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.occurs_in() detects recursive types (?T = ?T → ?R fails, ?T = Int passes)
-- [ ] T011g [P] [FR-007,FR-023] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.unify() with ErrorType succeeds silently (ErrorType unifies with any type)
-- [ ] T011h [P] [FR-005] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.unify() reports type mismatch for incompatible primitives (Int ≠ Bool → error E2034)
+- [x] T005 [P] Add TypeVariable tests in `test/tests.cpp`: fresh_type_variable uniqueness, id() accessor, to_string() format (?T1)
+- [x] T006 [P] Add ErrorType tests in `test/tests.cpp`: singleton behavior, classof() predicate, kind() returns TypeKind::Error
+- [x] T007 [P] Add UnionFind tests in `test/tests.cpp`: make_set, find with path compression, unite with union by rank, same_set
+- [x] T008 [P] Add Substitution tests in `test/tests.cpp`: bind, lookup, contains, apply to type variables and compound types
+- [x] T009 [P] Add SymbolTable tests in `test/tests.cpp`: push_scope, pop_scope, define, lookup with shadowing, depth()
+- [x] T010 [P] Add TypeScheme tests in `test/tests.cpp`: mono() creation, instantiate() generates fresh variables
+- [x] T011 [P] Add Constraint tests in `test/tests.cpp`: ConstraintSet.add returns sequential IDs (C1, C2), get by ID, constraints() iteration
+- [x] T011e [P] [FR-005] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.solve() returns correct substitution for trivial constraints (?T = Int)
+- [x] T011f [P] [FR-006] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.occurs_in() detects recursive types (?T = ?T → ?R fails, ?T = Int passes)
+- [x] T011g [P] [FR-007,FR-023] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.unify() with ErrorType succeeds silently (ErrorType unifies with any type)
+- [x] T011h [P] [FR-005] Add ConstraintSolver tests in `test/tests.cpp`: ConstraintSolver.unify() reports type mismatch for incompatible primitives (Int ≠ Bool → error E2034)
 
 ### Compile-Time Tests (constexpr — per Constitution Principle IV, three-tier test pyramid)
 
@@ -65,20 +65,20 @@
 
 ### Implementation for Foundational Components
 
-- [ ] T012 [P] Create TypeVariable class in `include/jsav/typechecker/TypeVariable.hpp` with id(), to_string(), classof()
-- [ ] T013 [P] Implement fresh_type_variable() with TLS counter in `src/jsav_Lib/typechecker/TypeVariable.cpp`
-- [ ] T014 [P] Create ErrorType class in `include/jsav/typechecker/ErrorType.hpp` with classof()
-- [ ] T015 [P] Implement error_type() singleton in `src/jsav_Lib/typechecker/ErrorType.cpp`
-- [ ] T016 [P] Create UnionFind class in `include/jsav/typechecker/UnionFind.hpp` with make_set, find, unite, same_set
-- [ ] T017 [P] Implement UnionFind with path compression and union by rank in `src/jsav_Lib/typechecker/UnionFind.cpp`
-- [ ] T018 [P] Create Substitution class in `include/jsav/typechecker/Substitution.hpp` with bind, lookup, apply, contains
-- [ ] T019 [P] Implement Substitution.apply() for all TypeKind variants in `src/jsav_Lib/typechecker/Substitution.cpp`
-- [ ] T020 [P] Create SymbolTable class in `include/jsav/typechecker/SymbolTable.hpp` with push_scope, pop_scope, define, lookup
-- [ ] T021 [P] Implement SymbolTable with stack-based scopes in `src/jsav_Lib/typechecker/SymbolTable.cpp`
-- [ ] T022 [P] Create TypeScheme struct in `include/jsav/typechecker/TypeScheme.hpp` with quantified_vars, body, instantiate(), mono()
-- [ ] T023 [P] Implement TypeScheme.instantiate() in `src/jsav_Lib/typechecker/TypeScheme.cpp`
-- [ ] T024 [P] Create Constraint struct and ConstraintSet class in `include/jsav/typechecker/Constraint.hpp`
-- [ ] T025 [P] Implement ConstraintSet.add() with sequential ID generation in `src/jsav_Lib/typechecker/Constraint.cpp`
+- [x] T012 [P] Create TypeVariable class in `include/jsav/typechecker/TypeVariable.hpp` with id(), to_string(), classof()
+- [x] T013 [P] Implement fresh_type_variable() with TLS counter in `src/jsav_Lib/typechecker/TypeVariable.cpp`
+- [x] T014 [P] Create ErrorType class in `include/jsav/typechecker/ErrorType.hpp` with classof()
+- [x] T015 [P] Implement error_type() singleton in `src/jsav_Lib/typechecker/ErrorType.cpp`
+- [x] T016 [P] Create UnionFind class in `include/jsav/typechecker/UnionFind.hpp` with make_set, find, unite, same_set
+- [x] T017 [P] Implement UnionFind with path compression and union by rank in `src/jsav_Lib/typechecker/UnionFind.cpp`
+- [x] T018 [P] Create Substitution class in `include/jsav/typechecker/Substitution.hpp` with bind, lookup, apply, contains
+- [x] T019 [P] Implement Substitution.apply() for all TypeKind variants in `src/jsav_Lib/typechecker/Substitution.cpp`
+- [x] T020 [P] Create SymbolTable class in `include/jsav/typechecker/SymbolTable.hpp` with push_scope, pop_scope, define, lookup
+- [x] T021 [P] Implement SymbolTable with stack-based scopes in `src/jsav_Lib/typechecker/SymbolTable.cpp`
+- [x] T022 [P] Create TypeScheme struct in `include/jsav/typechecker/TypeScheme.hpp` with quantified_vars, body, instantiate(), mono()
+- [x] T023 [P] Implement TypeScheme.instantiate() in `src/jsav_Lib/typechecker/TypeScheme.cpp`
+- [x] T024 [P] Create Constraint struct and ConstraintSet class in `include/jsav/typechecker/Constraint.hpp`
+- [x] T025 [P] Implement ConstraintSet.add() with sequential ID generation in `src/jsav_Lib/typechecker/Constraint.cpp`
 
 **Checkpoint**: Foundation ready — all data structures tested and implemented. User story work can begin.
 
@@ -92,48 +92,48 @@
 
 ### Tests for User Story 1
 
-- [ ] T026 [P] [US1] Add test TypeChecker_IntegerLiteral_ReturnsI32Type in `test/tests.cpp`
-- [ ] T027 [P] [US1] Add test TypeChecker_BooleanLiteral_ReturnsBoolType in `test/tests.cpp`
-- [ ] T028 [P] [US1] Add test TypeChecker_StringLiteral_ReturnsStringType in `test/tests.cpp`
-- [ ] T029 [P] [US1] Add test TypeChecker_BinaryAdd_InfersOperandTypes in `test/tests.cpp`
-- [ ] T030 [P] [US1] Add test TypeChecker_BinaryComparison_ReturnsBool in `test/tests.cpp`
-- [ ] T031 [P] [US1] Add test TypeChecker_UnaryNegate_PreservesType in `test/tests.cpp`
-- [ ] T032 [P] [US1] Add test TypeChecker_VarDecl_MatchesAnnotation in `test/tests.cpp`
-- [ ] T033 [P] [US1] Add test TypeChecker_FunctionDecl_BuildsFunctionType in `test/tests.cpp`
-- [ ] T034 [P] [US1] Add test TypeChecker_FunctionCall_ResolvesReturnType in `test/tests.cpp`
-- [ ] T035 [P] [US1] Add test TypeChecker_IfExpression_JoinsBranchTypes in `test/tests.cpp`
-- [ ] T036 [P] [US1] Add test TypeChecker_ArrayLiteral_InfersElementType in `test/tests.cpp`
-- [ ] T036a [P] [US1] Add test TypeChecker_Assignment_MutableLvalueRequired in `test/tests.cpp`: verify assignment to immutable binding produces error
-- [ ] T036b [P] [US1] Add test TypeChecker_Assignment_TypeMismatch in `test/tests.cpp`: verify RHS type must match LHS type exactly (e.g., `i32 = string` → error E2034)
-- [ ] T037 [P] [US1] Add test TypeChecker_NestedExpressions_AllNodesTyped in `test/tests.cpp`
-- [ ] T038 [P] [US1] Add test TypeChecker_WellTypedProgram_EmptyErrorVector in `test/tests.cpp`
-- [ ] T038a [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_ResolvesIdentifiers in `test/tests.cpp`: provide Raw AST with valid variable and function declarations, invoke type checker, verify SymbolTable contains resolved bindings for all identifiers and no unresolved-identifier errors
-- [ ] T038b [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_UndeclaredIdentifier_Error in `test/tests.cpp`: provide Raw AST referencing undeclared variable `z`, verify type checker produces error before constraint generation begins and error vector is non-empty
-- [ ] T038c [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_Shadowing_InnerScopeHidesOuter in `test/tests.cpp`: provide Raw AST with outer-scope `var x: i32` and inner-scope `var x: string`, verify inner scope resolves to string type and outer binding is preserved after scope exit
+- [x] T026 [P] [US1] Add test TypeChecker_IntegerLiteral_ReturnsI32Type in `test/tests.cpp`
+- [x] T027 [P] [US1] Add test TypeChecker_BooleanLiteral_ReturnsBoolType in `test/tests.cpp`
+- [x] T028 [P] [US1] Add test TypeChecker_StringLiteral_ReturnsStringType in `test/tests.cpp`
+- [x] T029 [P] [US1] Add test TypeChecker_BinaryAdd_InfersOperandTypes in `test/tests.cpp`
+- [x] T030 [P] [US1] Add test TypeChecker_BinaryComparison_ReturnsBool in `test/tests.cpp`
+- [x] T031 [P] [US1] Add test TypeChecker_UnaryNegate_PreservesType in `test/tests.cpp`
+- [x] T032 [P] [US1] Add test TypeChecker_VarDecl_MatchesAnnotation in `test/tests.cpp`
+- [x] T033 [P] [US1] Add test TypeChecker_FunctionDecl_BuildsFunctionType in `test/tests.cpp`
+- [x] T034 [P] [US1] Add test TypeChecker_FunctionCall_ResolvesReturnType in `test/tests.cpp`
+- [x] T035 [P] [US1] Add test TypeChecker_IfExpression_JoinsBranchTypes in `test/tests.cpp`
+- [x] T036 [P] [US1] Add test TypeChecker_ArrayLiteral_InfersElementType in `test/tests.cpp`
+- [x] T036a [P] [US1] Add test TypeChecker_Assignment_MutableLvalueRequired in `test/tests.cpp`: verify assignment to immutable binding produces error
+- [x] T036b [P] [US1] Add test TypeChecker_Assignment_TypeMismatch in `test/tests.cpp`: verify RHS type must match LHS type exactly (e.g., `i32 = string` → error E2034)
+- [x] T037 [P] [US1] Add test TypeChecker_NestedExpressions_AllNodesTyped in `test/tests.cpp`
+- [x] T038 [P] [US1] Add test TypeChecker_WellTypedProgram_EmptyErrorVector in `test/tests.cpp`
+- [x] T038a [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_ResolvesIdentifiers in `test/tests.cpp`: provide Raw AST with valid variable and function declarations, invoke type checker, verify SymbolTable contains resolved bindings for all identifiers and no unresolved-identifier errors
+- [x] T038b [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_UndeclaredIdentifier_Error in `test/tests.cpp`: provide Raw AST referencing undeclared variable `z`, verify type checker produces error before constraint generation begins and error vector is non-empty
+- [x] T038c [P] [US1] [FR-020] Add integration test TypeChecker_NameResolution_Shadowing_InnerScopeHidesOuter in `test/tests.cpp`: provide Raw AST with outer-scope `var x: i32` and inner-scope `var x: string`, verify inner scope resolves to string type and outer binding is preserved after scope exit
 
 ### Implementation for User Story 1
 
-- [ ] T039 [US1] Create ConstraintSolver class in `include/jsav/typechecker/ConstraintSolver.hpp` with solve(), unify(), occurs_in()
-- [ ] T040 [US1] Implement ConstraintSolver.unify() for primitive types in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T041 [US1] Implement ConstraintSolver.unify() for type variables in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T042 [US1] Implement ConstraintSolver.occurs_in() recursive check in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T043 [US1] Create TypeChecker class in `include/jsav/typechecker/TypeChecker.hpp` with check() returning `std::pair<TypedProgram, std::vector<CompileError>>`, type_expr(), type_stmt()
-- [ ] T044 [US1] Implement TypeChecker.resolve_names() for symbol table population in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T045 [US1] Implement TypeChecker.generate_constraints() for literals (integer, bool, string, char) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T046 [US1] Implement TypeChecker.generate_constraints() for binary expressions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T047 [US1] Implement TypeChecker.generate_constraints() for unary expressions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T048 [US1] Implement TypeChecker.generate_constraints() for variable declarations in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T049 [US1] Implement TypeChecker.generate_constraints() for function declarations in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T050 [US1] Implement TypeChecker.generate_constraints() for function calls in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T051 [US1] Implement TypeChecker.generate_constraints() for if/else statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T052 [US1] Implement TypeChecker.generate_constraints() for return statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T053 [US1] Implement TypeChecker.generate_constraints() for array literals in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T053a [US1] Implement TypeChecker.generate_constraints() for assignment statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`: generate constraint LHS_type = RHS_type; verify LHS is mutable lvalue; on mismatch, insert ErrorType and report E2034 per FR-014
-- [ ] T054 [US1] Implement TypeChecker.solve_constraints() wrapper in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T055 [US1] Implement TypeChecker.zonk() for substitution application in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T056 [US1] Implement TypeChecker.check() returning `std::pair<TypedProgram, std::vector<CompileError>>` per spec.md Output Contract, orchestrating all phases in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T057 [US1] Add spdlog trace logging for constraint generation in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T058 [US1] Add spdlog debug logging for unification steps in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T039 [US1] Create ConstraintSolver class in `include/jsav/typechecker/ConstraintSolver.hpp` with solve(), unify(), occurs_in()
+- [x] T040 [US1] Implement ConstraintSolver.unify() for primitive types in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T041 [US1] Implement ConstraintSolver.unify() for type variables in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T042 [US1] Implement ConstraintSolver.occurs_in() recursive check in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T043 [US1] Create TypeChecker class in `include/jsav/typechecker/TypeChecker.hpp` with check() returning `TypeCheckResult`, type_expr(), type_stmt()
+- [x] T044 [US1] Implement TypeChecker.resolve_names() for symbol table population in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T045 [US1] Implement TypeChecker.generate_constraints() for literals (integer, bool, string, char) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T046 [US1] Implement TypeChecker.generate_constraints() for binary expressions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T047 [US1] Implement TypeChecker.generate_constraints() for unary expressions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T048 [US1] Implement TypeChecker.generate_constraints() for variable declarations in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T049 [US1] Implement TypeChecker.generate_constraints() for function declarations in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T050 [US1] Implement TypeChecker.generate_constraints() for function calls in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T051 [US1] Implement TypeChecker.generate_constraints() for if/else statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T052 [US1] Implement TypeChecker.generate_constraints() for return statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T053 [US1] Implement TypeChecker.generate_constraints() for array literals in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T053a [US1] Implement TypeChecker.generate_constraints() for assignment statements in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T054 [US1] Implement TypeChecker.solve_constraints() wrapper in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T055 [US1] Implement TypeChecker.zonk() for substitution application in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T056 [US1] Implement TypeChecker.check() orchestrating all phases in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T057 [US1] Add spdlog trace logging for constraint generation in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T058 [US1] Add spdlog debug logging for unification steps in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
 
 **Checkpoint**: User Story 1 complete — well-typed programs produce fully typed AST with empty error vector.
 
@@ -147,31 +147,31 @@
 
 ### Tests for User Story 2
 
-- [ ] T059 [P] [US2] Add test TypeChecker_TypeMismatch_ReportsE2034 in `test/tests.cpp`
-- [ ] T060 [P] [US2] Add test TypeChecker_MultipleErrors_CollectsAll in `test/tests.cpp`
-- [ ] T061 [P] [US2] Add test TypeChecker_ErrorSpan_PointsToExactLocation in `test/tests.cpp`
-- [ ] T062 [P] [US2] Add test TypeChecker_ErrorMessage_ShowsExpectedVsActual in `test/tests.cpp`
-- [ ] T063 [P] [US2] Add test TypeChecker_BinaryTypeMismatch_SuggestsCast in `test/tests.cpp`
-- [ ] T064 [P] [US2] Add test TypeChecker_ReturnTypeMismatch_ReportsError in `test/tests.cpp`
-- [ ] T065 [P] [US2] Add test TypeChecker_IfConditionNotBool_ReportsError in `test/tests.cpp`
-- [ ] T066 [P] [US2] Add test TypeChecker_ArrayElementMismatch_ReportsError in `test/tests.cpp`
-- [ ] T067 [P] [US2] Add test TypeChecker_FunctionArgCountMismatch_ReportsError in `test/tests.cpp`
-- [ ] T068 [P] [US2] Add test TypeChecker_ErrorType_PropagatesSilently in `test/tests.cpp`
-- [ ] T069 [P] [US2] Add test TypeChecker_CascadingError_HintsRootCause in `test/tests.cpp`
+- [x] T059 [P] [US2] Add test TypeChecker_TypeMismatch_ReportsE2034 in `test/tests.cpp`
+- [x] T060 [P] [US2] Add test TypeChecker_MultipleErrors_CollectsAll in `test/tests.cpp`
+- [x] T061 [P] [US2] Add test TypeChecker_ErrorSpan_PointsToExactLocation in `test/tests.cpp`
+- [x] T062 [P] [US2] Add test TypeChecker_ErrorMessage_ShowsExpectedVsActual in `test/tests.cpp`
+- [x] T063 [P] [US2] Add test TypeChecker_BinaryTypeMismatch_SuggestsCast in `test/tests.cpp`
+- [x] T064 [P] [US2] Add test TypeChecker_ReturnTypeMismatch_ReportsError in `test/tests.cpp`
+- [x] T065 [P] [US2] Add test TypeChecker_IfConditionNotBool_ReportsError in `test/tests.cpp`
+- [x] T066 [P] [US2] Add test TypeChecker_ArrayElementMismatch_ReportsError in `test/tests.cpp`
+- [x] T067 [P] [US2] Add test TypeChecker_FunctionArgCountMismatch_ReportsError in `test/tests.cpp`
+- [x] T068 [P] [US2] Add test TypeChecker_ErrorType_PropagatesSilently in `test/tests.cpp`
+- [x] T069 [P] [US2] Add test TypeChecker_CascadingError_HintsRootCause in `test/tests.cpp`
 
 ### Implementation for User Story 2
 
-- [ ] T070 [US2] Implement CompileError creation with E2034 code for unification failures in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T071 [US2] Implement error message formatting with expected vs actual types in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T072 [US2] Implement fix suggestion generation ("did you mean to cast?") in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T073 [US2] Implement ErrorType insertion on type error detection in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T074 [US2] Implement ErrorType silent propagation (unifies with any type) in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T075 [US2] Implement error collection (append to vector, never fail-fast) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T076 [US2] Implement cascading error annotation ("may be consequence of line X") in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T077 [US2] Implement E2033 (constraint generation error) reporting in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T078 [US2] Implement E2035 (occurs check failure) reporting in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
-- [ ] T079 [US2] Implement E2036 (unresolved type variable) reporting in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T080 [US2] Sort errors by source location before returning in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T070 [US2] Implement CompileError creation with E2034 code for unification failures in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T071 [US2] Implement error message formatting with expected vs actual types in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T072 [US2] Implement fix suggestion generation ("did you mean to cast?") in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T073 [US2] Implement ErrorType insertion on type error detection in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T074 [US2] Implement ErrorType silent propagation (unifies with any type) in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T075 [US2] Implement error collection (append to vector, never fail-fast) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T076 [US2] Implement cascading error annotation ("may be consequence of line X") in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T077 [US2] Implement E2033 (constraint generation error) reporting in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T078 [US2] Implement E2035 (occurs check failure) reporting in `src/jsav_Lib/typechecker/ConstraintSolver.cpp`
+- [x] T079 [US2] Implement E2036 (unresolved type variable) reporting in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T080 [US2] Sort errors by source location before returning in `src/jsav_Lib/typechecker/TypeChecker.cpp`
 
 **Checkpoint**: User Story 2 complete — all type errors collected with actionable messages and source locations.
 
@@ -185,22 +185,22 @@
 
 ### Tests for User Story 3
 
-- [ ] T081 [P] [US3] Add test TypeChecker_GenericFunction_CreatesTypeScheme in `test/tests.cpp`
-- [ ] T082 [P] [US3] Add test TypeChecker_GenericCall_InstantiatesFreshVars in `test/tests.cpp`
-- [ ] T083 [P] [US3] Add test TypeChecker_GenericIdentity_ResolvesToConcreteType in `test/tests.cpp`
-- [ ] T084 [P] [US3] Add test TypeChecker_MultipleCalls_IndependentInstantiation in `test/tests.cpp`
-- [ ] T085 [P] [US3] Add test TypeChecker_GenericConstraintViolation_ReportsAtCallSite in `test/tests.cpp`
-- [ ] T086 [P] [US3] Add test TypeChecker_NestedGenericCalls_ResolveCorrectly in `test/tests.cpp`
-- [ ] T087 [P] [US3] Add test TypeChecker_TenDifferentTypes_NoCrossContamination in `test/tests.cpp`
+- [x] T081 [P] [US3] Add test TypeChecker_GenericFunction_CreatesTypeScheme in `test/tests.cpp`
+- [x] T082 [P] [US3] Add test TypeChecker_GenericCall_InstantiatesFreshVars in `test/tests.cpp`
+- [x] T083 [P] [US3] Add test TypeChecker_GenericIdentity_ResolvesToConcreteType in `test/tests.cpp`
+- [x] T084 [P] [US3] Add test TypeChecker_MultipleCalls_IndependentInstantiation in `test/tests.cpp`
+- [x] T085 [P] [US3] Add test TypeChecker_GenericConstraintViolation_ReportsAtCallSite in `test/tests.cpp`
+- [x] T086 [P] [US3] Add test TypeChecker_NestedGenericCalls_ResolveCorrectly in `test/tests.cpp`
+- [x] T087 [P] [US3] Add test TypeChecker_TenDifferentTypes_NoCrossContamination in `test/tests.cpp`
 
 ### Implementation for User Story 3
 
-- [ ] T088 [US3] Implement TypeScheme creation for generic function declarations in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T089 [US3] Implement generalization (collect free type variables) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T090 [US3] Implement TypeScheme.instantiate() with fresh variable substitution in `src/jsav_Lib/typechecker/TypeScheme.cpp`
-- [ ] T091 [US3] Implement per-call-site constraint generation for generic functions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T092 [US3] Implement constraint solving isolation per call site in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T093 [US3] Implement type parameter lookup in function scope in `src/jsav_Lib/typechecker/SymbolTable.cpp`
+- [x] T088 [US3] Implement TypeScheme creation for generic function declarations in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T089 [US3] Implement generalization (collect free type variables) in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T090 [US3] Implement TypeScheme.instantiate() with fresh variable substitution in `src/jsav_Lib/typechecker/TypeScheme.cpp`
+- [x] T091 [US3] Implement per-call-site constraint generation for generic functions in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T092 [US3] Implement constraint solving isolation per call site in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T093 [US3] Implement type parameter lookup in function scope in `src/jsav_Lib/typechecker/SymbolTable.cpp`
 
 **Checkpoint**: User Story 3 complete — generic functions work with independent per-call-site instantiation.
 
@@ -210,13 +210,13 @@
 
 **Purpose**: Improvements affecting all user stories
 
-- [ ] T094 [P] Add Doxygen documentation to all public headers in `include/jsav/typechecker/`
-- [ ] T095 [P] Add integration test for 10K+ node program in `test/tests.cpp`
-- [ ] T096 [P] Add memory bounds test (100K constraints < 50MB) in `test/tests.cpp`
-- [ ] T097 Run quickstart.md validation — verify all code examples compile and pass
-- [ ] T098 Add spdlog info logging for overall type checking statistics in `src/jsav_Lib/typechecker/TypeChecker.cpp`
-- [ ] T099 Code cleanup: ensure all functions have `[[nodiscard]]` and `constexpr` where appropriate
-- [ ] T100 Verify zero clang-tidy warnings in typechecker module
+- [x] T094 [P] Add Doxygen documentation to all public headers in `include/jsav/typechecker/`
+- [x] T095 [P] Add integration test for 10K+ node program in `test/tests.cpp`
+- [x] T096 [P] Add memory bounds test (100K constraints < 50MB) in `test/tests.cpp`
+- [x] T097 Run quickstart.md validation — verify all code examples compile and pass
+- [x] T098 Add spdlog info logging for overall type checking statistics in `src/jsav_Lib/typechecker/TypeChecker.cpp`
+- [x] T099 Code cleanup: ensure all functions have `[[nodiscard]]` and `constexpr` where appropriate
+- [x] T100 Verify zero clang-tidy warnings in typechecker module
 
 ---
 

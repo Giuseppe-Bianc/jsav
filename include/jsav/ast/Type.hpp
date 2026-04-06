@@ -103,10 +103,6 @@ namespace jsv {
             return "void";
         case TypeKind::NullPtr:
             return "nullptr";
-        case TypeKind::TypeVar:
-            return "typevar";
-        case TypeKind::Error:
-            return "error";
         default:
             std::unreachable();
         }
@@ -158,8 +154,6 @@ namespace jsv {
             case TypeKind::Custom:
             case TypeKind::Array:
             case TypeKind::Vector:
-            case TypeKind::TypeVar:
-            case TypeKind::Error:
                 return false;
             }
             return false;  // Unreachable, but satisfies compiler warnings
