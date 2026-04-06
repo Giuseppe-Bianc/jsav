@@ -891,11 +891,37 @@ TypedExprPtr TypeChecker::type_expr(const Expr& expr) {
         auto obj_typed = type_expr(idx->object());
         auto index_typed = type_expr(idx->index());
 
-        // Index must be integer
-        constraints_.add(index_typed->node_type(), PrimitiveType::i32(), idx->location(), "index must be integer");
+        if(!obj_typed || !index_typed) {
+            return nullptr;
+        }
 
-        // Result type is a fresh variable (element type of array)
-        auto result_type = fresh_type_variable();
+        // Object must be an array type
+        if(obj_typed->node_type()->kind() != TypeKind::Array) {
+            message_storage_.push_back(
+                FORMAT("Cannot index into non-array type {}", obj_typed->node_type()->to_string()));
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2031,
+                message_storage_.back(),
+                obj_typed->location(),
+                "Array indexing is only valid on array types"));
+            return nullptr;
+        }
+
+        // Index must be integer
+        if(!index_typed->node_type()->is_integer()) {
+            message_storage_.push_back(
+                FORMAT("Array index must be integer type, found {}", index_typed->node_type()->to_string()));
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2030,
+                message_storage_.back(),
+                index_typed->location(),
+                "Use an integer expression for array indexing"));
+            return nullptr;
+        }
+
+        // Result type is the element type of the array
+        const auto* arr_type = static_cast<const ArrayType*>(obj_typed->node_type().get());
+        auto result_type = arr_type->element_type();
 
         return std::make_unique<TypedIndexExpr>(std::move(obj_typed), std::move(index_typed), std::move(result_type), idx->location());
     }
