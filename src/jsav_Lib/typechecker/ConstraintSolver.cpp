@@ -7,26 +7,6 @@
 
 namespace jsv {
 
-    // Helper: check if a type is a numeric type (integer or float)
-    [[nodiscard]] static bool is_numeric_type(const TypePtr &t) noexcept {
-        if(!t || t->kind() == TypeKind::TypeVar || t->kind() == TypeKind::Error) { return false; }
-        switch(t->kind()) {
-        case TypeKind::I8:
-        case TypeKind::I16:
-        case TypeKind::I32:
-        case TypeKind::I64:
-        case TypeKind::U8:
-        case TypeKind::U16:
-        case TypeKind::U32:
-        case TypeKind::U64:
-        case TypeKind::F32:
-        case TypeKind::F64:
-            return true;
-        default:
-            return false;
-        }
-    }
-
     SolverResult ConstraintSolver::solve(const ConstraintSet &constraints) {
         SolverResult result;
         union_find_ = UnionFind{};
@@ -114,7 +94,7 @@ namespace jsv {
         // Both are concrete types - check structural equality
         if(t1->kind() != t2->kind()) {
             // Special case: numeric type mismatches (i64 vs f64)
-            const bool is_numeric_mismatch = is_numeric_type(t1) && is_numeric_type(t2);
+            const bool is_numeric_mismatch = t1->is_numeric() && t2->is_numeric();
 
             std::string hint;
             if(is_numeric_mismatch) {

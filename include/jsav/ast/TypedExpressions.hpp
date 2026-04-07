@@ -117,7 +117,7 @@ namespace jsv {
      */
     class TypedNullLiteral final : public TypedExpr {
     public:
-        TypedNullLiteral(TypePtr node_type, SourceSpan loc = {}) : TypedExpr{NodeKind::NullLiteral, std::move(node_type), loc} {}
+        explicit TypedNullLiteral(TypePtr node_type, SourceSpan loc = {}) : TypedExpr{NodeKind::NullLiteral, std::move(node_type), loc} {}
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::NullLiteral; }
     };

@@ -11,44 +11,6 @@
 
 namespace jsv {
 
-    // Helper: check if a type is an integer type (signed or unsigned)
-    [[nodiscard]] static bool is_integer_type(const TypePtr &t) noexcept {
-        if(!t || t->kind() == TypeKind::TypeVar || t->kind() == TypeKind::Error) { return false; }
-        switch(t->kind()) {
-        case TypeKind::I8:
-        case TypeKind::I16:
-        case TypeKind::I32:
-        case TypeKind::I64:
-        case TypeKind::U8:
-        case TypeKind::U16:
-        case TypeKind::U32:
-        case TypeKind::U64:
-            return true;
-        default:
-            return false;
-        }
-    }
-
-    // Helper: check if a type is a numeric type (integer or float)
-    [[nodiscard]] static bool is_numeric_type(const TypePtr &t) noexcept {
-        if(!t || t->kind() == TypeKind::TypeVar || t->kind() == TypeKind::Error) { return false; }
-        switch(t->kind()) {
-        case TypeKind::I8:
-        case TypeKind::I16:
-        case TypeKind::I32:
-        case TypeKind::I64:
-        case TypeKind::U8:
-        case TypeKind::U16:
-        case TypeKind::U32:
-        case TypeKind::U64:
-        case TypeKind::F32:
-        case TypeKind::F64:
-            return true;
-        default:
-            return false;
-        }
-    }
-
     // ============================================================
     // Helper: parse type annotation string into TypePtr
     // ============================================================
@@ -579,7 +541,7 @@ namespace jsv {
                         // Early check: concrete non-numeric types → E2013 (only for non-Add ops)
                         if(bin->op() != BinaryOp::Add) {
                             if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                                if(!is_numeric_type(lhs_type) || !is_numeric_type(rhs_type)) {
+                                if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
                                     message_storage_.push_back(
                                         FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
                                                binary_op_symbol(bin->op()), lhs_type->to_string(), rhs_type->to_string()));
@@ -591,7 +553,7 @@ namespace jsv {
                         } else {
                             // Add: allow numeric, string, char, or any string/char combo
                             if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                                bool both_numeric = is_numeric_type(lhs_type) && is_numeric_type(rhs_type);
+                                bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
                                 bool lhs_str = lhs_type->kind() == TypeKind::String;
                                 bool rhs_str = rhs_type->kind() == TypeKind::String;
                                 bool lhs_chr = lhs_type->kind() == TypeKind::Char;
@@ -667,7 +629,7 @@ namespace jsv {
                 case BinaryOp::Shl:
                 case BinaryOp::Shr:
                     if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                        if(!is_integer_type(lhs_type) || !is_integer_type(rhs_type)) {
+                        if(!lhs_type->is_integer() || !rhs_type->is_integer()) {
                             message_storage_.push_back(FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
                                                               binary_op_symbol(bin->op()), lhs_type->to_string(), rhs_type->to_string()));
                             errors_.push_back(CompileError::TypeError(
@@ -695,7 +657,7 @@ namespace jsv {
                     result_type = operand_type;
                     // Early check: concrete non-numeric type → E2018
                     if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
-                        if(!is_numeric_type(operand_type)) {
+                        if(!operand_type->is_numeric()) {
                             message_storage_.push_back(
                                 FORMAT("Negation requires numeric type operand, found {}", operand_type->to_string()));
                             errors_.push_back(CompileError::TypeError(ErrorCode::E2018, message_storage_.back(), un->location(),
