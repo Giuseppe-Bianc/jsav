@@ -87,7 +87,7 @@ namespace jsv {
             return {};
         }
 
-        // NOLINTNEXTLINE(*-diagnostic-unused-but-set-variable)
+        // NOLINTNEXTLINE(clang-diagnostic-unused-but-set-variable)
         // cppcheck-suppress unreadVariable
         if(const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
             // Concrete type = tv2: swap and unify
