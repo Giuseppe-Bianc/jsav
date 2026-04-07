@@ -2,6 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/typechecker/TypeVariable.hpp"
 
 namespace jsv {
@@ -19,3 +20,5 @@ namespace jsv {
     TypePtr fresh_type_variable() noexcept { return std::make_shared<TypeVariable>(next_type_var_id()); }
 
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)
