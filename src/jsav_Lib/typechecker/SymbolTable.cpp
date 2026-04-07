@@ -20,7 +20,7 @@ namespace jsv {
 
     std::optional<TypeScheme> SymbolTable::lookup(std::string_view name) const {
         // Search from innermost to outermost scope
-        for(const auto& scope : std::ranges::reverse_view(scopes_)) {
+        for(const auto &scope : std::ranges::reverse_view(scopes_)) {
             auto found = scope.find(std::string{name});
             if(found != scope.end()) { return found->second; }
         }
