@@ -2,6 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/typechecker/SymbolTable.hpp"
 
 namespace jsv {
@@ -19,9 +20,9 @@ namespace jsv {
 
     std::optional<TypeScheme> SymbolTable::lookup(std::string_view name) const {
         // Search from innermost to outermost scope
-        for(auto it = scopes_.rbegin(); it != scopes_.rend(); ++it) {
-            auto found = it->find(std::string{name});
-            if(found != it->end()) { return found->second; }
+        for(const auto& scope : std::ranges::reverse_view(scopes_)) {
+            auto found = scope.find(std::string{name});
+            if(found != scope.end()) { return found->second; }
         }
         return std::nullopt;
     }
@@ -34,3 +35,5 @@ namespace jsv {
     std::size_t SymbolTable::depth() const noexcept { return scopes_.size(); }
 
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)

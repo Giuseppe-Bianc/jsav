@@ -2,6 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/typechecker/TypeScheme.hpp"
 #include "jsav/typechecker/TypeVariable.hpp"
 
@@ -37,3 +38,5 @@ namespace jsv {
     }
 
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)

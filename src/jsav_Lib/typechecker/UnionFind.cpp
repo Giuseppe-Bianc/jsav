@@ -2,6 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
+// NOLINTBEGIN(*-include-cleaner)
 #include "jsav/typechecker/UnionFind.hpp"
 
 namespace jsv {
@@ -42,3 +43,5 @@ namespace jsv {
     std::size_t UnionFind::size() const noexcept { return parent_.size(); }
 
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner)
