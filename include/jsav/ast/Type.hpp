@@ -154,6 +154,8 @@ namespace jsv {
             case TypeKind::Custom:
             case TypeKind::Array:
             case TypeKind::Vector:
+            case TypeKind::TypeVar:
+            case TypeKind::Error:
                 return false;
             }
             return false;  // Unreachable, but satisfies compiler warnings

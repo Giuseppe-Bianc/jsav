@@ -173,7 +173,9 @@ namespace jsv {
         if(!node.args().empty()) {
             const IndentGuard guard2{*this, true};
             const auto &args = node.args();
-            for(const auto &[i, arg] : std::views::enumerate(args)) { visit_child(*arg, i == std::ssize(args) - 1); }
+            for(const auto &[i, arg] : std::views::enumerate(args)) { 
+                visit_child(*arg, i == std::ssize(args) - 1);
+            }
         }
     }
 
@@ -247,9 +249,9 @@ namespace jsv {
             const IndentGuard guard{*this, is_last};
             print_line(ansi::cyan("Elements:"), true);
             const IndentGuard guard2{*this, true};
-            for(std::size_t i = 0; i < node.elements().size(); ++i) {
-                const bool elem_last = (i == node.elements().size() - 1);
-                visit_child(*node.elements()[i], elem_last);
+            const auto &elements = node.elements();
+            for(const auto &[i, elem] : std::views::enumerate(elements)) { 
+                visit_child(*elem, i == std::ssize(elements) - 1);
             }
         }
     }
@@ -301,11 +303,10 @@ namespace jsv {
         if(has_params) {
             print_line(ansi::green("Parameters:"), !has_return);
             const IndentGuard guard2{*this, !has_return};
-            for(std::size_t i = 0; i < node.params().size(); ++i) {
-                const bool param_last = (i == node.params().size() - 1);
-                const auto &param = node.params()[i];
-                print_value(ansi::green("TypedParameter '"), FORMAT("{}'", param.name), param_last);
-                const IndentGuard guard3{*this, param_last};
+            const auto &params = node.params();
+            for(const auto &[i, param] : std::views::enumerate(params)) {
+                print_value(ansi::green("TypedParameter '"), FORMAT("{}'", param.name), i == std::ssize(params) - 1);
+                const IndentGuard guard3{*this, i == std::ssize(params) - 1};
                 if(param.type_annotation) {
                     print_value(ansi::magenta("Type: "), FORMAT("{}", param.type_annotation), true);
                 } else {
@@ -433,9 +434,9 @@ namespace jsv {
 
         if(!node.statements().empty()) {
             const IndentGuard guard{*this, is_last};
-            for(std::size_t i = 0; i < node.statements().size(); ++i) {
-                const bool stmt_last = (i == node.statements().size() - 1);
-                visit_child(*node.statements()[i], stmt_last);
+            const auto &stmts = node.statements();
+            for(const auto &[i, stmt] : std::views::enumerate(stmts)) { 
+                visit_child(*stmt, i == std::ssize(stmts) - 1);
             }
         }
     }
@@ -464,9 +465,9 @@ namespace jsv {
         fmt::println("{} [{}]", ansi::cyan_bold("TypedProgram"), node.node_type() ? node.node_type()->to_string() : "none");
 
         if(!node.statements().empty()) {
-            for(std::size_t i = 0; i < node.statements().size(); ++i) {
-                const bool stmt_last = (i == node.statements().size() - 1);
-                visit_child(*node.statements()[i], stmt_last);
+            const auto &stmts = node.statements();
+            for(const auto &[i, stmt] : std::views::enumerate(stmts)) {
+                visit_child(*stmt, i == std::ssize(stmts) - 1);
             }
         }
     }
