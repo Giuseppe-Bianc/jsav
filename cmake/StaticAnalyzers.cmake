@@ -41,8 +41,7 @@ macro(jsav_enable_cppcheck WARNINGS_AS_ERRORS CPPCHECK_OPTIONS)
                     # LLVM-style RTTI pattern intentionally uses classof in derived classes
                     --suppress=duplInheritedMember
                     --inconclusive
-                    # Ignores static asserts that are true
-                    --suppress=knownConditionTrueFalse
+
                     --suppress=${SUPPRESS_DIR}
             )
         else ()
