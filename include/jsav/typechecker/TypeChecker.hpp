@@ -105,7 +105,7 @@ namespace jsv {
         SymbolTable symbols_;
         ConstraintSet constraints_;
         std::vector<CompileError> errors_;
-        std::vector<std::string> message_storage_;  // Owns dynamic strings for CompileError::message_ (std::string_view)
+        std::deque<std::string> message_storage_;  // Owns dynamic strings for CompileError::message_ (std::string_view); deque prevents view invalidation on reallocation
         std::vector<TypedStmtPtr> typed_stmts_;     // Stored during constraint generation
 
         /// Tracks the expected return type of the enclosing function (for return statement checking)

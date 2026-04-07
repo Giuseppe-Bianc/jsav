@@ -90,7 +90,7 @@ namespace jsv {
                 union_find_.make_set(tv2->id());
                 union_find_.unite(tv1->id(), tv2->id());
                 substitution_.bind(tv1->id(), t2);
-                LDEBUG("Unified {} = {}", tv1->to_string(), t2->to_string());
+                //LDEBUG("Unified {} = {}", tv1->to_string(), t2->to_string());
                 return {};
             }
 
@@ -102,7 +102,7 @@ namespace jsv {
 
             union_find_.make_set(tv1->id());
             substitution_.bind(tv1->id(), t2);
-            LDEBUG("Bound {} = {}", tv1->to_string(), t2->to_string());
+            //LDEBUG("Bound {} = {}", tv1->to_string(), t2->to_string());
             return {};
         }
 

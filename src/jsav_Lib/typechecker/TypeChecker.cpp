@@ -110,6 +110,7 @@ namespace jsv {
         symbols_ = SymbolTable{};
         constraints_ = ConstraintSet{};
         errors_ = std::vector<CompileError>{};
+        message_storage_.clear();
         typed_stmts_.clear();
 
         // Phase 1: Name resolution

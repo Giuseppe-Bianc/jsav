@@ -57,6 +57,8 @@ namespace jsv {
             TypedAstPrinter &p;
             IndentGuard(TypedAstPrinter &printer, bool is_last) : p(printer) { printer.push_indent(is_last); }
             ~IndentGuard() { p.pop_indent(); }
+            IndentGuard(const IndentGuard&) = delete;
+            IndentGuard& operator=(const IndentGuard&) = delete;
         };
 
         // ========== Expressions ==========
