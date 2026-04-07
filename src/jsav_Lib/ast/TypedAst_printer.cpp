@@ -173,9 +173,7 @@ namespace jsv {
         if(!node.args().empty()) {
             const IndentGuard guard2{*this, true};
             const auto &args = node.args();
-            for(const auto &[i, arg] : std::views::enumerate(args)) { 
-                visit_child(*arg, i == std::ssize(args) - 1);
-            }
+            for(const auto &[i, arg] : std::views::enumerate(args)) { visit_child(*arg, i == std::ssize(args) - 1); }
         }
     }
 
@@ -250,9 +248,7 @@ namespace jsv {
             print_line(ansi::cyan("Elements:"), true);
             const IndentGuard guard2{*this, true};
             const auto &elements = node.elements();
-            for(const auto &[i, elem] : std::views::enumerate(elements)) { 
-                visit_child(*elem, i == std::ssize(elements) - 1);
-            }
+            for(const auto &[i, elem] : std::views::enumerate(elements)) { visit_child(*elem, i == std::ssize(elements) - 1); }
         }
     }
 
@@ -435,9 +431,7 @@ namespace jsv {
         if(!node.statements().empty()) {
             const IndentGuard guard{*this, is_last};
             const auto &stmts = node.statements();
-            for(const auto &[i, stmt] : std::views::enumerate(stmts)) { 
-                visit_child(*stmt, i == std::ssize(stmts) - 1);
-            }
+            for(const auto &[i, stmt] : std::views::enumerate(stmts)) { visit_child(*stmt, i == std::ssize(stmts) - 1); }
         }
     }
 
@@ -466,9 +460,7 @@ namespace jsv {
 
         if(!node.statements().empty()) {
             const auto &stmts = node.statements();
-            for(const auto &[i, stmt] : std::views::enumerate(stmts)) {
-                visit_child(*stmt, i == std::ssize(stmts) - 1);
-            }
+            for(const auto &[i, stmt] : std::views::enumerate(stmts)) { visit_child(*stmt, i == std::ssize(stmts) - 1); }
         }
     }
 
