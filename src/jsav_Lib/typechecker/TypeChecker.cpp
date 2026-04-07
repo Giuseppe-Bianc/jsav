@@ -220,7 +220,7 @@ namespace jsv {
                 auto zonked_body = zonk_block_full(subst, fd->body());
                 auto resolved_func_type = zonk_type(subst, fd->node_type());
                 std::optional<TypePtr> zonked_ret;
-                if(fd->return_type()) { zonked_ret = zonk_type(subst, *fd->return_type()); }
+                if(auto rt = fd->return_type()) { zonked_ret = zonk_type(subst, *rt); }
 
                 return std::make_unique<TypedFuncDecl>(fd->name(), std::move(zonked_params), std::move(zonked_ret), std::move(zonked_body),
                                                        std::move(resolved_func_type), stmt.location());
@@ -922,7 +922,7 @@ namespace jsv {
 
                 TypePtr var_type;
 
-                if(vd->type_annotation()) { var_type = parse_type_annotation(*vd->type_annotation()); }
+                if(auto ann = vd->type_annotation()) { var_type = parse_type_annotation(*ann); }
 
                 if(names.size() == 1) {
                     // Single variable declaration
@@ -980,7 +980,7 @@ namespace jsv {
         case NodeKind::FuncDecl:
             {
                 const auto *fd = static_cast<const FuncDecl *>(&stmt);
-                current_function_return_type_ = fd->return_type() ? *fd->return_type() : PrimitiveType::void_();
+                current_function_return_type_ = fd->return_type() ? fd->return_type().value() : PrimitiveType::void_();
                 current_function_name_ = fd->name();
 
                 symbols_.push_scope();  // Function scope
@@ -1006,7 +1006,7 @@ namespace jsv {
                 current_function_return_type_.reset();
                 current_function_name_.reset();
 
-                auto func_type = fd->return_type() ? *fd->return_type() : PrimitiveType::void_();
+                auto func_type = fd->return_type() ? fd->return_type().value() : PrimitiveType::void_();
                 auto typed_body_stmt = std::make_unique<TypedBlockStmt>(std::move(typed_body_stmts), func_type, fd->location());
                 return std::make_unique<TypedFuncDecl>(fd->name(), std::move(typed_params), fd->return_type(), std::move(typed_body_stmt),
                                                        std::move(func_type), fd->location());
