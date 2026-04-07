@@ -17608,7 +17608,7 @@ TEST_CASE("node_cast: Safe casting with assertion", "[ast]") {
     }
 
     SECTION("node_cast<Expr> on statement node does not assert in runtime") {
-        Node node(NodeKind::IfStmt);
+        const Node node(NodeKind::IfStmt);
         // node_cast would assert in debug, so we check isa first
         REQUIRE_FALSE(node_isa<Expr>(&node));  // Pre-check confirms invalid cast
     }
@@ -17697,7 +17697,7 @@ TEST_CASE("NodePtr, ExprPtr, StmtPtr unique_ptr aliases", "[ast]") {
     SECTION("StmtPtr is unique_ptr<Stmt>") { REQUIRE(std::is_same_v<StmtPtr, std::unique_ptr<jsv::Stmt>>); }
 
     SECTION("NodePtr can hold derived types") {
-        NodePtr ptr = std::make_unique<jsv::Node>(jsv::NodeKind::Identifier);
+        const NodePtr ptr = std::make_unique<jsv::Node>(jsv::NodeKind::Identifier);
         REQUIRE(ptr->kind() == jsv::NodeKind::Identifier);
     }
 
@@ -18779,7 +18779,7 @@ TEST_CASE("ConstraintSet: constraints iteration", "[typechecker]") {
 }
 
 TEST_CASE("ConstraintSet: get returns nullptr for missing ID", "[typechecker]") {
-    jsv::ConstraintSet cs;
+    const jsv::ConstraintSet cs;
     const auto *c = cs.get(999);
     REQUIRE(c == nullptr);
 }
@@ -18798,7 +18798,7 @@ TEST_CASE("ConstraintSolver: solve trivial constraint ?T = Int", "[typechecker]"
 
 // T011f: ConstraintSolver occurs check
 TEST_CASE("ConstraintSolver: occurs_in detects recursive types", "[typechecker]") {
-    jsv::Substitution subst;
+    const jsv::Substitution subst;
     auto tv1 = jsv::fresh_type_variable();
     auto tv2 = jsv::fresh_type_variable();
     const auto *tv1_ptr = dynamic_cast<const jsv::TypeVariable *>(tv1.get());
@@ -18844,7 +18844,7 @@ TEST_CASE("ConstraintSolver: type mismatch reports error E2034", "[typechecker]"
 // T026: Integer literal typing
 TEST_CASE("TypeChecker_IntegerLiteral_ReturnsI64Type", "[typechecker]") {
     jsv::TypeChecker checker;
-    jsv::IntegerLiteral lit(42);
+    const jsv::IntegerLiteral lit(42);
     auto typed = checker.type_expr(lit);
     REQUIRE(typed->node_type()->kind() == jsv::TypeKind::I64);
 }
@@ -18852,7 +18852,7 @@ TEST_CASE("TypeChecker_IntegerLiteral_ReturnsI64Type", "[typechecker]") {
 // T027: Boolean literal typing
 TEST_CASE("TypeChecker_BooleanLiteral_ReturnsBoolType", "[typechecker]") {
     jsv::TypeChecker checker;
-    jsv::BoolLiteral lit(true);
+    const jsv::BoolLiteral lit(true);
     auto typed = checker.type_expr(lit);
     REQUIRE(typed->node_type()->kind() == jsv::TypeKind::Bool);
 }
@@ -18860,7 +18860,7 @@ TEST_CASE("TypeChecker_BooleanLiteral_ReturnsBoolType", "[typechecker]") {
 // T028: String literal typing
 TEST_CASE("TypeChecker_StringLiteral_ReturnsStringType", "[typechecker]") {
     jsv::TypeChecker checker;
-    jsv::StringLiteral lit("hello");
+    const jsv::StringLiteral lit("hello");
     auto typed = checker.type_expr(lit);
     REQUIRE(typed->node_type()->kind() == jsv::TypeKind::String);
 }
@@ -18870,7 +18870,7 @@ TEST_CASE("TypeChecker_BinaryAdd_InfersOperandTypes", "[typechecker]") {
     jsv::TypeChecker checker;
     auto lhs = std::make_unique<jsv::IntegerLiteral>(1);
     auto rhs = std::make_unique<jsv::IntegerLiteral>(2);
-    jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+    const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
     auto typed = checker.type_expr(add);
     // Result should be numeric (i32 from operand type inference)
     REQUIRE(typed->node_type()->is_numeric());
@@ -18881,7 +18881,7 @@ TEST_CASE("TypeChecker_BinaryComparison_ReturnsBool", "[typechecker]") {
     jsv::TypeChecker checker;
     auto lhs = std::make_unique<jsv::IntegerLiteral>(1);
     auto rhs = std::make_unique<jsv::IntegerLiteral>(2);
-    jsv::BinaryExpr eq(jsv::BinaryOp::Eq, std::move(lhs), std::move(rhs));
+    const jsv::BinaryExpr eq(jsv::BinaryOp::Eq, std::move(lhs), std::move(rhs));
     auto typed = checker.type_expr(eq);
     REQUIRE(typed->node_type()->kind() == jsv::TypeKind::Bool);
 }
@@ -18890,7 +18890,7 @@ TEST_CASE("TypeChecker_BinaryComparison_ReturnsBool", "[typechecker]") {
 TEST_CASE("TypeChecker_UnaryNegate_PreservesType", "[typechecker]") {
     jsv::TypeChecker checker;
     auto operand = std::make_unique<jsv::IntegerLiteral>(42);
-    jsv::UnaryExpr neg(jsv::UnaryOp::Negate, std::move(operand));
+    const jsv::UnaryExpr neg(jsv::UnaryOp::Negate, std::move(operand));
     auto typed = checker.type_expr(neg);
     REQUIRE(typed->node_type()->is_numeric());
 }
@@ -18899,7 +18899,7 @@ TEST_CASE("TypeChecker_UnaryNegate_PreservesType", "[typechecker]") {
 TEST_CASE("TypeChecker_VarDecl_MatchesAnnotation", "[typechecker]") {
     jsv::TypeChecker checker;
     // First resolve name
-    jsv::VarDecl var("x", "i32", std::make_unique<jsv::IntegerLiteral>(42));
+    const jsv::VarDecl var("x", "i32", std::make_unique<jsv::IntegerLiteral>(42));
     auto typed = checker.type_stmt(var);
     REQUIRE(typed->is_typed());
 }
@@ -18913,8 +18913,10 @@ TEST_CASE("TypeChecker_FunctionDecl_BuildsFunctionType", "[typechecker]") {
     body_stmts.push_back(std::move(ret));
     body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    jsv::FuncDecl func("add", std::vector<jsv::FuncParam>{{"a", jsv::PrimitiveType::i32()}, {"b", jsv::PrimitiveType::i32()}},
-                       jsv::PrimitiveType::i32(), std::move(body));
+    const jsv::FuncDecl func("add",
+                             std::vector<jsv::FuncParam>{{.name = "a", .type_annotation = jsv::PrimitiveType::i32(), .loc = {}},
+                                                         {.name = "b", .type_annotation = jsv::PrimitiveType::i32(), .loc = {}}},
+                             jsv::PrimitiveType::i32(), std::move(body));
     auto typed = checker.type_stmt(func);
     REQUIRE(typed->is_typed());
 }
@@ -18926,7 +18928,7 @@ TEST_CASE("TypeChecker_FunctionCall_ResolvesReturnType", "[typechecker]") {
     std::vector<jsv::ExprPtr> args;
     args.push_back(std::make_unique<jsv::IntegerLiteral>(1));
     args.push_back(std::make_unique<jsv::IntegerLiteral>(2));
-    jsv::CallExpr call(std::move(callee), std::move(args));
+    const jsv::CallExpr call(std::move(callee), std::move(args));
     auto typed = checker.type_expr(call);
     REQUIRE(typed->is_typed());
 }
@@ -18936,7 +18938,7 @@ TEST_CASE("TypeChecker_IfExpression_JoinsBranchTypes", "[typechecker]") {
     jsv::TypeChecker checker;
     auto cond = std::make_unique<jsv::BoolLiteral>(true);
     auto then_body = std::make_unique<jsv::BlockStmt>(std::vector<jsv::StmtPtr>{});
-    jsv::IfStmt if_stmt(std::move(cond), std::move(then_body));
+    const jsv::IfStmt if_stmt(std::move(cond), std::move(then_body));
     auto typed = checker.type_stmt(if_stmt);
     REQUIRE(typed->is_typed());
 }
@@ -18948,7 +18950,7 @@ TEST_CASE("TypeChecker_ArrayLiteral_InfersElementType", "[typechecker]") {
     elements.push_back(std::make_unique<jsv::IntegerLiteral>(1));
     elements.push_back(std::make_unique<jsv::IntegerLiteral>(2));
     elements.push_back(std::make_unique<jsv::IntegerLiteral>(3));
-    jsv::ArrayLiteral arr(std::move(elements));
+    const jsv::ArrayLiteral arr(std::move(elements));
     auto typed = checker.type_expr(arr);
     REQUIRE(typed->node_type()->kind() == jsv::TypeKind::Array);
 }
@@ -18958,7 +18960,7 @@ TEST_CASE("TypeChecker_Assignment_MutableLvalueRequired", "[typechecker]") {
     jsv::TypeChecker checker;
     auto target = std::make_unique<jsv::Identifier>("const_x");
     auto value = std::make_unique<jsv::IntegerLiteral>(42);
-    jsv::AssignExpr assign(std::move(target), std::move(value));
+    const jsv::AssignExpr assign(std::move(target), std::move(value));
     // This will generate an error for undeclared identifier + immutability check
     auto typed = checker.type_expr(assign);
     // Type checker should produce an error for this case
@@ -18971,7 +18973,7 @@ TEST_CASE("TypeChecker_Assignment_TypeMismatch", "[typechecker]") {
     jsv::TypeChecker checker;
     auto target = std::make_unique<jsv::Identifier>("x");
     auto value = std::make_unique<jsv::StringLiteral>("hello");
-    jsv::AssignExpr assign(std::move(target), std::move(value));
+    const jsv::AssignExpr assign(std::move(target), std::move(value));
     auto typed = checker.type_expr(assign);
     REQUIRE(typed->is_typed());
     // Error collection would show E2034 type mismatch
@@ -18984,7 +18986,7 @@ TEST_CASE("TypeChecker_NestedExpressions_AllNodesTyped", "[typechecker]") {
     auto rhs = std::make_unique<jsv::IntegerLiteral>(2);
     auto inner_add = std::make_unique<jsv::BinaryExpr>(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
     auto mul_rhs = std::make_unique<jsv::IntegerLiteral>(3);
-    jsv::BinaryExpr nested(jsv::BinaryOp::Mul, std::move(inner_add), std::move(mul_rhs));
+    const jsv::BinaryExpr nested(jsv::BinaryOp::Mul, std::move(inner_add), std::move(mul_rhs));
     auto typed = checker.type_expr(nested);
     REQUIRE(typed->node_type()->is_numeric());
 }
@@ -18994,7 +18996,7 @@ TEST_CASE("TypeChecker_WellTypedProgram_EmptyErrorVector", "[typechecker]") {
     jsv::TypeChecker checker;
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::make_unique<jsv::VarDecl>("x", "i32", std::make_unique<jsv::IntegerLiteral>(42)));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // With proper name resolution, this should produce no errors
@@ -19007,7 +19009,7 @@ TEST_CASE("TypeChecker_NameResolution_ResolvesIdentifiers", "[typechecker]") {
     jsv::TypeChecker checker;
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::make_unique<jsv::VarDecl>("x", "i32", std::make_unique<jsv::IntegerLiteral>(10)));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type checking should complete successfully with resolved bindings
@@ -19021,7 +19023,7 @@ TEST_CASE("TypeChecker_NameResolution_UndeclaredIdentifier_Error", "[typechecker
     std::vector<jsv::StmtPtr> stmts;
     auto expr = std::make_unique<jsv::Identifier>("z");  // Undeclared
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(expr)));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     REQUIRE(!errors.empty());
@@ -19034,7 +19036,7 @@ TEST_CASE("TypeChecker_NameResolution_Shadowing_InnerScopeHidesOuter", "[typeche
     jsv::TypeChecker checker;
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::make_unique<jsv::VarDecl>("x", "i32", std::make_unique<jsv::IntegerLiteral>(1)));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     REQUIRE(typed_ast.is_typed());
@@ -19045,7 +19047,7 @@ TEST_CASE("TypeChecker_TypeMismatch_ReportsE2034", "[typechecker]") {
     jsv::TypeChecker checker;
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::make_unique<jsv::VarDecl>("x", "i32", std::make_unique<jsv::StringLiteral>("hello")));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Should have at least one type mismatch error
@@ -19066,7 +19068,7 @@ TEST_CASE("TypeChecker_MultipleErrors_CollectsAll", "[typechecker]") {
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::make_unique<jsv::VarDecl>("a", "i32", std::make_unique<jsv::StringLiteral>("bad1")));
     stmts.push_back(std::make_unique<jsv::VarDecl>("b", "bool", std::make_unique<jsv::StringLiteral>("bad2")));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Should collect multiple errors, not stop at first
@@ -19079,7 +19081,7 @@ TEST_CASE("TypeChecker_ErrorSpan_PointsToExactLocation", "[typechecker]") {
     auto stmts = std::vector<jsv::StmtPtr>{};
     auto expr = std::make_unique<jsv::Identifier>("undefined_var");
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(expr)));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     REQUIRE(!errors.empty());
@@ -19093,7 +19095,7 @@ TEST_CASE("TypeChecker_ErrorMessage_ShowsExpectedVsActual", "[typechecker]") {
     jsv::TypeChecker checker;
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::make_unique<jsv::VarDecl>("x", "i32", std::make_unique<jsv::StringLiteral>("not_a_number")));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type checking should complete with type mismatch constraint generated
@@ -19109,7 +19111,7 @@ TEST_CASE("TypeChecker_BinaryTypeMismatch_SuggestsCast", "[typechecker]") {
     auto rhs = std::make_unique<jsv::IntegerLiteral>(42);
     auto binary = std::make_unique<jsv::BinaryExpr>(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(binary)));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Should produce at least one error about type mismatch
@@ -19127,7 +19129,7 @@ TEST_CASE("TypeChecker_ReturnTypeMismatch_ReportsError", "[typechecker]") {
                                                 std::move(body));
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::move(func));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type checking should complete (return type checking is a future enhancement)
@@ -19142,7 +19144,7 @@ TEST_CASE("TypeChecker_IfConditionNotBool_ReportsError", "[typechecker]") {
     auto if_stmt = std::make_unique<jsv::IfStmt>(std::move(cond), std::move(then_body));
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(if_stmt));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // If condition must be bool
@@ -19159,7 +19161,7 @@ TEST_CASE("TypeChecker_ArrayElementMismatch_ReportsError", "[typechecker]") {
     auto arr = std::make_unique<jsv::ArrayLiteral>(std::move(elements));
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(arr)));
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type checking should complete (array type inferred, constraints generated)
@@ -19178,7 +19180,7 @@ TEST_CASE("TypeChecker_FunctionArgCountMismatch_ReportsError", "[typechecker]") 
     auto call = std::make_unique<jsv::CallExpr>(std::move(callee), std::move(args));
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Wrong arg count should produce an error
@@ -19191,7 +19193,7 @@ TEST_CASE("TypeChecker_ErrorType_PropagatesSilently", "[typechecker]") {
     // Use an expression that produces ErrorType, then try to use it
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::make_unique<jsv::VarDecl>("x", "i32", std::make_unique<jsv::StringLiteral>("error_source")));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // ErrorType should propagate silently without cascading errors
@@ -19209,7 +19211,7 @@ TEST_CASE("TypeChecker_CascadingError_HintsRootCause", "[typechecker]") {
     auto rhs = std::make_unique<jsv::IntegerLiteral>(42);
     auto binary = std::make_unique<jsv::BinaryExpr>(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(binary)));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Should have errors, and they should be related to the root cause
@@ -19239,13 +19241,13 @@ TEST_CASE("TypeChecker_GenericFunction_CreatesTypeScheme", "[typechecker]") {
     generic_body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto generic_body = std::make_unique<jsv::BlockStmt>(std::move(generic_body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},  // T parameter
+    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},  // T parameter
                                                    jsv::fresh_type_variable(),                                            // T return type
                                                    std::move(generic_body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     REQUIRE(typed_ast.is_typed());
@@ -19259,7 +19261,7 @@ TEST_CASE("TypeChecker_GenericCall_InstantiatesFreshVars", "[typechecker]") {
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},
+    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
                                                    jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
@@ -19270,7 +19272,7 @@ TEST_CASE("TypeChecker_GenericCall_InstantiatesFreshVars", "[typechecker]") {
     auto call = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("id"), std::move(args));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
 
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     REQUIRE(typed_ast.is_typed());
@@ -19284,7 +19286,7 @@ TEST_CASE("TypeChecker_GenericIdentity_ResolvesToConcreteType", "[typechecker]")
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},
+    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
                                                    jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
@@ -19296,7 +19298,7 @@ TEST_CASE("TypeChecker_GenericIdentity_ResolvesToConcreteType", "[typechecker]")
     auto call = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("id"), std::move(args));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
 
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type should resolve to string for this call
@@ -19311,7 +19313,7 @@ TEST_CASE("TypeChecker_MultipleCalls_IndependentInstantiation", "[typechecker]")
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},
+    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
                                                    jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
@@ -19329,7 +19331,7 @@ TEST_CASE("TypeChecker_MultipleCalls_IndependentInstantiation", "[typechecker]")
     auto call2 = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("id"), std::move(args2));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call2)));
 
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type checking should complete without errors for valid generic calls
@@ -19346,7 +19348,7 @@ TEST_CASE("TypeChecker_GenericConstraintViolation_ReportsAtCallSite", "[typechec
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::move(mul)));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto double_func = std::make_unique<jsv::FuncDecl>("double", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},
+    auto double_func = std::make_unique<jsv::FuncDecl>("double", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
                                                        jsv::fresh_type_variable(), std::move(body));
 
     auto stmts = std::vector<jsv::StmtPtr>{};
@@ -19358,7 +19360,7 @@ TEST_CASE("TypeChecker_GenericConstraintViolation_ReportsAtCallSite", "[typechec
     auto call = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("double"), std::move(args));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
 
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Type checking should complete (constraint violation detection is a future enhancement)
@@ -19373,7 +19375,7 @@ TEST_CASE("TypeChecker_NestedGenericCalls_ResolveCorrectly", "[typechecker]") {
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},
+    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
                                                    jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
@@ -19389,7 +19391,7 @@ TEST_CASE("TypeChecker_NestedGenericCalls_ResolveCorrectly", "[typechecker]") {
     auto outer_call = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("id"), std::move(outer_args));
     stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(outer_call)));
 
-    jsv::Program program(std::move(stmts));
+    const jsv::Program program(std::move(stmts));
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     REQUIRE(typed_ast.is_typed());
@@ -19403,7 +19405,7 @@ TEST_CASE("TypeChecker_TenDifferentTypes_NoCrossContamination", "[typechecker]")
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{"x", jsv::fresh_type_variable()}},
+    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
                                                    jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
@@ -19417,7 +19419,7 @@ TEST_CASE("TypeChecker_TenDifferentTypes_NoCrossContamination", "[typechecker]")
         stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
     }
 
-    jsv::Program program{std::move(stmts)};
+    const jsv::Program program{std::move(stmts)};
     auto result = checker.check(program);
     auto &[typed_ast, errors] = result;
     // Each call site should have independent type instantiation

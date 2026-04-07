@@ -36,7 +36,7 @@ namespace jsv {
     }
 
     bool UnionFind::same_set(TypeVarId x, TypeVarId y) {
-        if(parent_.contains(x) || parent_.contains(y)) { return false; }
+        if(!parent_.contains(x) || !parent_.contains(y)) { return false; }
         return find(x) == find(y);
     }
 
