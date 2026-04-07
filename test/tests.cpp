@@ -19241,9 +19241,10 @@ TEST_CASE("TypeChecker_GenericFunction_CreatesTypeScheme", "[typechecker]") {
     generic_body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto generic_body = std::make_unique<jsv::BlockStmt>(std::move(generic_body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},  // T parameter
-                                                   jsv::fresh_type_variable(),                                            // T return type
-                                                   std::move(generic_body));
+    auto id_func = std::make_unique<jsv::FuncDecl>(
+        "id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},  // T parameter
+        jsv::fresh_type_variable(),                                                                                  // T return type
+        std::move(generic_body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
@@ -19261,8 +19262,9 @@ TEST_CASE("TypeChecker_GenericCall_InstantiatesFreshVars", "[typechecker]") {
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
-                                                   jsv::fresh_type_variable(), std::move(body));
+    auto id_func = std::make_unique<jsv::FuncDecl>(
+        "id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
+        jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
@@ -19286,8 +19288,9 @@ TEST_CASE("TypeChecker_GenericIdentity_ResolvesToConcreteType", "[typechecker]")
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
-                                                   jsv::fresh_type_variable(), std::move(body));
+    auto id_func = std::make_unique<jsv::FuncDecl>(
+        "id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
+        jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
@@ -19313,8 +19316,9 @@ TEST_CASE("TypeChecker_MultipleCalls_IndependentInstantiation", "[typechecker]")
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
-                                                   jsv::fresh_type_variable(), std::move(body));
+    auto id_func = std::make_unique<jsv::FuncDecl>(
+        "id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
+        jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
@@ -19348,8 +19352,9 @@ TEST_CASE("TypeChecker_GenericConstraintViolation_ReportsAtCallSite", "[typechec
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::move(mul)));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto double_func = std::make_unique<jsv::FuncDecl>("double", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
-                                                       jsv::fresh_type_variable(), std::move(body));
+    auto double_func = std::make_unique<jsv::FuncDecl>(
+        "double", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
+        jsv::fresh_type_variable(), std::move(body));
 
     auto stmts = std::vector<jsv::StmtPtr>{};
     stmts.push_back(std::move(double_func));
@@ -19375,8 +19380,9 @@ TEST_CASE("TypeChecker_NestedGenericCalls_ResolveCorrectly", "[typechecker]") {
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
-                                                   jsv::fresh_type_variable(), std::move(body));
+    auto id_func = std::make_unique<jsv::FuncDecl>(
+        "id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
+        jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
@@ -19405,8 +19411,9 @@ TEST_CASE("TypeChecker_TenDifferentTypes_NoCrossContamination", "[typechecker]")
     body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::Identifier>("x")));
     auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
 
-    auto id_func = std::make_unique<jsv::FuncDecl>("id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
-                                                   jsv::fresh_type_variable(), std::move(body));
+    auto id_func = std::make_unique<jsv::FuncDecl>(
+        "id", std::vector<jsv::FuncParam>{{.name = "x", .type_annotation = jsv::fresh_type_variable(), .loc = {}}},
+        jsv::fresh_type_variable(), std::move(body));
 
     std::vector<jsv::StmtPtr> stmts;
     stmts.push_back(std::move(id_func));
