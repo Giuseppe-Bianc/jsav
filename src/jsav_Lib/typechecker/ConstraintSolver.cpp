@@ -2,7 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
 #include "jsav/typechecker/ConstraintSolver.hpp"
 #include "jsav/typechecker/ErrorType.hpp"
 
@@ -87,6 +87,7 @@ namespace jsv {
             return {};
         }
 
+        // NOLINTNEXTLINE(*-diagnostic-unused-but-set-variable)
         if(const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
             // Concrete type = tv2: swap and unify
             return unify(t2, t1, constraint);
@@ -130,4 +131,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)

@@ -3,7 +3,7 @@
  * Copyright (c) 2026 All rights reserved.
  */
 
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 #include "jsav/ast/TypedAst_printer.hpp"
 #include "jsav/util/AnsiStyles.hpp"
 
@@ -465,4 +465,4 @@ namespace jsv {
     }
 
 }  // namespace jsv
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length)

@@ -109,7 +109,7 @@ auto main(int argc, const char *const argv[]) -> int {
             fmt::print("{}", diagnostic);
         }
 
-        jsv::AstPrinter tree_printer;
+        // jsv::AstPrinter tree_printer;
         jsv::TypedAstPrinter typed_tree_printer;
         jsv::Parser parser{tokens};
         const vnd::Timer parsingTimer("Parsing");

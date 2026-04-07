@@ -2,7 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
 #include "jsav/typechecker/TypeChecker.hpp"
 #include "jsav/ast/Expressions.hpp"
 #include "jsav/ast/NodeKind.hpp"
@@ -16,21 +16,21 @@ namespace jsv {
     // Helper: parse type annotation string into TypePtr
     // ============================================================
     [[nodiscard]] static TypePtr parse_type_annotation(std::string_view annot) {
-        if(annot == "i8") return PrimitiveType::i8();
-        if(annot == "i16") return PrimitiveType::i16();
-        if(annot == "i32") return PrimitiveType::i32();
-        if(annot == "i64") return PrimitiveType::i64();
-        if(annot == "u8") return PrimitiveType::u8();
-        if(annot == "u16") return PrimitiveType::u16();
-        if(annot == "u32") return PrimitiveType::u32();
-        if(annot == "u64") return PrimitiveType::u64();
-        if(annot == "f32") return PrimitiveType::f32();
-        if(annot == "f64") return PrimitiveType::f64();
-        if(annot == "bool") return PrimitiveType::bool_();
-        if(annot == "string") return PrimitiveType::string();
-        if(annot == "char") return PrimitiveType::char_();
-        if(annot == "void") return PrimitiveType::void_();
-        if(annot == "nullptr") return PrimitiveType::nullptr_();
+        if(annot == "i8") { return PrimitiveType::i8(); }
+        if(annot == "i16") { return PrimitiveType::i16(); }
+        if(annot == "i32") { return PrimitiveType::i32(); }
+        if(annot == "i64") { return PrimitiveType::i64(); }
+        if(annot == "u8") { return PrimitiveType::u8(); }
+        if(annot == "u16") { return PrimitiveType::u16(); }
+        if(annot == "u32") { return PrimitiveType::u32(); }
+        if(annot == "u64") { return PrimitiveType::u64(); }
+        if(annot == "f32") { return PrimitiveType::f32(); }
+        if(annot == "f64") { return PrimitiveType::f64(); }
+        if(annot == "bool") { return PrimitiveType::bool_(); }
+        if(annot == "string") { return PrimitiveType::string(); }
+        if(annot == "char") { return PrimitiveType::char_(); }
+        if(annot == "void") { return PrimitiveType::void_(); }
+        if(annot == "nullptr") { return PrimitiveType::nullptr_(); }
         // Unknown annotation — return nullptr so caller falls back to inference
         return nullptr;
     }
@@ -39,7 +39,7 @@ namespace jsv {
     // Helper: recursively apply substitution to a TypePtr
     // ============================================================
     [[nodiscard]] static TypePtr zonk_type(const Substitution &subst, const TypePtr &type) {
-        if(!type) return type;
+        if(!type) { return type; }
 
         if(const auto *tvar = dynamic_cast<const TypeVariable *>(type.get())) {
             if(auto resolved = subst.lookup(tvar->id())) {
@@ -51,14 +51,14 @@ namespace jsv {
 
         if(const auto *arr = dynamic_cast<const ArrayType *>(type.get())) {
             auto elem = zonk_type(subst, arr->element_type());
-            if(elem == arr->element_type()) return type;
+            if(elem == arr->element_type()) { return type; }
             // Preserve original size expression
             return std::make_shared<ArrayType>(std::move(elem), arr->size_expr());
         }
 
         if(const auto *vec = dynamic_cast<const VectorType *>(type.get())) {
             auto elem = zonk_type(subst, vec->element_type());
-            if(elem == vec->element_type()) return type;
+            if(elem == vec->element_type()) { return type; }
             return std::make_shared<VectorType>(std::move(elem));
         }
 
@@ -87,7 +87,7 @@ namespace jsv {
         if(!solver_result.errors.empty()) { errors_.insert(errors_.end(), solver_result.errors.begin(), solver_result.errors.end()); }
 
         // Phase 4: Zonking — apply substitution to produce typed AST
-        return TypeCheckResult{zonk(solver_result.substitution), std::move(errors_)};
+        return TypeCheckResult{.program = zonk(solver_result.substitution), .errors = std::move(errors_)};
     }
 
     // ============================================================
@@ -174,7 +174,7 @@ namespace jsv {
         zonked_stmts.reserve(typed_stmts_.size());
 
         for(auto &stmt : typed_stmts_) {
-            if(!stmt) continue;
+            if(!stmt) { continue; }
             auto zonked = zonk_stmt_full(subst, *stmt);
             if(zonked) {
                 zonked_stmts.push_back(std::move(zonked));
@@ -189,6 +189,7 @@ namespace jsv {
         return TypedProgram{std::move(zonked_stmts), std::move(program_type)};
     }
 
+    // NOLINTNEXTLINE(*-function-cognitive-complexity)
     TypedStmtPtr TypeChecker::zonk_stmt_full(const Substitution &subst, const TypedStmt &stmt) {
         switch(stmt.kind()) {
         case NodeKind::ExprStmt:
@@ -212,7 +213,8 @@ namespace jsv {
                 std::vector<TypedFuncParam> zonked_params;
                 for(const auto &param : fd->params()) {
                     auto resolved_param_type = zonk_type(subst, param.type_annotation);
-                    zonked_params.push_back(TypedFuncParam{param.name, std::move(resolved_param_type), param.loc});
+                    zonked_params.push_back(
+                        TypedFuncParam{.name = param.name, .type_annotation = std::move(resolved_param_type), .loc = param.loc});
                 }
 
                 auto zonked_body = zonk_block_full(subst, fd->body());
@@ -283,7 +285,7 @@ namespace jsv {
                     for(const auto &s : body_block->statements()) {
                         if(s) {
                             auto zonked = zonk_stmt_full(subst, *s);
-                            if(zonked) zonked_body_stmts.push_back(std::move(zonked));
+                            if(zonked) { zonked_body_stmts.push_back(std::move(zonked)); }
                         }
                     }
                 }
@@ -432,6 +434,7 @@ namespace jsv {
     // ============================================================
     // type_expr — Constraint generation for expressions
     // ============================================================
+    // NOLINTNEXTLINE(*-function-cognitive-complexity)
     TypedExprPtr TypeChecker::type_expr(const Expr &expr) {
         switch(expr.kind()) {
         case NodeKind::IntegerLiteral:
@@ -554,12 +557,12 @@ namespace jsv {
                         } else {
                             // Add: allow numeric, string, char, or any string/char combo
                             if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                                bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
-                                bool lhs_str = lhs_type->kind() == TypeKind::String;
-                                bool rhs_str = rhs_type->kind() == TypeKind::String;
-                                bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                                bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                                bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
+                                const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
+                                const bool lhs_str = lhs_type->kind() == TypeKind::String;
+                                const bool rhs_str = rhs_type->kind() == TypeKind::String;
+                                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                                const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
                                 if(!both_numeric && !string_char_combo) {
                                     message_storage_.push_back(
                                         FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
@@ -618,6 +621,7 @@ namespace jsv {
                     break;
                 default:
                     result_type = fresh_type_variable();
+                    // NOLINTNEXTLINE(*-suspicious-call-argument)
                     constraints_.add(result_type, lhs_type, bin->location(), "binary expression default");
                     break;
                 }
@@ -797,7 +801,7 @@ namespace jsv {
                 // Check if target is an immutable variable
                 if(target_typed && target_typed->kind() == NodeKind::Identifier) {
                     const auto *ident = static_cast<const TypedIdentifier *>(target_typed.get());
-                    if(ident) {
+                    if(ident != nullptr) {
                         auto sym = symbols_.lookup(ident->name());
                         if(sym && sym->is_const) {
                             message_storage_.push_back(FORMAT("Cannot assign to immutable variable '{}'", ident->name()));
@@ -888,7 +892,7 @@ namespace jsv {
             }
         default:
             errors_.push_back(CompileError::TypeError(ErrorCode::E2033, "Constraint generation failed for expression", expr.location(),
-                                                      FORMAT("Expression kind {} is not yet supported", static_cast<int>(expr.kind()))));
+                                                      FORMAT("Expression kind {} is not yet supported", C_I(expr.kind()))));
             return std::make_unique<TypedIdentifier>(std::string{"unknown"}, error_type(), expr.location());
         }
     }
@@ -896,6 +900,7 @@ namespace jsv {
     // ============================================================
     // type_stmt — Constraint generation for statements
     // ============================================================
+    // NOLINTNEXTLINE(*-function-cognitive-complexity)
     TypedStmtPtr TypeChecker::type_stmt(const Stmt &stmt) {
         switch(stmt.kind()) {
         case NodeKind::ExprStmt:
@@ -990,7 +995,7 @@ namespace jsv {
                         param_type = fresh_type_variable();
                     }
                     symbols_.define(param.name, TypeScheme::mono(param_type));
-                    typed_params.push_back(TypedFuncParam{param.name, std::move(param_type), param.loc});
+                    typed_params.push_back(TypedFuncParam{.name = param.name, .type_annotation = std::move(param_type), .loc = param.loc});
                 }
 
                 const auto &body = fd->body();
@@ -1157,7 +1162,7 @@ namespace jsv {
             }
         default:
             errors_.push_back(CompileError::TypeError(ErrorCode::E2033, "Constraint generation failed for statement", stmt.location(),
-                                                      FORMAT("Statement kind {} is not yet supported", static_cast<int>(stmt.kind()))));
+                                                      FORMAT("Statement kind {} is not yet supported", C_I(stmt.kind()))));
             return std::make_unique<TypedExprStmt>(std::make_unique<TypedIdentifier>("unknown", error_type(), stmt.location()),
                                                    PrimitiveType::void_(), stmt.location());
         }
@@ -1165,4 +1170,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)

@@ -2,7 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 #include "jsav/typechecker/UnionFind.hpp"
 
 namespace jsv {
@@ -36,7 +36,7 @@ namespace jsv {
     }
 
     bool UnionFind::same_set(TypeVarId x, TypeVarId y) {
-        if(parent_.find(x) == parent_.end() || parent_.find(y) == parent_.end()) { return false; }
+        if(parent_.contains(x) || parent_.contains(y)) { return false; }
         return find(x) == find(y);
     }
 
@@ -44,4 +44,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length)

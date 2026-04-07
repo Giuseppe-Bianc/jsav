@@ -2,7 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 #include "jsav/typechecker/Constraint.hpp"
 
 namespace jsv {
@@ -10,7 +10,7 @@ namespace jsv {
     ConstraintId ConstraintSet::add(TypePtr lhs, TypePtr rhs, SourceSpan origin, std::string_view reason) {
         auto id = next_id_++;
         constraints_.push_back(
-            Constraint{.id = id, .lhs = std::move(lhs), .rhs = std::move(rhs), .origin = std::move(origin), .reason = std::string{reason}});
+            Constraint{.id = id, .lhs = std::move(lhs), .rhs = std::move(rhs), .origin = origin, .reason = std::string{reason}});
         return id;
     }
 
@@ -25,4 +25,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length)
