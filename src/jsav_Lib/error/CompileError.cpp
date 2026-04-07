@@ -2,7 +2,7 @@
  * Created by gbian on 09/03/2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-branch-clone)
 #include "jsav/error/CompileError.hpp"
 
 namespace jsv {
@@ -41,6 +41,7 @@ namespace jsv {
         switch(kind_) {
         case Kind::LexerError:
         case Kind::SyntaxError:
+        case Kind::TypeError:
             {
                 std::string result;
                 if(code_.has_value()) {
@@ -142,4 +143,4 @@ namespace jsv {
     }
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-branch-clone)
