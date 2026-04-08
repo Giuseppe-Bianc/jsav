@@ -1126,8 +1126,7 @@ namespace jsv {
                 symbols_.push_scope();
                 std::vector<TypedStmtPtr> typed_stmts;
                 typed_stmts.reserve(bs->statements().size());
-                std::ranges::transform(bs->statements(), std::back_inserter(typed_stmts),
-                                       [this](const auto &s) { return type_stmt(*s); });
+                std::ranges::transform(bs->statements(), std::back_inserter(typed_stmts), [this](const auto &s) { return type_stmt(*s); });
                 symbols_.pop_scope();
 
                 return std::make_unique<TypedBlockStmt>(std::move(typed_stmts), PrimitiveType::void_(), bs->location());
