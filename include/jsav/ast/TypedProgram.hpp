@@ -24,8 +24,7 @@ namespace jsv {
      */
     class TypedProgram final : public TypedNode {
     public:
-        // cppcheck-suppress passedByValue
-        TypedProgram(std::vector<TypedStmtPtr> statements, TypePtr node_type, SourceSpan loc = {})
+        TypedProgram(std::vector<TypedStmtPtr> statements, TypePtr node_type, const SourceSpan &loc = {})
           : TypedNode{NodeKind::Program, std::move(node_type), loc}, statements_{std::move(statements)} {}
 
         [[nodiscard]] const std::vector<TypedStmtPtr> &statements() const noexcept { return statements_; }
