@@ -17578,74 +17578,86 @@ TEST_CASE("node_isa: Type checking utility", "[ast]") {
 }
 
 TEST_CASE("node_cast: Safe casting with assertion", "[ast]") {
+    using jsv::BinaryExpr;
     using jsv::Expr;
+    using jsv::ExprPtr;
+    using jsv::IfStmt;
+    using jsv::IntegerLiteral;
     using jsv::Node;
     using jsv::NodeKind;
+    using jsv::ReturnStmt;
     using jsv::Stmt;
 
     SECTION("node_cast<Expr> on valid expression node") {
-        Node node(NodeKind::IntegerLiteral);
-        Expr *expr = node_cast<Expr>(&node);
+        IntegerLiteral lit(42);
+        Expr *expr = node_cast<Expr>(&lit);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::IntegerLiteral);
     }
 
     SECTION("node_cast<Stmt> on valid statement node") {
-        Node node(NodeKind::ReturnStmt);
-        Stmt *stmt = node_cast<Stmt>(&node);
+        ReturnStmt ret;
+        Stmt *stmt = node_cast<Stmt>(&ret);
 
         REQUIRE(stmt != nullptr);
         REQUIRE(stmt->kind() == NodeKind::ReturnStmt);
     }
 
     SECTION("node_cast<const Expr> on const expression node") {
-        const Node node(NodeKind::BinaryExpr);
-        const Expr *expr = node_cast<const Expr>(&node);
+        const IntegerLiteral lit(42);
+        const Expr *expr = node_cast<const Expr>(&lit);
 
         REQUIRE(expr != nullptr);
-        REQUIRE(expr->kind() == NodeKind::BinaryExpr);
+        REQUIRE(expr->kind() == NodeKind::IntegerLiteral);
     }
 
     SECTION("node_cast<Expr> on statement node does not assert in runtime") {
-        const Node node(NodeKind::IfStmt);
+        const IfStmt ifstmt(nullptr, nullptr, nullptr);
         // node_cast would assert in debug, so we check isa first
-        REQUIRE_FALSE(node_isa<Expr>(&node));  // Pre-check confirms invalid cast
+        REQUIRE_FALSE(node_isa<Expr>(&ifstmt));  // Pre-check confirms invalid cast
     }
 }
 
 TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast]") {
+    using jsv::CharLiteral;
     using jsv::Expr;
+    using jsv::FloatLiteral;
+    using jsv::ForStmt;
     using jsv::Node;
     using jsv::NodeKind;
     using jsv::Stmt;
+    using jsv::StringLiteral;
+    using jsv::WhileStmt;
 
     SECTION("node_dyn_cast<Expr> on valid expression node") {
-        const Node node(NodeKind::FloatLiteral);
-        const Expr *expr = node_dyn_cast<Expr>(&node);
+        const FloatLiteral flit(3.14);
+        const Expr *expr = node_dyn_cast<Expr>(&flit);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::FloatLiteral);
     }
 
     SECTION("node_dyn_cast<Stmt> on valid statement node") {
-        Node node(NodeKind::ForStmt);
-        Stmt *stmt = node_dyn_cast<Stmt>(&node);
+        ForStmt fstmt(nullptr, nullptr, nullptr, nullptr);
+        Stmt *stmt = node_dyn_cast<Stmt>(&fstmt);
 
         REQUIRE(stmt != nullptr);
         REQUIRE(stmt->kind() == NodeKind::ForStmt);
     }
 
     SECTION("node_dyn_cast<Expr> on statement node returns nullptr") {
-        Node node(NodeKind::WhileStmt);
-        Expr *expr = node_dyn_cast<Expr>(&node);
+        WhileStmt wstmt(nullptr, nullptr);
+        Node *wnode = &wstmt;
+        Expr *expr = node_dyn_cast<Expr>(wnode);
 
         REQUIRE(expr == nullptr);
     }
 
     SECTION("node_dyn_cast<Stmt> on expression node returns nullptr") {
-        Node node(NodeKind::StringLiteral);
-        Stmt *stmt = node_dyn_cast<Stmt>(&node);
+        StringLiteral slit("test");
+        Node *snode = &slit;
+        Stmt *stmt = node_dyn_cast<Stmt>(snode);
 
         REQUIRE(stmt == nullptr);
     }
@@ -17657,8 +17669,8 @@ TEST_CASE("node_dyn_cast: Safe casting with nullptr fallback", "[ast]") {
     }
 
     SECTION("node_dyn_cast<const Expr> on const node") {
-        const Node node(NodeKind::CharLiteral);
-        const Expr *expr = node_dyn_cast<const Expr>(&node);
+        const CharLiteral clit('x');
+        const Expr *expr = node_dyn_cast<const Expr>(&clit);
 
         REQUIRE(expr != nullptr);
         REQUIRE(expr->kind() == NodeKind::CharLiteral);
