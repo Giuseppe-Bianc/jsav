@@ -1038,10 +1038,10 @@ namespace jsv {
                                                                   "Remove the return value or change the function's return type."));
                     } else if(current_function_return_type_) {
                         // Early check: concrete type mismatch for return statements → E2007
-                        // Both types are resolved (not type variables) — compare directly
+                        // Both types are resolved (not type variables) — compare structurally
                         bool mismatch_reported = false;
                         if(return_type->kind() != TypeKind::TypeVar && (*current_function_return_type_)->kind() != TypeKind::TypeVar) {
-                            if(return_type->to_string() != (*current_function_return_type_)->to_string()) {
+                            if(!(*return_type == *(*current_function_return_type_))) {
                                 message_storage_.push_back(FORMAT("Return type mismatch, expected {} found {}",
                                                                   (*current_function_return_type_)->to_string(), return_type->to_string()));
                                 errors_.push_back(
