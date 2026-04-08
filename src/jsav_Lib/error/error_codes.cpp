@@ -205,6 +205,14 @@ namespace jsv {
             return "E2031";
         case ErrorCode::E2032:
             return "E2032";
+        case ErrorCode::E2033:
+            return "E2033";
+        case ErrorCode::E2034:
+            return "E2034";
+        case ErrorCode::E2035:
+            return "E2035";
+        case ErrorCode::E2036:
+            return "E2036";
         case ErrorCode::E3001:
             return "E3001";
         case ErrorCode::E3002:
@@ -370,6 +378,14 @@ namespace jsv {
             return 2031;
         case ErrorCode::E2032:
             return 2032;
+        case ErrorCode::E2033:
+            return 2033;
+        case ErrorCode::E2034:
+            return 2034;
+        case ErrorCode::E2035:
+            return 2035;
+        case ErrorCode::E2036:
+            return 2036;
         case ErrorCode::E3001:
             return 3001;
         case ErrorCode::E3002:
@@ -571,6 +587,14 @@ namespace jsv {
             return "impossibile indicizzare tipo non-array";
         case ErrorCode::E2032:
             return "dichiarazione duplicata";
+        case ErrorCode::E2033:
+            return "generazione vincoli fallita";
+        case ErrorCode::E2034:
+            return "tipo non corrispondente nell'unificazione";
+        case ErrorCode::E2035:
+            return "tipo ricorsivo rilevato (controllo occorrenze)";
+        case ErrorCode::E2036:
+            return "variabile di tipo non risolta";
         case ErrorCode::E3001:
             return "break fuori dal ciclo in IR";
         case ErrorCode::E3002:
@@ -678,6 +702,25 @@ namespace jsv {
         case ErrorCode::E2028:
             return "Il numero di argomenti forniti non corrisponde al numero di parametri della funzione.\n"
                    "Verificare la definizione della funzione e fornire il numero corretto di argomenti.";
+        case ErrorCode::E2033:
+            return "Impossibile generare vincoli di tipo per l'espressione.\n"
+                   "L'espressione potrebbe essere malformata o avere una struttura non supportata\n"
+                   "dal generatore di vincoli. Verificare che tutti i sotto-espressioni abbiano tipi validi.";
+        case ErrorCode::E2034:
+            return "Durante l'unificazione, due tipi incompatibili sono stati confrontati.\n"
+                   "Esempio: tentare di unificare `i32` con `string`. I tipi devono essere identici\n"
+                   "per l'unificazione. Verificare che entrambi gli operandi abbiano lo stesso tipo\n"
+                   "o usare un cast esplicito per convertire uno degli operandi.";
+        case ErrorCode::E2035:
+            return "Il controllo delle occorrenze (occurs check) ha rilevato un tipo ricorsivo infinito.\n"
+                   "Esempio: `?T = ?T -> ?R` creerebbe un tipo infinito. Questo errore si verifica\n"
+                   "quando una funzione ricorsiva non ha una firma di tipo adeguata.\n"
+                   "Aggiungere un'annotazione di tipo esplicita alla funzione.";
+        case ErrorCode::E2036:
+            return "Una variabile di tipo non è stata risolta dopo la fase di zonking.\n"
+                   "Questo indica che il risolutore di vincoli non ha potuto determinare un tipo concreto.\n"
+                   "Verificare che tutte le espressioni abbiano annotazioni di tipo sufficienti\n"
+                   "e che i vincoli generati siano consistenti.";
         default:
             return "Vedere il messaggio di errore per i dettagli.";
         }
@@ -709,6 +752,12 @@ namespace jsv {
                                                                "Assicurarsi che la variabile sia nello scope"};
         static constexpr std::array<const char *, 2> kE2024 = {"Usare 'var' invece di 'const' per variabili mutabili",
                                                                "Rimuovere la riassegnazione"};
+        static constexpr std::array<const char *, 2> kE2034 = {"Aggiungere un cast esplicito per convertire il tipo",
+                                                               "Verificare che entrambi gli operandi abbiano lo stesso tipo"};
+        static constexpr std::array<const char *, 2> kE2035 = {"Aggiungere un'annotazione di tipo esplicita alla funzione ricorsiva",
+                                                               "Verificare la firma della funzione ricorsiva"};
+        static constexpr std::array<const char *, 2> kE2036 = {"Aggiungere annotazioni di tipo per le espressioni ambigue",
+                                                               "Verificare che tutti i vincoli siano consistenti"};
 
         switch(error_code) {
         case ErrorCode::E0002:
@@ -726,6 +775,12 @@ namespace jsv {
             return kE2023;
         case ErrorCode::E2024:
             return kE2024;
+        case ErrorCode::E2034:
+            return kE2034;
+        case ErrorCode::E2035:
+            return kE2035;
+        case ErrorCode::E2036:
+            return kE2036;
         default:
             return {};  // default-constructed span: data=null, size=0
         }

@@ -217,7 +217,7 @@ namespace jsv {
      */
     class TypedBreakStmt final : public TypedStmt {
     public:
-        TypedBreakStmt(TypePtr node_type, SourceSpan loc = {}) : TypedStmt{NodeKind::BreakStmt, std::move(node_type), loc} {}
+        explicit TypedBreakStmt(TypePtr node_type, SourceSpan loc = {}) : TypedStmt{NodeKind::BreakStmt, std::move(node_type), loc} {}
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::BreakStmt; }
     };
@@ -229,7 +229,7 @@ namespace jsv {
      */
     class TypedContinueStmt final : public TypedStmt {
     public:
-        TypedContinueStmt(TypePtr node_type, SourceSpan loc = {}) : TypedStmt{NodeKind::ContinueStmt, std::move(node_type), loc} {}
+        explicit TypedContinueStmt(TypePtr node_type, SourceSpan loc = {}) : TypedStmt{NodeKind::ContinueStmt, std::move(node_type), loc} {}
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::ContinueStmt; }
     };

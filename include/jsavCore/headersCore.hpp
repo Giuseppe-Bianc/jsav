@@ -24,6 +24,7 @@ DISABLE_WARNINGS_PUSH(
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <deque>
 #include <execution>
 #include <filesystem>
 #include <fstream>

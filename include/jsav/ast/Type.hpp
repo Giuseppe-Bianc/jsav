@@ -50,6 +50,10 @@ namespace jsv {
         // Special types
         Void,     // No value (function return type)
         NullPtr,  // Null pointer type
+
+        // Type inference types (constraint-based type checking)
+        TypeVar,  // Type variable (?T1, ?T2, ...) for unification
+        Error,    // Error type placeholder for error recovery
     };
 
     /**
@@ -150,6 +154,8 @@ namespace jsv {
             case TypeKind::Custom:
             case TypeKind::Array:
             case TypeKind::Vector:
+            case TypeKind::TypeVar:
+            case TypeKind::Error:
                 return false;
             }
             return false;  // Unreachable, but satisfies compiler warnings
@@ -524,8 +530,8 @@ namespace jsv {
             if(other.kind() != kind()) { return false; }
             // PERF: static_cast after kind() check avoids RTTI overhead of dynamic_cast
             const auto *other_array = static_cast<const ArrayType *>(&other);
-            // Compare element types and use pointer equality for expressions
-            return *element_type_ == *other_array->element_type_ && (size_expr_ == other_array->size_expr_);
+            // Compare element types and size expressions structurally
+            return *element_type_ == *other_array->element_type_ && sizes_equal(*size_expr_, *other_array->size_expr_);
         }
 
         /**
@@ -536,6 +542,9 @@ namespace jsv {
         [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Array; }
 
     private:
+        /// @brief Compare two size expressions structurally (supports IntegerLiteral).
+        [[nodiscard]] static bool sizes_equal(const Expr &a, const Expr &b) noexcept;
+
         std::shared_ptr<const TypeBase> element_type_;
         std::shared_ptr<const Expr> size_expr_;
     };

@@ -24,3 +24,12 @@ This file contains instructions specifically for Claude AI. For all general AI a
 6. Use proper CMake practices as outlined in project documentation.
 
 7. Follow the project's testing workflow by prioritizing relaxed_constexpr_tests first
+
+## Output Style (Absolute Mode)
+
+- No greetings, no preamble, no filler phrases
+- Never start with "I'd be happy to", "Sure!", "Of course", "Let me", "Great question"
+- Execute first, explain only if strictly necessary
+- No closing remarks like "Let me know if you need anything else"
+- Short, direct sentences — stop when done
+- For tool use: show result immediately, skip narration of what you are about to do

@@ -109,18 +109,34 @@ auto main(int argc, const char *const argv[]) -> int {
             fmt::print("{}", diagnostic);
         }
 
-        jsv::AstPrinter tree_printer;
+        // jsv::AstPrinter tree_printer;
+        jsv::TypedAstPrinter typed_tree_printer;
         jsv::Parser parser{tokens};
         const vnd::Timer parsingTimer("Parsing");
         const auto [parsed_program, parse_errors] = parser.parse();
         LINFO("{}", parsingTimer);
-        if(!errors.empty()) {
-            LERROR("Parser produced {} error(s)", parse_errors.size());
+        if(!parse_errors.empty()) {
             const std::string diagnostic = reporter.report_errors(parse_errors);
-            // fmt::print(stderr, "{}", diagnostic);
             fmt::print("{}", diagnostic);
         }
-        tree_printer.print(*parsed_program);
+
+        // Type checking phase
+        jsv::TypeChecker type_checker;
+        const vnd::Timer typeCheckingTimer("Type Checking");
+        auto [typed_program, type_errors] = type_checker.check(*parsed_program);
+        LINFO("{}", typeCheckingTimer);
+        if(!type_errors.empty()) {
+            LERROR("Type checker produced {} error(s)", type_errors.size());
+            const std::string diagnostic = reporter.report_errors(type_errors);
+            fmt::print("{}", diagnostic);
+        }
+
+        // Print both untyped and typed ASTs
+        // tree_printer.print(*parsed_program); // Uncomment to print untyped AST
+
+        const vnd::Timer typedAstPrintTimer("TypedAST Printing");
+        typed_tree_printer.print(typed_program);
+        LINFO("{}", typedAstPrintTimer);
     } catch(const std::exception &e) {
         // Handle any other types of exceptions
         LERROR("Unhandled exception in main: {}", e.what());

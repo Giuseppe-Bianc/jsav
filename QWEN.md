@@ -279,6 +279,7 @@ The project uses `.clang-format` configuration (140 column limit, 4-space indent
    - Located in `test/tests.cpp`
 
 **Workflow for Adding Tests:**
+
 ```
 1. Add tests to relaxed_constexpr_tests first
 2. Debug and fix issues
@@ -287,6 +288,7 @@ The project uses `.clang-format` configuration (140 column limit, 4-space indent
 ```
 
 **Running Tests:**
+
 ```bash
 # Run all tests
 ctest --output-on-failure
@@ -424,3 +426,14 @@ cmake --build build
 | `gcovr.cfg` | Coverage reporting configuration |
 | `AI_GUIDELINES.md` | AI agent working guidelines |
 | `HUMAN_GUIDELINES.md` | Developer philosophy and practices |
+
+---
+
+## Output Style (Absolute Mode)
+
+- No greetings, no preamble, no filler phrases
+- Never start with "I'd be happy to", "Sure!", "Of course", "Let me", "Great question"
+- Execute first, explain only if strictly necessary
+- No closing remarks like "Let me know if you need anything else"
+- Short, direct sentences — stop when done
+- For tool use: show result immediately, skip narration of what you are about to do

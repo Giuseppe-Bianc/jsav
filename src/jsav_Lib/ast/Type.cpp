@@ -48,6 +48,13 @@ namespace jsv {
     // ============================================================
     [[nodiscard]] std::string VectorType::to_string() const { return FORMAT("Vec<{}>", element_type_->to_string()); }
 
+    [[nodiscard]] bool ArrayType::sizes_equal(const Expr &a, const Expr &b) noexcept {
+        if(const auto *ia = node_dyn_cast<const IntegerLiteral>(&a)) {
+            if(const auto *ib = node_dyn_cast<const IntegerLiteral>(&b)) { return ia->value() == ib->value(); }
+        }
+        return &a == &b;
+    }
+
 }  // namespace jsv
 
 // NOLINTEND(*-include-cleaner, *-identifier-length)
