@@ -92,7 +92,7 @@ namespace jsv {
         // NOLINTBEGIN(*-diagnostic-unused-but-set-variable, *-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
         // clang-format on
         // cppcheck-suppress unreadVariable
-        if(const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
+        if([[maybe_unused]] const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
             // Concrete type = tv2: swap and unify
             return unify(t2, t1, constraint);
         }
