@@ -1,28 +1,37 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.4.0 → 1.5.0 (MINOR: Enhanced Principle I with explicit .vn file 
-handling, added explicit C++23 standard library exclusivity requirement)
+Version change: 1.5.0 → 1.6.0 (MINOR)
 
 Modified Principles:
-- I. Platform Independence: Enhanced with explicit mention of .vn file input handling
-  and strengthened C++23 standard library exclusivity requirement
-- II. Visual Studio 2026 Compatibility: Clarified MSVC C++23 feature verification
-  requirement with explicit fallback documentation
+- III. C++ Core Guidelines Compliance: Added explicit RAII enforcement mandate,
+  resource management checklist (error handling, boundary conditions, resource
+  lifecycle, concurrency), and defined responsibility roles (code owner, reviewer,
+  integration manager) with measurable compliance criteria
 
 Added Principles:
-- None
+- VIII. STL Algorithm Exclusivity: Requires mandatory preference for STL algorithms
+  over custom implementations when semantically equivalent alternatives exist; all
+  STL algorithms used MUST be fully supported by Visual Studio 2026; derogations
+  require documented technical justification and technical review approval
 
 Removed Principles:
 - None
 
 Templates Status:
-- plan-template.md: ✓ No changes needed (Constitution Check section is generic)
-- spec-template.md: ✓ No changes needed (technology-agnostic by design)
-- tasks-template.md: ✓ No changes needed (TDD workflow aligns with Principle IV)
-- agent-file-template.md: ✓ No changes needed (auto-generated from plans)
+- plan-template.md: ✓ No changes needed (Constitution Check section is generic;
+  references constitution file dynamically)
+- spec-template.md: ✓ No changes needed (technology-agnostic by design; STL
+  preference is implementation detail)
+- tasks-template.md: ✓ No changes needed (TDD workflow aligns with Principle IV;
+  STL preference affects implementation tasks, not structure)
 
 Follow-up TODOs: None
+
+Version Bump Justification:
+- MINOR: New Principle VIII (STL Algorithm Exclusivity) added — materially expands
+  governance scope with enforceable rules for algorithm selection. Principle III
+  expanded with responsibility assignments and resource management checklists.
 -->
 
 # jsav Constitution
@@ -46,7 +55,9 @@ modification, maximizing accessibility and maintainability.
 
 All code MUST be fully compatible with Visual Studio 2026 and later versions. C++23 features used
 MUST be verified as fully supported by MSVC. Any feature with incomplete MSVC support MUST be
-avoided or conditionally compiled with appropriate fallbacks.
+avoided or conditionally compiled with appropriate fallbacks. This constraint applies to the
+development and compilation environment only; it does not compromise the portability objective
+of the compiled software with respect to target operating systems.
 
 **Rationale**: Guarantees a consistent development experience for Windows developers and ensures
 the primary IDE target can build the entire codebase without issues.
@@ -92,6 +103,33 @@ criteria and explicit patterns.
 - Error messages MUST include sufficient context for diagnosis (what failed, why, context like file/index)
 - Static analysis MUST be configured to fail CI if error return values are ignored
 
+**Pattern: RAII Resource Management**
+
+- All resources (memory, file handles, locks, network connections) MUST be managed via RAII wrappers
+- Constructors MUST acquire resources; destructors MUST release them
+- Resource acquisition MUST NOT fail after partial acquisition (strong exception guarantee)
+- Smart pointers MUST be used for all heap-allocated objects; raw `new`/`delete` MUST NOT appear in application code
+- `std::make_unique` and `std::make_shared` MUST be preferred over direct constructor calls for smart pointers
+
+**Pattern: Undefined Behavior Elimination**
+
+- Code MUST NOT invoke undefined behavior under any circumstances including: null dereference, signed
+  integer overflow, out-of-bounds access, use-after-free, data races
+- All pointer dereferences MUST be preceded by null checks unless invariants guarantee non-null
+- Array and container access MUST use bounds-checked methods (`at()`) unless performance profiling
+  demonstrates `operator[]` is necessary and safety is proven by other means
+- Sanitizers (ASan, UBSan, TSan) MUST pass without violations in CI
+
+#### Resource Management Checklist
+
+Every module handling resources MUST explicitly document and verify:
+
+1. **Error Handling**: All error paths MUST release acquired resources (RAII guarantees this)
+2. **Boundary Conditions**: Empty inputs, maximum inputs, malformed data MUST be tested
+3. **Resource Lifecycle**: Every acquisition MUST have a corresponding release (verified by ASan zero-leaks)
+4. **Concurrency Safety**: Shared mutable state MUST be protected by mutexes or atomic operations;
+   data races MUST be eliminated (verified by ThreadSanitizer where applicable)
+
 #### Prohibited Anti-Patterns
 
 **Anti-Pattern: Raw Pointer Ownership**
@@ -129,6 +167,15 @@ criteria and explicit patterns.
     - Function length: ≤100 lines
     - Cyclomatic complexity: ≤15
     - Parameters: ≤6 per function
+
+#### Responsibility Assignments
+
+- **Code Owner**: Each module MUST have a designated code owner responsible for architectural
+  decisions, API stability, and compliance with Principle III patterns
+- **Reviewer**: Every pull request MUST be reviewed by at least one person other than the author;
+  the reviewer MUST verify Principle III compliance explicitly before approval
+- **Integration Manager**: Merges to `main` MUST be approved by an integration manager who verifies
+  all quality gates pass (build, tests, static analysis, sanitizers, complexity, coverage, formatting)
 
 **Rationale**: Ensures code consistency, readability, maintainability, and adherence to industry
 best practices for long-term sustainability. Measurable criteria enable automated compliance validation.
@@ -292,6 +339,17 @@ All project documentation MUST adhere to the following standards:
 - **Completeness**: Documentation MUST be coherent, complete, and clearly understandable, ensuring
   accurate and structured representation of information.
 - **Consistency**: Terminology, formatting, and structure MUST remain consistent across all documents.
+- **Logical Coherence**: Content MUST progress in a logical order; related concepts MUST be grouped
+  and cross-referenced.
+- **Terminological Consistency**: The same term MUST always refer to the same concept; synonyms MUST
+  be explicitly identified with a single canonical term chosen.
+- **Completeness**: All relevant elements, essential data, and any conditions or limitations MUST be
+  explicitly reported, avoiding omissions that could compromise correct interpretation.
+- **Comprehensibility**: Formulation MUST be clear, precise, and appropriate for the target audience,
+  avoiding obscure, redundant, or unnecessarily technical formulations unless strictly necessary.
+- **Hierarchical Structure**: Information MUST be organized according to a logical and hierarchical
+  structure, articulated in coherent sections or paragraphs, presented to facilitate consultation,
+  traceability, and content verification.
 
 #### Mandatory Patterns
 
@@ -457,6 +515,53 @@ All algorithmic implementations MUST include:
 problems where algorithmic choices directly impact performance, scalability, and correctness.
 Formal analysis ensures informed decisions and maintainable implementations.
 
+### VIII. STL Algorithm Exclusivity
+
+When technically appropriate, STL algorithms MUST be preferred over custom implementations for
+recurring operations including but not limited to: sorting, searching, transformation, filtering,
+aggregation, counting, partitioning, reduction, and data collection manipulation. All STL algorithms
+used MUST be fully supported by the compiler, standard library, and entire toolchain of Visual Studio 2026 and later versions.
+
+#### Mandatory Rules
+
+**Rule: STL Preference**
+
+- An STL algorithm fulfilling the same functional requirement MUST be used in preference to custom
+  implementations
+- Priority MUST be given to functional correctness, followed by exposition clarity, architectural
+  coherence, and overall codebase quality
+- Practices fully conforming to modern C++ standards and shared development conventions MUST be favored
+
+**Rule: Visual Studio 2026 Compatibility**
+
+- All STL algorithms used MUST be fully supported by Visual Studio 2026 and later versions
+- Any algorithm with incomplete or uncertain MSVC support MUST be avoided or conditionally compiled
+  with documented fallbacks
+- Extensions, proprietary constructs, non-standard constructs, or custom algorithms that may compromise
+  full compatibility with Visual Studio 2026 or later versions MUST NOT be used
+
+**Rule: Derogation Procedure**
+
+- Derogations from the STL preference rule are permitted ONLY in the presence of specific technical
+  requirements such as: measurable performance constraints, documented architectural necessities,
+  interoperability requirements, or absence of a semantically equivalent standard solution
+- Each derogation MUST be explicitly documented within the module's technical documentation or source
+  code comments
+- Each derogation MUST be submitted for technical review and approval before merge
+
+#### Verification
+
+- Code reviews MUST verify that STL algorithms are used where semantically applicable
+- Static analysis SHOULD flag manual reimplementations of standard algorithms (e.g., custom `find`,
+  custom `sort`, custom `transform`)
+- Derogations MUST be counted and reported in code review summaries
+
+**Rationale**: Systematic use of STL algorithms improves code readability, modularity, and overall
+maintainability while reducing the probability of logical errors arising from repetitive or
+non-uniform manual implementations. Compatibility with Visual Studio 2026 ensures technical
+stability, operational predictability, maintenance simplicity, and future portability of the project
+even under compiler updates or ISO C++ standard migrations.
+
 ## Development Workflow
 
 All development MUST follow this workflow:
@@ -502,6 +607,15 @@ Compliance is mandatory and verified through automated tooling in CI/CD pipeline
 - **PATCH**: Clarifications, wording improvements, typo fixes
 
 **Compliance Review**: All pull requests MUST be reviewed for constitution compliance. CI/CD
-pipelines enforce automated compliance checks.
+pipelines enforce automated compliance checks. The following roles are defined:
 
-**Version**: 1.5.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-03-19
+- **Code Owner**: Accountable for architectural coherence and API stability of their assigned modules.
+  MUST verify that changes comply with Principles III, V, and VIII before approval.
+- **Reviewer**: Independent verifier of pull requests. MUST NOT be the author. MUST verify compliance
+  with all applicable principles, with particular attention to Principle III patterns and anti-patterns,
+  Principle IV TDD workflow, and Principle VIII STL usage.
+- **Integration Manager**: Final gatekeeper for merges to `main`. MUST verify all quality gates pass
+  (Build, Tests, Static Analysis, Sanitizers, Complexity, Coverage, Formatting, Documentation) before
+  approving the merge.
+
+**Version**: 1.6.0 | **Ratified**: 2026-02-25 | **Last Amended**: 2026-04-08
