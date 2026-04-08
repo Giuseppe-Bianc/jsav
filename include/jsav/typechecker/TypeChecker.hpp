@@ -92,7 +92,7 @@ namespace jsv {
         void generate_constraints(const Program &program);
 
         /// Phase 3: Constraint solving (unification)
-        [[nodiscard]] SolverResult solve_constraints();
+        [[nodiscard]] SolverResult solve_constraints() const;
 
         /// Phase 4: Zonking (apply substitution to typed AST)
         [[nodiscard]] TypedProgram zonk(const Substitution &subst);

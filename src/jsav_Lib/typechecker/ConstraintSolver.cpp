@@ -87,12 +87,19 @@ namespace jsv {
             return {};
         }
 
-        // NOLINTNEXTLINE(clang-diagnostic-unused-but-set-variable)
+        // NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+        // clang-format off
+        // NOLINTBEGIN(*-diagnostic-unused-but-set-variable, *-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+        // clang-format on
         // cppcheck-suppress unreadVariable
         if(const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
             // Concrete type = tv2: swap and unify
             return unify(t2, t1, constraint);
         }
+        // clang-format off
+        // NOLINTEND(*-diagnostic-unused-but-set-variable, *-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+        // clang-format on
+        // NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
 
         // Both are concrete types - check structural equality
         if(t1->kind() != t2->kind()) {

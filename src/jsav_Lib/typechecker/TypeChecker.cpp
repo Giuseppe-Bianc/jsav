@@ -155,13 +155,15 @@ namespace jsv {
     void TypeChecker::generate_constraints(const Program &program) {
         typed_stmts_.clear();
         current_function_return_type_.reset();  // Ensure we start at top-level (no enclosing function)
-        for(const auto &stmt : program.statements()) { typed_stmts_.push_back(type_stmt(*stmt)); }
+        typed_stmts_.reserve(program.statements().size());
+        std::ranges::transform(program.statements(), std::back_inserter(typed_stmts_),
+                               [this](const auto &stmt) { return type_stmt(*stmt); });
     }
 
     // ============================================================
     // Phase 3: Constraint Solving
     // ============================================================
-    SolverResult TypeChecker::solve_constraints() {
+    SolverResult TypeChecker::solve_constraints() const {
         ConstraintSolver solver;
         return solver.solve(constraints_);
     }
@@ -1000,7 +1002,9 @@ namespace jsv {
 
                 const auto &body = fd->body();
                 std::vector<TypedStmtPtr> typed_body_stmts;
-                for(const auto &s : body.statements()) { typed_body_stmts.push_back(type_stmt(*s)); }
+                typed_body_stmts.reserve(body.statements().size());
+                std::ranges::transform(body.statements(), std::back_inserter(typed_body_stmts),
+                                       [this](const auto &s) { return type_stmt(*s); });
 
                 symbols_.pop_scope();
                 current_function_return_type_.reset();
@@ -1121,14 +1125,16 @@ namespace jsv {
                 const auto *bs = static_cast<const BlockStmt *>(&stmt);
                 symbols_.push_scope();
                 std::vector<TypedStmtPtr> typed_stmts;
-                for(const auto &s : bs->statements()) { typed_stmts.push_back(type_stmt(*s)); }
+                typed_stmts.reserve(bs->statements().size());
+                std::ranges::transform(bs->statements(), std::back_inserter(typed_stmts),
+                                       [this](const auto &s) { return type_stmt(*s); });
                 symbols_.pop_scope();
 
                 return std::make_unique<TypedBlockStmt>(std::move(typed_stmts), PrimitiveType::void_(), bs->location());
             }
         case NodeKind::BreakStmt:
             {
-                if(loop_depth_ <= 0) {
+                if(loop_depth_ == 0) {
                     errors_.push_back(CompileError::TypeError(ErrorCode::E2009, "Break statement outside loop", stmt.location(),
                                                               "Break is only valid inside for or while loops."));
                 }
@@ -1136,7 +1142,7 @@ namespace jsv {
             }
         case NodeKind::ContinueStmt:
             {
-                if(loop_depth_ <= 0) {
+                if(loop_depth_ == 0) {
                     errors_.push_back(CompileError::TypeError(ErrorCode::E2010, "Continue statement outside loop", stmt.location(),
                                                               "Continue is only valid inside for or while loops."));
                 }
@@ -1151,7 +1157,9 @@ namespace jsv {
                 current_function_return_type_ = PrimitiveType::void_();
                 current_function_name_ = "main";
                 if(const auto *body_block = dynamic_cast<const BlockStmt *>(&ms->body())) {
-                    for(const auto &s : body_block->statements()) { typed_body_stmts.push_back(type_stmt(*s)); }
+                    typed_body_stmts.reserve(body_block->statements().size());
+                    std::ranges::transform(body_block->statements(), std::back_inserter(typed_body_stmts),
+                                           [this](const auto &s) { return type_stmt(*s); });
                 } else {
                     typed_body_stmts.push_back(type_stmt(ms->body()));
                 }
