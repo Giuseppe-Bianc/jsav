@@ -1404,6 +1404,78 @@ TEST_CASE("unary_binding_power: Precedence hierarchy among unary operators", "[u
     STATIC_REQUIRE(ubp_preinc.second < ubp_predec.second);  // 24 < 25
 }
 
+// ==========================================================================
+// Ast_printer constexpr helpers: NodeKind, UnaryOp, BinaryOp
+// ==========================================================================
+
+TEST_CASE("node_kind_name returns correct names for all AST node types", "[Ast][NodeKind][constexpr]") {
+    // Expressions
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::IntegerLiteral) == "IntegerLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::FloatLiteral) == "FloatLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::StringLiteral) == "StringLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::CharLiteral) == "CharLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::BoolLiteral) == "BoolLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::NullLiteral) == "NullLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::Identifier) == "Identifier");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::UnaryExpr) == "UnaryExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::BinaryExpr) == "BinaryExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::TernaryExpr) == "TernaryExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::CallExpr) == "CallExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::IndexExpr) == "IndexExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::MemberExpr) == "MemberExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::AssignExpr) == "AssignExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::CastExpr) == "CastExpr");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::ArrayLiteral) == "ArrayLiteral");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::GroupingExpr) == "GroupingExpr");
+
+    // Statements
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::ExprStmt) == "ExprStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::VarDecl) == "VarDecl");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::FuncDecl) == "FuncDecl");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::ReturnStmt) == "ReturnStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::IfStmt) == "IfStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::WhileStmt) == "WhileStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::ForStmt) == "ForStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::BlockStmt) == "BlockStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::BreakStmt) == "BreakStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::ContinueStmt) == "ContinueStmt");
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::MainStmt) == "MainStmt");
+
+    // Program
+    STATIC_REQUIRE(jsv::node_kind_name(jsv::NodeKind::Program) == "Program");
+}
+
+TEST_CASE("unary_op_symbol returns correct symbols for all unary operators", "[Ast][UnaryOp][constexpr]") {
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Negate) == "-");
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::Not) == "!");
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::BitNot) == "~");
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PreInc) == "++");
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PreDec) == "--");
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PostInc) == "++");
+    STATIC_REQUIRE(jsv::unary_op_symbol(jsv::UnaryOp::PostDec) == "--");
+}
+
+TEST_CASE("binary_op_symbol returns correct symbols for all binary operators", "[Ast][BinaryOp][constexpr]") {
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Add) == "+");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Sub) == "-");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Mul) == "*");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Div) == "/");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Mod) == "%");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Eq) == "==");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Neq) == "!=");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Lt) == "<");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Gt) == ">");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Le) == "<=");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Ge) == ">=");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::And) == "&&");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Or) == "||");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::BitAnd) == "&");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::BitOr) == "|");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::BitXor) == "^");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Shl) == "<<");
+    STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Shr) == ">>");
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on

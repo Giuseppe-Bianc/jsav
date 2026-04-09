@@ -81,16 +81,685 @@ namespace {
         return {kind, text, span};
     }
 
+// ─────────────────────────────────────────────────────────────
+// Helper: strip ANSI escape codes from a string for testing
+// ─────────────────────────────────────────────────────────────
+[[nodiscard]] std::string strip_ansi(std::string_view input) {
+    std::string result;
+    result.reserve(input.size());
+    bool in_escape = false;
+    for(char c : input) {
+        if(c == '\x1b') { in_escape = true; }
+        else if(in_escape) {
+            if(c == 'm' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) { in_escape = false; }
+        } else {
+            result += c;
+        }
+    }
+    return result;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Helper: redirect stdout to a std::string for the duration of
+// a lambda, then restore it.
+// ─────────────────────────────────────────────────────────────
+struct CaptureStdout {
+    CaptureStdout() = default;
+
+    // Redirect stdout → an in-memory pipe, return captured text (ANSI-stripped).
+    [[nodiscard]] static std::string run(auto fn) {
+        // Use a temporary file as a portable capture buffer.
+        std::FILE* tmp = std::tmpfile();
+
+        // Swap stdout fd with the temp file fd.
+        fflush(stdout);
+        const int saved_fd = _dup(_fileno(stdout));
+        _dup2(_fileno(tmp), _fileno(stdout));
+
+        fn(); // execute the code under test
+
+        fflush(stdout);
+
+        // Restore original stdout.
+        _dup2(saved_fd, _fileno(stdout));
+        _close(saved_fd);
+
+        // Read what was written to the temp file.
+        rewind(tmp);
+        std::string result;
+        char buf[256];
+        while(std::fgets(buf, sizeof(buf), tmp)) { result += buf; }
+
+        std::fclose(tmp);
+        return strip_ansi(result);
+    }
+};
+
     // Helper to create IntegerLiteral for ArrayType size expressions
     std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
 }  // namespace
 
-TEST_CASE("Logger setup", "[setup_logger]") {
-    SECTION("Default setup") { REQUIRE_NOTHROW(setup_logger()); }
-    SECTION("Logger sinks") {
-        setup_logger();
-        auto logger = spdlog::default_logger();
-        REQUIRE(logger->sinks().size() == 1);
+TEST_CASE("AstPrinter prints literals correctly", "[AstPrinter][literals][unicode]") {
+    jsv::AstPrinter printer;
+
+    SECTION("IntegerLiteral without type suffix prints value only") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2));
+        const jsv::IntegerLiteral node(42, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("42"));
+    }
+
+    SECTION("IntegerLiteral with type suffix prints value and suffix") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::IntegerLiteral node(100, span, "u64");
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("100u64"));
+    }
+
+    SECTION("FloatLiteral prints value with f suffix") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::FloatLiteral node(3.14, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("3.14f"));
+    }
+
+    SECTION("StringLiteral prints with quotes") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 7, 6));
+        const jsv::StringLiteral node("hello", span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("\"hello\""));
+    }
+
+    SECTION("CharLiteral prints with single quotes") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::CharLiteral node('A', span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("'A'"));
+    }
+
+    SECTION("BoolLiteral prints true") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::BoolLiteral node(true, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("true"));
+    }
+
+    SECTION("BoolLiteral prints false") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::BoolLiteral node(false, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("false"));
+    }
+
+    SECTION("NullLiteral prints null") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::NullLiteral node(span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Literal"));
+        REQUIRE_THAT(output, ContainsSubstring("null"));
+    }
+
+    SECTION("Identifier prints name") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::Identifier node("myVar", span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Identifier"));
+        REQUIRE_THAT(output, ContainsSubstring("myVar"));
+    }
+}
+
+TEST_CASE("AstPrinter prints statements correctly", "[AstPrinter][statements][unicode]") {
+    jsv::AstPrinter printer;
+
+    SECTION("ExprStmt prints expression") {
+        const jsv::SourceSpan span_expr(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        auto expr = std::make_unique<jsv::Identifier>("hello", span_expr);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 7, 6));
+        const jsv::ExprStmt node(std::move(expr), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("ExprStmt"));
+    }
+
+    SECTION("VarDecl single variable prints name and type") {
+        const jsv::SourceSpan span_init(filename, jsv::SourceLocation(1, 12, 11), jsv::SourceLocation(1, 14, 13));
+        auto init = std::make_unique<jsv::IntegerLiteral>(42, span_init);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 14, 13));
+        const jsv::VarDecl node("x", "i32", std::move(init), false, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("VarDeclaration"));
+        REQUIRE_THAT(output, ContainsSubstring("Variables:"));
+        REQUIRE_THAT(output, ContainsSubstring("x"));
+        REQUIRE_THAT(output, ContainsSubstring("Type:"));
+        REQUIRE_THAT(output, ContainsSubstring("i32"));
+        REQUIRE_THAT(output, ContainsSubstring("Initializers:"));
+    }
+
+    SECTION("VarDecl const prints ConstDeclaration") {
+        const jsv::SourceSpan span_init(filename, jsv::SourceLocation(1, 12, 11), jsv::SourceLocation(1, 14, 13));
+        auto init = std::make_unique<jsv::IntegerLiteral>(100, span_init);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 14, 13));
+        const jsv::VarDecl node("PI", "f64", std::move(init), true, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("ConstDeclaration"));
+    }
+
+    SECTION("VarDecl multi-variable prints all names and initializers") {
+        const jsv::SourceSpan span_init1(filename, jsv::SourceLocation(1, 16, 15), jsv::SourceLocation(1, 18, 17));
+        auto init1 = std::make_unique<jsv::IntegerLiteral>(10, span_init1);
+        const jsv::SourceSpan span_init2(filename, jsv::SourceLocation(1, 20, 19), jsv::SourceLocation(1, 22, 21));
+        auto init2 = std::make_unique<jsv::IntegerLiteral>(20, span_init2);
+        std::vector<jsv::ExprPtr> initializers;
+        initializers.reserve(2);
+        initializers.push_back(std::move(init1));
+        initializers.push_back(std::move(init2));
+        std::vector<std::string> names = {"a", "b"};
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 22, 21));
+        const jsv::VarDecl node(std::move(names), "i64", std::move(initializers), false, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("VarDeclaration"));
+        REQUIRE_THAT(output, ContainsSubstring("Variables:"));
+        REQUIRE_THAT(output, ContainsSubstring("a"));
+        REQUIRE_THAT(output, ContainsSubstring("b"));
+        REQUIRE_THAT(output, ContainsSubstring("Initializers:"));
+    }
+
+    SECTION("FuncDecl prints name, parameters, return type, and body") {
+        std::vector<jsv::FuncParam> params;
+        params.reserve(2);
+        const jsv::SourceSpan span_p1(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 14, 13));
+        params.push_back({"x", jsv::PrimitiveType::i32(), span_p1});
+        const jsv::SourceSpan span_p2(filename, jsv::SourceLocation(1, 16, 15), jsv::SourceLocation(1, 22, 21));
+        params.push_back({"y", jsv::PrimitiveType::i32(), span_p2});
+        auto ret_type = jsv::PrimitiveType::i32();
+        std::vector<jsv::StmtPtr> body_stmts;
+        auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 30, 29));
+        const jsv::FuncDecl node("add", params, ret_type, std::move(body), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Function"));
+        REQUIRE_THAT(output, ContainsSubstring("Name:"));
+        REQUIRE_THAT(output, ContainsSubstring("add"));
+        REQUIRE_THAT(output, ContainsSubstring("Parameters:"));
+        REQUIRE_THAT(output, ContainsSubstring("Parameter 'x'"));
+        REQUIRE_THAT(output, ContainsSubstring("Parameter 'y'"));
+        REQUIRE_THAT(output, ContainsSubstring("Return Type:"));
+        REQUIRE_THAT(output, ContainsSubstring("Body:"));
+    }
+
+    SECTION("FuncDecl with no parameters prints (none)") {
+        std::vector<jsv::FuncParam> params;
+        std::vector<jsv::StmtPtr> body_stmts;
+        auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 20, 19));
+        const jsv::FuncDecl node("main", params, std::nullopt, std::move(body), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Function"));
+        REQUIRE_THAT(output, ContainsSubstring("Parameters: (none)"));
+    }
+
+    SECTION("ReturnStmt with value prints Value:") {
+        const jsv::SourceSpan span_val(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 10, 9));
+        auto val = std::make_unique<jsv::IntegerLiteral>(0, span_val);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 10, 9));
+        const jsv::ReturnStmt node(std::move(val), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Return"));
+        REQUIRE_THAT(output, ContainsSubstring("Value:"));
+    }
+
+    SECTION("ReturnStmt without value prints only Return") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 7, 6));
+        const jsv::ReturnStmt node(nullptr, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Return"));
+        REQUIRE_FALSE(output.find("Value:") != std::string::npos);
+    }
+
+    SECTION("IfStmt without else prints condition and then branch") {
+        const jsv::SourceSpan span_cond(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 10, 9));
+        auto cond = std::make_unique<jsv::BoolLiteral>(true, span_cond);
+        std::vector<jsv::StmtPtr> then_stmts;
+        auto then_branch = std::make_unique<jsv::BlockStmt>(std::move(then_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 15, 14));
+        const jsv::IfStmt node(std::move(cond), std::move(then_branch), nullptr, span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("If"));
+        REQUIRE_THAT(output, ContainsSubstring("Condition:"));
+        REQUIRE_THAT(output, ContainsSubstring("Then:"));
+        REQUIRE_FALSE(output.find("Else:") != std::string::npos);
+    }
+
+    SECTION("IfStmt with else prints all branches") {
+        const jsv::SourceSpan span_cond(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 10, 9));
+        auto cond = std::make_unique<jsv::BoolLiteral>(false, span_cond);
+        std::vector<jsv::StmtPtr> then_stmts;
+        auto then_branch = std::make_unique<jsv::BlockStmt>(std::move(then_stmts));
+        std::vector<jsv::StmtPtr> else_stmts;
+        auto else_branch = std::make_unique<jsv::BlockStmt>(std::move(else_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 25, 24));
+        const jsv::IfStmt node(std::move(cond), std::move(then_branch), std::move(else_branch), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("If"));
+        REQUIRE_THAT(output, ContainsSubstring("Condition:"));
+        REQUIRE_THAT(output, ContainsSubstring("Then:"));
+        REQUIRE_THAT(output, ContainsSubstring("Else:"));
+    }
+
+    SECTION("WhileStmt prints condition and body") {
+        const jsv::SourceSpan span_cond(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 13, 12));
+        auto cond = std::make_unique<jsv::BoolLiteral>(true, span_cond);
+        std::vector<jsv::StmtPtr> body_stmts;
+        auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 18, 17));
+        const jsv::WhileStmt node(std::move(cond), std::move(body), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("While"));
+        REQUIRE_THAT(output, ContainsSubstring("Condition:"));
+        REQUIRE_THAT(output, ContainsSubstring("Body:"));
+    }
+
+    SECTION("ForStmt with all parts prints init, condition, increment, and body") {
+        const jsv::SourceSpan span_init(filename, jsv::SourceLocation(1, 6, 5), jsv::SourceLocation(1, 12, 11));
+        auto init = std::make_unique<jsv::VarDecl>("i", "i32", std::make_unique<jsv::IntegerLiteral>(0, jsv::SourceSpan{}), false, span_init);
+        const jsv::SourceSpan span_cond(filename, jsv::SourceLocation(1, 14, 13), jsv::SourceLocation(1, 19, 18));
+        auto cond = std::make_unique<jsv::Identifier>("i", span_cond);
+        const jsv::SourceSpan span_incr(filename, jsv::SourceLocation(1, 21, 20), jsv::SourceLocation(1, 24, 23));
+        auto incr = std::make_unique<jsv::Identifier>("i++", span_incr);
+        std::vector<jsv::StmtPtr> body_stmts;
+        auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 30, 29));
+        const jsv::ForStmt node(std::move(init), std::move(cond), std::move(incr), std::move(body), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("For"));
+        REQUIRE_THAT(output, ContainsSubstring("Init:"));
+        REQUIRE_THAT(output, ContainsSubstring("Condition:"));
+        REQUIRE_THAT(output, ContainsSubstring("Increment:"));
+        REQUIRE_THAT(output, ContainsSubstring("Body:"));
+    }
+
+    SECTION("ForStmt with missing parts prints (none)") {
+        std::vector<jsv::StmtPtr> body_stmts;
+        auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 15, 14));
+        const jsv::ForStmt node(nullptr, nullptr, nullptr, std::move(body), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("For"));
+        REQUIRE_THAT(output, ContainsSubstring("Init: (none)"));
+        REQUIRE_THAT(output, ContainsSubstring("Condition: (none)"));
+        REQUIRE_THAT(output, ContainsSubstring("Increment: (none)"));
+        REQUIRE_THAT(output, ContainsSubstring("Body:"));
+    }
+
+    SECTION("BlockStmt with statements prints all statements") {
+        std::vector<jsv::StmtPtr> stmts;
+        stmts.reserve(2);
+        const jsv::SourceSpan span_s1(filename, jsv::SourceLocation(2, 1, 0), jsv::SourceLocation(2, 7, 6));
+        stmts.push_back(std::make_unique<jsv::BreakStmt>(span_s1));
+        const jsv::SourceSpan span_s2(filename, jsv::SourceLocation(3, 1, 0), jsv::SourceLocation(3, 10, 9));
+        stmts.push_back(std::make_unique<jsv::ContinueStmt>(span_s2));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(4, 2, 11));
+        const jsv::BlockStmt node(std::move(stmts), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Block"));
+        REQUIRE_THAT(output, ContainsSubstring("Break"));
+        REQUIRE_THAT(output, ContainsSubstring("Continue"));
+    }
+
+    SECTION("BlockStmt with no statements prints only Block") {
+        std::vector<jsv::StmtPtr> stmts;
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        const jsv::BlockStmt node(std::move(stmts), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Block"));
+    }
+
+    SECTION("BreakStmt prints Break") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::BreakStmt node(span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Break"));
+    }
+
+    SECTION("ContinueStmt prints Continue") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 9, 8));
+        const jsv::ContinueStmt node(span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Continue"));
+    }
+
+    SECTION("MainStmt prints Main and body") {
+        std::vector<jsv::StmtPtr> body_stmts;
+        auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 15, 14));
+        const jsv::MainStmt node(std::move(body), span);
+        const auto output = CaptureStdout::run([&] { printer.print(node); });
+        REQUIRE_THAT(output, ContainsSubstring("Main"));
+    }
+}
+
+TEST_CASE("AstPrinter prints Program root correctly", "[AstPrinter][program][unicode]") {
+    jsv::AstPrinter printer;
+
+    SECTION("Program with statements prints Program header") {
+        std::vector<jsv::StmtPtr> stmts;
+        stmts.reserve(1);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        stmts.push_back(std::make_unique<jsv::BreakStmt>(span));
+        const jsv::SourceSpan span_prog(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::Program program(std::move(stmts), span_prog);
+        const auto output = CaptureStdout::run([&] { printer.print(program); });
+        REQUIRE_THAT(output, ContainsSubstring("Program"));
+    }
+
+    SECTION("Program with no statements prints only Program header") {
+        std::vector<jsv::StmtPtr> stmts;
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 1, 0));
+        const jsv::Program program(std::move(stmts), span);
+        const auto output = CaptureStdout::run([&] { printer.print(program); });
+        REQUIRE_THAT(output, ContainsSubstring("Program"));
+    }
+}
+
+TEST_CASE("SExprPrinter converts literals to S-Expressions", "[SExprPrinter][literals][sexpr]") {
+    jsv::SExprPrinter printer;
+
+    SECTION("IntegerLiteral converts to number") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2));
+        const jsv::IntegerLiteral node(42, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "42");
+    }
+
+    SECTION("FloatLiteral converts to decimal") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::FloatLiteral node(3.14, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "3.14");
+    }
+
+    SECTION("StringLiteral converts to quoted string") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 7, 6));
+        const jsv::StringLiteral node("hello", span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "\"hello\"");
+    }
+
+    SECTION("CharLiteral converts to single-quoted char") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::CharLiteral node('A', span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "'A'");
+    }
+
+    SECTION("BoolLiteral true converts to 'true'") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::BoolLiteral node(true, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "true");
+    }
+
+    SECTION("BoolLiteral false converts to 'false'") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::BoolLiteral node(false, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "false");
+    }
+
+    SECTION("NullLiteral converts to 'null'") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 5, 4));
+        const jsv::NullLiteral node(span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "null");
+    }
+
+    SECTION("Identifier converts to name") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::Identifier node("myVar", span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "myVar");
+    }
+}
+
+TEST_CASE("SExprPrinter converts expressions to S-Expressions", "[SExprPrinter][expressions][sexpr]") {
+    jsv::SExprPrinter printer;
+
+    SECTION("UnaryExpr with negate converts to prefix notation") {
+        const jsv::SourceSpan span_inner(filename, jsv::SourceLocation(1, 2, 1), jsv::SourceLocation(1, 3, 2));
+        auto operand = std::make_unique<jsv::IntegerLiteral>(5, span_inner);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2));
+        const jsv::UnaryExpr node(jsv::UnaryOp::Negate, std::move(operand), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(- 5)");
+    }
+
+    SECTION("UnaryExpr with prefix increment includes position") {
+        const jsv::SourceSpan span_inner(filename, jsv::SourceLocation(1, 3, 2), jsv::SourceLocation(1, 4, 3));
+        auto operand = std::make_unique<jsv::Identifier>("x", span_inner);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::UnaryExpr node(jsv::UnaryOp::PreInc, std::move(operand), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(++ prefix x)");
+    }
+
+    SECTION("UnaryExpr with postfix decrement includes position") {
+        const jsv::SourceSpan span_inner(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        auto operand = std::make_unique<jsv::Identifier>("i", span_inner);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        const jsv::UnaryExpr node(jsv::UnaryOp::PostDec, std::move(operand), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(-- postfix i)");
+    }
+
+    SECTION("BinaryExpr converts to infix S-Expression") {
+        const jsv::SourceSpan span_lhs(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(10, span_lhs);
+        const jsv::SourceSpan span_rhs(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 5));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(20, span_rhs);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::BinaryExpr node(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(+ 10 20)");
+    }
+
+    SECTION("TernaryExpr converts to S-Expression with ?:") {
+        const jsv::SourceSpan span_cond(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        auto cond = std::make_unique<jsv::BoolLiteral>(true, span_cond);
+        const jsv::SourceSpan span_then(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 5));
+        auto then_node = std::make_unique<jsv::IntegerLiteral>(1, span_then);
+        const jsv::SourceSpan span_else(filename, jsv::SourceLocation(1, 9, 8), jsv::SourceLocation(1, 10, 9));
+        auto else_node = std::make_unique<jsv::IntegerLiteral>(0, span_else);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 10, 9));
+        const jsv::TernaryExpr node(std::move(cond), std::move(then_node), std::move(else_node), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(?: true 1 0)");
+    }
+
+    SECTION("CallExpr with arguments converts to call S-Expression") {
+        const jsv::SourceSpan span_callee(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2));
+        auto callee = std::make_unique<jsv::Identifier>("foo", span_callee);
+        std::vector<jsv::ExprPtr> args;
+        args.reserve(2);
+        const jsv::SourceSpan span_arg1(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 5));
+        args.push_back(std::make_unique<jsv::IntegerLiteral>(1, span_arg1));
+        const jsv::SourceSpan span_arg2(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 9, 8));
+        args.push_back(std::make_unique<jsv::IntegerLiteral>(2, span_arg2));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 10, 9));
+        const jsv::CallExpr call_node(std::move(callee), std::move(args), span);
+        const auto result = printer.to_string(call_node);
+        REQUIRE(result == "(call foo 1 2)");
+    }
+
+    SECTION("CallExpr with no arguments converts correctly") {
+        const jsv::SourceSpan span_callee(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 4, 3));
+        auto callee = std::make_unique<jsv::Identifier>("bar", span_callee);
+        std::vector<jsv::ExprPtr> args;
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::CallExpr call_node(std::move(callee), std::move(args), span);
+        const auto result = printer.to_string(call_node);
+        REQUIRE(result == "(call bar)");
+    }
+
+    SECTION("IndexExpr converts to index S-Expression") {
+        const jsv::SourceSpan span_obj(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2));
+        auto obj = std::make_unique<jsv::Identifier>("arr", span_obj);
+        const jsv::SourceSpan span_idx(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 5));
+        auto idx = std::make_unique<jsv::IntegerLiteral>(0, span_idx);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 8, 7));
+        const jsv::IndexExpr node(std::move(obj), std::move(idx), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(index arr 0)");
+    }
+
+    SECTION("MemberExpr converts to member S-Expression") {
+        const jsv::SourceSpan span_obj(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 3, 2));
+        auto obj = std::make_unique<jsv::Identifier>("obj", span_obj);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 8, 7));
+        const jsv::MemberExpr node(std::move(obj), "field", span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(. obj field)");
+    }
+
+    SECTION("AssignExpr converts to assignment S-Expression") {
+        const jsv::SourceSpan span_target(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        auto target = std::make_unique<jsv::Identifier>("x", span_target);
+        const jsv::SourceSpan span_val(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 5));
+        auto value = std::make_unique<jsv::IntegerLiteral>(42, span_val);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::AssignExpr node(std::move(target), std::move(value), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(= x 42)");
+    }
+
+    SECTION("CastExpr converts to cast S-Expression") {
+        const jsv::SourceSpan span_op(filename, jsv::SourceLocation(1, 6, 5), jsv::SourceLocation(1, 9, 8));
+        auto operand = std::make_unique<jsv::IntegerLiteral>(100, span_op);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 9, 8));
+        const jsv::CastExpr node("i64", std::move(operand), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(cast i64 100)");
+    }
+
+    SECTION("ArrayLiteral with elements converts to bracket notation") {
+        std::vector<jsv::ExprPtr> elements;
+        elements.reserve(3);
+        const jsv::SourceSpan span1(filename, jsv::SourceLocation(1, 2, 1), jsv::SourceLocation(1, 3, 2));
+        elements.push_back(std::make_unique<jsv::IntegerLiteral>(1, span1));
+        const jsv::SourceSpan span2(filename, jsv::SourceLocation(1, 5, 4), jsv::SourceLocation(1, 6, 5));
+        elements.push_back(std::make_unique<jsv::IntegerLiteral>(2, span2));
+        const jsv::SourceSpan span3(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 9, 8));
+        elements.push_back(std::make_unique<jsv::IntegerLiteral>(3, span3));
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 10, 9));
+        const jsv::ArrayLiteral node(std::move(elements), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "[1 2 3]");
+    }
+
+    SECTION("ArrayLiteral with no elements converts to empty brackets") {
+        std::vector<jsv::ExprPtr> elements;
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 2, 1));
+        const jsv::ArrayLiteral node(std::move(elements), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "[]");
+    }
+
+    SECTION("GroupingExpr converts to group S-Expression") {
+        const jsv::SourceSpan span_inner(filename, jsv::SourceLocation(1, 2, 1), jsv::SourceLocation(1, 5, 4));
+        auto inner = std::make_unique<jsv::IntegerLiteral>(42, span_inner);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::GroupingExpr node(std::move(inner), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(group 42)");
+    }
+}
+
+TEST_CASE("SExprPrinter converts statements to S-Expressions", "[SExprPrinter][statements][sexpr]") {
+    jsv::SExprPrinter printer;
+
+    SECTION("ExprStmt converts to expr-stmt S-Expression") {
+        const jsv::SourceSpan span_expr(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        auto expr = std::make_unique<jsv::Identifier>("hello", span_expr);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 7, 6));
+        const jsv::ExprStmt node(std::move(expr), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(expr-stmt hello)");
+    }
+
+    SECTION("VarDecl single variable converts to var S-Expression") {
+        const jsv::SourceSpan span_init(filename, jsv::SourceLocation(1, 12, 11), jsv::SourceLocation(1, 14, 13));
+        auto init = std::make_unique<jsv::IntegerLiteral>(42, span_init);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 14, 13));
+        const jsv::VarDecl node("x", "i32", std::move(init), false, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(var x : i32 42)");
+    }
+
+    SECTION("VarDecl const converts to const S-Expression") {
+        const jsv::SourceSpan span_init(filename, jsv::SourceLocation(1, 12, 11), jsv::SourceLocation(1, 14, 13));
+        auto init = std::make_unique<jsv::IntegerLiteral>(100, span_init);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 14, 13));
+        const jsv::VarDecl node("PI", "f64", std::move(init), true, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(const PI : f64 100)");
+    }
+
+    SECTION("VarDecl without initializer converts correctly") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 8, 7));
+        const jsv::VarDecl node("x", "i32", nullptr, false, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(var x : i32)");
+    }
+
+    SECTION("VarDecl multi-variable converts to var with multiple names") {
+        const jsv::SourceSpan span_init1(filename, jsv::SourceLocation(1, 16, 15), jsv::SourceLocation(1, 18, 17));
+        auto init1 = std::make_unique<jsv::IntegerLiteral>(10, span_init1);
+        const jsv::SourceSpan span_init2(filename, jsv::SourceLocation(1, 20, 19), jsv::SourceLocation(1, 22, 21));
+        auto init2 = std::make_unique<jsv::IntegerLiteral>(20, span_init2);
+        std::vector<jsv::ExprPtr> initializers;
+        initializers.reserve(2);
+        initializers.push_back(std::move(init1));
+        initializers.push_back(std::move(init2));
+        std::vector<std::string> names = {"a", "b"};
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 22, 21));
+        const jsv::VarDecl decl_node(std::move(names), "i64", std::move(initializers), false, span);
+        const auto result = printer.to_string(decl_node);
+        REQUIRE(result == "(var a b : i64 (10 20))");
+    }
+
+    SECTION("ReturnStmt with value converts to return S-Expression") {
+        const jsv::SourceSpan span_val(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 10, 9));
+        auto val = std::make_unique<jsv::IntegerLiteral>(0, span_val);
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 10, 9));
+        const jsv::ReturnStmt node(std::move(val), span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(return 0)");
+    }
+
+    SECTION("ReturnStmt without value converts to return") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 7, 6));
+        const jsv::ReturnStmt node(nullptr, span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(return)");
+    }
+
+    SECTION("BreakStmt converts to break") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 6, 5));
+        const jsv::BreakStmt node(span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(break)");
+    }
+
+    SECTION("ContinueStmt converts to continue") {
+        const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 9, 8));
+        const jsv::ContinueStmt node(span);
+        const auto result = printer.to_string(node);
+        REQUIRE(result == "(continue)");
     }
 }
 
