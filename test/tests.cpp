@@ -130,7 +130,7 @@ namespace {
 
             fflush(stdout);
 
-        // Restore original stdout.
+            // Restore original stdout.
 #ifdef _WIN32
             _dup2(saved_fd, _fileno(stdout));
             _close(saved_fd);
