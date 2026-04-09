@@ -92,7 +92,7 @@ namespace {
         std::string result;
         result.reserve(input.size());
         bool in_escape = false;
-        for(char c : input) {
+        for(const char c : input) {
             if(c == '\x1b') {
                 in_escape = true;
             } else if(in_escape) {
@@ -309,7 +309,7 @@ TEST_CASE("AstPrinter prints statements correctly", "[AstPrinter][statements][un
     }
 
     SECTION("FuncDecl with no parameters prints (none)") {
-        std::vector<jsv::FuncParam> params;
+        const std::vector<jsv::FuncParam> params;
         std::vector<jsv::StmtPtr> body_stmts;
         auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
         const jsv::SourceSpan span(filename, jsv::SourceLocation(1, 1, 0), jsv::SourceLocation(1, 20, 19));
