@@ -121,15 +121,27 @@ namespace {
             (void)std::fflush(stdout);
 #ifdef _WIN32
             const int stdout_fd = _fileno(stdout);
-            if(stdout_fd < 0) { (void)std::fclose(tmp); return ""; }
+            if(stdout_fd < 0) {
+                (void)std::fclose(tmp);
+                return "";
+            }
             const int saved_fd = _dup(stdout_fd);
-            if(saved_fd < 0) { (void)std::fclose(tmp); return ""; }
+            if(saved_fd < 0) {
+                (void)std::fclose(tmp);
+                return "";
+            }
             (void)_dup2(_fileno(tmp), stdout_fd);
 #else
             const int stdout_fd = fileno(stdout);
-            if(stdout_fd < 0) { (void)std::fclose(tmp); return ""; }
+            if(stdout_fd < 0) {
+                (void)std::fclose(tmp);
+                return "";
+            }
             const int saved_fd = dup(stdout_fd);
-            if(saved_fd < 0) { (void)std::fclose(tmp); return ""; }
+            if(saved_fd < 0) {
+                (void)std::fclose(tmp);
+                return "";
+            }
             (void)dup2(fileno(tmp), stdout_fd);
 #endif
 
@@ -150,9 +162,7 @@ namespace {
             (void)std::fseek(tmp, 0L, SEEK_SET);
             std::string result;
             std::array<char, 256> buf{};
-            while(std::fgets(buf.data(), static_cast<int>(buf.size()), tmp) != nullptr) {
-                result += buf.data();
-            }
+            while(std::fgets(buf.data(), static_cast<int>(buf.size()), tmp) != nullptr) { result += buf.data(); }
 
             (void)std::fclose(tmp);
             return strip_ansi(result);
