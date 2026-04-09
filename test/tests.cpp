@@ -85,69 +85,70 @@ namespace {
         return {kind, text, span};
     }
 
-// ─────────────────────────────────────────────────────────────
-// Helper: strip ANSI escape codes from a string for testing
-// ─────────────────────────────────────────────────────────────
-[[nodiscard]] std::string strip_ansi(std::string_view input) {
-    std::string result;
-    result.reserve(input.size());
-    bool in_escape = false;
-    for(char c : input) {
-        if(c == '\x1b') { in_escape = true; }
-        else if(in_escape) {
-            if(c == 'm' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) { in_escape = false; }
-        } else {
-            result += c;
+    // ─────────────────────────────────────────────────────────────
+    // Helper: strip ANSI escape codes from a string for testing
+    // ─────────────────────────────────────────────────────────────
+    [[nodiscard]] std::string strip_ansi(std::string_view input) {
+        std::string result;
+        result.reserve(input.size());
+        bool in_escape = false;
+        for(char c : input) {
+            if(c == '\x1b') {
+                in_escape = true;
+            } else if(in_escape) {
+                if(c == 'm' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) { in_escape = false; }
+            } else {
+                result += c;
+            }
         }
+        return result;
     }
-    return result;
-}
 
-// ─────────────────────────────────────────────────────────────
-// Helper: redirect stdout to a std::string for the duration of
-// a lambda, then restore it.
-// ─────────────────────────────────────────────────────────────
-struct CaptureStdout {
-    CaptureStdout() = default;
+    // ─────────────────────────────────────────────────────────────
+    // Helper: redirect stdout to a std::string for the duration of
+    // a lambda, then restore it.
+    // ─────────────────────────────────────────────────────────────
+    struct CaptureStdout {
+        CaptureStdout() = default;
 
-    // Redirect stdout → an in-memory pipe, return captured text (ANSI-stripped).
-    [[nodiscard]] static std::string run(auto fn) {
-        // Use a temporary file as a portable capture buffer.
-        std::FILE* tmp = std::tmpfile();
+        // Redirect stdout → an in-memory pipe, return captured text (ANSI-stripped).
+        [[nodiscard]] static std::string run(auto fn) {
+            // Use a temporary file as a portable capture buffer.
+            std::FILE *tmp = std::tmpfile();
 
-        // Swap stdout fd with the temp file fd.
-        fflush(stdout);
+            // Swap stdout fd with the temp file fd.
+            fflush(stdout);
 #ifdef _WIN32
-        const int saved_fd = _dup(_fileno(stdout));
-        _dup2(_fileno(tmp), _fileno(stdout));
+            const int saved_fd = _dup(_fileno(stdout));
+            _dup2(_fileno(tmp), _fileno(stdout));
 #else
-        const int saved_fd = dup(fileno(stdout));
-        dup2(fileno(tmp), fileno(stdout));
+            const int saved_fd = dup(fileno(stdout));
+            dup2(fileno(tmp), fileno(stdout));
 #endif
 
-        fn(); // execute the code under test
+            fn();  // execute the code under test
 
-        fflush(stdout);
+            fflush(stdout);
 
         // Restore original stdout.
 #ifdef _WIN32
-        _dup2(saved_fd, _fileno(stdout));
-        _close(saved_fd);
+            _dup2(saved_fd, _fileno(stdout));
+            _close(saved_fd);
 #else
-        dup2(saved_fd, fileno(stdout));
-        close(saved_fd);
+            dup2(saved_fd, fileno(stdout));
+            close(saved_fd);
 #endif
 
-        // Read what was written to the temp file.
-        rewind(tmp);
-        std::string result;
-        char buf[256];
-        while(std::fgets(buf, sizeof(buf), tmp)) { result += buf; }
+            // Read what was written to the temp file.
+            rewind(tmp);
+            std::string result;
+            char buf[256];
+            while(std::fgets(buf, sizeof(buf), tmp)) { result += buf; }
 
-        std::fclose(tmp);
-        return strip_ansi(result);
-    }
-};
+            std::fclose(tmp);
+            return strip_ansi(result);
+        }
+    };
 
     // Helper to create IntegerLiteral for ArrayType size expressions
     std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
@@ -381,7 +382,8 @@ TEST_CASE("AstPrinter prints statements correctly", "[AstPrinter][statements][un
 
     SECTION("ForStmt with all parts prints init, condition, increment, and body") {
         const jsv::SourceSpan span_init(filename, jsv::SourceLocation(1, 6, 5), jsv::SourceLocation(1, 12, 11));
-        auto init = std::make_unique<jsv::VarDecl>("i", "i32", std::make_unique<jsv::IntegerLiteral>(0, jsv::SourceSpan{}), false, span_init);
+        auto init = std::make_unique<jsv::VarDecl>("i", "i32", std::make_unique<jsv::IntegerLiteral>(0, jsv::SourceSpan{}), false,
+                                                   span_init);
         const jsv::SourceSpan span_cond(filename, jsv::SourceLocation(1, 14, 13), jsv::SourceLocation(1, 19, 18));
         auto cond = std::make_unique<jsv::Identifier>("i", span_cond);
         const jsv::SourceSpan span_incr(filename, jsv::SourceLocation(1, 21, 20), jsv::SourceLocation(1, 24, 23));
