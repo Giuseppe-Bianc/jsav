@@ -1,5 +1,5 @@
 // clang-format off
-// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
+// NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index, *-owning-memory, cert-err33-c, *-avoid-c-arrays, *-unsafe-functions, *-pro-bounds-array-to-pointer-decay)
 // clang-format on
 #include "testsConstanst.hpp"
 #include <catch2/catch_test_macros.hpp>
@@ -115,37 +115,46 @@ namespace {
         [[nodiscard]] static std::string run(auto fn) {
             // Use a temporary file as a portable capture buffer.
             std::FILE *tmp = std::tmpfile();
+            if(tmp == nullptr) { return ""; }
 
             // Swap stdout fd with the temp file fd.
-            fflush(stdout);
+            (void)std::fflush(stdout);
 #ifdef _WIN32
-            const int saved_fd = _dup(_fileno(stdout));
-            _dup2(_fileno(tmp), _fileno(stdout));
+            const int stdout_fd = _fileno(stdout);
+            if(stdout_fd < 0) { (void)std::fclose(tmp); return ""; }
+            const int saved_fd = _dup(stdout_fd);
+            if(saved_fd < 0) { (void)std::fclose(tmp); return ""; }
+            (void)_dup2(_fileno(tmp), stdout_fd);
 #else
-            const int saved_fd = dup(fileno(stdout));
-            dup2(fileno(tmp), fileno(stdout));
+            const int stdout_fd = fileno(stdout);
+            if(stdout_fd < 0) { (void)std::fclose(tmp); return ""; }
+            const int saved_fd = dup(stdout_fd);
+            if(saved_fd < 0) { (void)std::fclose(tmp); return ""; }
+            (void)dup2(fileno(tmp), stdout_fd);
 #endif
 
             fn();  // execute the code under test
 
-            fflush(stdout);
+            (void)std::fflush(stdout);
 
             // Restore original stdout.
 #ifdef _WIN32
-            _dup2(saved_fd, _fileno(stdout));
-            _close(saved_fd);
+            (void)_dup2(saved_fd, stdout_fd);
+            (void)_close(saved_fd);
 #else
-            dup2(saved_fd, fileno(stdout));
-            close(saved_fd);
+            (void)dup2(saved_fd, stdout_fd);
+            (void)close(saved_fd);
 #endif
 
             // Read what was written to the temp file.
-            rewind(tmp);
+            (void)std::fseek(tmp, 0L, SEEK_SET);
             std::string result;
-            char buf[256];
-            while(std::fgets(buf, sizeof(buf), tmp)) { result += buf; }
+            std::array<char, 256> buf{};
+            while(std::fgets(buf.data(), static_cast<int>(buf.size()), tmp) != nullptr) {
+                result += buf.data();
+            }
 
-            std::fclose(tmp);
+            (void)std::fclose(tmp);
             return strip_ansi(result);
         }
     };
@@ -289,9 +298,9 @@ TEST_CASE("AstPrinter prints statements correctly", "[AstPrinter][statements][un
         std::vector<jsv::FuncParam> params;
         params.reserve(2);
         const jsv::SourceSpan span_p1(filename, jsv::SourceLocation(1, 8, 7), jsv::SourceLocation(1, 14, 13));
-        params.push_back({"x", jsv::PrimitiveType::i32(), span_p1});
+        params.push_back({.name = "x", .type_annotation = jsv::PrimitiveType::i32(), .loc = span_p1});
         const jsv::SourceSpan span_p2(filename, jsv::SourceLocation(1, 16, 15), jsv::SourceLocation(1, 22, 21));
-        params.push_back({"y", jsv::PrimitiveType::i32(), span_p2});
+        params.push_back({.name = "y", .type_annotation = jsv::PrimitiveType::i32(), .loc = span_p2});
         auto ret_type = jsv::PrimitiveType::i32();
         std::vector<jsv::StmtPtr> body_stmts;
         auto body = std::make_unique<jsv::BlockStmt>(std::move(body_stmts));
@@ -20133,5 +20142,5 @@ TEST_CASE("TypeChecker_TenDifferentTypes_NoCrossContamination", "[typechecker]")
 }
 
 // clang-format off
-// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index)
+// NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index, *-owning-memory, cert-err33-c, *-avoid-c-arrays, *-unsafe-functions, *-pro-bounds-array-to-pointer-decay)
 // clang-format on
