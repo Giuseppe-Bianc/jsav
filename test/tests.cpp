@@ -7,7 +7,11 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <cstdio>
 #include <future>
+#ifndef _WIN32
+#include <unistd.h>
+#endif
 
 using Catch::Matchers::ContainsSubstring;
 using Catch::Matchers::EndsWith;
@@ -113,16 +117,26 @@ struct CaptureStdout {
 
         // Swap stdout fd with the temp file fd.
         fflush(stdout);
+#ifdef _WIN32
         const int saved_fd = _dup(_fileno(stdout));
         _dup2(_fileno(tmp), _fileno(stdout));
+#else
+        const int saved_fd = dup(fileno(stdout));
+        dup2(fileno(tmp), fileno(stdout));
+#endif
 
         fn(); // execute the code under test
 
         fflush(stdout);
 
         // Restore original stdout.
+#ifdef _WIN32
         _dup2(saved_fd, _fileno(stdout));
         _close(saved_fd);
+#else
+        dup2(saved_fd, fileno(stdout));
+        close(saved_fd);
+#endif
 
         // Read what was written to the temp file.
         rewind(tmp);
