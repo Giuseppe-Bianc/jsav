@@ -990,6 +990,10 @@ namespace jsv {
         case NodeKind::FuncDecl:
             {
                 const auto *fd = static_cast<const FuncDecl *>(&stmt);
+                auto func_scheme = symbols_.lookup(fd->name());
+                TypePtr func_tvar =
+                    func_scheme.has_value() && func_scheme->body ? func_scheme->body : fresh_type_variable();
+
                 current_function_return_type_ = fd->return_type().value_or(PrimitiveType::void_());
                 current_function_name_ = fd->name();
 
@@ -997,12 +1001,15 @@ namespace jsv {
 
                 std::vector<TypedFuncParam> typed_params;
                 typed_params.reserve(fd->params().size());
+
                 for(const auto &param : fd->params()) {
                     TypePtr param_type;
                     if(param.type_annotation) {
                         param_type = param.type_annotation;
                     } else {
-                        param_type = fresh_type_variable();
+                        auto param_scheme = symbols_.lookup(param.name);
+                        param_type = (param_scheme.has_value() && param_scheme->body) ? param_scheme->body
+                                                                                      : fresh_type_variable();
                     }
                     symbols_.define(param.name, TypeScheme::mono(param_type));
                     typed_params.push_back(TypedFuncParam{.name = param.name, .type_annotation = std::move(param_type), .loc = param.loc});
@@ -1020,6 +1027,12 @@ namespace jsv {
 
                 auto func_type = fd->return_type().value_or(PrimitiveType::void_());
                 auto typed_body_stmt = std::make_unique<TypedBlockStmt>(std::move(typed_body_stmts), func_type, fd->location());
+
+                // Constrain the function's type variable (from name resolution) to unify with
+                // the declared/inferred return type. This connects the two pipeline phases.
+                constraints_.add(func_tvar, func_type, fd->location(),
+                                 FORMAT("function '{}' signature vs return type", fd->name()));
+
                 return std::make_unique<TypedFuncDecl>(fd->name(), std::move(typed_params), fd->return_type(), std::move(typed_body_stmt),
                                                        std::move(func_type), fd->location());
             }
