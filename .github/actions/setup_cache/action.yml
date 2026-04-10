@@ -20,7 +20,7 @@ runs:
   using: "composite"
   steps:
     - name: Ensure cache directories exist
-      uses: actions/github-script@v8
+      uses: actions/github-script@v9
       with:
         script: |
           const os   = require('os');
