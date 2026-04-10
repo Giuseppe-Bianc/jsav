@@ -300,7 +300,7 @@ Use **inline `monospace`** for all identifiers, file names, method names, and ty
   2. When writing a recommendation in §4.1, include the DEF tag it resolves in the "Deficiency addressed" field.
   3. After completing Phase 4, build a traceability table: DEF tags in column one, REC IDs in column two.
   4. Verify that every DEF tag appears at least once. If a DEF tag is missing from the table, 
-  add the recommendation. If a REC references no DEF tag, remove it or identify the missing deficiency. Multiple appearances of a DEF tag are acceptable only if noted in the recommendation descriptions.
+  add the recommendation. If a REC references no DEF tag, remove it or identify the missing deficiency. Multiple appearances of a DEF tag are acceptable only if each recommendation's description explicitly states why addressing the same deficiency requires multiple distinct recommendations (e.g., "This is the first of three complementary mitigations for DEF-042"). Multiple appearances of a DEF tag are acceptable only if noted in the recommendation descriptions.
 
 #### Pattern: Constraint-by-Constraint Verification Gate
 
