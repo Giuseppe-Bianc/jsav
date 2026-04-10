@@ -91,18 +91,58 @@ namespace {
     [[nodiscard]] std::string strip_ansi(std::string_view input) {
         std::string result;
         result.reserve(input.size());
-        bool in_escape = false;
+        bool in_escape{false};
         for(const char c : input) {
-            if(c == '\x1b') {
-                in_escape = true;
-            } else if(in_escape) {
-                if(c == 'm' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) { in_escape = false; }
-            } else {
-                result += c;
+            if(!in_escape) [[likely]] {
+                if(c != '\x1b') [[likely]] {
+                    result.push_back(c);
+                } else [[unlikely]] {
+                    in_escape = true;
+                }
+            } else [[unlikely]] {
+                if(c == 'm' || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) [[likely]] { in_escape = false; }
             }
         }
+
         return result;
     }
+
+    // SAFETY: SavedFd wraps the duplicated (backup) file descriptor.
+    struct SavedFd {
+        int value;
+    };
+
+    // SAFETY: TargetFd wraps the descriptor whose slot is being restored-into.
+    struct TargetFd {
+        int value;
+    };
+
+    // ---------------------------------------------------------------------------
+    // FdGuard — RAII wrapper that restores and closes a duplicated file descriptor.
+    // Guarantees stdout restoration even when the captured callable throws.
+    // ---------------------------------------------------------------------------
+    struct FdGuard {
+        const int saved_fd;
+        const int target_fd;
+
+        FdGuard(const SavedFd saved, const TargetFd target) noexcept : saved_fd{saved.value}, target_fd{target.value} {}
+
+        // SAFETY: noexcept — destructor must never throw; dup2/close are C functions.
+        ~FdGuard() noexcept {
+#ifdef _WIN32
+            (void)_dup2(saved_fd, target_fd);
+            (void)_close(saved_fd);
+#else
+            (void)dup2(saved_fd, target_fd);
+            (void)close(saved_fd);
+#endif
+        }
+
+        FdGuard(const FdGuard &) = delete;
+        FdGuard &operator=(const FdGuard &) = delete;
+        FdGuard(FdGuard &&) = delete;
+        FdGuard &operator=(FdGuard &&) = delete;
+    };
 
     // ─────────────────────────────────────────────────────────────
     // Helper: redirect stdout to a std::string for the duration of
@@ -110,61 +150,58 @@ namespace {
     // ─────────────────────────────────────────────────────────────
     struct CaptureStdout {
         CaptureStdout() = default;
+        template <std::invocable Fn> [[nodiscard]] static std::string run(Fn &&fn) {
+#ifdef _WIN32
+            FILE *raw_tmp = nullptr;
+            if(tmpfile_s(&raw_tmp) != 0 || raw_tmp == nullptr) { return {}; }
+#else
+            FILE *const raw_tmp = std::tmpfile();
+            if(raw_tmp == nullptr) { return {}; }
+#endif
+            const std::unique_ptr<FILE, decltype(&std::fclose)> tmp{raw_tmp, &std::fclose};
 
-        // Redirect stdout → an in-memory pipe, return captured text (ANSI-stripped).
-        [[nodiscard]] static std::string run(auto fn) {
-            // Use a temporary file as a portable capture buffer.
-            std::FILE *tmp = std::tmpfile();
-            if(tmp == nullptr) { return ""; }
-
-            // Swap stdout fd with the temp file fd.
             (void)std::fflush(stdout);
+
 #ifdef _WIN32
             const int stdout_fd = _fileno(stdout);
-            if(stdout_fd < 0) {
-                (void)std::fclose(tmp);
-                return "";
-            }
-            const int saved_fd = _dup(stdout_fd);
-            if(saved_fd < 0) {
-                (void)std::fclose(tmp);
-                return "";
-            }
-            (void)_dup2(_fileno(tmp), stdout_fd);
 #else
             const int stdout_fd = fileno(stdout);
-            if(stdout_fd < 0) {
-                (void)std::fclose(tmp);
-                return "";
-            }
+#endif
+            if(stdout_fd < 0) { return {}; }
+
+#ifdef _WIN32
+            const int saved_fd = _dup(stdout_fd);
+#else
             const int saved_fd = dup(stdout_fd);
-            if(saved_fd < 0) {
-                (void)std::fclose(tmp);
-                return "";
-            }
-            (void)dup2(fileno(tmp), stdout_fd);
+#endif
+            if(saved_fd < 0) { return {}; }
+
+            const FdGuard fd_guard{SavedFd{saved_fd}, TargetFd{stdout_fd}};
+
+#ifdef _WIN32
+            (void)_dup2(_fileno(tmp.get()), stdout_fd);
+#else
+            (void)dup2(fileno(tmp.get()), stdout_fd);
 #endif
 
-            fn();  // execute the code under test
+            std::forward<Fn>(fn)();
 
             (void)std::fflush(stdout);
 
-            // Restore original stdout.
-#ifdef _WIN32
-            (void)_dup2(saved_fd, stdout_fd);
-            (void)_close(saved_fd);
-#else
-            (void)dup2(saved_fd, stdout_fd);
-            (void)close(saved_fd);
-#endif
+            (void)std::fseek(tmp.get(), 0L, SEEK_END);
+            const long file_size = std::ftell(tmp.get());
+            (void)std::fseek(tmp.get(), 0L, SEEK_SET);
 
-            // Read what was written to the temp file.
-            (void)std::fseek(tmp, 0L, SEEK_SET);
             std::string result;
-            std::array<char, 256> buf{};
-            while(std::fgets(buf.data(), static_cast<int>(buf.size()), tmp) != nullptr) { result += buf.data(); }
+            if(file_size > 0L) {
+                result.reserve(static_cast<std::string::size_type>(file_size));
+            }
 
-            (void)std::fclose(tmp);
+            std::array<char, 4096> buf{};
+            while(std::fgets(buf.data(), static_cast<int>(buf.size()), tmp.get()) != nullptr) {
+                result.append(buf.data(), std::strlen(buf.data()));
+            }
+
             return strip_ansi(result);
         }
     };
