@@ -27,6 +27,9 @@ namespace jsv {
          * substitution map. If @p var is already bound, the previous
          * binding is overwritten.
          *
+         * Invalidates the internal apply cache so that subsequent calls to
+         * apply() reflect the new binding.
+         *
          * @param var  The type variable identifier to bind.
          * @param type The type to associate with @p var.
          *
@@ -56,9 +59,27 @@ namespace jsv {
         /**
          * @brief Apply this substitution to a type, resolving all nested type variables.
          *
-         * Recursively replaces every type variable occurring in @p type with
-         * its bound type (if any). Returns the original type unchanged when
-         * no variables in it are bound.
+         * Recursively replaces every type variable occurring in @p type with its
+         * bound type (if any). Returns the original type unchanged when no variables
+         * in it are bound.
+         *
+         * ### Persistent caching
+         *
+         * Because `TypePtr = std::shared_ptr<const TypeBase>`, every type node is
+         * immutable after construction.  The result of resolving a given node is
+         * therefore a pure function of that node's address and the current
+         * `bindings_` state.  `apply()` maintains a **persistent cache** (keyed on
+         * the raw `const TypeBase*` of each input node) that survives across
+         * successive calls.  The cache is invalidated automatically whenever
+         * `bind()` mutates `bindings_`.
+         *
+         * Consequences:
+         * - The *first* `apply(t)` traverses @p t, allocates any needed new nodes,
+         *   and populates the cache bottom-up.
+         * - Every *subsequent* `apply(t)` for the same node is a single hash-map
+         *   lookup — no recursion, no allocation.
+         * - Sub-nodes shared between multiple parents (DAG structure) are resolved
+         *   and cached once, then reused at zero cost.
          *
          * @param type The type to which the substitution is applied.
          * @return A new TypePtr with all resolvable type variables replaced,
@@ -67,8 +88,13 @@ namespace jsv {
          * @code
          * Substitution sub;
          * sub.bind(inner_tv, PrimitiveType::f64());
-         * auto resolved = sub.apply(some_vector_type);  // Vec<?T1> → Vec<f64>
+         * auto r1 = sub.apply(vec_type);  // traverses, populates cache
+         * auto r2 = sub.apply(vec_type);  // cache hit — O(1), zero allocations
+         * assert(r1 == r2);
          * @endcode
+         *
+         * @note Not thread-safe: concurrent `apply()` and `bind()` calls require
+         *       external synchronisation.
          */
         [[nodiscard]] TypePtr apply(const TypePtr &type) const;
 
@@ -103,7 +129,30 @@ namespace jsv {
         [[nodiscard]] std::size_t size() const noexcept;
 
     private:
+        /**
+         * @brief Core recursive worker for apply().
+         *
+         * Reads and populates `apply_cache_` directly; no separate per-call memo
+         * is needed because the persistent cache serves that role and lives beyond
+         * a single invocation.
+         *
+         * @param type  Type node to resolve.
+         * @return      Resolved TypePtr (identical to @p type when unchanged).
+         */
+        [[nodiscard]] TypePtr applyImpl(const TypePtr &type) const;
+
+        /// Primary map: type-variable id → bound type.
         std::unordered_map<TypeVarId, TypePtr> bindings_;
+
+        /// Persistent apply-result cache.
+        ///
+        /// Key  : raw pointer of an *input* type node.  Valid as a stable identity
+        ///        key because TypeBase is immutable (const): the object at that
+        ///        address never changes while any shared_ptr to it is alive.
+        /// Value: the fully resolved TypePtr under the current bindings_.
+        ///
+        /// Cleared by bind() on every mutation of bindings_.
+        mutable std::unordered_map<const TypeBase *, TypePtr> apply_cache_;
     };
 
 }  // namespace jsv

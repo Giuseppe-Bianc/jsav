@@ -122,6 +122,14 @@ namespace jsv {
             {
                 // Register 'main' implicitly
                 symbols_.define("main", TypeScheme::mono(PrimitiveType::void_()));
+                const auto *ms = static_cast<const MainStmt *>(&stmt);
+                symbols_.push_scope();
+                if(const auto *body_block = dynamic_cast<const BlockStmt *>(&ms->body())) {
+                    for(const auto &s : body_block->statements()) { resolve_names_stmt(*s); }
+                } else {
+                    resolve_names_stmt(ms->body());
+                }
+                symbols_.pop_scope();
                 break;
             }
         case NodeKind::VarDecl:

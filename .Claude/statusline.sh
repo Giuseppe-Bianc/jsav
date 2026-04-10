@@ -90,9 +90,11 @@ cache_is_stale() {
 }
 
 # Pick bar color based on context usage
-if [ "$PCT" -ge 90 ]; then BAR_COLOR="$RED"
-elif [ "$PCT" -ge 70 ]; then BAR_COLOR="$YELLOW"
-else BAR_COLOR="$GREEN"; fi
+R=$((PCT * 255 / 100))
+G=$((255 - (PCT * 255 / 100)))
+B=0
+
+BAR_COLOR="\033[38;2;${R};${G};${B}m"
 
 FILLED=$((PCT / 10)); EMPTY=$((10 - FILLED))
 BAR=""
