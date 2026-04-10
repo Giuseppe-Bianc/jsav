@@ -193,9 +193,7 @@ namespace {
             (void)std::fseek(tmp.get(), 0L, SEEK_SET);
 
             std::string result;
-            if(file_size > 0L) {
-                result.reserve(static_cast<std::string::size_type>(file_size));
-            }
+            if(file_size > 0L) { result.reserve(static_cast<std::string::size_type>(file_size)); }
 
             std::array<char, 4096> buf{};
             while(std::fgets(buf.data(), static_cast<int>(buf.size()), tmp.get()) != nullptr) {
