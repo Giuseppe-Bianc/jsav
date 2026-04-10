@@ -1163,6 +1163,7 @@ namespace jsv {
                 // Main is implicitly a void function — allow return statements inside it
                 current_function_return_type_ = PrimitiveType::void_();
                 current_function_name_ = "main";
+                symbols_.push_scope();
                 if(const auto *body_block = dynamic_cast<const BlockStmt *>(&ms->body())) {
                     typed_body_stmts.reserve(body_block->statements().size());
                     std::ranges::transform(body_block->statements(), std::back_inserter(typed_body_stmts),
@@ -1170,6 +1171,7 @@ namespace jsv {
                 } else {
                     typed_body_stmts.push_back(type_stmt(ms->body()));
                 }
+                symbols_.pop_scope();
                 current_function_return_type_.reset();
                 current_function_name_.reset();
                 auto typed_body = std::make_unique<TypedBlockStmt>(std::move(typed_body_stmts), PrimitiveType::void_(), ms->location());

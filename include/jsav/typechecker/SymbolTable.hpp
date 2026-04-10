@@ -80,8 +80,8 @@ namespace jsv {
 
     private:
         struct StringHash {
-            using is_transparent = void;  // abilita heterogeneous lookup
-            std::size_t operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
+            using is_transparent = void;  // enables heterogeneous lookup
+            [[nodiscard]] std::size_t operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
         };
         std::vector<std::unordered_map<std::string_view, TypeScheme, StringHash, std::equal_to<>>> scopes_;
     };

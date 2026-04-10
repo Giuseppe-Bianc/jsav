@@ -52,6 +52,7 @@ The following best practices ensure that the audit produces findings and recomme
 - **Operational guidance:**
   1. For each recommendation, assign Feasibility (1–5), ROI (1–5), and Effort (1–5) as standalone judgments, each with a one-sentence justification.
   2. Compute the composite score using the specified formula. Record the arithmetic explicitly.
+     (Note: Effort is inversely scaled — higher score = less work required.)
   3. After all recommendations are scored, sort the table by descending composite score. Break ties by descending ROI, then descending Feasibility.
   4. Do not reorder rows after sorting. If a row appears misplaced, recheck the arithmetic — the formula is the sole arbiter.
   5. Present the summary priority table (§4.2) in the exact order produced by the sort.
@@ -298,7 +299,8 @@ Use **inline `monospace`** for all identifiers, file names, method names, and ty
   1. When writing a deficiency in Phases 1–3, assign it a DEF tag (`DEF-001`, `DEF-002`, ...) and increment the counter.
   2. When writing a recommendation in §4.1, include the DEF tag it resolves in the "Deficiency addressed" field.
   3. After completing Phase 4, build a traceability table: DEF tags in column one, REC IDs in column two.
-  4. Verify that every DEF tag appears exactly once. If a DEF tag is missing from the table, add the recommendation. If a REC references no DEF tag, remove it or identify the missing deficiency.
+  4. Verify that every DEF tag appears at least once. If a DEF tag is missing from the table, 
+  add the recommendation. If a REC references no DEF tag, remove it or identify the missing deficiency. Multiple appearances of a DEF tag are acceptable only if noted in the recommendation descriptions.
 
 #### Pattern: Constraint-by-Constraint Verification Gate
 
