@@ -214,12 +214,12 @@ namespace jsv {
             {
                 const auto *vd = static_cast<const TypedVarDecl *>(&stmt);
                 auto resolved_type = zonk_type(subst, vd->node_type());
-                
+
                 // Check if this is a multi-variable declaration
                 if(vd->num_variables() > 1) {
                     std::vector<TypedExprPtr> zonked_initializers;
                     zonked_initializers.reserve(vd->num_variables());
-                    
+
                     const auto &initializers = vd->initializers();
                     for(std::size_t i = 0; i < initializers.size(); ++i) {
                         if(initializers[i]) {
@@ -228,7 +228,7 @@ namespace jsv {
                             zonked_initializers.push_back(nullptr);
                         }
                     }
-                    
+
                     return std::make_unique<TypedVarDecl>(vd->names(), std::move(resolved_type), std::move(zonked_initializers),
                                                           vd->is_const(), stmt.location());
                 } else {

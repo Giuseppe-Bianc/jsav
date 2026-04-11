@@ -276,9 +276,10 @@ namespace jsv {
         const auto &names = node.names();
         const auto &inits = node.initializers();
 
-        print_value(keyword, FORMAT(" {} [{}]", fmt::format("{}", fmt::join(names, ", ")),
-                                     node.node_type() ? node.node_type()->to_string() : "none"),
-                    is_last);
+        print_value(
+            keyword,
+            FORMAT(" {} [{}]", fmt::format("{}", fmt::join(names, ", ")), node.node_type() ? node.node_type()->to_string() : "none"),
+            is_last);
         const IndentGuard guard{*this, is_last};
 
         // Initializers for each variable — follow the Ast_printer.cpp pattern
