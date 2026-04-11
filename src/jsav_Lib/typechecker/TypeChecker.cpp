@@ -107,6 +107,9 @@ namespace jsv {
                 // Register function with a type variable (will be refined during constraint generation)
                 auto func_type = fresh_type_variable();
                 symbols_.define(fd->name(), TypeScheme::mono(func_type));
+                
+                // Track function declaration for CallExpr signature checking
+                function_decls_[fd->name()] = fd;
 
                 // Resolve names in function body
                 symbols_.push_scope();
@@ -726,30 +729,42 @@ namespace jsv {
                     typed_args.push_back(std::move(typed_arg));
                 }
 
-                // Create fresh type variables for argument types and return type
-                auto result_type = fresh_type_variable();
+                TypePtr result_type;
 
-                // Build expected function type: (arg1, arg2, ...) -> result
-                // For now, generate pairwise constraints between callee type and each arg
-                // A proper function type would be: Fn([arg_types...], result_type)
-                // Since we don't have a function type yet, constrain callee against a type variable
-                // and constrain each argument against expected parameter types
-
-                // Look up the function in the symbol table to get its signature
-                // For now, we generate a constraint that the callee must be callable
-                // This is a simplification — a real implementation would use function types
                 if(const auto *ident = dynamic_cast<const Identifier *>(&call->callee())) {
-                    if(auto sym = symbols_.lookup(ident->name())) {
-                        // If callee has a known type, constrain arguments
-                        // For polymorphic functions, instantiate fresh type variables
-                        // This is a placeholder — full function type support needs Fn types
+                    const auto &func_name = ident->name();
+                    
+                    auto func_decl_it = function_decls_.find(func_name);
+                    
+                    if(func_decl_it != function_decls_.end()) {
+                        const FuncDecl *func_decl = func_decl_it->second;
+                        const auto &params = func_decl->params();
+                        
+                        if(arg_types.size() != params.size()) {
+                            message_storage_.push_back(
+                                FORMAT("Function '{}' expects {} argument(s) but {} were provided",
+                                       func_name, params.size(), arg_types.size()));
+                            errors_.push_back(CompileError::TypeError(
+                                ErrorCode::E2028, message_storage_.back(), call->location(),
+                                FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})",
+                                       params.size(), arg_types.size())));
+                            result_type = error_type();
+                        } else {
+                            for(std::size_t i = 0; i < arg_types.size(); ++i) {
+                                const auto &param_type = params[i].type_annotation;
+                                if(param_type) {
+                                    constraints_.add(arg_types[i], param_type, call->location(),
+                                                     FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
+                                }
+                            }
+                            result_type = func_decl->return_type().value_or(fresh_type_variable());
+                        }
+                    } else {
+                        result_type = fresh_type_variable();
                     }
+                } else {
+                    result_type = fresh_type_variable();
                 }
-
-                // Generate constraint: callee type must be compatible with (arg_types) -> result_type
-                // This requires a proper function type representation
-                // For now, we just ensure the callee is typed and args are typed
-                constraints_.add(callee_type, callee_type, call->location(), "call expression callee");
 
                 return std::make_unique<TypedCallExpr>(std::move(callee_typed), std::move(typed_args), std::move(result_type),
                                                        call->location());

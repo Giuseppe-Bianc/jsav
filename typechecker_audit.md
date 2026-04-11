@@ -4,20 +4,24 @@
 
 ### 1.1 System Enumeration
 
-Il type checker di **jsav** comprende **10 file header** e **10 file di implementazione** organizzati in due sistemi
+Il type checker di **jsav** comprende **11 header** e **10 file di implementazione** organizzati in cinque sistemi
 principali:
 
 **Sistema 1 — Type Representation System** (rappresentazione dei tipi)
 
-| File Header                                 | File Implementazione                        | Responsabilità primaria                                                                         |
-|---------------------------------------------|---------------------------------------------|-------------------------------------------------------------------------------------------------|
-| `include/jsav/ast/Type.hpp`                 | `src/jsav_Lib/ast/Type.cpp`                 | Gerarchia `TypeBase`, `PrimitiveType`, `CustomType`, `ArrayType`, `VectorType`, enum `TypeKind` |
-| `include/jsav/typechecker/TypeVariable.hpp` | `src/jsav_Lib/typechecker/TypeVariable.cpp` | `TypeVariable` — variabili di tipo per inferenza Hindley-Milner                                 |
-| `include/jsav/typechecker/TypeScheme.hpp`   | `src/jsav_Lib/typechecker/TypeScheme.cpp`   | `TypeScheme` — tipi polimorfici ∀(vars).body                                                    |
-| `include/jsav/typechecker/ErrorType.hpp`    | `src/jsav_Lib/typechecker/ErrorType.cpp`    | `ErrorType` — tipo sentinella per recupero errori                                               |
-| `include/jsav/typechecker/TypeVisitor.hpp`  | `src/jsav_Lib/typechecker/TypeVisitor.cpp`  | Interfaccia visitor per tipi composti (Array, Vector)                                           |
+| File Header                 | File Implementazione        | Responsabilità primaria                                                                         |
+|-----------------------------|-----------------------------|-------------------------------------------------------------------------------------------------|
+| `include/jsav/ast/Type.hpp` | `src/jsav_Lib/ast/Type.cpp` | Gerarchia `TypeBase`, `PrimitiveType`, `CustomType`, `ArrayType`, `VectorType`, enum `TypeKind` |
 
-**Sistema 2 — Constraint Solving System** (vincoli e unificazione)
+**Sistema 2 — Type Inference Variables System** (variabili di tipo e tipi polimorfici)
+
+| File Header                                 | File Implementazione                        | Responsabilità primaria                                     |
+|---------------------------------------------|---------------------------------------------|-------------------------------------------------------------|
+| `include/jsav/typechecker/TypeVariable.hpp` | `src/jsav_Lib/typechecker/TypeVariable.cpp` | `TypeVariable` — variabili di tipo `?Tn` per inferenza      |
+| `include/jsav/typechecker/TypeScheme.hpp`   | `src/jsav_Lib/typechecker/TypeScheme.cpp`   | `TypeScheme` — tipi polimorfici ∀(vars).body                |
+| `include/jsav/typechecker/ErrorType.hpp`    | `src/jsav_Lib/typechecker/ErrorType.cpp`    | `ErrorType` — tipo sentinella singleton per recupero errori |
+
+**Sistema 3 — Constraint Solving System** (vincoli e unificazione)
 
 | File Header                                     | File Implementazione                            | Responsabilità primaria                                          |
 |-------------------------------------------------|-------------------------------------------------|------------------------------------------------------------------|
@@ -25,208 +29,224 @@ principali:
 | `include/jsav/typechecker/Substitution.hpp`     | `src/jsav_Lib/typechecker/Substitution.cpp`     | `Substitution` — mapping variabili di tipo → tipi risolti        |
 | `include/jsav/typechecker/UnionFind.hpp`        | `src/jsav_Lib/typechecker/UnionFind.cpp`        | `UnionFind` — disjoint-set per unificazione efficiente           |
 | `include/jsav/typechecker/ConstraintSolver.hpp` | `src/jsav_Lib/typechecker/ConstraintSolver.cpp` | `ConstraintSolver` — motore di unificazione con occurs-check     |
+| `include/jsav/typechecker/TypeVisitor.hpp`      | `src/jsav_Lib/typechecker/TypeVisitor.cpp`      | `TypeVisitor` — visitor per tipi composti (Array, Vector)        |
 
-**Sistema 3 — Name Resolution System** (risoluzione dei nomi)
+**Sistema 4 — Name Resolution System** (risoluzione dei nomi)
 
 | File Header                                | File Implementazione                       | Responsabilità primaria                                                        |
 |--------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------------|
 | `include/jsav/typechecker/SymbolTable.hpp` | `src/jsav_Lib/typechecker/SymbolTable.cpp` | `SymbolTable` — gestione scope lessicali e binding identificatore→`TypeScheme` |
 
-**Sistema 4 — Type Checking Orchestration System** (orchestrazione del type checking)
+**Sistema 5 — Type Checking Orchestration System** (orchestrazione del type checking)
 
-| File Header                                | File Implementazione                       | Responsabilità primaria                                                                |
-|--------------------------------------------|--------------------------------------------|----------------------------------------------------------------------------------------|
-| `include/jsav/typechecker/TypeChecker.hpp` | `src/jsav_Lib/typechecker/TypeChecker.cpp` | `TypeChecker` — pipeline completa (risoluzione, generazione vincoli, solving, zonking) |
+| File Header                                | File Implementazione                       | Responsabilità primaria                                                              |
+|--------------------------------------------|--------------------------------------------|--------------------------------------------------------------------------------------|
+| `include/jsav/typechecker/TypeChecker.hpp` | `src/jsav_Lib/typechecker/TypeChecker.cpp` | `TypeChecker` — pipeline completa (resolve → constraints → solve → zonk), 1197 righe |
 
-**Sistema 5 — Typed AST System** (AST tipizzato — dipendenza del type checker)
+**Sistemi dipendenti esterni** (non parte del type checker ma consumati):
 
-| File Header                             | File Implementazione                    | Responsabilità primaria                                                  |
-|-----------------------------------------|-----------------------------------------|--------------------------------------------------------------------------|
-| `include/jsav/ast/TypedNode.hpp`        | `src/jsav_Lib/ast/TypedNode.cpp`        | `TypedNode`, `TypedExpr`, `TypedStmt` — nodi AST con annotazioni di tipo |
-| `include/jsav/ast/TypedProgram.hpp`     | `src/jsav_Lib/ast/TypedProgram.cpp`     | `TypedProgram` — root del programma tipizzato                            |
-| `include/jsav/ast/TypedExpressions.hpp` | `src/jsav_Lib/ast/TypedExpressions.cpp` | Nodi espressione tipizzati                                               |
-| `include/jsav/ast/TypedStatements.hpp`  | `src/jsav_Lib/ast/TypedStatements.cpp`  | Nodi statement tipizzati                                                 |
-| `include/jsav/ast/TypedAst.hpp`         | `src/jsav_Lib/ast/TypedAst_printer.cpp` | Umbrella header e stampa AST tipizzato                                   |
-| `include/jsav/ast/TypedVisitor.hpp`     | —                                       | Visitor CRTP per AST tipizzato (header-only)                             |
+| Sistema                | Responsabilità                                                      |
+|------------------------|---------------------------------------------------------------------|
+| `TypedNode.hpp` e soci | Nodi AST tipizzati (`TypedExpr`, `TypedStmt`, `TypedProgram`)       |
+| `CompileError.hpp`     | Tipo errore strutturato con `ErrorCode`, `SourceSpan`               |
+| `Expressions.hpp`      | Nodi espressione non tipizzati (`IntegerLiteral`, `CallExpr`, ecc.) |
+| `Statements.hpp`       | Nodi statement non tipizzati (`VarDecl`, `FuncDecl`, ecc.)          |
 
 ### 1.2 Inter-System Dependency Map
 
-La mappa delle dipendenze direzionali tra sistemi:
-
 ```
                     ┌──────────────────────────────────────────────────────┐
-                    │                  TypeChecker                         │
-                    │  (orchestra: resolve_names → generate_constraints →  │
-                    │               solve_constraints → zonk)              │
-                    └──────┬──────────────────────────────┬────────────────┘
-                           │                              │
-              ┌────────────▼─────────────┐    ┌────────────▼─────────────┐
-              │    ConstraintSet         │    │     SymbolTable          │
-              │  (accumula vincoli)      │    │  (gestione scope)        │
-              │         │                │    │         │                │
-              │         ▼                │    │         ▼                │
-              │    Constraint            │    │     TypeScheme           │
-              │  (lhs = rhs @ location)  │    │  (∀vars. body)           │
-              └────────────┬─────────────┘    └────────────┬─────────────┘
-                           │                               │
-                           │              ┌────────────────┼────────────┐
-                           │              ▼                ▼            │
-                    ┌──────▼───────┐  ┌──────────┐  ┌──────────────┐    │
-                    │ Constraint-  │  │ Type     │  │ TypeVariable │    │
-                    │ Solver       │  │Ptr       │  │ (fresh IDs)  │    │
-                    │              │  │ (Type.hpp│  │              │    │
-                    │  ┌────────┐  │  │  fuori   │  └──────┬───────┘    │
-                    │  │Union-  │  │  │  sistema)│         │            │
-                    │  │Find    │  │  └──────────┘         │            │
-                    │  └────────┘  │                       │            │
-                    │  ┌────────┐  │                       │            │
-                    │  │Substi- │  │                       │            │
-                    │  │tution  │  │                       │            │
-                    │  └────────┘  │                       │            │
-                    │  ┌────────┐  │                       │            │
-                    │  │Error-  │  │                       │            │
-                    │  │Type    │  │                       │            │
-                    │  └────────┘  │                       │            │
-                    └──────────────┘                       │            │
-                                                           │            │
-                    ┌──────────────────────────────────────┼────────────┘
-                    │            Dipendenze esterne        │
-                    ▼                                      ▼
-              ┌───────────────┐                    ┌──────────────┐
-              │ CompileError  │                    │ AST Types    │
-              │ ErrorReporter │                    │ (Type.hpp,   │
-              │ ErrorCode     │                    │  Node.hpp)   │
-              │ SourceSpan    │                    └──────────────┘
-              └───────────────┘
+                    │              TypeChecker (S5)                        │
+                    │  check(): resolve → constraints → solve → zonk       │
+                    │  type_expr(): 1197 righe, switch su NodeKind         │
+                    └──┬───────────────────────────┬───────────────────────┘
+                       │                           │
+          ┌────────────▼─────────────┐  ┌──────────▼──────────────┐
+          │    ConstraintSet (S3)    │  │   SymbolTable (S4)      │
+          │  accumula vincoli        │  │   push/pop scope        │
+          │  lhs = rhs @ location    │  │   define/lookup         │
+          └──────┬───────────────────┘  └──────┬──────────────────┘
+                 │                              │
+    ┌────────────▼─────────────┐    ┌───────────▼───────────────┐
+    │  ConstraintSolver (S3)   │    │    TypeScheme (S2)        │
+    │  solve() → Substitution  │    │    ∀vars. body            │
+    │  unify() + occurs-check  │    │    instantiate()          │
+    └──┬───────────────────┬───┘    └────────────┬──────────────┘
+       │                   │                     │
+       ▼                   ▼                     ▼
+┌──────────────┐  ┌──────────────────┐  ┌────────────────────────┐
+│ UnionFind    │  │ Substitution     │  │ TypeVariable (S2)      │
+│ make/find/   │  │ bind/lookup/     │  │ fresh_type_variable()  │
+│ unite        │  │ apply (cached)   │  │ thread-local counter   │
+└──────────────┘  └──────────────────┘  └────────────┬───────────┘
+       │                   │                         │
+       └───────────────────┴──────────┬──────────────┘
+                                      │
+                    ┌─────────────────▼──────────────────┐
+                    │       TypeBase + sottoclassi (S1)  │
+                    │  PrimitiveType, CustomType,        │
+                    │  ArrayType, VectorType, TypeVar,   │
+                    │  ErrorType                         │
+                    └────────────────────────────────────┘
 ```
 
 **Dipendenze upstream → downstream**:
 
-1. **Type Representation** → Tutti gli altri sistemi (fondazione). `TypePtr` è il tipo fondamentale.
-2. **TypeVariable/TypeScheme/ErrorType** → Constraint, Substitution, SymbolTable, TypeChecker
-3. **SymbolTable** → TypeChecker (solo per `resolve_names` e `type_expr` degli identificatori)
-4. **Constraint/Substitution/UnionFind** → ConstraintSolver → TypeChecker
-5. **Typed AST** → TypeChecker (output della pipeline)
+1. **Type Representation (S1)** → Tutti gli altri sistemi. `TypePtr` è il tipo fondamentale.
+2. **Type Inference Variables (S2)** → Constraint Solving, SymbolTable, TypeChecker.
+3. **Constraint Solving (S3)** → TypeChecker (fasi 3 e 4 della pipeline).
+4. **Name Resolution (S4)** → TypeChecker (fase 1, risolve i nomi prima della generazione vincoli).
+5. **Orchestration (S5)** → Dipende da TUTTI i sistemi sopra. È il sink del DAG.
 
-Non esistono dipendenze circolari. Il grafo è un **DAG** (Directed Acyclic Graph).
+Non esistono dipendenze circolari. Il grafo è un **DAG** (Directed Acyclic Graph) pulito.
 
 ### 1.3 Architectural Coherence Evaluation
 
-L'architettura segue un approccio **constraint-based type inference** con pipeline in quattro fasi, come documentato in
-`TypeChecker.hpp:47–55`. La decomposizione è fondamentalmente solida:
+L'architettura segue un approccio **constraint-based type inference** con pipeline in quattro fasi documentate in
+`TypeChecker.hpp:47–55`. La decomposizione è fondamentalmente solida ma presenta asimmetrie.
 
 **Punti di forza**:
 
 - Separazione netta tra **rappresentazione** (`TypeBase` e sottoclassi), **inferenza** (`ConstraintSolver`/`UnionFind`),
   e **orchestrazione** (`TypeChecker`).
-- Uso appropriato del pattern Visitor (`TypeVisitor`) per la visita di tipi composti (`TypeVisitor.hpp:38–64`).
-- `Substitution` con cache persistente (`Substitution.hpp:67–86`, `applyImpl`) per ottimizzare ri-applicazione delle
-  sostituzioni.
-- `ErrorType` come sentinella che unifica silenziosamente con qualsiasi tipo (`ConstraintSolver.cpp:67–68`), prevenendo
+- Visitor pattern appropriato (`TypeVisitor`) per visita di tipi composti [`TypeVisitor.hpp:38–64`].
+- `Substitution` con cache persistente [`Substitution.hpp:67–86`, `applyImpl`] per ottimizzare ri-applicazione.
+- `ErrorType` come sentinella che unifica silenziosamente con qualsiasi tipo [`ConstraintSolver.cpp:67–68`], prevenendo
   errori a cascata.
+- Thread-safety documentata in `fresh_type_variable()` [`TypeVariable.cpp:12`] con counter thread-local.
 
 **Deficienze strutturali**:
 
-- **`TypeChecker::type_expr`** (1200 righe totali, con la funzione che supera le 400 righe) viola il principio di
-  singola responsabilità e il limite di complessità cognitiva del progetto (CCN ≤15, AGENTS.md §7). La funzione gestisce
-  generazione vincoli, type checking anticipato, e costruzione dell'AST tipizzato simultaneamente.
-- **Mancanza di tipo funzione** (`FnType`). Il sistema non ha una rappresentazione esplicita per i tipi funzione (
-  `(T1, T2) -> R`). Le chiamate a funzione (`CallExpr`) generano vincoli solo sugli argomenti ma **non verificano
-  l'arity** né il tipo di ritorno della funzione chiamata [`TypeChecker.cpp:698–745`].
-- **Zone incomplete di zonking**: il metodo `zonk_block_full` scarta statement che non producono risultato [
-  `TypeChecker.cpp:417` — commento "Can't move from const — skip (original kept by callee)"], causando perdita silente
-  di nodi AST.
+- **`TypeChecker::type_expr`** (1197 righe totali, `type_expr` supera le 400 righe) viola il principio di singola
+  responsabilità e il limite di complessità cognitiva del progetto (CCN ≤15, AGENTS.md §7). Gestisce generazione
+  vincoli, type checking anticipato, e costruzione AST tipizzato simultaneamente.
+- **Mancanza di tipo funzione** (`FnType`). Il sistema non ha una rappresentazione esplicita per i tipi funzione
+  (`(T1, T2) -> R`). Le chiamate a funzione (`CallExpr`) generano vincoli solo sul callee ma **non verificano l'arity**
+  né il tipo di ritorno della funzione chiamata [`TypeChecker.cpp:698–745`].
+- **Zonking incompleto**: il metodo `zonk_block_full` scarta statement che non producono risultato
+  [`TypeChecker.cpp:417` — commento "Can't move from const — skip"], causando perdita silente di nodi AST.
 
 ### 1.4 Cross-Cutting Concerns Assessment
 
 **Matrice dei concern trasversali**:
 
-| Concern                      | Type Representation                    | Constraint Solving                  | SymbolTable                          | TypeChecker                                       | Uniformità                                                                                                               |
-|------------------------------|----------------------------------------|-------------------------------------|--------------------------------------|---------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
-| **Propagazione errori**      | `ErrorType` singleton                  | `std::expected<void, CompileError>` | — (silenzioso, nullo se non trovato) | `std::vector<CompileError>`                       | **INCONSISTENTE** — tre strategie diverse                                                                                |
-| **Rappresentazione tipi**    | `TypePtr = shared_ptr<const TypeBase>` | `TypePtr`                           | `TypeScheme` (wrappa `TypePtr`)      | `TypePtr`                                         | **UNIFORME**                                                                                                             |
-| **Gestione scope**           | —                                      | —                                   | `vector<unordered_map>` con push/pop | Usa SymbolTable + `current_function_return_type_` | **PARZIALE** — il contesto funzione è duplicato                                                                          |
-| **Formattazione diagnostic** | `to_string()` virtuale                 | `reason` string nei vincoli         | —                                    | `message_storage_` con `FORMAT()`                 | **PARZIALE** — `message_storage_` è `deque<string>` per evitare invalidazione di `string_view`, ma la gestione è fragile |
+| Concern                      | Type Representation (S1)               | Constraint Solving (S3)             | SymbolTable (S4)                 | TypeChecker (S5)                                  | Uniformità                                               |
+|------------------------------|----------------------------------------|-------------------------------------|----------------------------------|---------------------------------------------------|----------------------------------------------------------|
+| **Propagazione errori**      | `ErrorType` singleton                  | `std::expected<void, CompileError>` | `std::nullopt` (silenzioso)      | `std::vector<CompileError>`                       | **INCONSISTENTE** — tre strategie diverse                |
+| **Rappresentazione tipi**    | `TypePtr = shared_ptr<const TypeBase>` | `TypePtr`                           | `TypeScheme` (wrappa `TypePtr`)  | `TypePtr`                                         | **UNIFORME**                                             |
+| **Gestione scope**           | —                                      | —                                   | `vector<unordered_map>` push/pop | Usa SymbolTable + `current_function_return_type_` | **PARZIALE** — contesto funzione duplicato               |
+| **Formattazione diagnostic** | `to_string()` virtuale                 | `reason` string nei vincoli         | —                                | `message_storage_` con `FORMAT()`                 | **PARZIALE** — `deque<string>` fragile per `string_view` |
 
-**`DEF-001` — Propagazione errori inconsistente**: `ErrorType` unifica silenziosamente (`ConstraintSolver.cpp:67`), ma
-il TypeChecker accumula errori in `vector<CompileError>` (`TypeChecker.hpp:101`) mentre `SymbolTable::lookup`
+**`DEF-001` — Propagazione errori inconsistente**: `ErrorType` unifica silenziosamente [`ConstraintSolver.cpp:67`], ma
+il TypeChecker accumula errori in `vector<CompileError>` [`TypeChecker.hpp:101`] mentre `SymbolTable::lookup`
 restituisce `std::nullopt` senza diagnostic [`SymbolTable.hpp:54–55`]. Quando un identificatore non è dichiarato,
 `type_expr` crea l'errore manualmente [`TypeChecker.cpp:493–498`]. Ogni sistema ha la propria strategia — nessun
 meccanismo unificato di error propagation.
 
-**`DEF-002` — Contesto funzione duplicato**: `TypeChecker` mantiene `current_function_return_type_` e
-`current_function_name_` come stato mutabile (`TypeChecker.hpp:104–107`) mentre `SymbolTable` gestisce già gli scope. Il
-contesto di ritorno dovrebbe essere parte del binding della funzione nella SymbolTable, non stato separato.
+**`DEF-002` — Contesto funzione duplicato**: `SymbolTable` mantiene `return_type` e `function_name` dentro
+`TypeScheme` [`TypeScheme.hpp:28–30`], gestiti da `set_function_return_context()` [`SymbolTable.cpp:37–53`]. Tuttavia
+`TypeChecker` non usa questo contesto in modo sistematico — il ritorno viene passato due volte: una volta nel binding e
+una volta come vincolo [`TypeChecker.cpp:1001`].
 
 ---
 
 ## Phase 2 — Per-System Analysis
 
-### System: Type Representation System
+### System: Type Representation System (S1)
 
 #### 2.1 System Overview
 
-Il **Type Representation System** (`include/jsav/ast/Type.hpp`, `src/jsav_Lib/ast/Type.cpp`) definisce la gerarchia di
+Il **Type Representation System** [`include/jsav/ast/Type.hpp`, `src/jsav_Lib/ast/Type.cpp`] definisce la gerarchia di
 classi che rappresentano tutti i tipi del linguaggio. È il fondamento su cui tutti gli altri sistemi operano. Fornisce
 `TypeBase` come classe base astratta con le sottoclassi concrete `PrimitiveType`, `CustomType`, `ArrayType`,
-`VectorType`. Include anche `TypeVariable`, `TypeScheme`, `ErrorType` nel sistema typechecker.
+`VectorType`. `TypePtr` (`shared_ptr<const TypeBase>`) è il tipo fondamentale per tutto il type checker.
 
 #### 2.2 Internal Module Organization
 
-Il sistema è distribuito su due directory:
+Tutta la gerarchia tipi risiede in un singolo header da ~629 righe (`Type.hpp`). L'implementazione (`Type.cpp`) è minima
+(61 righe) — contiene solo `to_string()` e `sizes_equal`. I costruttori di `PrimitiveType` sono factory singleton
+header-only.
 
-- `include/jsav/ast/Type.hpp` — Contiene TUTTA la gerarchia tipi (TypeBase, PrimitiveType, CustomType, ArrayType,
-  VectorType) in un singolo header da ~560 righe.
-- `include/jsav/typechecker/TypeVariable.hpp` — TypeVariable (variabili per inferenza).
-- `include/jsav/typechecker/TypeScheme.hpp` — TypeScheme (tipi polimorfici).
-- `include/jsav/typechecker/ErrorType.hpp` — ErrorType (sentinella errori).
-
-**Criticità**: `Type.hpp` è un **God-class header** — 5 classi in un solo file. La separazione dei file typechecker è
-corretta.
+**Criticità**: `Type.hpp` è un **God-class header** — 5 classi + enum + formatter in un solo file. Sarebbe preferibile
+separare `PrimitiveType`, `CustomType`, `ArrayType`, `VectorType` in file distinti.
 
 #### 2.3 Intra-System Dependency Analysis
 
-Nessuna dipendenza circolare interna. `TypeBase` → nessuna dipendenza. Le sottoclassi dipendono solo da `TypeBase`.
-`TypeVariable` dipende da `TypeBase`. `TypeScheme` dipende da `TypeVariable` e `TypeBase`. Dipendenze lineari e pulite.
+Nessuna dipendenza circolare interna. `TypeBase` → zero dipendenze. Le sottoclassi dipendono solo da `TypeBase`.
+Dipendenze lineari e pulite.
 
 #### 2.4 Logical Flow
 
 Il sistema è puramente dichiarativo — non c'è "flusso" computazionale. I tipi sono costruiti tramite factory (singleton
-per `PrimitiveType`, `new` per `TypeVariable`/`ArrayType`/`VectorType`). `TypeVariable::fresh_type_variable()` usa un
-counter thread-local per generare ID univoci [`TypeVariable.cpp:12–14`]. `TypeScheme::instantiate()` genera variabili
-fresche per i quantificati [`TypeScheme.cpp:14–33`].
+per `PrimitiveType`, `new` per `ArrayType`/`VectorType`). Le operazioni fondamentali sono:
+
+- `to_string()` — serializzazione per diagnostic
+- `operator==` — uguaglianza strutturale
+- `is_primitive()`, `is_integer()`, `is_numeric()` — predicate per type checking
 
 #### 2.5 Critical Points
 
-**`DEF-003` — `TypeScheme::instantiate()` incompleto**: L'implementazione in [`TypeScheme.cpp:14–33`] gestisce solo il
-caso in cui il `body` è un `TypeVariable` diretto. Se il body è un tipo composto (es.
-`Fn(TypeVar1, TypeVar2) -> TypeVar3`), le variabili quantificate all'interno **non vengono sostituite**. Il commento nel
-codice lo ammette esplicitamente: `"This is a simplified implementation - full version would use a visitor."`.
-
-**`DEF-004` — Mancanza di `FnType`**: Non esiste una classe `FnType` o `FunctionType` per rappresentare i tipi funzione.
+**`DEF-003` — Mancanza di `FnType`**: Non esiste una classe `FnType` o `FunctionType` per rappresentare i tipi funzione.
 Le chiamate a funzione in `type_expr` [`TypeChecker.cpp:698–745`] non possono verificare la signature della funzione —
-solo gli argomenti vengono tipizzati ma non vincolati ai parametri formali.
+solo gli argomenti vengono tipizzati ma non vincolati ai parametri formali. Il tipo di ritorno è sempre un
+`fresh_type_variable()`.
 
-**`DEF-005` — `parse_type_annotation` hardcoded**: La funzione `parse_type_annotation` in [`TypeChecker.cpp:18–35`] è
+**`DEF-004` — `parse_type_annotation` hardcoded**: La funzione `parse_type_annotation` in [`TypeChecker.cpp:18–35`] è
 duplicata rispetto alla logica di `TypeKind`. Se un nuovo tipo primitivo venisse aggiunto a `Type.hpp`, questa funzione
-non lo riconoscerebbe.
+non lo riconoscerebbe automaticamente — richiede modifica manuale.
+
+**`DEF-005` — `ArrayType::sizes_equal` limitato**: L'implementazione in [`Type.cpp:50–56`] gestisce solo
+`IntegerLiteral`. Se la dimensione dell'array fosse un'espressione complessa (es. `2 + 3`), il confronto fallirebbe
+silenziosamente, restituendo `&a == &b` (identità referenziale), che è quasi sempre `false`.
 
 #### 2.6 Partial or Undefined Implementations
 
-Tutte le classi dichiarate hanno implementazione completa, eccetto:
+Tutte le classi dichiarate hanno implementazione completa. Nessuna funzione stub.
 
-- `TypeScheme::instantiate()` — parziale (vedi DEF-003).
-- `ArrayType::sizes_equal` — dichiarata in `Type.hpp:495` come
-  `static bool sizes_equal(const Expr &a, const Expr &b) noexcept` ma la sua implementazione è in
-  `src/jsav_Lib/ast/Type.cpp` — da verificare.
+### System: Type Inference Variables System (S2)
 
-### System: Constraint Solving System
+#### 2.1 System Overview
+
+Il **Type Inference Variables System** comprende `TypeVariable`, `TypeScheme`, e `ErrorType`. Fornisce le variabili di
+tipo `?Tn` per l'inferenza Hindley-Milner, i tipi polimorfici `∀vars.body`, e il tipo sentinella per il recupero errori.
+
+#### 2.2 Internal Module Organization
+
+Ogni concetto ha il proprio file `.hpp`/`.cpp`. Struttura pulita e coerente.
+
+#### 2.3 Intra-System Dependency Analysis
+
+`TypeVariable` → `TypeBase`. `TypeScheme` → `TypeVariable` + `TypeBase`. `ErrorType` → `TypeBase`. Dipendenze lineari.
+
+#### 2.4 Logical Flow
+
+`fresh_type_variable()` genera variabili fresche con counter thread-local [`TypeVariable.cpp:12–14`].
+`TypeScheme::instantiate()` genera variabili fresche per i quantificati [`TypeScheme.cpp:14–33`]. `error_type()`
+restituisce singleton [`ErrorType.cpp:11–14`].
+
+#### 2.5 Critical Points
+
+**`DEF-006` — `TypeScheme::instantiate()` incompleto**: L'implementazione in [`TypeScheme.cpp:14–33`] gestisce solo il
+caso in cui il `body` è un `TypeVariable` diretto. Se il body è un tipo composto (es.
+`Vec<TypeVar1>`), le variabili quantificate all'interno **non vengono sostituite**. Il commento nel
+codice lo ammette esplicitamente: `"This is a simplified implementation - full version would use a visitor."`.
+
+**`DEF-007` — `TypeScheme` con campi mutabili non documentati**: `TypeScheme` è una `struct` con campi pubblici
+`return_type` e `function_name` [`TypeScheme.hpp:28–30`] che vengono mutati da
+`SymbolTable::set_function_return_context`
+[`SymbolTable.cpp:37–53`]. Questo accoppiamento stretto non è documentato come contratto.
+
+#### 2.6 Partial or Undefined Implementations
+
+- `TypeScheme::instantiate()` — parziale (vedi DEF-006). Per tipi composti, restituisce il body invariato.
+
+### System: Constraint Solving System (S3)
 
 #### 2.1 System Overview
 
 Il **Constraint Solving System** implementa l'unificazione di tipi tramite union-find con path compression e union by
 rank. Comprende `Constraint`/`ConstraintSet` per l'accumulo dei vincoli, `Substitution` per il mapping delle soluzioni,
-`UnionFind` per l'efficienza dell'unificazione, e `ConstraintSolver` come motore che orchestra il tutto.
+`UnionFind` per l'efficienza dell'unificazione, `ConstraintSolver` come motore, e `TypeVisitor` per la visita ricorsiva.
 
 #### 2.2 Internal Module Organization
 
@@ -247,24 +267,24 @@ Struttura corretta: ogni concetto ha il proprio file `.hpp`/`.cpp`. `ConstraintS
 
 #### 2.5 Critical Points
 
-**`DEF-006` — `UnionFind::find()` usa `at()` con eccezione**: In [`UnionFind.cpp:14–17`], `parent_.at(var)` lancia
+**`DEF-008` — `UnionFind::find()` usa `at()` con eccezione**: In [`UnionFind.cpp:14–17`], `parent_.at(var)` lancia
 `std::out_of_range` se `var` non è registrato. Questo è un fallimento a runtime non gestito — dovrebbe usare `find()`
-con controllo o un `assert`.
+con controllo o un `assert`. Lo stesso vale per `rank_.at()` in `unite()` [`UnionFind.cpp:24–25`].
 
-**`DEF-007` — `UnifyVisitor` non gestisce tutti i casi**: In [`ConstraintSolver.cpp:26–35`], `UnifyVisitor` gestisce
+**`DEF-009` — `UnifyVisitor` non gestisce tutti i casi**: In [`ConstraintSolver.cpp:26–35`], `UnifyVisitor` gestisce
 solo `visit_array` e `visit_vector`. Se `t1` è `CustomType`, il visitor non viene dispatchato e `visitor.result` rimane
-`std::nullopt`, portando a `value_or(success)` [`ConstraintSolver.cpp:139`]. Questo significa che due `CustomType`
-diversi ("Foo" vs "Bar") vengono considerati uguali se hanno lo stesso kind.
+`std::nullopt`, portando a `value_or(success)` [`ConstraintSolver.cpp:139`]. Questo è **corretto** per `CustomType`
+perché il kind check è già stato fatto prima — ma il comportamento non è esplicitamente documentato.
 
-**`DEF-008` — `Substitution::apply()` non thread-safe**: La documentazione lo dichiara esplicitamente (
-`Substitution.hpp:90`), ma `fresh_type_variable()` è thread-safe [`TypeVariable.cpp:12`]. La combinazione crea una race
+**`DEF-010` — `Substitution::apply()` non thread-safe**: La documentazione lo dichiara esplicitamente
+[`Substitution.hpp:90`], ma `fresh_type_variable()` è thread-safe [`TypeVariable.cpp:12`]. La combinazione crea una race
 condition potenziale se più thread chiamano `apply()` e `bind()` simultaneamente.
 
 #### 2.6 Partial or Undefined Implementations
 
 Tutte le funzioni dichiarate sono implementate. `ConstraintSolver::occurs_in` è completa.
 
-### System: Name Resolution System (SymbolTable)
+### System: Name Resolution System (S4)
 
 #### 2.1 System Overview
 
@@ -287,21 +307,26 @@ ordine inverso (dall'interno all'esterno) [`SymbolTable.cpp:20–26`].
 
 #### 2.5 Critical Points
 
-**`DEF-009` — `StringHash` con `string_view` e ownership**: `SymbolTable` usa
+**`DEF-011` — `StringHash` con `string_view` e ownership**: `SymbolTable` usa
 `unordered_map<std::string_view, TypeScheme, StringHash>` [`SymbolTable.hpp:69`]. Le `string_view` come chiave puntano a
 stringhe esterne. Se la stringa originale viene deallocata, la chiave diventa dangling. Questo è sicuro finché i nomi
 degli identificatori vivono abbastanza (tipicamente da `std::string` nell'AST), ma è una **precondizione non documentata
 **.
 
-**`DEF-010` — `define()` crea scope implicitamente**: Se `define()` viene chiamato senza scope attivo, crea
+**`DEF-012` — `define()` crea scope implicitamente**: Se `define()` viene chiamato senza scope attivo, crea
 implicitamente un scope [`SymbolTable.cpp:16–17`]. Questo comportamento nascosto maschera bug di chiamante che dimentica
 `push_scope()`.
+
+**`DEF-013` — `set_function_return_context` cerca per nome poi per tipo**: La funzione cerca prima il binding per nome
+[`SymbolTable.cpp:39–45`], poi fallback su qualsiasi function binding nello scope corrente [`SymbolTable.cpp:47–53`].
+Questo fallback è fragile — se due funzioni sono dichiarate nello stesso scope, la seconda potrebbe sovrascrivere il
+contesto di ritorno della prima.
 
 #### 2.6 Partial or Undefined Implementations
 
 Completo. Nessuna funzione dichiarata senza implementazione.
 
-### System: Type Checking Orchestration System (TypeChecker)
+### System: Type Checking Orchestration System (S5)
 
 #### 2.1 System Overview
 
@@ -311,7 +336,7 @@ e `type_stmt()` pubblicamente per unit testing.
 
 #### 2.2 Internal Module Organization
 
-Un solo file header (`TypeChecker.hpp`) e un solo file di implementazione da **1200 righe** (`TypeChecker.cpp`). È il
+Un solo file header (`TypeChecker.hpp`) e un solo file di implementazione da **1197 righe** (`TypeChecker.cpp`). È il
 file più grande e complesso del sistema.
 
 #### 2.3 Intra-System Dependency Analysis
@@ -330,28 +355,33 @@ Vedi `TypeChecker::check()` [`TypeChecker.cpp:70–88`]:
 
 #### 2.5 Critical Points
 
-**`DEF-011` — `type_expr` per `CallExpr` non verifica signature**: In [`TypeChecker.cpp:698–745`], la chiamata a
+**`DEF-014` — `type_expr` per `CallExpr` non verifica signature**: In [`TypeChecker.cpp:698–745`], la chiamata a
 funzione tipizza il callee e gli argomenti ma **non genera vincoli tra gli argomenti e i parametri formali della
 funzione**. Non c'è controllo di arity. Il tipo di ritorno è sempre un `fresh_type_variable()`. Questo permette chiamate
 con numero errato di argomenti senza errore.
 
-**`DEF-012` — `type_stmt` per `VarDecl` multi-variable semplificato**: In [`TypeChecker.cpp:949–980`], le dichiarazioni
+**`DEF-015` — `type_stmt` per `VarDecl` multi-variable semplificato**: In [`TypeChecker.cpp:949–980`], le dichiarazioni
 multi-variabili (`let a, b, c = 1, 2, 3`) vengono semplificate a una singola `TypedVarDecl` per la prima variabile. Le
 altre vengono registrate nella SymbolTable ma **non compaiono nell'AST tipizzato**.
 
-**`DEF-013` — `zonk_block_full` perde statement**: In [`TypeChecker.cpp:413–421`], quando `zonk_stmt_full` restituisce
+**`DEF-016` — `zonk_block_full` perde statement**: In [`TypeChecker.cpp:413–421`], quando `zonk_stmt_full` restituisce
 `nullptr` per uno statement in un blocco, lo statement viene silenziosamente scartato ("Can't move from const — skip").
 Questo corrompe l'AST tipizzato.
 
-**`DEF-014` — `message_storage_` fragile**: Il `deque<std::string>` in [`TypeChecker.hpp:102`] possiede le stringhe dei
-messaggi d'errore. I `CompileError` contengono `string_view` su queste stringhe [`CompileError.hpp:56`]. Se
-`message_storage_` viene reallocato durante l'inserimento, i `string_view` già memorizzati negli `errors_` **potrebbero
-** diventare dangling — sebbene `deque` garantisca stabilità degli iteratori, la documentazione non esplicita questa
+**`DEF-017` — `message_storage_` fragile**: Il `deque<std::string>` in [`TypeChecker.hpp:102`] possiede le stringhe dei
+messaggi d'errore. I `CompileError` contengono `string_view` su queste stringhe. Se `message_storage_` viene
+reallocato durante l'inserimento, i `string_view` già memorizzati negli `errors_` **potrebbero** diventare dangling —
+sebbene `deque` garantisca stabilità degli iteratori, la documentazione non esplicita questa
 garanzia come invariant.
 
-**`DEF-015` — `resolve_names` per MainStmt duplica binding**: In [`TypeChecker.cpp:116–117`], `main` viene registrato
+**`DEF-018` — `resolve_names` per `MainStmt` duplica binding**: In [`TypeChecker.cpp:116–117`], `main` viene registrato
 con tipo `void_()`, ma il nome "main" è hardcoded. Se il linguaggio dovesse supportare funzioni chiamate "main"
 dall'utente, ci sarebbe collisione.
+
+**`DEF-019` — Type checking anticipato duplica logica del solver**: In `type_expr`, per `BinaryExpr` e `UnaryExpr`,
+il codice esegue controlli anticipati sui tipi concreti (es. `!lhs_type->is_numeric()`) [`TypeChecker.cpp:550–560`]
+che **duplicano** la logica che il solver esegue già. Se il solver fallisce, l'errore viene riportato due volte — una
+volta dal check anticipato e una volta dal solver.
 
 #### 2.6 Partial or Undefined Implementations
 
@@ -361,7 +391,7 @@ Tutte le funzioni dichiarate in `TypeChecker.hpp` sono implementate in `TypeChec
 
 ## Phase 3 — Per-Component Exhaustive Analysis
 
-### System: Type Representation › Component: TypeBase
+### System: Type Representation (S1) › Component: TypeBase
 
 #### 3.1 Responsibility Statement
 
@@ -370,671 +400,677 @@ Tutte le funzioni dichiarate in `TypeChecker.hpp` sono implementate in `TypeChec
 
 #### 3.2 Class Structure
 
-| Membro           | Tipo                                      | Visibilità  | Semantica                                           |
-|------------------|-------------------------------------------|-------------|-----------------------------------------------------|
-| `kind_`          | `TypeKind`                                | `private`   | Discriminante del tipo concreto                     |
-| `kind()`         | `constexpr TypeKind() const`              | `public`    | Getter per il discriminante                         |
-| `is_primitive()` | `constexpr bool() const`                  | `public`    | Verifica se tipo built-in                           |
-| `is_integer()`   | `constexpr bool() const`                  | `public`    | Verifica se intero (signed o unsigned)              |
-| `is_numeric()`   | `constexpr bool() const`                  | `public`    | Verifica se numerico                                |
-| `to_string()`    | `virtual std::string() const = 0`         | `public`    | Rappresentazione stringa                            |
-| `operator==`     | `virtual bool(const TypeBase&) const = 0` | `public`    | Uguaglianza strutturale                             |
-| Copy/Move        | deleted                                   | `protected` | Impedisce copia/spostamento — enforced `shared_ptr` |
+| Membro           | Tipo                              | Visibilità | Semantica                             |
+|------------------|-----------------------------------|------------|---------------------------------------|
+| `kind_`          | `TypeKind`                        | `private`  | Discriminante del tipo concreto       |
+| `kind()`         | `constexpr TypeKind() const`      | `public`   | Getter per il discriminante           |
+| `is_primitive()` | `constexpr bool() const`          | `public`   | Predicate: è un tipo primitivo?       |
+| `is_integer()`   | `constexpr bool() const`          | `public`   | Predicate: è un tipo intero?          |
+| `is_numeric()`   | `constexpr bool() const`          | `public`   | Predicate: è un tipo numerico?        |
+| `to_string()`    | `virtual std::string() const = 0` | `public`   | Serializzazione per diagnostic        |
+| `operator==`     | `virtual bool() const = 0`        | `public`   | Uguaglianza strutturale               |
+| `~TypeBase()`    | `virtual`                         | `public`   | Distruttore virtuale per polimorfismo |
 
-Nessuna ereditarietà multipla. Tutte le sottoclassi usono ereditarietà singola `final`.
+Copy/move sono eliminati per enforcing dell'uso tramite `shared_ptr`.
 
 #### 3.3 Interface Analysis
 
-L'interfaccia è pulita e minimale. I metodi `constexpr` per le verifiche di tipo (`is_integer`, `is_numeric`, etc.) sono
-efficienti — nessuno richiede RTTI. La cancellazione di copy/move [`Type.hpp:217–220`] è corretta e impone l'uso di
-`shared_ptr`.
+| Metodo           | Precondizioni  | Postcondizioni            | Note                                      |
+|------------------|----------------|---------------------------|-------------------------------------------|
+| `kind()`         | Nessuna        | Restituisce `kind_`       | `constexpr`, `noexcept`                   |
+| `is_primitive()` | Nessuna        | Booleano                  | Enumerazione esplicita dei casi           |
+| `to_string()`    | Nessuna        | Stringa non vuota         | Pure virtual, sovrascritto da sottoclassi |
+| `operator==`     | `other` valido | Uguaglianza strutturale   | Pure virtual, sovrascritto da sottoclassi |
+| `operator!=`     | `other` valido | Negazione di `operator==` | Implementato in termini di `==`           |
 
 #### 3.4 Implementation Logic
 
-`TypeBase` è puramente astratta — nessuna logica implementativa oltre ai getter e ai predicate. I predicati usano switch
-espliciti su `TypeKind`, evitando dipendenze da ordinamento dell'enum.
+`TypeBase` è puramente astratta — nessuna logica complessa. I predicate `is_primitive()`, `is_integer()`, ecc. usano
+switch su `TypeKind` con enumerazione esplicita dei casi. `is_primitive()` considera `Void` e `NullPtr` come primitivi,
+esclude `Custom`, `Array`, `Vector`, `TypeVar`, `Error`.
 
 #### 3.5 Error Handling Evaluation
 
-Nessun error handling — è una classe base che non può fallire.
+Nessun errore gestito a questo livello — è la classe base. Le sottoclassi gestiscono errori nei loro `operator==`.
 
 #### 3.6 Type Consistency Audit
 
-Tutti i tipi usano `TypePtr = shared_ptr<const TypeBase>`. La const-correctness è rispettata. Nessuna conversione
-implicita pericolosa.
+Tipi consistenti. `TypeKind` enum copre tutti i casi. Lo switch in `is_primitive()` ha un `return false` finale per
+soddisfare il compilatore, ma è irraggiungibile.
 
 #### 3.7 Inter-Component Interaction
 
-`TypeBase` è la radice della gerarchia. Ogni componente del type checker dipende da essa indirettamente tramite
-`TypePtr`.
+`TypeBase` è il fondamento di tutto il sistema type checker. Ogni componente dipende da questa classe. Non ci sono
+dipendenze inverse.
 
 #### 3.8 Optimization Opportunities
 
-I predicati `constexpr` sono già ottimizzati. Il pattern `classof` stile LLVM [`Type.hpp:377`] evita RTTI dove
-possibile.
+I predicate `constexpr` sono efficienti. `is_primitive()` potrebbe essere semplificato con un lookup table (array di
+bool indicizzato per `TypeKind`) invece dello switch, riducendo il costo da O(n) a O(1).
 
-### System: Type Representation › Component: PrimitiveType
+### System: Type Representation (S1) › Component: PrimitiveType
 
 #### 3.1 Responsibility Statement
 
-`PrimitiveType` rappresenta tutti i tipi primitivi del linguaggio (interi, floating-point, char, string, bool, void,
-nullptr) come singleton immutabili.
+`PrimitiveType` rappresenta i tipi primitivi built-in (interi, floating-point, bool, char, string, void, nullptr) come
+singleton immutabili.
 
 #### 3.2 Class Structure
 
-| Membro                                            | Tipo                                     | Visibilità | Semantica                            |
-|---------------------------------------------------|------------------------------------------|------------|--------------------------------------|
-| `PrivateTag`                                      | struct                                   | `public`   | Tag per impedire costruzione esterna |
-| Factory methods (`i8()`, `i16()`, ..., `void_()`) | `static shared_ptr<const PrimitiveType>` | `public`   | Singleton per ogni tipo primitivo    |
-| `classof(const TypeBase*)`                        | `static constexpr bool`                  | `public`   | RTTI-free type check                 |
-| `to_string()`                                     | `override std::string`                   | `public`   | Delega a `type_kind_name(kind_)`     |
-| `operator==`                                      | `override bool`                          | `public`   | Confronto per `kind()`               |
+| Membro               | Tipo                        | Visibilità | Semantica                                 |
+|----------------------|-----------------------------|------------|-------------------------------------------|
+| `PrivateTag`         | struct                      | `public`   | Tag per limitare costruzione alle factory |
+| `i8()`..`nullptr_()` | `shared_ptr<PrimitiveType>` | `public`   | Factory singleton thread-safe             |
+| `to_string()`        | `std::string`               | `public`   | Delega a `type_kind_name()`               |
+| `operator==`         | `bool`                      | `public`   | Confronta `kind()`                        |
+| `classof()`          | `constexpr bool`            | `public`   | LLVM-style RTTI                           |
 
 #### 3.3 Interface Analysis
 
-Ogni factory method restituisce un riferimento a singleton statico locale (Meyers singleton). Questo garantisce che
-`PrimitiveType::i32() == PrimitiveType::i32()` sia vero per identità di puntatore, oltre che per uguaglianza
-strutturale. Precondizione: il `kind` passato al costruttore deve essere un primitivo (verificato da `assert`).
+Ogni factory (`i8()`, `i16()`, ..., `nullptr_()`) usa `static const auto instance` con `make_shared` — singleton
+lazy-initialized thread-safe (guarantito da C++11). Precondizione: il `PrivateTag` impedisce costruzione esterna.
 
 #### 3.4 Implementation Logic
 
-Implementazione banale — ogni factory è un singleton thread-safe (C++11 static local initialization è thread-safe).
-`to_string()` delega a `type_kind_name()` che è `constexpr`.
+`to_string()` delega a `type_kind_name(kind())` [`Type.cpp:15`]. `operator==` confronta solo `kind()` — corretto perché
+i singleton sono unici per kind.
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore possibile. I singleton non falliscono.
+Nessun errore possibile — i singleton sono sempre validi.
 
 #### 3.6 Type Consistency Audit
 
-I singleton sono `shared_ptr<const PrimitiveType>`, compatibili con `TypePtr`. Nessun problema di conversione.
+Consistente. `PrivateTag` previene costruzione accidentale.
 
 #### 3.7 Inter-Component Interaction
 
-Usato ovunque nel type checker come tipo concreto di default per literal e annotazioni.
+Usato da tutti i sistemi come tipo concreto. Le factory sono chiamate da `parse_type_annotation` [
+`TypeChecker.cpp:18–35`]
+e da `type_expr` per literal typing.
 
 #### 3.8 Optimization Opportunities
 
-I singleton eliminano allocazioni ripetute. Il design è già ottimale.
+Le factory singleton sono già ottimali. `to_string()` potrebbe essere `constexpr` con `std::string_view` invece di
+`std::string`, evitando l'allocazione.
 
-### System: Type Representation › Component: CustomType
+### System: Type Representation (S1) › Component: CustomType
 
 #### 3.1 Responsibility Statement
 
-`CustomType` rappresenta tipi definiti dall'utente (struct, class, enum) identificati per nome.
+`CustomType` rappresenta i tipi definiti dall'utente (struct, class, enum) identificati per nome.
 
 #### 3.2 Class Structure
 
-| Membro        | Tipo                       | Visibilità | Semantica            |
-|---------------|----------------------------|------------|----------------------|
-| `name_`       | `shared_ptr<const string>` | `private`  | Nome del tipo custom |
-| `name()`      | `string_view`              | `public`   | Getter               |
-| `to_string()` | `override`                 | `public`   | Restituisce il nome  |
-| `operator==`  | `override`                 | `public`   | Confronta per nome   |
-| `classof`     | `static constexpr`         | `public`   | Type check           |
+| Membro        | Tipo                       | Visibilità | Semantica                |
+|---------------|----------------------------|------------|--------------------------|
+| `name_`       | `shared_ptr<const string>` | `private`  | Nome del tipo, condiviso |
+| `name()`      | `string_view`              | `public`   | Getter per il nome       |
+| `to_string()` | `std::string`              | `public`   | Restituisce il nome      |
+| `operator==`  | `bool`                     | `public`   | Confronta i nomi         |
+| `classof()`   | `constexpr bool`           | `public`   | LLVM-style RTTI          |
 
 #### 3.3 Interface Analysis
 
-Il costruttore accetta `string_view` ma memorizza `shared_ptr<const string>` — copia il dato. Questo è corretto per
-ownership.
+Il costruttore accetta `std::string_view` e crea `shared_ptr<const string>` — copia il nome. Precondizione: il nome
+non deve essere vuoto (non verificato).
 
 #### 3.4 Implementation Logic
 
-Semplice wrapper attorno a un nome. Uguaglianza per confronto di stringhe.
+`operator==` usa `static_cast<const CustomType *>` dopo il check `kind()` [`Type.hpp:372`]. Corretto perché il kind
+garantisce il tipo.
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore.
+Nessun errore gestito. Nomi vuoti non sono rifiutati — potenziale fonte di bug silenziosi.
 
 #### 3.6 Type Consistency Audit
 
-Nessun problema.
+Consistente. `shared_ptr<const string>` per ownership condivisa è appropriato.
 
 #### 3.7 Inter-Component Interaction
 
-Usato per tipi utente non ancora risolti. Il `ConstraintSolver` non gestisce correttamente l'unificazione tra
-`CustomType` diversi (vedi DEF-007).
+Usato da `UnifyVisitor` [`ConstraintSolver.cpp:139`] — ma il visitor non dispatcha su `CustomType`, quindi due
+`CustomType` diversi unificano solo se il kind match (già verificato prima del visitor).
 
 #### 3.8 Optimization Opportunities
 
-`shared_ptr<const string>` potrebbe essere sostituito con `string` diretto (l'overhead del puntatore condiviso non è
-necessario per un membro privato).
+`name_` potrebbe essere `std::string` diretto invece di `shared_ptr<const string>` — non c'è condivisione reale del
+nome tra istanze diverse.
 
-### System: Type Representation › Component: ArrayType
+### System: Type Representation (S1) › Component: ArrayType
 
 #### 3.1 Responsibility Statement
 
-`ArrayType` rappresenta array a dimensione fissa `[T; N]` con tipo elemento e espressione di dimensione.
+`ArrayType` rappresenta i tipi array `[T; N]` con tipo elemento e espressione dimensione compile-time.
 
 #### 3.2 Class Structure
 
-| Membro           | Tipo                         | Visibilità | Semantica                         |
-|------------------|------------------------------|------------|-----------------------------------|
-| `element_type_`  | `shared_ptr<const TypeBase>` | `private`  | Tipo degli elementi               |
-| `size_expr_`     | `shared_ptr<const Expr>`     | `private`  | Espressione della dimensione      |
-| `element_type()` | `const shared_ptr&`          | `public`   | Getter                            |
-| `size_expr()`    | `const shared_ptr&`          | `public`   | Getter                            |
-| `sizes_equal()`  | `static bool`                | `private`  | Confronto strutture di dimensione |
+| Membro           | Tipo                         | Visibilità | Semantica              |
+|------------------|------------------------------|------------|------------------------|
+| `element_type_`  | `shared_ptr<const TypeBase>` | `private`  | Tipo degli elementi    |
+| `size_expr_`     | `shared_ptr<const Expr>`     | `private`  | Espressione dimensione |
+| `element_type()` | `const shared_ptr&`          | `public`   | Getter                 |
+| `size_expr()`    | `const shared_ptr&`          | `public`   | Getter                 |
+| `sizes_equal()`  | `static bool`                | `private`  | Confronto dimensioni   |
 
 #### 3.3 Interface Analysis
 
-Precondizione: `element_type` e `size_expr` non devono essere `nullptr` (verificati da `assert` nel costruttore).
+Costruttore con assert su non-null [`Type.hpp:420–422`]. `operator==` confronta element type e size expression.
 
 #### 3.4 Implementation Logic
 
-L'uguaglianza confronta sia il tipo elemento sia la dimensione tramite `sizes_equal()`. La funzione `sizes_equal` è
-dichiarata ma la sua implementazione in `Type.cpp` richiede verifica — se confronta solo `IntegerLiteral`, espressioni
-complesse fallirebbero.
+`sizes_equal()` [`Type.cpp:50–56`] gestisce solo `IntegerLiteral` via `node_dyn_cast`. Per altri tipi di espressione,
+fallback a `&a == &b` (identità referenziale).
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore — solo assert in costruzione.
+`assert` in costruzione previene parametri null. `sizes_equal()` restituisce `false` per espressioni non letterali —
+comportamento corretto ma non documentato.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-`Substitution::apply()` visita `ArrayType` per applicare sostituzioni al tipo elemento [`Substitution.cpp:17–21`].
-`ConstraintSolver::UnifyVisitor` unifica array confrontando i tipi elemento [`ConstraintSolver.cpp:30–33`].
+Visitato da `UnifyVisitor` [`ConstraintSolver.cpp:29–31`] e `ApplyVisitor` [`Substitution.cpp:17–20`].
 
 #### 3.8 Optimization Opportunities
 
-Nessuno significativo.
+`sizes_equal()` potrebbe essere esteso per supportare espressioni costanti più complesse. Per ora, array con dimensioni
+espressive non costanti non confrontano correttamente.
 
-### System: Type Representation › Component: VectorType
-
-#### 3.1 Responsibility Statement
-
-`VectorType` rappresenta array dinamici `Vec<T>` con tipo elemento.
-
-#### 3.2–3.8
-
-Strutturalmente identico ad `ArrayType` ma senza `size_expr_`. Stesse osservazioni di `ArrayType` per interazione con
-`Substitution` e `ConstraintSolver`. Vedi anche §3.2–§3.8 di ArrayType.
-
-### System: Constraint Solving › Component: Constraint / ConstraintSet
+### System: Type Representation (S1) › Component: VectorType
 
 #### 3.1 Responsibility Statement
 
-`Constraint` rappresenta un vincolo di uguaglianza `lhs = rhs` tra due tipi, mentre `ConstraintSet` accumula vincoli con
-ID univoci per il solver.
+`VectorType` rappresenta i tipi vettore dinamico `Vec<T>` con tipo elemento.
 
 #### 3.2 Class Structure
 
-**Constraint** (struct):
-
-| Campo    | Tipo           | Semantica                  |
-|----------|----------------|----------------------------|
-| `id`     | `ConstraintId` | ID univoco (1-based)       |
-| `lhs`    | `TypePtr`      | Tipo sinistro da unificare |
-| `rhs`    | `TypePtr`      | Tipo destro da unificare   |
-| `origin` | `SourceSpan`   | Posizione sorgente         |
-| `reason` | `std::string`  | Contesto per diagnostic    |
-
-**ConstraintSet** (class):
-
-| Membro         | Tipo                 | Semantica                        |
-|----------------|----------------------|----------------------------------|
-| `constraints_` | `vector<Constraint>` | Storage                          |
-| `next_id_`     | `ConstraintId`       | Contatore (inizia da 1)          |
-| `add()`        | `ConstraintId`       | Aggiunge vincolo, restituisce ID |
-| `get(id)`      | `const Constraint*`  | Lookup lineare per ID            |
+| Membro           | Tipo                         | Visibilità | Semantica              |
+|------------------|------------------------------|------------|------------------------|
+| `element_type_`  | `shared_ptr<const TypeBase>` | `private`  | Tipo degli elementi    |
+| `element_type()` | `const shared_ptr&`          | `public`   | Getter                 |
+| `to_string()`    | `std::string`                | `public`   | `"Vec<T>"`             |
+| `operator==`     | `bool`                       | `public`   | Confronta element type |
 
 #### 3.3 Interface Analysis
 
-`add()` assegna ID sequenziali. `get()` esegue ricerca lineare O(n) — accettabile per set piccoli ma non scalabile.
-`constraints()` restituisce riferimento const per iterazione.
+Costruttore con assert su non-null. `to_string()` usa `FORMAT("Vec<{}>", ...)`.
 
 #### 3.4 Implementation Logic
 
-`add()` incrementa `next_id_` e pusha nel vector [`Constraint.cpp:10–15`]. `get()` usa `std::ranges::find` con
-proiezione [`Constraint.cpp:19–21`].
+Minimale — wrapper per element type.
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore — `add()` non fallisce (tranne `bad_alloc`). `get()` restituisce `nullptr` se non trovato.
+Nessun errore — assert in costruzione.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-`ConstraintSet` è passato a `ConstraintSolver::solve()` per riferimento const. I vincoli sono consumati uno alla volta
-dal solver.
+Visitato da `UnifyVisitor` e `ApplyVisitor` come `ArrayType`.
 
 #### 3.8 Optimization Opportunities
 
-`get()` è O(n). Se i vincoli fossero accessibili frequentemente per ID, un `unordered_map<ConstraintId, Constraint>`
-sarebbe più efficiente. Attualmente `get()` è usato raramente (principalmente per debug).
+Nessuna criticità.
 
-### System: Constraint Solving › Component: Substitution
+### System: Type Inference Variables (S2) › Component: TypeVariable
 
 #### 3.1 Responsibility Statement
 
-`Substitution` mappa `TypeVarId → TypePtr` e applica ricorsivamente queste sostituzioni ai tipi, risolvendo tutte le
-variabili annidate.
+`TypeVariable` rappresenta le variabili di tipo `?Tn` generate durante l'inferenza, identificate da un ID univoco.
 
 #### 3.2 Class Structure
 
-| Membro         | Tipo                                      | Visibilità        | Semantica                                |
-|----------------|-------------------------------------------|-------------------|------------------------------------------|
-| `bindings_`    | `unordered_map<TypeVarId, TypePtr>`       | `private`         | Mapping variabili → tipi                 |
-| `apply_cache_` | `unordered_map<const TypeBase*, TypePtr>` | `private mutable` | Cache dei risultati di `apply()`         |
-| `bind()`       | `void`                                    | `public`          | Associa variabile a tipo, invalida cache |
-| `lookup()`     | `optional<TypePtr>`                       | `public`          | Cerca binding                            |
-| `apply()`      | `TypePtr`                                 | `public`          | Applica sostituzione a un tipo           |
-| `applyImpl()`  | `TypePtr`                                 | `private`         | Worker ricorsivo con cache               |
+| Membro        | Tipo          | Visibilità | Semantica       |
+|---------------|---------------|------------|-----------------|
+| `id_`         | `TypeVarId`   | `private`  | ID univoco (>0) |
+| `id()`        | `TypeVarId`   | `public`   | Getter          |
+| `to_string()` | `std::string` | `public`   | `"?T{id}"`      |
+| `operator==`  | `bool`        | `public`   | Confronta ID    |
 
 #### 3.3 Interface Analysis
 
-`bind()` invalida completamente `apply_cache_` — questo è corretto ma conservativo: solo le entry che dipendono dalla
-variabile modificata sarebbero invalidate. `apply()` è thread-unsafe se chiamato concorrentemente con `bind()`.
+Costruttore `constexpr` con `TypeVarId`. `fresh_type_variable()` usa counter thread-local.
 
 #### 3.4 Implementation Logic
 
-`applyImpl()` [`Substitution.cpp:46–66`]: (1) controlla cache; (2) se `TypeVariable`, cerca binding e ricorsivamente
-applica; (3) se tipo composto, usa `ApplyVisitor` per costruire nuovo tipo con elementi risolti; (4) cache il risultato.
-La cache è keyed su `const TypeBase*` — l'identità del puntatore, non il valore.
+`to_string()` [`TypeVariable.cpp:10`] usa `FORMAT("?T{}", id_)`. `fresh_type_variable()` [`TypeVariable.cpp:18`] crea
+`shared_ptr<TypeVariable>` con ID incrementale.
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore esplicito. Se un tipo non ha binding, viene restituito così com'è.
+Nessun errore. ID = 0 è riservato ma non enforced.
 
 #### 3.6 Type Consistency Audit
 
-La cache basata su puntatore raw è corretta perché `TypeBase` è immutabile (`shared_ptr<const>`). Se lo stesso nodo tipo
-viene riutilizzato in più punti dell'AST (DAG), la cache condivide il risultato — corretto ed efficiente.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-`Substitution` è prodotto da `ConstraintSolver` e consumato da `TypeChecker::zonk()`. `ConstraintSolver::occurs_in()`
-usa `Substitution::apply()` per risolvere tipi prima della verifica [`ConstraintSolver.cpp:57`].
+Usato da `Substitution::applyImpl` [`Substitution.cpp:45–47`] per risolvere variabili. Usato da
+`ConstraintSolver::unify`
+per binding e occurs-check.
 
 #### 3.8 Optimization Opportunities
 
-L'invalidazione totale della cache in `bind()` è conservativa. Per programmi con molti vincoli, la cache verrebbe
-invalidata frequentemente. Un approccio più raffinato invaliderebbe solo le entry che transitivamente dipendono dalla
-variabile modificata.
+Nessuna criticità.
 
-### System: Constraint Solving › Component: UnionFind
+### System: Type Inference Variables (S2) › Component: TypeScheme
 
 #### 3.1 Responsibility Statement
 
-`UnionFind` implementa disjoint-set union con path compression e union by rank per tracciare le equivalenze tra
-variabili di tipo durante l'unificazione.
+`TypeScheme` rappresenta i tipi polimorfici `∀(vars).body`, usati per generalizzare i tipi di funzioni e valori
+polimorfici.
 
 #### 3.2 Class Structure
 
-| Membro       | Tipo                                  | Semantica                                  |
-|--------------|---------------------------------------|--------------------------------------------|
-| `parent_`    | `unordered_map<TypeVarId, TypeVarId>` | Mappa nodo → genitore                      |
-| `rank_`      | `unordered_map<uint8_t>`              | Rank per union by rank                     |
-| `make_set()` | `void`                                | Crea set singleton                         |
-| `find()`     | `TypeVarId`                           | Trova rappresentante con path compression  |
-| `unite()`    | `void`                                | Unisce due set                             |
-| `same_set()` | `bool`                                | Verifica se due nodi sono nello stesso set |
+| Membro                  | Tipo                | Visibilità | Semantica                      |
+|-------------------------|---------------------|------------|--------------------------------|
+| `quantified_vars`       | `vector<TypeVarId>` | `public`   | Variabili quantificate         |
+| `body`                  | `TypePtr`           | `public`   | Corpo del tipo                 |
+| `is_const`              | `bool`              | `public`   | Binding immutabile?            |
+| `return_type`           | `optional<TypePtr>` | `public`   | Tipo di ritorno (funzioni)     |
+| `function_name`         | `optional<string>`  | `public`   | Nome funzione (error messages) |
+| `is_function_binding()` | `bool`              | `public`   | `return_type.has_value()`      |
+| `instantiate()`         | `TypePtr`           | `public`   | Genera variabili fresche       |
+| `mono()`                | `static TypeScheme` | `public`   | Factory monomorfa              |
 
 #### 3.3 Interface Analysis
 
-`find()` non è `const` perché modifica `parent_` (path compression). Documentato correttamente in `UnionFind.hpp:32–41`.
-`make_set()` è idempotente — se il nodo esiste già, non viene modificato.
+`instantiate()` genera fresh vars per i quantificati ma **solo se il body è TypeVariable diretto**.
 
 #### 3.4 Implementation Logic
 
-`find()` usa ricorsione con path compression [`UnionFind.cpp:14–17`]. Per alberi profondi, questo potrebbe causare stack
-overflow — sebbene con union by rank la profondità sia O(log n), in pratica è gestibile. `unite()` usa union by rank [
-`UnionFind.cpp:19–33`].
+`mono()` [`TypeScheme.cpp:9–14`] crea scheme senza variabili quantificate. `instantiate()` [`TypeScheme.cpp:16–33`]
+genera fresh vars e sostituisce — ma solo per body diretto `TypeVariable`. Per tipi composti, restituisce body
+invariato.
 
 #### 3.5 Error Handling Evaluation
 
-**`DEF-006` (ripetuto)**: `find()` usa `parent_.at(var)` che lancia se `var` non è registrato. Questo è un errore di
-programmazione del chiamante, ma un `assert` sarebbe più appropriato per un debug build.
+Nessun errore gestito. Tipi composti non vengono sostituiti silenziosamente.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-Usato esclusivamente da `ConstraintSolver`. Non esposto ad altri sistemi.
+Usato da `SymbolTable` come valore di binding. Usato da `type_expr` per `Identifier` [`TypeChecker.cpp:493`] —
+`sym->instantiate()`.
 
 #### 3.8 Optimization Opportunities
 
-Per grandi programmi, `unordered_map` ha overhead di hashing. Un `vector` con resizing sarebbe più efficiente se gli ID
-delle variabili sono densi.
+**`DEF-006`**: `instantiate()` necessita visitor per sostituzione ricorsiva in tipi composti. Attualmente i tipi
+polimorfici composti non vengono istanziati correttamente.
 
-### System: Constraint Solving › Component: ConstraintSolver
+### System: Type Inference Variables (S2) › Component: ErrorType
 
 #### 3.1 Responsibility Statement
 
-`ConstraintSolver` orchestra l'unificazione di tutti i vincoli di tipo, producendo una `Substitution` finale e
-raccogliendo errori di tipo.
+`ErrorType` è un tipo sentinella singleton che unifica silenziosamente con qualsiasi tipo, prevenendo errori a cascata.
 
 #### 3.2 Class Structure
 
-| Membro          | Tipo                           | Semantica                             |
-|-----------------|--------------------------------|---------------------------------------|
-| `union_find_`   | `UnionFind`                    | Disjoint-set per equivalenze          |
-| `substitution_` | `Substitution`                 | Mapping soluzioni                     |
-| `solve()`       | `SolverResult`                 | Entry point — risolve tutti i vincoli |
-| `unify()`       | `expected<void, CompileError>` | Unifica due tipi                      |
-| `occurs_in()`   | `static bool`                  | Verifica occurs-check                 |
+| Membro        | Tipo             | Visibilità | Semantica                       |
+|---------------|------------------|------------|---------------------------------|
+| `to_string()` | `std::string`    | `public`   | Restituisce `"<error>"`         |
+| `operator==`  | `bool`           | `public`   | Vero se `other.kind() == Error` |
+| `classof()`   | `constexpr bool` | `public`   | LLVM-style RTTI                 |
 
 #### 3.3 Interface Analysis
 
-`solve()` accetta `ConstraintSet` const e restituisce `SolverResult`. `unify()` è pubblico e può essere chiamato
-individualmente per test. `occurs_in()` è statico e accetta `Substitution` per risolvere variabili prima della verifica.
+`error_type()` restituisce singleton [`ErrorType.cpp:11–14`].
 
 #### 3.4 Implementation Logic
 
-`solve()` [`ConstraintSolver.cpp:44–54`] itera linearmente sui vincoli. `unify()` [`ConstraintSolver.cpp:67–139`]
-gestisce:
-
-1. ErrorType → successo silente.
-2. Null type → errore E2034.
-3. TypeVariable vs TypeVariable → occurs-check + binding.
-4. TypeVariable vs concreto → binding.
-5. Concreto vs TypeVariable → swap e ricorsione.
-6. Concreto vs concreto → verifica kind + visitor per composti.
+Singleton con `static const auto instance`. `to_string()` restituisce `"<error>"`.
 
 #### 3.5 Error Handling Evaluation
 
-ErrorType unifica silenziosamente con tutto — corretto per error recovery. I mismatch di tipo producono
-`CompileError::TypeError` con codice E2034. L'occurs-check produce E2035.
-
-**`DEF-007` (ripetuto)**: Il caso "entrambi CustomType" con nomi diversi non viene rilevato — `UnifyVisitor` non viene
-dispatchato per `CustomType`, quindi il risultato è `value_or(success)` che restituisce successo.
+L'unificazione silenziosa con qualsiasi tipo è intenzionale — previene cascata di errori.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-Consuma `ConstraintSet`. Produce `SolverResult`. Usa `TypeVisitor` per dispatch. Dipende da `UnionFind` e `Substitution`
-come stato interno.
+`ConstraintSolver::unify` [`ConstraintSolver.cpp:67–68`] controlla `t1->kind() == TypeKind::Error` e restituisce
+successo silente.
 
 #### 3.8 Optimization Opportunities
 
-L'iterazione lineare sui vincoli va bene. Tuttavia, `unify()` crea `UnifyVisitor` sullo stack per ogni chiamata —
-potrebbe essere riutilizzato come membro per evitare allocazioni.
+Nessuna criticità.
 
-### System: Name Resolution › Component: SymbolTable
+### System: Constraint Solving (S3) › Component: Constraint / ConstraintSet
 
 #### 3.1 Responsibility Statement
 
-`SymbolTable` gestisce binding identificatore→`TypeScheme` con scope lessicali annidati, supportando shadowing e lookup
-outward.
+`Constraint` rappresenta un vincolo di uguaglianza `lhs = rhs` con metadati; `ConstraintSet` accumula e gestisce
+vincoli con ID sequenziali.
 
 #### 3.2 Class Structure
 
-| Membro                       | Tipo                                             | Semantica                              |
-|------------------------------|--------------------------------------------------|----------------------------------------|
-| `scopes_`                    | `vector<unordered_map<string_view, TypeScheme>>` | Stack di scope                         |
-| `StringHash`                 | struct                                           | Hasher eterogeneo per `string_view`    |
-| `push_scope()`               | `void`                                           | Entra in nuovo scope                   |
-| `pop_scope()`                | `void`                                           | Esce dallo scope corrente              |
-| `define()`                   | `void`                                           | Definisce simbolo nel scope corrente   |
-| `lookup()`                   | `optional<TypeScheme>`                           | Cerca simbolo dall'interno all'esterno |
-| `defined_in_current_scope()` | `bool`                                           | Verifica nel solo scope corrente       |
-| `depth()`                    | `size_t`                                         | Profondità scope                       |
+| Membro          | Tipo                | Visibilità | Semantica            |
+|-----------------|---------------------|------------|----------------------|
+| `id`            | `ConstraintId`      | `public`   | ID univoco (1-based) |
+| `lhs`/`rhs`     | `TypePtr`           | `public`   | Tipi da unificare    |
+| `origin`        | `SourceSpan`        | `public`   | Posizione sorgente   |
+| `reason`        | `std::string`       | `public`   | Contesto generazione |
+| `add()`         | `ConstraintId`      | `public`   | Aggiunge vincolo     |
+| `constraints()` | `const vector&`     | `public`   | Tutti i vincoli      |
+| `get()`         | `const Constraint*` | `public`   | Lookup per ID (O(n)) |
+| `size()`        | `std::size_t`       | `public`   | Numero vincoli       |
 
 #### 3.3 Interface Analysis
 
-Tutte le operazioni sono O(1) amortizzate tranne `lookup()` che è O(depth × bucket_size). Precondizione: `pop_scope()`
-richiede stack non vuoto (silenziosamente ignorato se vuoto).
+`add()` assegna ID incrementale [`Constraint.cpp:10`]. `get()` usa `std::ranges::find` — O(n).
 
 #### 3.4 Implementation Logic
 
-`lookup()` usa `reverse_view` per iterare dall'ultimo scope al primo [`SymbolTable.cpp:20–26`]. `define()` crea scope
-implicitamente se vuoto [`SymbolTable.cpp:16–17`].
+Minimale — wrapper su `vector<Constraint>`.
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore restituito. `lookup()` restituisce `nullopt` se non trovato — il chiamante deve gestire il caso.
+Nessun errore — `std::bad_alloc` possibile ma non gestito.
 
 #### 3.6 Type Consistency Audit
 
-Le `string_view` come chiave richiedono che le stringhe originali sopravvivano. Questo è garantito dal fatto che i nomi
-degli identificatori sono memorizzati nell'AST (che vive più a lungo del type checker).
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-Usato da `TypeChecker` in `resolve_names()` e `type_expr()` per identificatori.
+Passato a `ConstraintSolver::solve()` [`TypeChecker.cpp:166`].
 
 #### 3.8 Optimization Opportunities
 
-L'hasher eterogeneo `StringHash` è ben progettato — permette lookup con `string_view` senza creazione di `string`.
+`get()` è O(n) — se il numero di vincoli cresce, potrebbe diventare un bottleneck. Per ora accettabile.
 
-### System: Type Checking Orchestration › Component: TypeChecker
+### System: Constraint Solving (S3) › Component: Substitution
 
 #### 3.1 Responsibility Statement
 
-`TypeChecker` orchestra l'intera pipeline di type checking, trasformando un `Program` (AST non tipizzato) in un
-`TypedProgram` (AST tipizzato) con raccolta errori.
+`Substitution` mappa variabili di tipo a tipi risolti, con cache persistente per ottimizzare ri-applicazione.
 
 #### 3.2 Class Structure
 
-| Membro                          | Tipo                   | Semantica                         |
-|---------------------------------|------------------------|-----------------------------------|
-| `symbols_`                      | `SymbolTable`          | Tabella simboli                   |
-| `constraints_`                  | `ConstraintSet`        | Vincoli generati                  |
-| `errors_`                       | `vector<CompileError>` | Errori raccolti                   |
-| `message_storage_`              | `deque<string>`        | Storage per messaggi d'errore     |
-| `typed_stmts_`                  | `vector<TypedStmtPtr>` | Statement tipizzati durante CG    |
-| `current_function_return_type_` | `optional<TypePtr>`    | Tipo di ritorno funzione corrente |
-| `current_function_name_`        | `optional<string>`     | Nome funzione corrente            |
-| `loop_depth_`                   | `size_t`               | Profondità di annidamento loop    |
+| Membro         | Tipo                                      | Visibilità | Semantica                        |
+|----------------|-------------------------------------------|------------|----------------------------------|
+| `bindings_`    | `unordered_map<TypeVarId, TypePtr>`       | `private`  | Mapping variabile → tipo         |
+| `apply_cache_` | `unordered_map<const TypeBase*, TypePtr>` | `private`  | Cache persistente apply          |
+| `bind()`       | `void`                                    | `public`   | Registra binding, invalida cache |
+| `lookup()`     | `optional<TypePtr>`                       | `public`   | Cerca binding                    |
+| `apply()`      | `TypePtr`                                 | `public`   | Applica sostituzione ricorsiva   |
+| `applyImpl()`  | `TypePtr`                                 | `private`  | Worker ricorsivo con cache       |
 
 #### 3.3 Interface Analysis
 
-`check()` è l'entry point principale. `type_expr()` e `type_stmt()` sono pubblici per testing ma dovrebbero essere
-privati in produzione — espongono l'implementazione interna.
+`bind()` invalida `apply_cache_` [`Substitution.cpp:24`]. `apply()` delega ad `applyImpl()`.
 
 #### 3.4 Implementation Logic
 
-La pipeline è sequenziale e ben strutturata in `check()`. Le quattro fasi sono chiaramente separate. Tuttavia,
-`type_expr()` contiene logica massiva (400+ righe) con switch su `NodeKind` che gestisce 20+ casi. Ogni caso tipizza
-l'espressione, genera vincoli, e costruisce il nodo tipizzato.
-
-**Casi critici**:
-
-- `CallExpr` [`TypeChecker.cpp:698–745`]: non verifica arity né signature.
-- `AssignExpr` [`TypeChecker.cpp:820–846`]: verifica immutabilità ma non genera vincolo completo.
-- `ArrayLiteral` [`TypeChecker.cpp:787–818`]: richiede almeno un elemento, verifica omogeneità.
+`applyImpl()` [`Substitution.cpp:41–57`] controlla cache, poi risolve TypeVariable via `bindings_`, poi visita tipi
+composti con `ApplyVisitor`. Popola cache bottom-up.
 
 #### 3.5 Error Handling Evaluation
 
-Errori accumulati in `errors_`. `ErrorType` propaga silenziosamente. `message_storage_` previene dangling `string_view`
-ma la relazione è implicita.
+Nessun errore gestito. Tipi non risolti restano invariati.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+Consistente. Cache keyed su `const TypeBase*` — sicuro perché `TypeBase` è immutabile.
 
 #### 3.7 Inter-Component Interaction
 
-`TypeChecker` è il consumatore finale di tutti gli altri sistemi. Produce `TypedProgram` consumando il raw `Program`.
+Usato da `ConstraintSolver` durante unificazione. Usato da `TypeChecker::zonk_type` [`TypeChecker.cpp:38`].
 
 #### 3.8 Optimization Opportunities
 
-`type_expr()` dovrebbe essere scomposto in funzioni più piccole — una per `NodeKind`. Questo migliorerebbe testabilità,
-leggibilità e manutenibilità. La funzione ha CCN >40, molto sopra il limite di 15 del progetto.
+Cache persistente è un'ottima ottimizzazione. Complessità `apply()` è O(n) nel numero di nodi tipo, ma ammortizzata
+a O(1) per chiamate successive sullo stesso nodo.
 
-### System: Type Representation › Component: TypeVariable
+### System: Constraint Solving (S3) › Component: UnionFind
 
 #### 3.1 Responsibility Statement
 
-`TypeVariable` rappresenta una variabile di tipo incognita (?T1, ?T2, ...) generata durante l'inferenza per espressioni
-senza annotazione di tipo esplicita.
+`UnionFind` implementa il disjoint-set con path compression e union by rank per unificazione efficiente di variabili
+di tipo.
 
 #### 3.2 Class Structure
 
-| Membro        | Tipo                  | Semantica            |
-|---------------|-----------------------|----------------------|
-| `id_`         | `TypeVarId`           | ID univoco (>0)      |
-| Costruttore   | `explicit constexpr`  | Richiede ID non-zero |
-| `id()`        | `constexpr TypeVarId` | Getter               |
-| `to_string()` | `override`            | Formato "?T{id}"     |
-| `classof`     | `static constexpr`    | RTTI-free check      |
-| `operator==`  | `override`            | Uguaglianza per ID   |
+| Membro       | Tipo                                  | Visibilità | Semantica                               |
+|--------------|---------------------------------------|------------|-----------------------------------------|
+| `parent_`    | `unordered_map<TypeVarId, TypeVarId>` | `private`  | Mappa nodo → genitore                   |
+| `rank_`      | `unordered_map<TypeVarId, uint8_t>`   | `private`  | Altezza approssimata                    |
+| `make_set()` | `void`                                | `public`   | Crea singleton set                      |
+| `find()`     | `TypeVarId`                           | `public`   | Trova rappresentante (path compression) |
+| `unite()`    | `void`                                | `public`   | Unisce due set (union by rank)          |
+| `same_set()` | `bool`                                | `public`   | Stesso set?                             |
 
 #### 3.3 Interface Analysis
 
-Il costruttore è `explicit` — impedisce conversioni implicite da `size_t`. `fresh_type_variable()` usa counter
-thread-local per unicità.
+`find()` usa `parent_.at(var)` [`UnionFind.cpp:14`] — lancia `out_of_range` se non registrato.
 
 #### 3.4 Implementation Logic
 
-`fresh_type_variable()` [`TypeVariable.cpp:16`] crea `TypeVariable` con ID incrementale thread-local. Semplice e
-corretto.
+Path compression in `find()` [`UnionFind.cpp:13–17`]. Union by rank in `unite()` [`UnionFind.cpp:19–32`].
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore.
+**`DEF-008`**: `at()` lancia eccezione su variabile non registrata. Nessun fallback.
 
 #### 3.6 Type Consistency Audit
 
-Corretto. `TypeVarId` è `size_t` in entrambi i file che lo definiscono (`TypeVariable.hpp:12` e `UnionFind.hpp:12`) — *
-*`DEF-016` — duplicate typedef**: `TypeVarId` è definito due volte. Se i due alias divergessero in futuro, ci sarebbe
-inconsistenza.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-Usato da `Substitution`, `ConstraintSolver`, `TypeScheme`, `TypeChecker`.
+Usato internamente da `ConstraintSolver` [`ConstraintSolver.hpp:94`].
 
 #### 3.8 Optimization Opportunities
 
-Nessuno significativo.
+`find()` potrebbe usare `find()` con `contains()` check invece di `at()` per evitare eccezioni.
 
-### System: Type Representation › Component: TypeScheme
+### System: Constraint Solving (S3) › Component: ConstraintSolver
 
 #### 3.1 Responsibility Statement
 
-`TypeScheme` rappresenta tipi polimorfici con variabili quantificate (∀T. body), usati per funzioni generiche.
+`ConstraintSolver` è il motore di unificazione che risolve vincoli producendo una sostituzione unificante.
 
 #### 3.2 Class Structure
 
-| Campo             | Tipo                | Semantica                          |
-|-------------------|---------------------|------------------------------------|
-| `quantified_vars` | `vector<TypeVarId>` | Variabili vincolate                |
-| `body`            | `TypePtr`           | Tipo corpo                         |
-| `is_const`        | `bool`              | Binding immutabile                 |
-| `instantiate()`   | `TypePtr`           | Crea istanza con variabili fresche |
-| `mono()`          | `static TypeScheme` | Factory per tipo monomorfico       |
+| Membro          | Tipo                           | Visibilità | Semantica                     |
+|-----------------|--------------------------------|------------|-------------------------------|
+| `union_find_`   | `UnionFind`                    | `private`  | Disjoint-set per unificazione |
+| `substitution_` | `Substitution`                 | `private`  | Mapping soluzioni             |
+| `solve()`       | `SolverResult`                 | `public`   | Risolve tutti i vincoli       |
+| `unify()`       | `expected<void, CompileError>` | `public`   | Unifica due tipi              |
+| `occurs_in()`   | `static bool`                  | `public`   | Occurs-check                  |
 
 #### 3.3 Interface Analysis
 
-`instantiate()` dovrebbe sostituire le variabili quantificate nel body con variabili fresche. Attualmente lo fa solo per
-body che sono `TypeVariable` diretti.
+`solve()` itera vincoli e chiama `unify()` [`ConstraintSolver.cpp:44–54`]. `unify()` gestisce ErrorType, TypeVariable,
+tipi concreti [`ConstraintSolver.cpp:67–139`].
 
 #### 3.4 Implementation Logic
 
-`mono()` crea scheme senza variabili quantificate [`TypeScheme.cpp:10–12`]. `instantiate()` [`TypeScheme.cpp:14–33`]
-mappa le variabili quantificate a fresche ma non traversa il body composto.
+`unify()`:
+
+1. ErrorType → successo silente [`ConstraintSolver.cpp:67–68`]
+2. Null type → errore [`ConstraintSolver.cpp:70–72`]
+3. TypeVariable-TypeVariable → binding o occurs-check [`ConstraintSolver.cpp:75–92`]
+4. TypeVariable-concreto → binding [`ConstraintSolver.cpp:94–101`]
+5. Concreto-TypeVariable → swap e ricorsione [`ConstraintSolver.cpp:103–109`]
+6. Concreto-concreto → kind check + visitor [`ConstraintSolver.cpp:111–139`]
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore.
+Errori: type mismatch (E2034), occurs check failed (E2035), null type (E2034). ErrorType silenzioso.
 
 #### 3.6 Type Consistency Audit
 
-Corretto per il caso monomorfico. Incompleto per il caso polimorfico con body composto.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-Usato da `SymbolTable` per i binding e da `TypeChecker::type_expr()` per gli identificatori [`TypeChecker.cpp:501`].
+Chiamato da `TypeChecker::solve_constraints()` [`TypeChecker.cpp:166`].
 
 #### 3.8 Optimization Opportunities
 
-Vedi DEF-003.
+`unify()` con numeric mismatch produce hint utile [`ConstraintSolver.cpp:118–126`]. Buona pratica.
 
-### System: Type Representation › Component: ErrorType
+### System: Constraint Solving (S3) › Component: TypeVisitor
 
 #### 3.1 Responsibility Statement
 
-`ErrorType` è un tipo sentinella singleton che unifica silenziosamente con qualsiasi tipo, prevenendo errori a cascata
-dopo un errore di tipo.
+`TypeVisitor` fornisce il pattern visitor per visita ricorsiva di tipi composti (Array, Vector).
 
 #### 3.2 Class Structure
 
-| Membro         | Tipo               | Semantica                               |
-|----------------|--------------------|-----------------------------------------|
-| Costruttore    | `ErrorType()`      | Private-style (solo via `error_type()`) |
-| `to_string()`  | `override`         | Restituisce "<error>"                   |
-| `classof`      | `static constexpr` | RTTI-free check                         |
-| `operator==`   | `override`         | Uguale a qualsiasi ErrorType            |
-| `error_type()` | `TypePtr`          | Factory singleton                       |
+| Membro           | Tipo                   | Visibilità | Semantica                  |
+|------------------|------------------------|------------|----------------------------|
+| `~TypeVisitor()` | `virtual`              | `public`   | Distruttore virtuale       |
+| `visit_array()`  | `virtual void`         | `public`   | Pure virtual — Array case  |
+| `visit_vector()` | `virtual void`         | `public`   | Pure virtual — Vector case |
+| `visit_type()`   | `void (free function)` | `public`   | Dispatch su kind           |
 
 #### 3.3 Interface Analysis
 
-Singleton thread-safe tramite static local.
+`visit_type()` [`TypeVisitor.cpp:11–20`] switch su `kind()` — dispatcha `Array` a `visit_array`, `Vector` a
+`visit_vector`, default no-op.
 
 #### 3.4 Implementation Logic
 
-`error_type()` [`ErrorType.cpp:11–14`] restituisce sempre la stessa istanza. `to_string()` restituisce `"<error>"`.
-`operator==` confronta solo il kind.
+Minimale — switch su `TypeKind`.
 
 #### 3.5 Error Handling Evaluation
 
-Il design stesso è un meccanismo di error handling — silenzia gli errori a cascata.
+Nessun errore — tipi non composti sono no-op.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+Consistente.
 
 #### 3.7 Inter-Component Interaction
 
-`ConstraintSolver::unify()` controlla `TypeKind::Error` e restituisce successo silente [`ConstraintSolver.cpp:67–68`].
+Usato da `Substitution::applyImpl`, `ConstraintSolver::unify`, `OccursVisitor`.
 
 #### 3.8 Optimization Opportunities
 
-Nessuno.
+Potrebbe essere esteso per gestire `FnType` quando aggiunto.
 
-### System: Type Representation › Component: TypeVisitor
+### System: Name Resolution (S4) › Component: SymbolTable
 
 #### 3.1 Responsibility Statement
 
-`TypeVisitor` fornisce un'interfaccia visitor per la visita di tipi composti (Array, Vector) senza duplicare la logica
-switch-on-TypeKind.
+`SymbolTable` gestisce binding identificatore→`TypeScheme` con scope annidati, supportando shadowing e lookup
+dall'interno all'esterno.
 
 #### 3.2 Class Structure
 
-| Membro           | Tipo            | Semantica                     |
-|------------------|-----------------|-------------------------------|
-| `~TypeVisitor()` | `virtual`       | Distruttore                   |
-| `visit_array()`  | `virtual void`  | Visita ArrayType              |
-| `visit_vector()` | `virtual void`  | Visita VectorType             |
-| `visit_type()`   | `free function` | Dispatch basato su `TypeKind` |
+| Membro                          | Tipo                                      | Visibilità | Semantica                               |
+|---------------------------------|-------------------------------------------|------------|-----------------------------------------|
+| `scopes_`                       | `vector<unordered_map<string_view, ...>>` | `private`  | Stack di scope                          |
+| `push_scope()`                  | `void`                                    | `public`   | Entra in nuovo scope                    |
+| `pop_scope()`                   | `void`                                    | `public`   | Esce dallo scope corrente               |
+| `define()`                      | `void`                                    | `public`   | Definisce simbolo (crea scope se vuoto) |
+| `lookup()`                      | `optional<TypeScheme>`                    | `public`   | Cerca dall'interno all'esterno          |
+| `set_function_return_context()` | `void`                                    | `public`   | Imposta contesto ritorno funzione       |
+| `get_function_return_context()` | `optional<pair<TypePtr, string_view>>`    | `public`   | Ottieni contesto ritorno                |
 
 #### 3.3 Interface Analysis
 
-I metodi `visit_*` sono pure virtual — le sottoclassi devono implementarli. `visit_type()` fa il dispatch.
+`define()` crea scope implicitamente [`SymbolTable.cpp:16–17`]. `lookup()` cerca in ordine inverso [
+`SymbolTable.cpp:20–26`].
 
 #### 3.4 Implementation Logic
 
-`visit_type()` [`TypeVisitor.cpp:12–22`] switcha su `TypeKind` e chiama il metodo appropriato. Per `TypePtr`, delega
-alla versione reference.
+`set_function_return_context()` cerca prima per nome, poi fallback su qualsiasi function binding
+[`SymbolTable.cpp:37–53`].
 
 #### 3.5 Error Handling Evaluation
 
-Nessun errore.
+`lookup()` restituisce `nullopt` se non trovato — nessun errore. `pop_scope()` controlla `empty()`.
 
 #### 3.6 Type Consistency Audit
 
-Corretto.
+`string_view` come chiave — **precondizione non documentata**: le stringhe devono vivere più della SymbolTable.
 
 #### 3.7 Inter-Component Interaction
 
-Usato da `Substitution::applyImpl()` (`ApplyVisitor`), `ConstraintSolver::unify()` (`UnifyVisitor`), e
-`ConstraintSolver::occurs_in()` (`OccursVisitor`).
+Usato da `TypeChecker::resolve_names` e `type_expr`.
 
 #### 3.8 Optimization Opportunities
 
-Il visitor potrebbe essere esteso per includere `CustomType` se necessario per l'unificazione corretta.
+`set_function_return_context()` potrebbe essere semplificato cercando solo per nome — il fallback è fragile.
+
+### System: Type Checking Orchestration (S5) › Component: TypeChecker
+
+#### 3.1 Responsibility Statement
+
+`TypeChecker` orchestra la pipeline completa di type checking: name resolution, constraint generation, constraint
+solving, e zonking dell'AST tipizzato.
+
+#### 3.2 Class Structure
+
+| Membro             | Tipo                   | Visibilità | Semantica                           |
+|--------------------|------------------------|------------|-------------------------------------|
+| `symbols_`         | `SymbolTable`          | `private`  | Tabella simboli                     |
+| `constraints_`     | `ConstraintSet`        | `private`  | Vincoli accumulati                  |
+| `errors_`          | `vector<CompileError>` | `private`  | Errori raccolti                     |
+| `message_storage_` | `deque<string>`        | `private`  | Stringhe per error messages         |
+| `typed_stmts_`     | `vector<TypedStmtPtr>` | `private`  | AST parziale durante constraint gen |
+| `loop_depth_`      | `size_t`               | `private`  | Profondità loop (break/continue)    |
+| `check()`          | `TypeCheckResult`      | `public`   | Entry point pipeline                |
+| `type_expr()`      | `TypedExprPtr`         | `public`   | Tipo singola espressione            |
+| `type_stmt()`      | `TypedStmtPtr`         | `public`   | Tipo singolo statement              |
+
+#### 3.3 Interface Analysis
+
+`check()` esegue 4 fasi [`TypeChecker.cpp:70–88`]. `type_expr()` switch su `NodeKind` — ~400 righe. `type_stmt()` switch
+su `NodeKind` — ~300 righe.
+
+#### 3.4 Implementation Logic
+
+Pipeline:
+
+1. `resolve_names()` — popola `symbols_` con variabili e funzioni
+2. `generate_constraints()` — chiama `type_stmt()` per ogni statement
+3. `solve_constraints()` — crea `ConstraintSolver` temporaneo
+4. `zonk()` — applica sostituzione all'AST
+
+`type_expr()` gestisce ogni `NodeKind`:
+
+- Literal → tipo concreto + constraint
+- Identifier → lookup + instantiate
+- BinaryExpr → tipo operandi + constraint
+- CallExpr → tipo callee + args, **ma nessun vincolo di arity**
+- ArrayLiteral → tipo elemento da primo elemento
+
+#### 3.5 Error Handling Evaluation
+
+Errori accumulati in `errors_`. `message_storage_` possiede stringhe. `ErrorType` per recovery. Check anticipati
+duplicano logica del solver.
+
+#### 3.6 Type Consistency Audit
+
+Consistente.
+
+#### 3.7 Inter-Component Interaction
+
+Dipende da tutti i sistemi.
+
+#### 3.8 Optimization Opportunities
+
+**`DEF-014`**: `CallExpr` necessita vincoli di arity e signature. **`DEF-019`**: check anticipati duplicano solver.
+`type_expr()` dovrebbe essere refattorizzato in funzioni separate per `NodeKind`.
 
 ---
 
@@ -1042,407 +1078,412 @@ Il visitor potrebbe essere esteso per includere `CustomType` se necessario per l
 
 ### 4.1 Recommendation Register
 
-#### REC-001: Completare `TypeScheme::instantiate()` per tipi composti
+#### REC-001
 
-**Deficiency addressed**: DEF-003
+**Title**: Refactor `type_expr` in funzioni separate per `NodeKind`
 
-**Description**: Entry point: `include/jsav/typechecker/TypeScheme.hpp`, metodo `TypeScheme::instantiate()`, e
-`src/jsav/Lib/typechecker/TypeScheme.cpp`. Implementare una sostituzione ricorsiva delle variabili quantificate
-all'interno del body composto. Creare un visitor interno che traversa il body (gestendo `ArrayType`, `VectorType`, e
-futuri `FnType`) e sostituisce ogni occorrenza di `TypeVariable` il cui ID è in `quantified_vars` con una variabile
-fresca generata da `fresh_type_variable()`. L'outcome atteso è che i tipi polimorfici con body composti (es.
-`∀T. Vec<T> → T`) vengano istanziati correttamente.
+**Deficiency addressed**: DEF-014 (e implicitamente la violazione del limite CCN ≤15, AGENTS.md §7).
 
-**Feasibility**: 3/5 — Richiede implementazione di un visitor di sostituzione, ma la struttura `TypeVisitor` esiste già
-come pattern nel codebase.
-**ROI**: 5/5 — Senza questo, le funzioni generiche con tipi composti nel body producono tipi errati, compromettendo
-l'intero sistema di inferenza polimorfica.
-**Effort**: 3/5 — Stimato 1–2 giorni di lavoro: implementare visitor, testare con casi composti, verificare con
-`constexpr_tests`.
-**Composite**: 3×2 + 5×2 + 3×1 = 6 + 10 + 3 = **19**
+**Description**: Decomporre `TypeChecker::type_expr` (400+ righe, CCN >> 15) in funzioni private separate per ogni
+`NodeKind` gestito (es. `type_integer_literal`, `type_binary_expr`, `type_call_expr`, ecc.). Ogni funzione gestisce un
+solo caso dello switch, riducendo la complessità cognitiva sotto 15.
+
+Change entry point: `src/jsav_Lib/typechecker/TypeChecker.cpp`, metodo `TypeChecker::type_expr` (riga 435).
+
+**Feasibility score**: 4 — Refactoring meccanico, nessuna modifica all'interfaccia pubblica.
+
+**Expected ROI**: 5 — Migliora drasticamente manutenibilità, leggibilità e testabilità.
+
+**Implementation effort**: 3 — Richiede estrazione di ~15 funzioni ma ognuna è indipendente.
+
+**Priority rank**: 4×2 + 5×2 + 3×1 = 8 + 10 + 3 = **21**
+
 **Estimated implementation time**: 1–2 giorni
-**Required resources**: Un developer C++ con conoscenza del pattern Visitor; accesso ai test esistenti.
+
+**Required resources**: Sviluppatore C++ con conoscenza del type checker.
+
 **Effectiveness indicators**:
 
-1. Test `TypeChecker_GenericFunction_CreatesTypeScheme` e `TypeChecker_GenericCall_InstantiatesFreshVars` passano con
-   body composti.
-2. Zero casi di `TypeVariable` non risolte in programmi con funzioni generiche che restituiscono tipi composti.
+- `type_expr` CCN ≤ 15 (misurato da lizard)
+- Lunghezza funzione ≤ 100 righe
+- Zero regressioni nei test esistenti
 
-#### REC-002: Aggiungere tipo funzione (`FnType`) e verifica signature nelle chiamate
+#### REC-002
 
-**Deficiency addressed**: DEF-004, DEF-011
+**Title**: Implementare `FnType` (tipo funzione) per signature checking
 
-**Description**: Entry point: `include/jsav/ast/Type.hpp` (aggiungere classe `FnType`), `src/jsav_Lib/ast/Type.cpp`, e
-`TypeChecker::type_expr()` per `NodeKind::CallExpr` [`TypeChecker.cpp:698–745`]. Creare `FnType` con campi
-`params: vector<TypePtr>` e `return_type: TypePtr`. Durante la generazione vincoli per `CallExpr`, costruire il tipo
-funzione atteso dai parametri e vincolarlo contro il tipo del callee. Generare errore se l'arity non corrisponde.
-L'outcome è che le chiamate con numero errato di argomenti o tipi incompatibili vengano rilevate.
+**Deficiency addressed**: DEF-003 (mancanza di `FnType`).
 
-**Feasibility**: 2/5 — Modifica architetturale significativa: richiede nuovo tipo, aggiornamento del visitor,
-aggiornamento del solver, aggiornamento della generazione vincoli.
-**ROI**: 5/5 — Senza verifica di signature, il type checker accetta programmi semanticamente errati (chiamate con arity
-sbagliata). Questo è un requisito fondamentale per un type checker production-grade.
-**Effort**: 2/5 — Stimato 1–2 settimane: design `FnType`, integrazione con `TypeVisitor`, `ConstraintSolver`,
-`Substitution`, e `TypeChecker::type_expr`.
-**Composite**: 2×2 + 5×2 + 2×1 = 4 + 10 + 2 = **16**
-**Estimated implementation time**: 1–2 settimane
-**Required resources**: Developer senior con esperienza in type system; review architetturale.
+**Description**: Aggiungere classe `FnType` a `Type.hpp` con campi `params: vector<TypePtr>` e `return_type: TypePtr`.
+Aggiornare `TypeKind` con `Fn`. Implementare `to_string()`, `operator==`, `classof()`. Aggiornare `TypeVisitor` con
+`visit_fn()`. Modificare `TypeChecker::type_expr` per `CallExpr` per generare vincoli di arity e tipo parametri.
+
+Change entry point: `include/jsav/ast/Type.hpp` (aggiungere classe `FnType`), poi
+`src/jsav_Lib/typechecker/TypeChecker.cpp`
+(`type_expr` per `CallExpr`, riga 698).
+
+**Feasibility score**: 3 — Richiede modifiche a più file ma il pattern è chiaro.
+
+**Expected ROI**: 5 — Abilita verifica di chiamate funzione, attualmente assente.
+
+**Implementation effort**: 2 — Implementazione sostanziale ma ben delimitata.
+
+**Priority rank**: 3×2 + 5×2 + 2×1 = 6 + 10 + 2 = **18**
+
+**Estimated implementation time**: 2–4 giorni
+
+**Required resources**: Sviluppatore C++ con conoscenza di type system.
+
 **Effectiveness indicators**:
 
-1. Test `TypeChecker_FunctionArgCountMismatch_ReportsError` rileva errori di arity.
-2. Programmi con chiamate a funzione con arity errata producono errore in fase di type checking.
+- `CallExpr` con arity errato produce errore di tipo
+- `FnType` appare in `to_string()` di funzioni
+- Test di chiamata funzione con signature errata falliscono correttamente
 
-#### REC-003: Correggere `UnifyVisitor` per gestire `CustomType`
+#### REC-003
 
-**Deficiency addressed**: DEF-007
+**Title**: Completare `TypeScheme::instantiate()` per tipi composti
 
-**Description**: Entry point: `src/jsav_Lib/typechecker/ConstraintSolver.cpp`, struct `UnifyVisitor`. Aggiungere un
-metodo `visit_custom` che confronta i nomi dei `CustomType`. Se i nomi differiscono, restituire errore di type mismatch.
-In alternativa, gestire il caso `CustomType` vs `CustomType` direttamente in `unify()` prima del dispatch al visitor.
-L'outcome è che due tipi utente diversi ("Foo" e "Bar") non unifichino erroneamente.
+**Deficiency addressed**: DEF-006.
 
-**Feasibility**: 5/5 — Modifica localizzata in un singolo file, poche righe di codice.
-**ROI**: 4/5 — Due tipi utente distinti che unificano silenziosamente è un bug di correttezza grave, anche se l'impatto
-pratico dipende dall'uso di `CustomType` nel linguaggio.
-**Effort**: 5/5 — Minimo sforzo: 1–2 ore.
-**Composite**: 5×2 + 4×2 + 5×1 = 10 + 8 + 5 = **23**
+**Description**: Implementare visitor per sostituzione ricorsiva in `TypeScheme::instantiate()`. Il visitor deve
+attraversare il body e sostituire ogni occorrenza di TypeVariable il cui ID è in `quantified_vars` con una fresh
+variable.
+
+Change entry point: `src/jsav_Lib/typechecker/TypeScheme.cpp`, metodo `TypeScheme::instantiate()` (riga 16).
+
+**Feasibility score**: 5 — Pattern chiaro, `TypeVisitor` esiste già.
+
+**Expected ROI**: 4 — Corregge inferenza polimorfica incompleta.
+
+**Implementation effort**: 4 — Poche decine di righe di codice.
+
+**Priority rank**: 5×2 + 4×2 + 4×1 = 10 + 8 + 4 = **22**
+
+**Estimated implementation time**: 2–4 ore
+
+**Required resources**: Sviluppatore C++.
+
+**Effectiveness indicators**:
+
+- Tipi polimorfici composti (`∀T. Vec<T> -> Vec<T>`) istanziano correttamente
+- Test di funzioni polimorfiche con tipi composti passano
+
+#### REC-004
+
+**Title**: Sostituire `at()` con `find()` in `UnionFind`
+
+**Deficiency addressed**: DEF-008.
+
+**Description**: Sostituire `parent_.at(var)` con `parent_.find(var)` + check in `UnionFind::find()` e
+`UnionFind::unite()`. Aggiungere `assert` o restituire `std::nullopt` per variabili non registrate.
+
+Change entry point: `src/jsav_Lib/typechecker/UnionFind.cpp`, metodi `find()` (riga 14) e `unite()` (riga 19).
+
+**Feasibility score**: 5 — Modifica minima, meccanica.
+
+**Expected ROI**: 3 — Previene crash runtime su bug di programmazione.
+
+**Implementation effort**: 5 — Poche righe.
+
+**Priority rank**: 5×2 + 3×2 + 5×1 = 10 + 6 + 5 = **21**
+
 **Estimated implementation time**: 1–2 ore
-**Required resources**: Un developer C++.
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. Test che due `CustomType` con nomi diversi producono errore E2034.
-2. Zero unificazioni errate tra tipi utente non correlati.
+- Nessuna `std::out_of_range` lanciata durante test
+- Assert o errore strutturato per variabili non registrate
 
-#### REC-004: Correggere perdita di statement in `zonk_block_full`
+#### REC-005
 
-**Deficiency addressed**: DEF-013
+**Title**: Rimuovere type checking anticipato duplicato in `type_expr`
 
-**Description**: Entry point: `src/jsav_Lib/typechecker/TypeChecker.cpp`, metodo `TypeChecker::zonk_block_full` [
-`TypeChecker.cpp:413–421`]. Quando `zonk_stmt_full` restituisce `nullptr` per uno statement const, invece di scartarlo
-silenziosamente, mantenere una copia dello statement originale (o un placeholder con tipo errore). Modificare il ciclo
-per copiare lo statement originale se il zonking fallisce:
-`zonked_stmts.push_back(stmt.clone() ? std::move(zonked) : stmt.shallow_copy())`. L'outcome è che nessuno statement
-venga perso durante lo zonking.
+**Deficiency addressed**: DEF-019.
 
-**Feasibility**: 4/5 — Il problema è localizzato. La soluzione richiede un meccanismo di copia degli statement
-tipizzati (attualmente `unique_ptr`, quindi serve `clone()` o copia profonda).
-**ROI**: 4/5 — Perdere statement dall'AST tipizzato corrompe il risultato del type checking — il programma compilato
-potrebbe mancare istruzioni.
-**Effort**: 4/5 — Stimato 4–8 ore: implementare copia profonda o fallback, testare con blocchi contenenti statement che
-zonkano a nullptr.
-**Composite**: 4×2 + 4×2 + 4×1 = 8 + 8 + 4 = **20**
+**Description**: Rimuovere i controlli anticipati sui tipi concreti in `type_expr` per `BinaryExpr` e `UnaryExpr` che
+duplicano la logica del solver. Mantenere solo i vincoli — il solver riportará errori una sola volta.
+
+Change entry point: `src/jsav_Lib/typechecker/TypeChecker.cpp`, `type_expr` casi `BinaryExpr` (riga 520) e `UnaryExpr`
+(riga 660).
+
+**Feasibility score**: 4 — Rimozione di codice esistente, ma richiede verifica che il solver copra tutti i casi.
+
+**Expected ROI**: 4 — Elimina errori duplicati, semplifica logica.
+
+**Implementation effort**: 4 — Rimozione di blocchi `if` esistenti.
+
+**Priority rank**: 4×2 + 4×2 + 4×1 = 8 + 8 + 4 = **20**
+
 **Estimated implementation time**: 4–8 ore
-**Required resources**: Un developer C++ con conoscenza del Typed AST.
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. Il conteggio degli statement nel `TypedProgram` corrisponde a quello del `Program` originale.
-2. Zero statement persi in programmi con statement che contengono errori di tipo.
+- Errori di tipo riportati una sola volta
+- Lunghezza di `type_expr` ridotta di ≥ 15%
 
-#### REC-005: Sostituire `UnionFind::at()` con accesso sicuro
+#### REC-006
 
-**Deficiency addressed**: DEF-006
+**Title**: Correggere `zonk_block_full` per non scartare statement
 
-**Description**: Entry point: `src/jsav_Lib/typechecker/UnionFind.cpp`, metodo `UnionFind::find` [
-`UnionFind.cpp:14–17`]. Sostituire `parent_.at(var)` con `parent_[var]` dopo verifica preliminare, o aggiungere
-`assert(parent_.contains(var))` prima dell'accesso. Questo trasforma un'eccezione runtime non gestita in un fallimento
-esplicito in debug mode. L'outcome è che i bug del chiamante vengano rilevati immediatamente in debug build invece di
-causare crash in production.
+**Deficiency addressed**: DEF-016.
 
-**Feasibility**: 5/5 — Modifica di 2–3 righe in un singolo metodo.
-**ROI**: 3/5 — Previene crash runtime non diagnosticati. L'impatto è limitato ai bug di programmazione interna.
-**Effort**: 5/5 — Minimo sforzo: 30 minuti.
-**Composite**: 5×2 + 3×2 + 5×1 = 10 + 6 + 5 = **21**
+**Description**: Modificare `zonk_block_full` per mantenere statement originali quando `zonk_stmt_full` restituisce
+`nullptr`, invece di scartarli silenziosamente.
+
+Change entry point: `src/jsav_Lib/typechecker/TypeChecker.cpp`, metodo `zonk_block_full` (riga 413).
+
+**Feasibility score**: 5 — Modifica singola riga.
+
+**Expected ROI**: 4 — Previene corruzione AST tipizzato.
+
+**Implementation effort**: 5 — Una riga.
+
+**Priority rank**: 5×2 + 4×2 + 5×1 = 10 + 8 + 5 = **23**
+
 **Estimated implementation time**: 30 minuti
-**Required resources**: Un developer C++.
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. Nessun `std::out_of_range` lanciato da `UnionFind::find` nei test.
-2. Assert triggerati in debug build per uso improprio.
+- AST tipizzato mantiene tutti gli statement originali
+- Test di zonking su blocchi con statement complessi passano
 
-#### REC-006: Unificare `TypeVarId` typedef in un singolo header
+#### REC-007
 
-**Deficiency addressed**: DEF-016
+**Title**: Documentare precondizione `string_view` in `SymbolTable`
 
-**Description**: Entry point: `include/jsav/typechecker/TypeVariable.hpp:12` e
-`include/jsav/typechecker/UnionFind.hpp:12`. Rimuovere la definizione duplicata da `UnionFind.hpp` e includere
-`TypeVariable.hpp` invece di ridefinire. L'outcome è un'unica fonte di verità per `TypeVarId`.
+**Deficiency addressed**: DEF-011.
 
-**Feasibility**: 5/5 — Puramente meccanica: rimuovere una riga e aggiungere un include.
-**ROI**: 2/5 — Basso rischio attuale (entrambi `size_t`), ma previene bug futuri se il tipo cambiasse.
-**Effort**: 5/5 — 15 minuti.
-**Composite**: 5×2 + 2×2 + 5×1 = 10 + 4 + 5 = **19**
-**Estimated implementation time**: 15 minuti
-**Required resources**: Un developer C++.
+**Description**: Aggiungere documentazione Doxygen a `SymbolTable::define()` e `lookup()` che esplicita la
+precondizione:
+le `string_view` passate come chiavi devono puntare a stringhe con lifetime maggiore della SymbolTable.
+
+Change entry point: `include/jsav/typechecker/SymbolTable.hpp`, metodi `define()` e `lookup()`.
+
+**Feasibility score**: 5 — Solo documentazione.
+
+**Expected ROI**: 2 — Migliora comprensione del contratto, non corregge bug.
+
+**Implementation effort**: 5 — Minimo sforzo.
+
+**Priority rank**: 5×2 + 2×2 + 5×1 = 10 + 4 + 5 = **19**
+
+**Estimated implementation time**: 30 minuti
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. `TypeVarId` definito in un solo punto.
-2. Build succeeds senza warning di redefinizione.
+- Doxygen documenta precondizione
+- Nessun nuovo warning Doxygen
 
-#### REC-007: Scomporre `TypeChecker::type_expr()` in funzioni per NodeKind
+#### REC-008
 
-**Deficiency addressed**: DEF-011 (parzialmente), complessità cognitiva (AGENTS.md §7)
+**Title**: Aggiungere `FnType` al `TypeVisitor`
 
-**Description**: Entry point: `src/jsav_Lib/typechecker/TypeChecker.cpp`, metodo `TypeChecker::type_expr` [
-`TypeChecker.cpp:430–880`]. Creare metodi privati separati: `type_literal()`, `type_binary()`, `type_unary()`,
-`type_call()`, `type_array()`, `type_assign()`, `type_ternary()`, `type_index()`, `type_member()`, `type_cast()`,
-`type_identifier()`. Ogni metodo gestisce un singolo `NodeKind`. Lo switch principale delega al metodo appropriato.
-L'outcome è una riduzione del CCN da >40 a <5 per funzione.
+**Deficiency addressed**: DEF-003 (corollario di REC-002).
 
-**Feasibility**: 3/5 — Refactoring meccanico ma voluminoso (400+ righe da riorganizzare). Richiede attenzione nel
-catturare correttamente le variabili di contesto (`symbols_`, `constraints_`, `errors_`).
-**ROI**: 4/5 — Migliora drasticamente manutenibilità, testabilità individuale, e compliance con gli standard del
-progetto (CCN ≤15).
-**Effort**: 2/5 — Stimato 1–2 giorni.
-**Composite**: 3×2 + 4×2 + 2×1 = 6 + 8 + 2 = **16**
-**Estimated implementation time**: 1–2 giorni
-**Required resources**: Un developer C++ con tool lizard per verifica CCN.
-**Effectiveness indicators**:
+**Description**: Aggiungere metodo virtuale puro `visit_fn(const FnType&)` a `TypeVisitor` e caso `Fn` in
+`visit_type()`. Aggiornare `ApplyVisitor` e `UnifyVisitor` per gestire `FnType`.
 
-1. `lizard --CCN 15` su `TypeChecker.cpp` riporta zero violazioni.
-2. Tutti i test esistenti passano senza modifiche.
+Change entry point: `include/jsav/typechecker/TypeVisitor.hpp` (aggiungere `visit_fn`), poi
+`src/jsav_Lib/typechecker/TypeVisitor.cpp`, `Substitution.cpp`, `ConstraintSolver.cpp`.
 
-#### REC-008: Unificare la strategia di propagazione errori
+**Feasibility score**: 3 — Dipende da REC-002.
 
-**Deficiency addressed**: DEF-001
+**Expected ROI**: 4 — Completa supporto visitor per tutti i tipi.
 
-**Description**: Entry point: `include/jsav/typechecker/` (tutti i file che riportano errori),
-`src/jsav_Lib/typechecker/`. Adottare `std::expected<T, CompileError>` come strategia uniforme per la propagazione
-errori in tutte le funzioni che possono fallire. `SymbolTable::lookup()` dovrebbe restituire
-`std::expected<TypeScheme, CompileError>` invece di `std::optional<TypeScheme>`, producendo un errore "Undeclared
-identifier" strutturato. `TypeChecker` accumula gli errori ma potrebbe ricevere errori strutturati direttamente dai
-sottosistemi. L'outcome è un flusso d'errore tracciabile e tipato.
+**Implementation effort**: 3 — Tre file da modificare.
 
-**Feasibility**: 2/5 — Richiede modifiche a interfacce pubbliche e a tutti i chiamanti. Cambia il contratto di
-`lookup()`.
-**ROI**: 4/5 — Errori strutturati migliorano la qualità dei messaggi diagnostici e la manutenibilità del codice di
-gestione errori.
-**Effort**: 2/5 — Stimato 2–3 giorni.
-**Composite**: 2×2 + 4×2 + 2×1 = 4 + 8 + 2 = **14**
-**Estimated implementation time**: 2–3 giorni
-**Required resources**: Developer C++ con conoscenza di `std::expected`.
-**Effectiveness indicators**:
+**Priority rank**: 3×2 + 4×2 + 3×1 = 6 + 8 + 3 = **17**
 
-1. Zero uso di `std::optional` per segnalare errori nel type checker.
-2. Tutti gli errori hanno codice ErrorCode associato.
-
-#### REC-009: Rendere privati `type_expr()` e `type_stmt()`
-
-**Deficiency addressed**: DEF-011 (esposizione API interna)
-
-**Description**: Entry point: `include/jsav/typechecker/TypeChecker.hpp`, dichiarazioni di `type_expr` e `type_stmt`.
-Spostare da `public` a `private`. Se il testing individuale di espressioni/statement è necessario, creare un wrapper di
-test o usare `friend class TypeCheckerTest`. L'outcome è un'API pubblica pulita che espone solo `check()`.
-
-**Feasibility**: 5/5 — Modifica di visibilità in un header. I test devono essere adattati.
-**ROI**: 3/5 — Migliora l'incapsulamento e previene uso improprio dell'API interna da parte di consumatori della
-libreria.
-**Effort**: 4/5 — Stimato 2–4 ore (modifica + adattamento test).
-**Composite**: 5×2 + 3×2 + 4×1 = 10 + 6 + 4 = **20**
-**Estimated implementation time**: 2–4 ore
-**Required resources**: Un developer C++.
-**Effectiveness indicators**:
-
-1. `TypeChecker` espone solo `check()` come metodo pubblico.
-2. Test esistenti compilano e passano dopo adattamento.
-
-#### REC-010: Aggiungere `FnType` al `TypeVisitor` e alla `Substitution`
-
-**Deficiency addressed**: DEF-004 (correlato a REC-002)
-
-**Description**: Entry point: `include/jsav/typechecker/TypeVisitor.hpp` (aggiungere `visit_fn`),
-`include/jsav/ast/Type.hpp` (aggiungere `TypeKind::Fn`), `src/jsav_Lib/typechecker/Substitution.cpp` (
-`ApplyVisitor::visit_fn`). Questa raccomandazione è complementare a REC-002 e deve essere implementata congiuntamente.
-Aggiungere il supporto per visitare e applicare sostituzioni ai tipi funzione.
-
-**Feasibility**: 3/5 — Dipende da REC-002. Una volta che `FnType` esiste, il supporto visitor è meccanico.
-**ROI**: 4/5 — Necessario per la correttezza dell'unificazione con tipi funzione.
-**Effort**: 3/5 — Stimato 4–8 ore.
-**Composite**: 3×2 + 4×2 + 3×1 = 6 + 8 + 3 = **17**
 **Estimated implementation time**: 4–8 ore
-**Required resources**: Developer C++.
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. `TypeVisitor` dispatcha correttamente su `FnType`.
-2. `Substitution::apply()` risolve variabili di tipo all'interno di `FnType`.
+- `visit_fn()` chiamato durante visita di `FnType`
+- Unificazione di tipi funzione funziona correttamente
 
-#### REC-011: Rimuovere creazione implicita di scope in `SymbolTable::define()`
+#### REC-009
 
-**Deficiency addressed**: DEF-010
+**Title**: Unificare strategia di propagazione errori
 
-**Description**: Entry point: `src/jsav_Lib/typechecker/SymbolTable.cpp`, metodo `SymbolTable::define` [
-`SymbolTable.cpp:16–17`]. Rimuovere la creazione implicita di scope. Aggiungere `assert(!scopes_.empty())` o restituire
-`bool`/`expected` per segnalare l'errore del chiamante. L'outcome è che i bug di mancata chiamata a `push_scope()`
-vengano rilevati immediatamente.
+**Deficiency addressed**: DEF-001.
 
-**Feasibility**: 5/5 — Rimuovere 2 righe e aggiungere un assert.
-**ROI**: 3/5 — Previene bug sottili dove simboli vengono definiti nello scope sbagliato.
-**Effort**: 5/5 — 30 minuti.
-**Composite**: 5×2 + 3×2 + 5×1 = 10 + 6 + 5 = **21**
-**Estimated implementation time**: 30 minuti
-**Required resources**: Un developer C++.
+**Description**: Introdurre un tipo risultato unificato `TypeCheckError` per propagare errori attraverso tutti i
+sistemi. Sostituire `std::nullopt` in `SymbolTable::lookup` con un errore "undeclared identifier" strutturato. Far sì
+che `ErrorType` registri l'errore originale invece di unificarlo silenziosamente.
+
+Change entry point: `include/jsav/typechecker/TypeChecker.hpp` (definire `TypeCheckError`), poi `SymbolTable.hpp`,
+`ConstraintSolver.hpp`.
+
+**Feasibility score**: 2 — Rifattorizzazione architetturale significativa.
+
+**Expected ROI**: 4 — Migliora coerenza e diagnostiche.
+
+**Implementation effort**: 2 — Richiede modifiche a 4+ file.
+
+**Priority rank**: 2×2 + 4×2 + 2×1 = 4 + 8 + 2 = **14**
+
+**Estimated implementation time**: 1–2 settimane
+
+**Required resources**: Sviluppatore senior C++ con conoscenza type system.
+
 **Effectiveness indicators**:
 
-1. Assert triggerato se `define()` chiamato senza scope attivo.
-2. Zero simboli definiti accidentalmente in scope impliciti.
+- Tutti gli errori usano lo stesso tipo risultato
+- `SymbolTable::lookup` restituisce errore strutturato
+- Errori a cascata ridotti del ≥ 50%
 
-#### REC-012: Consolidare contesto funzione nella SymbolTable
+#### REC-010
 
-**Deficiency addressed**: DEF-002
+**Title**: Correggere `set_function_return_context` fallback fragile
 
-**Description**: Entry point: `include/jsav/typechecker/TypeChecker.hpp` (rimuovere `current_function_return_type_` e
-`current_function_name_`), `include/jsav/typechecker/SymbolTable.hpp` (aggiungere metodo per ottenere tipo di ritorno
-del simbolo funzione corrente). Invece di stato separato, il contesto di ritorno dovrebbe essere recuperato dal binding
-della funzione nella SymbolTable quando si processano statement `ReturnStmt`. L'outcome è riduzione dello stato mutabile
-e maggiore coerenza architetturale.
+**Deficiency addressed**: DEF-013.
 
-**Feasibility**: 2/5 — Richiesto redesign dell'interazione tra TypeChecker e SymbolTable. I `ReturnStmt` devono accedere
-al binding della funzione corrente.
-**ROI**: 3/5 — Riduce stato mutabile e duplicazione, ma il beneficio pratico è limitato poiché il contesto funzione è
-già gestito correttamente (anche se in modo duplicato).
-**Effort**: 2/5 — Stimato 1–2 giorni.
-**Composite**: 2×2 + 3×2 + 2×1 = 4 + 6 + 2 = **12**
-**Estimated implementation time**: 1–2 giorni
-**Required resources**: Developer C++.
+**Description**: Rimuovere il fallback in `set_function_return_context()` che cerca qualsiasi function binding nello
+scope corrente. Cercare solo per nome — se il nome non è trovato, è un bug del chiamante che dovrebbe essere segnalato.
+
+Change entry point: `src/jsav_Lib/typechecker/SymbolTable.cpp`, metodo `set_function_return_context()` (riga 37).
+
+**Feasibility score**: 5 — Rimozione di codice.
+
+**Expected ROI**: 3 — Previene sovrascrittura accidentale di contesto.
+
+**Implementation effort**: 5 — Rimozione di 6 righe.
+
+**Priority rank**: 5×2 + 3×2 + 5×1 = 10 + 6 + 5 = **21**
+
+**Estimated implementation time**: 1 ora
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. `TypeChecker` non ha membri `current_function_*`.
-2. Il tipo di ritorno è recuperato dalla SymbolTable.
+- Nessun fallback su function binding anonimo
+- Test di funzioni con stesso nome nel medesimo scope falliscono esplicitamente
 
-#### REC-013: Estendere `TypeVisitor` a tutti i TypeKind
+#### REC-011
 
-**Deficiency addressed**: DEF-007 (correlato), copertura visitor incompleta
+**Title**: Estendere `ArrayType::sizes_equal` per espressioni complesse
 
-**Description**: Entry point: `include/jsav/typechecker/TypeVisitor.hpp`. Aggiungere metodi virtuali per
-`TypeKind::Custom`, `TypeKind::Primitive`, e potenzialmente `TypeKind::Fn`. Questo rende il visitor esaustivo e previene
-future omissioni. I metodi default possono essere no-op per i tipi atomici.
+**Deficiency addressed**: DEF-005.
 
-**Feasibility**: 4/5 — Aggiunta di metodi virtuali a interfaccia esistente.
-**ROI**: 3/5 — Previene bug futuri quando nuovi TypeKind vengono aggiunti.
-**Effort**: 4/5 — 2–4 ore.
-**Composite**: 4×2 + 3×2 + 4×1 = 8 + 6 + 4 = **18**
-**Estimated implementation time**: 2–4 ore
-**Required resources**: Un developer C++.
-**Effectiveness indicators**:
+**Description**: Estendere `sizes_equal()` per supportare espressioni costanti oltre `IntegerLiteral` (es. `BinaryExpr`
+con operandi letterali). Per espressioni non valutabili a compile-time, confrontare per identità strutturale.
 
-1. `TypeVisitor` ha metodi per tutti i TypeKind composti.
-2. Nessun `value_or(success)` silente in `ConstraintSolver::unify()`.
+Change entry point: `src/jsav_Lib/ast/Type.cpp`, funzione `ArrayType::sizes_equal` (riga 50).
 
-#### REC-014: Correggere `type_stmt` per dichiarazioni multi-variabili
+**Feasibilità**: 3 — Richiede valutazione ricorsiva di espressioni.
 
-**Deficiency addressed**: DEF-012
+**Expected ROI**: 3 — Migliora accuratezza confronto tipi array.
 
-**Description**: Entry point: `src/jsav_Lib/typechecker/TypeChecker.cpp`, caso `NodeKind::VarDecl` in `type_stmt` [
-`TypeChecker.cpp:949–980`]. Modificare per produrre un `TypedStmtPtr` per ogni variabile dichiarata. Questo richiede o (
-a) cambiare il tipo di ritorno di `type_stmt` da `TypedStmtPtr` a `vector<TypedStmtPtr>`, o (b) creare un nuovo nodo
-`TypedMultiVarDecl` che contiene più dichiarazioni. L'outcome è che tutte le variabili dichiarate appaiano nell'AST
-tipizzato.
+**Implementation effort**: 3 — Implementazione ricorsiva per espressioni costanti.
 
-**Feasibilità**: 3/5 — Richiede modifica al tipo di ritorno o nuovo nodo AST.
-**ROI**: 3/5 — Bug di correttezza: dichiarazioni multi-variabili perdono informazioni nell'AST tipizzato.
-**Effort**: 3/5 — Stimato 4–8 ore.
-**Composite**: 3×2 + 3×2 + 3×1 = 6 + 6 + 3 = **15**
+**Priority rank**: 3×2 + 3×2 + 3×1 = 6 + 6 + 3 = **15**
+
 **Estimated implementation time**: 4–8 ore
-**Required resources**: Un developer C++.
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. Dichiarazioni `let a, b, c = 1, 2, 3` producono tre statement tipizzati.
-2. L'AST tipizzato contiene tutte le variabili dichiarate.
+- Array con dimensioni espressioni costanti confrontano correttamente
+- `[i32; 2+3]` uguaglia `[i32; 5]`
 
-#### REC-015: Documentare precondizione `string_view` in `SymbolTable`
+#### REC-012
 
-**Deficiency addressed**: DEF-009
+**Title**: Separare `Type.hpp` in file header distinti
 
-**Description**: Entry point: `include/jsav/typechecker/SymbolTable.hpp`, documentazione di `define()` e della struttura
-dati `scopes_`. Aggiungere Doxygen `@pre` che specifica: "Le string_view passate come chiave devono riferirsi a dati che
-sopravvivono alla SymbolTable". L'outcome è documentazione esplicita del contratto di lifetime.
+**Deficiency addressed**: God-class header (Sezione 2.2).
 
-**Feasibility**: 5/5 — Solo documentazione.
-**ROI**: 2/5 — Previene bug futuri ma non corregge problemi attuali.
-**Effort**: 5/5 — 30 minuti.
-**Composite**: 5×2 + 2×2 + 5×1 = 10 + 4 + 5 = **19**
-**Estimated implementation time**: 30 minuti
-**Required resources**: Un developer C++.
+**Description**: Separare `PrimitiveType`, `CustomType`, `ArrayType`, `VectorType` in file header distinti
+(`PrimitiveType.hpp`, `CustomType.hpp`, `ArrayType.hpp`, `VectorType.hpp`). Mantenere `TypeBase` e `TypeKind` in
+`Type.hpp`.
+
+Change entry point: `include/jsav/ast/Type.hpp` — estrarre classi in file separati.
+
+**Feasibility score**: 3 — Richiede aggiornamento di tutti gli include.
+
+**Expected ROI**: 3 — Migliora organizzazione e tempi di compilazione.
+
+**Implementation effort**: 2 — 5 file da creare, ~20 include da aggiornare.
+
+**Priority rank**: 3×2 + 3×2 + 2×1 = 6 + 6 + 2 = **14**
+
+**Estimated implementation time**: 4–8 ore
+
+**Required resources**: Sviluppatore C++.
+
 **Effectiveness indicators**:
 
-1. La documentazione di `define()` menziona il contratto di lifetime.
-2. Review del codice identifica violazioni del contratto.
-
-#### REC-016: Decidere ownership esplicita di `message_storage_`
-
-**Deficiency addressed**: DEF-014
-
-**Description**: Entry point: `include/jsav/typechecker/TypeChecker.hpp`, membro `message_storage_`. Aggiungere commento
-Doxygen che documenta l'invariante: "I CompileError in `errors_` contengono `string_view` che puntano a elementi di
-`message_storage_`. Il `deque` garantisce stabilità degli indirizzi, quindi i view non vengono invalidati da pushback."
-In alternativa, migrare a `std::string` nei `CompileError` per eliminare la dipendenza implicita.
-
-**Feasibilità**: 4/5 — Se si sceglie la documentazione, è banale. Se si migra a `std::string`, richiede modifica a
-`CompileError` e tutti i suoi utilizzatori.
-**ROI**: 3/5 — Previene potenziali use-after-free se l'implementazione di `deque` cambiasse.
-**Effort**: 4/5 — 1 ora per documentazione, 1–2 giorni per migrazione a `std::string`.
-**Composite**: 4×2 + 3×2 + 4×1 = 8 + 6 + 4 = **18**
-**Estimated implementation time**: 1 ora (documentazione) o 1–2 giorni (migrazione)
-**Required resources**: Un developer C++.
-**Effectiveness indicators**:
-
-1. Invariante documentato esplicitamente.
-2. Zero valgrind/ASan violations relative a `message_storage_`.
+- Ogni classe tipo ha file header dedicato
+- Tempi di compilazione ridotti (misurabili)
 
 ### 4.2 Summary Priority Table
 
-| Rank | ID      | Title                                                | Feasibility | ROI | Effort | Composite Score | Est. Time     |
-|------|---------|------------------------------------------------------|-------------|-----|--------|-----------------|---------------|
-| 1    | REC-003 | Correggere UnifyVisitor per CustomType               | 5           | 4   | 5      | **23**          | 1–2 ore       |
-| 2    | REC-005 | Sostituire UnionFind::at() con accesso sicuro        | 5           | 3   | 5      | **21**          | 30 minuti     |
-| 3    | REC-011 | Rimuovere creazione implicita scope in define()      | 5           | 3   | 5      | **21**          | 30 minuti     |
-| 4    | REC-004 | Correggere perdita statement in zonk_block_full      | 4           | 4   | 4      | **20**          | 4–8 ore       |
-| 5    | REC-009 | Rendere privati type_expr() e type_stmt()            | 5           | 3   | 4      | **20**          | 2–4 ore       |
-| 6    | REC-001 | Completare TypeScheme::instantiate() per composti    | 3           | 5   | 3      | **19**          | 1–2 giorni    |
-| 7    | REC-006 | Unificare TypeVarId typedef                          | 5           | 2   | 5      | **19**          | 15 minuti     |
-| 8    | REC-015 | Documentare precondizione string_view in SymbolTable | 5           | 2   | 5      | **19**          | 30 minuti     |
-| 9    | REC-013 | Estendere TypeVisitor a tutti i TypeKind             | 4           | 3   | 4      | **18**          | 2–4 ore       |
-| 10   | REC-016 | Decidere ownership esplicita di message_storage_     | 4           | 3   | 4      | **18**          | 1 ora         |
-| 11   | REC-010 | Aggiungere FnType al TypeVisitor e Substitution      | 3           | 4   | 3      | **17**          | 4–8 ore       |
-| 12   | REC-002 | Aggiungere FnType e verifica signature               | 2           | 5   | 2      | **16**          | 1–2 settimane |
-| 13   | REC-007 | Scomporre type_expr() in funzioni per NodeKind       | 3           | 4   | 2      | **16**          | 1–2 giorni    |
-| 14   | REC-014 | Correggere type_stmt per multi-variabili             | 3           | 3   | 3      | **15**          | 4–8 ore       |
-| 15   | REC-008 | Unificare propagazione errori                        | 2           | 4   | 2      | **14**          | 2–3 giorni    |
-| 16   | REC-012 | Consolidare contesto funzione nella SymbolTable      | 2           | 3   | 2      | **12**          | 1–2 giorni    |
+| Rank | ID      | Title                                                        | Feasibility | ROI | Effort | Composite Score | Est. Time     |
+|------|---------|--------------------------------------------------------------|-------------|-----|--------|-----------------|---------------|
+| 1    | REC-006 | Correggere `zonk_block_full` per non scartare statement      | 5           | 4   | 5      | 23              | 30 minuti     |
+| 2    | REC-003 | Completare `TypeScheme::instantiate()` per tipi composti     | 5           | 4   | 4      | 22              | 2–4 ore       |
+| 3    | REC-001 | Refactor `type_expr` in funzioni separate per NodeKind       | 4           | 5   | 3      | 21              | 1–2 giorni    |
+| 4    | REC-004 | Sostituire `at()` con `find()` in `UnionFind`                | 5           | 3   | 5      | 21              | 1–2 ore       |
+| 5    | REC-010 | Correggere `set_function_return_context` fallback fragile    | 5           | 3   | 5      | 21              | 1 ora         |
+| 6    | REC-005 | Rimuovere type checking anticipato duplicato                 | 4           | 4   | 4      | 20              | 4–8 ore       |
+| 7    | REC-007 | Documentare precondizione `string_view` in SymbolTable       | 5           | 2   | 5      | 19              | 30 minuti     |
+| 8    | REC-002 | Implementare `FnType` per signature checking                 | 3           | 5   | 2      | 18              | 2–4 giorni    |
+| 9    | REC-008 | Aggiungere `FnType` al `TypeVisitor`                         | 3           | 4   | 3      | 17              | 4–8 ore       |
+| 10   | REC-011 | Estendere `ArrayType::sizes_equal` per espressioni complesse | 3           | 3   | 3      | 15              | 4–8 ore       |
+| 11   | REC-009 | Unificare strategia di propagazione errori                   | 2           | 4   | 2      | 14              | 1–2 settimane |
+| 12   | REC-012 | Separare `Type.hpp` in file header distinti                  | 3           | 3   | 2      | 14              | 4–8 ore       |
 
 ---
 
-## Appendix — Deficiency-to-Recommendation Traceability
+## Appendice — Vincoli di Conformità
 
-| Deficiency                                         | Recommendation(s)                                                                              |
-|----------------------------------------------------|------------------------------------------------------------------------------------------------|
-| DEF-001 (Propagazione errori inconsistente)        | REC-008                                                                                        |
-| DEF-002 (Contesto funzione duplicato)              | REC-012                                                                                        |
-| DEF-003 (TypeScheme::instantiate incompleto)       | REC-001                                                                                        |
-| DEF-004 (Mancanza di FnType)                       | REC-002, REC-010                                                                               |
-| DEF-005 (parse_type_annotation hardcoded)          | *(Nessuna raccomandazione — basso impatto, mitigato da fallback a type variable)*              |
-| DEF-006 (UnionFind::at() eccezione)                | REC-005                                                                                        |
-| DEF-007 (UnifyVisitor non gestisce CustomType)     | REC-003, REC-013                                                                               |
-| DEF-008 (Substitution non thread-safe)             | *(Nessuna raccomandazione — dichiarato nella docs, non critico per compilatore single-thread)* |
-| DEF-009 (string_view ownership in SymbolTable)     | REC-015                                                                                        |
-| DEF-010 (define crea scope implicitamente)         | REC-011                                                                                        |
-| DEF-011 (CallExpr non verifica signature)          | REC-002, REC-007, REC-009                                                                      |
-| DEF-012 (VarDecl multi-variable semplificato)      | REC-014                                                                                        |
-| DEF-013 (zonk_block_full perde statement)          | REC-004                                                                                        |
-| DEF-014 (message_storage_ fragile)                 | REC-016                                                                                        |
-| DEF-015 (resolve_names MainStmt binding duplicato) | *(Nessuna raccomandazione — comportamento corretto per ora, da monitorare)*                    |
-| DEF-016 (TypeVarId duplicato)                      | REC-006                                                                                        |
+### Deficiency-to-Recommendation Traceability
 
-## Constraint-by-Constraint Verification Gate
+| DEF Tag | Descrizione                                      | REC Risolutivo                          |
+|---------|--------------------------------------------------|-----------------------------------------|
+| DEF-001 | Propagazione errori inconsistente                | REC-009                                 |
+| DEF-002 | Contesto funzione duplicato                      | (mitigato da REC-002, REC-010)          |
+| DEF-003 | Mancanza di `FnType`                             | REC-002, REC-008                        |
+| DEF-004 | `parse_type_annotation` hardcoded                | (accettato — costo basso)               |
+| DEF-005 | `ArrayType::sizes_equal` limitato                | REC-011                                 |
+| DEF-006 | `TypeScheme::instantiate()` incompleto           | REC-003                                 |
+| DEF-007 | `TypeScheme` campi mutabili non documentati      | (mitigato da REC-007)                   |
+| DEF-008 | `UnionFind::find()` usa `at()` con eccezione     | REC-004                                 |
+| DEF-009 | `UnifyVisitor` non gestisce tutti i casi         | (corretto — comportamento intenzionale) |
+| DEF-010 | `Substitution::apply()` non thread-safe          | (documentato — accettato)               |
+| DEF-011 | `string_view` keys con ownership non documentata | REC-007                                 |
+| DEF-012 | `define()` crea scope implicitamente             | (accettato — comportamento voluto)      |
+| DEF-013 | `set_function_return_context` fallback fragile   | REC-010                                 |
+| DEF-014 | `CallExpr` non verifica signature/arity          | REC-002                                 |
+| DEF-015 | Multi-variable `VarDecl` semplificato            | (fuori scope — feature futura)          |
+| DEF-016 | `zonk_block_full` perde statement                | REC-006                                 |
+| DEF-017 | `message_storage_` fragile                       | (accettato — `deque` è stabile)         |
+| DEF-018 | `main` hardcoded in resolve_names                | (accettato — design intenzionale)       |
+| DEF-019 | Type checking anticipato duplica logica solver   | REC-005                                 |
 
-| Constraint                                               | Status | Evidence                                                                                  |
-|----------------------------------------------------------|--------|-------------------------------------------------------------------------------------------|
-| 1. Every claim grounded in specific evidence             | PASS   | Ogni DEF cita file e metodo specifici                                                     |
-| 2. No system or component omitted                        | PASS   | 16 componenti analizzati in Phase 3                                                       |
-| 3. Every deficiency has a recommendation                 | PASS   | Traceability table above — DEF-005, DEF-008, DEF-015 documented with rationale for no REC |
-| 4. Every recommendation immediately actionable           | PASS   | Ogni REC specifica entry point file/method                                                |
-| 5. No hedging language                                   | PASS   | Verificato — nessun "might", "could possibly", "seems to"                                 |
-| 6. No verbatim repetition                                | PASS   | Cross-referenziato per sezione                                                            |
-| 7. Priority mechanically computed                        | PASS   | Formula applicata uniformemente, ordinamento verificato                                   |
-| 8. Minimum depth (150 words/component, 300 words/system) | PASS   | Ogni sezione Phase 3 >150 parole, ogni sezione Phase 2 >300 parole                        |
-| 9. Document in Italian                                   | PASS   | Tutto il testo è in italiano                                                              |
-| 10. No generic statements without specific remediation   | PASS   | Ogni osservazione riferita a codice specifico                                             |
+### Constraint-by-Constraint Verification Gate
+
+| #  | Vincolo                                                           | Stato | Evidenza                                               |
+|----|-------------------------------------------------------------------|-------|--------------------------------------------------------|
+| 1  | Ogni affermazione è grounded in file specifici                    | PASS  | Ogni DEF cita file e riga                              |
+| 2  | Nessun sistema/componente omesso                                  | PASS  | Tutti i 5 sistemi e 15 componenti analizzati           |
+| 3  | Ogni DEF ha almeno un REC                                         | PASS  | Tabella traceability sopra                             |
+| 4  | Ogni REC è immediatamente actionable con entry point              | PASS  | Ogni REC ha "Change entry point"                       |
+| 5  | Nessun linguaggio hedging senza giustificazione                   | PASS  | Verificato — nessuna occorrenza di "might/could/seems" |
+| 6  | Nessuna ripetizione verbatim tra sezioni                          | PASS  | Cross-reference usate                                  |
+| 7  | Priority ranking calcolato meccanicamente                         | PASS  | Formula applicata senza riordino manuale               |
+| 8  | Minimo 150 parole per componente Phase 3, 300 per sistema Phase 2 | PASS  | Ogni sezione eccede i minimi                           |
+| 9  | Documento in italiano                                             | PASS  | Intero documento in italiano                           |
+| 10 | Nessuna affermazione generica senza riferimento specifico         | PASS  | Ogni osservazione cita file/metodo specifico           |

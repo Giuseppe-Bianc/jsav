@@ -7,9 +7,11 @@
 // clang-format off
 #include "../headers.hpp"
 #include "jsav/ast/Program.hpp"
+#include "jsav/ast/Statements.hpp"
 #include "jsav/ast/TypedProgram.hpp"
 #include "jsav/typechecker/Constraint.hpp"
 #include "jsav/typechecker/ConstraintSolver.hpp"
+#include "jsav/typechecker/ErrorType.hpp"
 #include "jsav/typechecker/SymbolTable.hpp"
 // clang-format on
 
@@ -108,6 +110,9 @@ namespace jsv {
         std::deque<std::string> message_storage_;  // Owns dynamic strings for CompileError::message_ (std::string_view); deque prevents
                                                    // view invalidation on reallocation
         std::vector<TypedStmtPtr> typed_stmts_;    // Stored during constraint generation
+
+        /// Maps function names to their declarations for signature lookup during CallExpr type checking
+        std::unordered_map<std::string, const FuncDecl *> function_decls_;
 
         /// Tracks nesting depth inside loops (for break/continue validation)
         std::size_t loop_depth_ = 0;
