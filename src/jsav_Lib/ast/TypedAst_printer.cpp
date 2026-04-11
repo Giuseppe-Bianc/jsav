@@ -273,15 +273,27 @@ namespace jsv {
     void TypedAstPrinter::visit_VarDecl(const TypedVarDecl &node) {
         const bool is_last = next_is_last_;
         const std::string keyword = node.is_const() ? ansi::blue_bold("TypedConstDeclaration") : ansi::blue("TypedVarDeclaration");
+        const auto &names = node.names();
+        const auto &inits = node.initializers();
 
-        print_value(keyword, FORMAT(" {} [{}]", node.name(), node.node_type() ? node.node_type()->to_string() : "none"), is_last);
+        print_value(keyword, FORMAT(" {} [{}]", fmt::format("{}", fmt::join(names, ", ")),
+                                     node.node_type() ? node.node_type()->to_string() : "none"),
+                    is_last);
         const IndentGuard guard{*this, is_last};
 
-        // Initializer
-        if(node.has_initializer()) {
-            print_line(ansi::red("Initializer:"), true);
-            const IndentGuard guard2{*this, true};
-            visit_child(node.initializer(), true);
+        // Initializers for each variable — follow the Ast_printer.cpp pattern
+        // First, collect non-null initializers to determine proper tree connectors
+        std::vector<std::size_t> child_indices;
+        for(std::size_t i = 0; i < inits.size(); ++i) {
+            if(inits[i]) { child_indices.push_back(i); }
+        }
+
+        for(std::size_t idx = 0; idx < child_indices.size(); ++idx) {
+            const std::size_t i = child_indices[idx];
+            const bool is_last_child = (idx == child_indices.size() - 1);
+            print_line(FORMAT("Initializer for '{}':", names[i]), is_last_child);
+            const IndentGuard guard2{*this, is_last_child};
+            visit_child(*inits[i], true);
         }
     }
 

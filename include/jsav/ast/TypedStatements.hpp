@@ -41,23 +41,38 @@ namespace jsv {
      *
      * Represents a variable declaration with its resolved type.
      * Example: `var x: i32 = 42;` or `let y = 3.14;` (type inferred).
+     * Multi-variable: `let a, b, c = 1, 2, 3;`
      */
     class TypedVarDecl final : public TypedStmt {
     public:
+        // Single variable constructor
         TypedVarDecl(std::string name, TypePtr resolved_type, TypedExprPtr initializer, bool is_const = false, SourceSpan loc = {})
-          : TypedStmt{NodeKind::VarDecl, std::move(resolved_type), loc}, name_{std::move(name)}, initializer_{std::move(initializer)},
+          : TypedStmt{NodeKind::VarDecl, std::move(resolved_type), loc}, is_const_{is_const} {
+            names_.reserve(1);
+            names_.push_back(std::move(name));
+            initializers_.reserve(1);
+            initializers_.push_back(std::move(initializer));
+        }
+
+        // Multi-variable constructor
+        TypedVarDecl(std::vector<std::string> names, TypePtr resolved_type, std::vector<TypedExprPtr> initializers, bool is_const = false,
+                     SourceSpan loc = {})
+          : TypedStmt{NodeKind::VarDecl, std::move(resolved_type), loc}, names_{std::move(names)}, initializers_{std::move(initializers)},
             is_const_{is_const} {}
 
-        [[nodiscard]] const std::string &name() const noexcept { return name_; }
-        [[nodiscard]] const TypedExpr &initializer() const noexcept { return *initializer_; }
-        [[nodiscard]] bool has_initializer() const noexcept { return initializer_ != nullptr; }
+        [[nodiscard]] const std::vector<std::string> &names() const noexcept { return names_; }
+        [[nodiscard]] const std::string &name() const noexcept { return names_.front(); }  // Backward compatibility
+        [[nodiscard]] const std::vector<TypedExprPtr> &initializers() const noexcept { return initializers_; }
+        [[nodiscard]] const TypedExpr &initializer() const noexcept { return *initializers_.front(); }  // Backward compatibility
+        [[nodiscard]] bool has_initializer() const noexcept { return !initializers_.empty() && initializers_.front() != nullptr; }
         [[nodiscard]] bool is_const() const noexcept { return is_const_; }
+        [[nodiscard]] std::size_t num_variables() const noexcept { return names_.size(); }
 
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::VarDecl; }
 
     private:
-        std::string name_;
-        TypedExprPtr initializer_;
+        std::vector<std::string> names_;
+        std::vector<TypedExprPtr> initializers_;
         bool is_const_;
     };
 

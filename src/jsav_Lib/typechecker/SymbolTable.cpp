@@ -35,34 +35,23 @@ namespace jsv {
     std::size_t SymbolTable::depth() const noexcept { return scopes_.size(); }
 
     void SymbolTable::set_function_return_context(TypePtr ret_type, std::string func_name) {
-        // Search from innermost to outermost scope to find the function binding
-        for(auto &scope : std::ranges::reverse_view(scopes_)) {
-            auto it = scope.find(func_name);
-            if(it != scope.end() && it->second.is_function_binding()) {
-                it->second.return_type = std::move(ret_type);
-                it->second.function_name = std::move(func_name);
-                return;
-            }
-        }
-        // If not found by name, look for any function binding in current scope
-        if(!scopes_.empty()) {
-            for(auto &[name, scheme] : scopes_.back()) {
-                if(scheme.is_function_binding()) {
-                    scheme.return_type = std::move(ret_type);
-                    scheme.function_name = std::move(func_name);
-                    return;
-                }
-            }
-        }
+        // Push a synthetic function context marker into the current innermost scope.
+        // This ensures get_function_return_context finds the NEAREST enclosing function,
+        // not an arbitrary one from an outer scope.
+        if(scopes_.empty()) { scopes_.emplace_back(); }
+        auto &current_scope = scopes_.back();
+        TypeScheme ctx_marker;
+        ctx_marker.return_type = std::move(ret_type);
+        ctx_marker.function_name = std::move(func_name);
+        current_scope.insert_or_assign("__function_context__", std::move(ctx_marker));
     }
 
     std::optional<std::pair<TypePtr, std::string_view>> SymbolTable::get_function_return_context() const {
-        // Search from innermost to outermost scope for the nearest function binding
+        // Search from innermost to outermost scope for the nearest function context marker
         for(const auto &scope : std::ranges::reverse_view(scopes_)) {
-            for(const auto &[name, scheme] : scope) {
-                if(scheme.is_function_binding() && scheme.return_type) {
-                    return std::make_pair(*scheme.return_type, std::string_view{name});
-                }
+            auto it = scope.find("__function_context__");
+            if(it != scope.end() && it->second.is_function_binding() && it->second.return_type) {
+                return std::make_pair(*it->second.return_type, std::string_view{*it->second.function_name});
             }
         }
         return std::nullopt;

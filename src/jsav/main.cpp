@@ -103,7 +103,6 @@ auto main(int argc, const char *const argv[]) -> int {
 
         // for(jsv::Token token : tokens) { LINFO("{}", token); }
         if(!errors.empty()) {
-            LERROR("Lexer produced {} error(s)", errors.size());
             const std::string diagnostic = reporter.report_errors(errors);
             // fmt::print(stderr, "{}", diagnostic);
             fmt::print("{}", diagnostic);
@@ -126,7 +125,6 @@ auto main(int argc, const char *const argv[]) -> int {
         auto [typed_program, type_errors] = type_checker.check(*parsed_program);
         LINFO("{}", typeCheckingTimer);
         if(!type_errors.empty()) {
-            LERROR("Type checker produced {} error(s)", type_errors.size());
             const std::string diagnostic = reporter.report_errors(type_errors);
             fmt::print("{}", diagnostic);
         }

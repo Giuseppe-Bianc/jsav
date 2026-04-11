@@ -104,9 +104,10 @@ namespace jsv {
         case NodeKind::FuncDecl:
             {
                 const auto *fd = static_cast<const FuncDecl *>(&stmt);
-                // Register function with a type variable (will be refined during constraint generation)
+                // Register function with its declared return type so is_function_binding() is true
                 auto func_type = fresh_type_variable();
-                symbols_.define(fd->name(), TypeScheme::mono(func_type));
+                auto declared_ret = fd->return_type().value_or(PrimitiveType::void_());
+                symbols_.define(fd->name(), TypeScheme::mono(func_type, false, declared_ret, fd->name()));
 
                 // Track function declaration for CallExpr signature checking
                 function_decls_[fd->name()] = fd;
@@ -123,8 +124,8 @@ namespace jsv {
             }
         case NodeKind::MainStmt:
             {
-                // Register 'main' implicitly
-                symbols_.define("main", TypeScheme::mono(PrimitiveType::void_()));
+                // Register 'main' with void return type so is_function_binding() is true
+                symbols_.define("main", TypeScheme::mono(PrimitiveType::void_(), false, PrimitiveType::void_(), "main"));
                 const auto *ms = static_cast<const MainStmt *>(&stmt);
                 symbols_.push_scope();
                 if(const auto *body_block = dynamic_cast<const BlockStmt *>(&ms->body())) {
@@ -143,7 +144,6 @@ namespace jsv {
                 for(const auto &name : names) {
                     auto var_type = fresh_type_variable();
                     symbols_.define(name, TypeScheme::mono(var_type));
-                    LTRACE("Resolved variable declaration: {}", name);
                 }
                 break;
             }
@@ -214,10 +214,30 @@ namespace jsv {
             {
                 const auto *vd = static_cast<const TypedVarDecl *>(&stmt);
                 auto resolved_type = zonk_type(subst, vd->node_type());
-                TypedExprPtr zonked_init;
-                if(vd->has_initializer()) { zonked_init = zonk_expr_full(subst, vd->initializer()); }
-                return std::make_unique<TypedVarDecl>(vd->name(), std::move(resolved_type), std::move(zonked_init), vd->is_const(),
-                                                      stmt.location());
+                
+                // Check if this is a multi-variable declaration
+                if(vd->num_variables() > 1) {
+                    std::vector<TypedExprPtr> zonked_initializers;
+                    zonked_initializers.reserve(vd->num_variables());
+                    
+                    const auto &initializers = vd->initializers();
+                    for(std::size_t i = 0; i < initializers.size(); ++i) {
+                        if(initializers[i]) {
+                            zonked_initializers.push_back(zonk_expr_full(subst, *initializers[i]));
+                        } else {
+                            zonked_initializers.push_back(nullptr);
+                        }
+                    }
+                    
+                    return std::make_unique<TypedVarDecl>(vd->names(), std::move(resolved_type), std::move(zonked_initializers),
+                                                          vd->is_const(), stmt.location());
+                } else {
+                    // Single variable declaration
+                    TypedExprPtr zonked_init;
+                    if(vd->has_initializer()) { zonked_init = zonk_expr_full(subst, vd->initializer()); }
+                    return std::make_unique<TypedVarDecl>(vd->name(), std::move(resolved_type), std::move(zonked_init), vd->is_const(),
+                                                          stmt.location());
+                }
             }
         case NodeKind::FuncDecl:
             {
@@ -973,30 +993,37 @@ namespace jsv {
                         return std::make_unique<TypedVarDecl>(names[0], std::move(var_type), nullptr, vd->is_const(), vd->location());
                     }
                 } else {
-                    // Multi-variable declaration — simplify: create one TypedVarDecl with first name
-                    // (Full multi-var support needs a different TypedVarDecl structure)
-                    TypePtr multi_type = var_type ? var_type : fresh_type_variable();
+                    std::vector<TypedExprPtr> typed_initializers;
+                    typed_initializers.reserve(names.size());
+
                     for(std::size_t i = 0; i < names.size(); ++i) {
-                        TypePtr elem_type = multi_type;
+                        TypePtr elem_type = var_type;
+                        TypedExprPtr typed_init;
+
                         if(i < initializers.size() && initializers[i]) {
-                            auto typed_init = type_expr(*initializers[i]);
+                            typed_init = type_expr(*initializers[i]);
                             if(typed_init) {
                                 if(elem_type) {
                                     constraints_.add(elem_type, typed_init->node_type(), vd->location(),
                                                      FORMAT("variable '{}' type annotation vs initializer", names[i]));
                                 } else {
                                     elem_type = typed_init->node_type();
+                                    // If no annotation, infer var_type from the first initializer
+                                    if(!var_type) { var_type = elem_type; }
                                 }
                             }
-                        } else if(!elem_type) {
-                            elem_type = fresh_type_variable();
                         }
+
+                        if(!elem_type) { elem_type = fresh_type_variable(); }
+
                         symbols_.define(names[i], TypeScheme::mono(elem_type, vd->is_const()));
+                        typed_initializers.push_back(std::move(typed_init));
                     }
-                    // Return a simplified single var decl for the first variable
-                    TypedExprPtr first_init;
-                    if(!initializers.empty() && initializers[0]) { first_init = type_expr(*initializers[0]); }
-                    return std::make_unique<TypedVarDecl>(names[0], std::move(multi_type), std::move(first_init), vd->is_const(),
+
+                    // If still no var_type after processing initializers, use fresh type variable
+                    if(!var_type) { var_type = fresh_type_variable(); }
+
+                    return std::make_unique<TypedVarDecl>(names, std::move(var_type), std::move(typed_initializers), vd->is_const(),
                                                           vd->location());
                 }
             }
