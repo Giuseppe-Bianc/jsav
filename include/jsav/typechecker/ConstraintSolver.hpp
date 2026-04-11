@@ -97,8 +97,8 @@ namespace jsv {
 
         /// Unify two types, producing substitution entries
         [[nodiscard]] std::expected<void, CompileError> unify(const TypePtr &t1, const TypePtr &t2, const Constraint &constraint);
-    private:
 
+    private:
         UnionFind union_find_;
         Substitution substitution_;
     };

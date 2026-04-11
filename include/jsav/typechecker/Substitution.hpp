@@ -139,8 +139,8 @@ namespace jsv {
          * @return      Resolved TypePtr (identical to @p type when unchanged).
          */
         [[nodiscard]] TypePtr applyImpl(const TypePtr &type) const;
-    private:
 
+    private:
         /// Primary map: type-variable id → bound type.
         std::unordered_map<TypeVarId, TypePtr> bindings_;
 
