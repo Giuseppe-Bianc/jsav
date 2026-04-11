@@ -162,7 +162,6 @@ namespace jsv {
     // ============================================================
     void TypeChecker::generate_constraints(const Program &program) {
         typed_stmts_.clear();
-        current_function_return_type_.reset();  // Ensure we start at top-level (no enclosing function)
         typed_stmts_.reserve(program.statements().size());
         std::ranges::transform(program.statements(), std::back_inserter(typed_stmts_),
                                [this](const auto &stmt) { return type_stmt(*stmt); });
@@ -993,8 +992,9 @@ namespace jsv {
                 auto func_scheme = symbols_.lookup(fd->name());
                 TypePtr func_tvar = func_scheme.has_value() && func_scheme->body ? func_scheme->body : fresh_type_variable();
 
-                current_function_return_type_ = fd->return_type().value_or(PrimitiveType::void_());
-                current_function_name_ = fd->name();
+                auto func_type = fd->return_type().value_or(PrimitiveType::void_());
+                // Set return type context in SymbolTable for return statement validation
+                symbols_.set_function_return_context(func_type, fd->name());
 
                 symbols_.push_scope();  // Function scope
 
@@ -1020,10 +1020,7 @@ namespace jsv {
                                        [this](const auto &s) { return type_stmt(*s); });
 
                 symbols_.pop_scope();
-                current_function_return_type_.reset();
-                current_function_name_.reset();
 
-                auto func_type = fd->return_type().value_or(PrimitiveType::void_());
                 auto typed_body_stmt = std::make_unique<TypedBlockStmt>(std::move(typed_body_stmts), func_type, fd->location());
 
                 // Constrain the function's type variable (from name resolution) to unify with
@@ -1039,29 +1036,32 @@ namespace jsv {
                 TypedExprPtr typed_value;
                 TypePtr return_type = PrimitiveType::void_();
 
-                if(!current_function_return_type_) {
+                auto func_context = symbols_.get_function_return_context();
+                if(!func_context) {
                     errors_.push_back(CompileError::TypeError(ErrorCode::E2005, "Return statement must be inside function body",
                                                               rs->location(), "Return statements are only valid inside functions."));
                     return std::make_unique<TypedReturnStmt>(nullptr, PrimitiveType::void_(), rs->location());
                 }
+
+                const auto &[expected_return_type, func_name] = *func_context;
 
                 if(rs->has_value()) {
                     typed_value = type_expr(rs->value());
                     return_type = typed_value->node_type();
 
                     // Check: cannot return a value from a void function
-                    if(*current_function_return_type_ && (*current_function_return_type_)->kind() == TypeKind::Void) {
+                    if(expected_return_type->kind() == TypeKind::Void) {
                         errors_.push_back(CompileError::TypeError(ErrorCode::E2006, "Cannot return a value from void function",
                                                                   rs->location(),
                                                                   "Remove the return value or change the function's return type."));
-                    } else if(current_function_return_type_) {
+                    } else {
                         // Early check: concrete type mismatch for return statements → E2007
                         // Both types are resolved (not type variables) — compare structurally
                         bool mismatch_reported = false;
-                        if(return_type->kind() != TypeKind::TypeVar && (*current_function_return_type_)->kind() != TypeKind::TypeVar) {
-                            if(!(*return_type == *(*current_function_return_type_))) {
+                        if(return_type->kind() != TypeKind::TypeVar && expected_return_type->kind() != TypeKind::TypeVar) {
+                            if(!(*return_type == *expected_return_type)) {
                                 message_storage_.push_back(FORMAT("Return type mismatch, expected {} found {}",
-                                                                  (*current_function_return_type_)->to_string(), return_type->to_string()));
+                                                                  expected_return_type->to_string(), return_type->to_string()));
                                 errors_.push_back(
                                     CompileError::TypeError(ErrorCode::E2007, message_storage_.back(), rs->location(),
                                                             "Change the return value type or update the function's return type."));
@@ -1070,15 +1070,15 @@ namespace jsv {
                         }
                         // Only add constraint if no concrete mismatch was already reported
                         if(!mismatch_reported) {
-                            constraints_.add(return_type, *current_function_return_type_, rs->location(),
+                            constraints_.add(return_type, expected_return_type, rs->location(),
                                              "return type must match function declaration");
                         }
                     }
                 } else {
                     // Void return — function expects a value but none provided
-                    if(*current_function_return_type_ && (*current_function_return_type_)->kind() != TypeKind::Void) {
+                    if(expected_return_type->kind() != TypeKind::Void) {
                         message_storage_.push_back(
-                            FORMAT("Return type mismatch, expected {} found void", (*current_function_return_type_)->to_string()));
+                            FORMAT("Return type mismatch, expected {} found void", expected_return_type->to_string()));
                         errors_.push_back(CompileError::TypeError(ErrorCode::E2008, message_storage_.back(), rs->location(),
                                                                   "Return statement has no value but function expects a return type."));
                     }
@@ -1171,8 +1171,7 @@ namespace jsv {
                 // MainStmt body is a StmtPtr, typically a BlockStmt
                 std::vector<TypedStmtPtr> typed_body_stmts;
                 // Main is implicitly a void function — allow return statements inside it
-                current_function_return_type_ = PrimitiveType::void_();
-                current_function_name_ = "main";
+                symbols_.set_function_return_context(PrimitiveType::void_(), "main");
                 symbols_.push_scope();
                 if(const auto *body_block = dynamic_cast<const BlockStmt *>(&ms->body())) {
                     typed_body_stmts.reserve(body_block->statements().size());
@@ -1182,8 +1181,6 @@ namespace jsv {
                     typed_body_stmts.push_back(type_stmt(ms->body()));
                 }
                 symbols_.pop_scope();
-                current_function_return_type_.reset();
-                current_function_name_.reset();
                 auto typed_body = std::make_unique<TypedBlockStmt>(std::move(typed_body_stmts), PrimitiveType::void_(), ms->location());
                 return std::make_unique<TypedMainStmt>(std::move(typed_body), PrimitiveType::void_(), ms->location());
             }

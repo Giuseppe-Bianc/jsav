@@ -26,6 +26,18 @@ namespace jsv {
         TypePtr body;                            ///< Type body with references to vars
         bool is_const{false};                    ///< Whether the binding is immutable (const)
 
+        /// For function bindings: the declared return type (used for return statement validation)
+        std::optional<TypePtr> return_type;
+        /// For function bindings: the function name (used in error messages)
+        std::optional<std::string> function_name;
+
+        /**
+         * @brief Check if this scheme represents a function binding.
+         *
+         * @return true if return_type has a value (indicating function context).
+         */
+        [[nodiscard]] bool is_function_binding() const noexcept { return return_type.has_value(); }
+
         /**
          * @brief Instantiate this type scheme with fresh type variables.
          *
@@ -52,15 +64,19 @@ namespace jsv {
          *
          * @param type The concrete type to wrap in the scheme.
          * @param const_flag Whether the binding is immutable (const). Defaults to false.
+         * @param ret_type Optional return type context (for function bindings only).
+         * @param func_name Optional function name (for function bindings only).
          * @return A TypeScheme with empty quantified_vars and the given body type.
          *
          * @par Example
          * @code
          * auto int_scheme = TypeScheme::mono(int_type);           // mutable binding
          * auto const_scheme = TypeScheme::mono(int_type, true);   // const binding
+         * auto func_scheme = TypeScheme::mono(func_tvar, false, return_type, "foo");  // function
          * @endcode
          */
-        [[nodiscard]] static TypeScheme mono(TypePtr type, bool const_flag = false);
+        [[nodiscard]] static TypeScheme mono(TypePtr type, bool const_flag = false, std::optional<TypePtr> ret_type = std::nullopt,
+                                             std::optional<std::string> func_name = std::nullopt);
     };
 
 }  // namespace jsv

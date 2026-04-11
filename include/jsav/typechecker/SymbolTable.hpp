@@ -78,6 +78,28 @@ namespace jsv {
          */
         [[nodiscard]] std::size_t depth() const noexcept;
 
+        /**
+         * @brief Set the return type context for the enclosing function.
+         *
+         * Updates the most recently defined function binding (in the current scope or
+         * the scope where the function was declared) with the given return type and name.
+         * This is used to track the expected return type for return statement validation.
+         *
+         * @param ret_type The declared return type of the enclosing function.
+         * @param func_name The name of the enclosing function (for error messages).
+         */
+        void set_function_return_context(TypePtr ret_type, std::string func_name);
+
+        /**
+         * @brief Get the return type context of the enclosing function.
+         *
+         * Searches for the nearest function binding (one that has a return_type set)
+         * across all scopes, starting from innermost.
+         *
+         * @return A pair of {return_type, function_name} if inside a function, std::nullopt otherwise.
+         */
+        [[nodiscard]] std::optional<std::pair<TypePtr, std::string_view>> get_function_return_context() const;
+
     private:
         struct StringHash {
             using is_transparent = void;  // enables heterogeneous lookup
