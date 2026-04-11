@@ -107,7 +107,7 @@ namespace jsv {
                 // Register function with a type variable (will be refined during constraint generation)
                 auto func_type = fresh_type_variable();
                 symbols_.define(fd->name(), TypeScheme::mono(func_type));
-                
+
                 // Track function declaration for CallExpr signature checking
                 function_decls_[fd->name()] = fd;
 
@@ -733,17 +733,16 @@ namespace jsv {
 
                 if(const auto *ident = dynamic_cast<const Identifier *>(&call->callee())) {
                     const auto &func_name = ident->name();
-                    
+
                     auto func_decl_it = function_decls_.find(func_name);
-                    
+
                     if(func_decl_it != function_decls_.end()) {
                         const FuncDecl *func_decl = func_decl_it->second;
                         const auto &params = func_decl->params();
-                        
+
                         if(arg_types.size() != params.size()) {
-                            message_storage_.push_back(
-                                FORMAT("Function '{}' expects {} argument(s) but {} were provided",
-                                       func_name, params.size(), arg_types.size()));
+                            message_storage_.push_back(FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name,
+                                                              params.size(), arg_types.size()));
                             errors_.push_back(CompileError::TypeError(
                                 ErrorCode::E2028, message_storage_.back(), call->location(),
                                 FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})",
