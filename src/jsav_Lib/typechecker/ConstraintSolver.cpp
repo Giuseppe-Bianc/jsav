@@ -5,8 +5,41 @@
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
 #include "jsav/typechecker/ConstraintSolver.hpp"
 #include "jsav/typechecker/ErrorType.hpp"
+#include "jsav/typechecker/TypeVisitor.hpp"
 
 namespace jsv {
+
+    // Recurse into compound types via visitor
+    struct OccursVisitor : TypeVisitor {
+        TypeVarId var;
+        const Substitution &subst;
+        bool found{false};
+
+        OccursVisitor(TypeVarId v, const Substitution &s) : var{v}, subst{s} {}
+
+        void visit_array(const ArrayType &arr) override { found = ConstraintSolver::occurs_in(var, arr.element_type(), subst); }
+        void visit_vector(const VectorType &vec) override { found = ConstraintSolver::occurs_in(var, vec.element_type(), subst); }
+    };
+
+    // Same kind - check compound types recursively via visitor
+    struct UnifyVisitor : TypeVisitor {
+        ConstraintSolver &solver;
+        const TypePtr &t2;
+        const Constraint &constraint;
+        std::optional<std::expected<void, CompileError>> result{std::nullopt};
+
+        UnifyVisitor(ConstraintSolver &s, const TypePtr &rhs, const Constraint &c) : solver{s}, t2{rhs}, constraint{c} {}
+
+        void visit_array(const ArrayType &arr1) override {
+            const auto *arr2 = static_cast<const ArrayType *>(t2.get());
+            result = solver.unify(arr1.element_type(), arr2->element_type(), constraint);
+        }
+
+        void visit_vector(const VectorType &vec1) override {
+            const auto *vec2 = static_cast<const VectorType *>(t2.get());
+            result = solver.unify(vec1.element_type(), vec2->element_type(), constraint);
+        }
+    };
 
     SolverResult ConstraintSolver::solve(const ConstraintSet &constraints) {
         SolverResult result;
@@ -28,21 +61,9 @@ namespace jsv {
 
         if(const auto *tv = dynamic_cast<const TypeVariable *>(resolved.get())) { return tv->id() == var; }
 
-        // Recurse into compound types
-        switch(resolved->kind()) {
-        case TypeKind::Array:
-            {
-                const auto *arr = static_cast<const ArrayType *>(resolved.get());
-                return occurs_in(var, arr->element_type(), subst);
-            }
-        case TypeKind::Vector:
-            {
-                const auto *vec = static_cast<const VectorType *>(resolved.get());
-                return occurs_in(var, vec->element_type(), subst);
-            }
-        default:
-            return false;
-        }
+        OccursVisitor visitor{var, subst};
+        visit_type(resolved, visitor);
+        return visitor.found;
     }
 
     std::expected<void, CompileError> ConstraintSolver::unify(const TypePtr &t1, const TypePtr &t2, const Constraint &constraint) {
@@ -117,24 +138,10 @@ namespace jsv {
             return std::unexpected{CompileError::TypeError(ErrorCode::E2034, "Type mismatch", constraint.origin, std::move(hint))};
         }
 
-        // Same kind - check compound types recursively
-        switch(t1->kind()) {
-        case TypeKind::Array:
-            {
-                const auto *arr1 = static_cast<const ArrayType *>(t1.get());
-                const auto *arr2 = static_cast<const ArrayType *>(t2.get());
-                return unify(arr1->element_type(), arr2->element_type(), constraint);
-            }
-        case TypeKind::Vector:
-            {
-                const auto *vec1 = static_cast<const VectorType *>(t1.get());
-                const auto *vec2 = static_cast<const VectorType *>(t2.get());
-                return unify(vec1->element_type(), vec2->element_type(), constraint);
-            }
-        default:
-            // Primitive types with matching kinds are unified
-            return {};
-        }
+        UnifyVisitor visitor{*this, t2, constraint};
+        visit_type(t1, visitor);
+        // If no compound type was visited (primitive types), return success
+        return visitor.result.value_or(std::expected<void, CompileError>{});
     }
 
 }  // namespace jsv

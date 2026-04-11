@@ -5,8 +5,27 @@
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
 #include "jsav/typechecker/Substitution.hpp"
 #include "jsav/typechecker/ErrorType.hpp"
+#include "jsav/typechecker/TypeVisitor.hpp"
 
 namespace jsv {
+
+    // Use visitor to dispatch on compound types
+    struct ApplyVisitor : TypeVisitor {
+        const Substitution &self;
+        TypePtr out{nullptr};
+
+        explicit ApplyVisitor(const Substitution &s) : self{s} {}
+
+        void visit_array(const ArrayType &arr) override {
+            auto elem = self.applyImpl(arr.element_type());
+            out = (elem == arr.element_type()) ? nullptr : std::make_shared<ArrayType>(std::move(elem), arr.size_expr());
+        }
+
+        void visit_vector(const VectorType &vec) override {
+            auto elem = self.applyImpl(vec.element_type());
+            out = (elem == vec.element_type()) ? nullptr : std::make_shared<VectorType>(std::move(elem));
+        }
+    };
 
     void Substitution::bind(TypeVarId var, TypePtr type) {
         apply_cache_.clear();
@@ -36,27 +55,13 @@ namespace jsv {
             const auto it = bindings_.find(tv->id());
             result = (it != bindings_.end()) ? applyImpl(it->second) : type;
         } else {
-            switch(type->kind()) {
-            case TypeKind::Array:
-                {
-                    const auto *arr = static_cast<const ArrayType *>(type.get());
-                    auto elem = applyImpl(arr->element_type());
-                    result = (elem == arr->element_type()) ? type : std::make_shared<ArrayType>(std::move(elem), arr->size_expr());
-                    break;
-                }
-            case TypeKind::Vector:
-                {
-                    const auto *vec = static_cast<const VectorType *>(type.get());
-                    auto elem = applyImpl(vec->element_type());
-                    result = (elem == vec->element_type()) ? type : std::make_shared<VectorType>(std::move(elem));
-                    break;
-                }
-            case TypeKind::Custom:
+            ApplyVisitor visitor{*this};
+            visit_type(type, visitor);
+
+            if(visitor.out) {
+                result = std::move(visitor.out);
+            } else {
                 result = type;
-                break;
-            default:
-                result = type;
-                break;
             }
         }
 

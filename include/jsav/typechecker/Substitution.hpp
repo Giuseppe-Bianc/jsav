@@ -128,7 +128,6 @@ namespace jsv {
          */
         [[nodiscard]] std::size_t size() const noexcept;
 
-    private:
         /**
          * @brief Core recursive worker for apply().
          *
@@ -140,6 +139,7 @@ namespace jsv {
          * @return      Resolved TypePtr (identical to @p type when unchanged).
          */
         [[nodiscard]] TypePtr applyImpl(const TypePtr &type) const;
+    private:
 
         /// Primary map: type-variable id → bound type.
         std::unordered_map<TypeVarId, TypePtr> bindings_;

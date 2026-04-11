@@ -95,9 +95,9 @@ namespace jsv {
          */
         [[nodiscard]] static bool occurs_in(TypeVarId var, const TypePtr &type, const Substitution &subst);
 
-    private:
         /// Unify two types, producing substitution entries
         [[nodiscard]] std::expected<void, CompileError> unify(const TypePtr &t1, const TypePtr &t2, const Constraint &constraint);
+    private:
 
         UnionFind union_find_;
         Substitution substitution_;

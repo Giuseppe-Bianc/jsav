@@ -69,6 +69,8 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/typechecker/ConstraintSolver.hpp
         typechecker/TypeChecker.cpp
         ../../include/jsav/typechecker/TypeChecker.hpp
+        typechecker/TypeVisitor.cpp
+        ../../include/jsav/typechecker/TypeVisitor.hpp
 )
 
 add_library(jsav::jsav_lib ALIAS jsav_lib)

@@ -20186,6 +20186,85 @@ TEST_CASE("TypeChecker_TenDifferentTypes_NoCrossContamination", "[typechecker]")
     REQUIRE(typed_ast.statements().size() == 11);  // func decl + 10 calls
 }
 
+TEST_CASE("TypeVisitor: dispatches to ArrayType", "[typechecker]") {
+    auto int_type = jsv::PrimitiveType::i32();
+    auto size_expr = std::make_unique<jsv::IntegerLiteral>(10);
+    auto arr_type = std::make_shared<jsv::ArrayType>(int_type, std::move(size_expr));
+
+    struct ArrayDetector : jsv::TypeVisitor {
+        bool is_array = false;
+        jsv::TypePtr elem;
+
+        void visit_array(const jsv::ArrayType &arr) override {
+            is_array = true;
+            elem = arr.element_type();
+        }
+        void visit_vector(const jsv::VectorType &) override {}
+    };
+
+    ArrayDetector visitor;
+    jsv::visit_type(arr_type, visitor);
+    REQUIRE(visitor.is_array);
+    REQUIRE(visitor.elem);
+    REQUIRE(visitor.elem->kind() == jsv::TypeKind::I32);
+}
+
+TEST_CASE("TypeVisitor: dispatches to VectorType", "[typechecker]") {
+    auto double_type = jsv::PrimitiveType::f64();
+    auto vec_type = std::make_shared<jsv::VectorType>(double_type);
+
+    struct VectorDetector : jsv::TypeVisitor {
+        bool is_vector = false;
+        jsv::TypePtr elem;
+
+        void visit_array(const jsv::ArrayType &) override {}
+        void visit_vector(const jsv::VectorType &vec) override {
+            is_vector = true;
+            elem = vec.element_type();
+        }
+    };
+
+    VectorDetector visitor;
+    jsv::visit_type(vec_type, visitor);
+    REQUIRE(visitor.is_vector);
+    REQUIRE(visitor.elem);
+    REQUIRE(visitor.elem->kind() == jsv::TypeKind::F64);
+}
+
+TEST_CASE("TypeVisitor: no dispatch for primitive types", "[typechecker]") {
+    auto int_type = jsv::PrimitiveType::i64();
+
+    struct Counter : jsv::TypeVisitor {
+        int array_count = 0;
+        int vector_count = 0;
+
+        void visit_array(const jsv::ArrayType &) override { ++array_count; }
+        void visit_vector(const jsv::VectorType &) override { ++vector_count; }
+    };
+
+    Counter visitor;
+    jsv::visit_type(int_type, visitor);
+    REQUIRE(visitor.array_count == 0);
+    REQUIRE(visitor.vector_count == 0);
+}
+
+TEST_CASE("TypeVisitor: nested compound types recurse correctly", "[typechecker]") {
+    // Vec<Vec<i32>> — inner vector should be visited during apply
+    auto int_type = jsv::PrimitiveType::i32();
+    auto inner_vec = std::make_shared<jsv::VectorType>(int_type);
+    auto outer_vec = std::make_shared<jsv::VectorType>(inner_vec);
+
+    jsv::Substitution sub;
+    auto result = sub.apply(outer_vec);
+
+    REQUIRE(result);
+    REQUIRE(result->kind() == jsv::TypeKind::Vector);
+    const auto *outer = static_cast<const jsv::VectorType *>(result.get());
+    REQUIRE(outer->element_type()->kind() == jsv::TypeKind::Vector);
+    const auto *inner = static_cast<const jsv::VectorType *>(outer->element_type().get());
+    REQUIRE(inner->element_type()->kind() == jsv::TypeKind::I32);
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index, *-owning-memory, cert-err33-c, *-avoid-c-arrays, *-unsafe-functions, *-pro-bounds-array-to-pointer-decay)
 // clang-format on

@@ -40,5 +40,6 @@
 #include "typechecker/Constraint.hpp"
 #include "typechecker/ConstraintSolver.hpp"
 #include "typechecker/TypeChecker.hpp"
+#include "typechecker/TypeVisitor.hpp"
 #include "typechecker/ErrorType.hpp"
 // clang-format on
