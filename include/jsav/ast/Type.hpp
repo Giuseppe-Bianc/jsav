@@ -265,8 +265,7 @@ namespace jsv {
     // ============================================================
     // Primitive Type - for simple types without additional data
     // ============================================================
-    class PrimitiveType final : public TypeBase,
-                                public std::enable_shared_from_this<const PrimitiveType> {
+    class PrimitiveType final : public TypeBase, public std::enable_shared_from_this<const PrimitiveType> {
     public:
         /**
          * @brief Private tag type to restrict construction to singleton factories.
@@ -508,9 +507,7 @@ namespace jsv {
          * @brief Polymorphic clone — creates a new CustomType with the same name.
          * @return Shared pointer to a new CustomType instance.
          */
-        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override {
-            return std::make_shared<CustomType>(*name_);
-        }
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override { return std::make_shared<CustomType>(*name_); }
 
     private:
         std::shared_ptr<const std::string> name_;
