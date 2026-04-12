@@ -180,7 +180,7 @@ static inline constexpr char CTAB = '\t';
  * On Windows, this is set to carriage return followed by newline ("\r\n").
  */
 static inline constexpr const auto *NEWL = CRNL;  // Windows
-#elifdef macintosh                           // OS 9
+#elifdef macintosh                                // OS 9
 /**
  * @brief Platform-specific newline sequence.
  *
@@ -188,7 +188,7 @@ static inline constexpr const auto *NEWL = CRNL;  // Windows
  * On classic Mac OS (OS 9), this is set to carriage return ("\r").
  */
 static inline constexpr const auto *NEWL = &CCR;  // Classic Mac OS
-#elifdef __unix__                            // Linux and Unix-like systems
+#elifdef __unix__                                 // Linux and Unix-like systems
 /**
  * @brief Platform-specific newline sequence.
  *
@@ -196,7 +196,7 @@ static inline constexpr const auto *NEWL = &CCR;  // Classic Mac OS
  * On Linux and Unix-like systems, this is set to newline ("\n").
  */
 static inline constexpr const auto *NEWL = CNL;  // Linux and Unix
-#elifdef __APPLE__                           // macOS
+#elifdef __APPLE__                                // macOS
 /**
  * @brief Platform-specific newline sequence.
  *
@@ -204,7 +204,7 @@ static inline constexpr const auto *NEWL = CNL;  // Linux and Unix
  * On macOS, this is set to newline ("\n").
  */
 static inline constexpr const auto *NEWL = CNL;  // macOS
-#elifdef __VMS                               // OpenVMS
+#elifdef __VMS                                    // OpenVMS
 /**
  * @brief Platform-specific newline sequence.
  *
@@ -212,7 +212,7 @@ static inline constexpr const auto *NEWL = CNL;  // macOS
  * On OpenVMS, this is set to carriage return followed by newline ("\r\n").
  */
 static inline constexpr const auto *NEWL = CRNL;  // OpenVMS
-#elifdef __FreeBSD__                         // FreeBSD
+#elifdef __FreeBSD__                              // FreeBSD
 /**
  * @brief Platform-specific newline sequence.
  *
