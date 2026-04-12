@@ -1163,28 +1163,224 @@ Use **inline `monospace`** for all identifiers, file names, method names, and ty
 
 ## CONSTRAINTS
 
-1. Every claim about the codebase must be grounded in specific evidence from the `.hpp` or `.cpp` files — cite the file
-   name and, where possible, the relevant method or class name. Do not speculate about intent without clearly marking it
-   as an inference (prefix with "Inferred:").
-2. Do not omit any system or component present in the codebase, even if it appears trivial or scaffolding-level; flag
-   trivial components as such and explain why they are nonetheless included.
-3. Every deficiency identified in Phases 1–3 must correspond to at least one recommendation in Phase 4. No finding may
-   be left without a recommended resolution.
-4. Every recommendation in Phase 4 must be **immediately actionable**: it must specify not only *what* to do but *how*
-   to begin doing it, naming the specific files, classes, or methods that are the entry point for the change.
-5. Use precise, unambiguous technical English throughout. Do not use hedging language such as "might," "could possibly,"
-   or "seems to" unless the uncertainty is genuine and is explicitly acknowledged with a rationale.
-6. Do not repeat information verbatim across sections; cross-reference using section numbers (e.g., "see §3.3") rather
-   than duplicating content.
-7. The recommendation priority ranking must be computed mechanically using the formula defined in §4.1 — do not reorder
-   based on subjective judgment after scoring.
-8. Minimum depth requirement: each component subsection in Phase 3 must contain at least 150 words. Each system section
-   in Phase 2 must contain at least 300 words. These are floors, not targets — exceed them whenever the material
-   warrants.
-9. The entire document must be written in **Italian**, consistent with the language of the original request.
-10. Avoid generic statements that apply to any codebase ("code could be better documented", "consider adding tests")
-    unless they are substantiated by a specific observed deficiency in this codebase and accompanied by a concrete,
-    file-specific remediation step.
+### Rule 1 — Empirical Grounding of Every Claim About the Code
+
+Every claim about the codebase must be **mandatorily anchored to specific, verifiable evidence** drawn directly from the `.hpp` or `.cpp` source files. This requirement admits no exceptions or partial waivers.
+
+In practice, whenever describing the behavior of a class, method, data structure, or architectural mechanism, it is **mandatory to explicitly cite**:
+
+- The **source file name** of reference (e.g., `renderer.cpp`, `collision_manager.hpp`);
+- The **class name** or **namespace** in which the construct is defined;
+- The **specific method or function name** that forms the basis of the claim, whenever identifiable with precision.
+
+#### Distinction Between Observed Fact and Inference
+
+If the auditor deems it necessary to formulate an interpretive hypothesis about the **designer's intent** — for example, supposing that a certain architectural choice was made for performance or maintainability reasons — that hypothesis must be **explicitly marked as an inference**, by appending the mandatory prefix:
+
+> **Inferred:** *[inference text]*
+
+This prefix signals to the reader that the following statement is not directly derivable from the source code, but represents an interpretive evaluation by the auditor. Inferences are permitted, but must remain clearly separated from observed facts, avoiding any ambiguity that could compromise the document's reliability.
+
+#### Operational Example
+
+- ✅ **Correct:** «The method `PhysicsEngine::integrate()` defined in `physics_engine.cpp` uses an explicit Euler integrator to update rigid body positions.»
+- ✅ **Correct with inference:** «**Inferred:** The choice of explicit Euler integrator in `physics_engine.cpp` appears motivated by implementation simplicity rather than numerical stability, given that no integration step control mechanism is present.»
+- ❌ **Incorrect:** «The physics engine probably handles collisions efficiently.»
+
+---
+
+### Rule 2 — Documentation Completeness: No Component May Be Omitted
+
+The analysis must cover **the totality of systems and components present in the codebase**, without exceptions motivated by subjective perception of their relevance. Even components that appear elementary, redundant, or purely structural — commonly termed *scaffolding* — must be **documented and described**.
+
+#### Handling of Trivial Components
+
+Components that the auditor evaluates as trivial or support-level must be explicitly **marked with the `[TRIVIAL]` label** and accompanied by an explanation justifying their inclusion in the documentation. Typical reasons why a trivial component still warrants attention include:
+
+1. **Architectural completeness**: even a simple configuration file or elementary wrapper contributes to understanding the overall system structure;
+2. **Evolutionary potential**: a component that is trivial today may become the entry point for significant future extensions;
+3. **Hidden dependencies**: apparently irrelevant components may be referenced by critical modules, creating dependencies not immediately visible;
+4. **Regression risk**: changes to components considered negligible may introduce errors that are difficult to trace if not adequately documented.
+
+#### Operational Example
+
+A file `version.hpp` containing only a macro with the project version number is a trivial component by definition. However, it must be included in the analysis with a note such as:
+
+> **[TRIVIAL]** `version.hpp` — Defines the macro `PROJECT_VERSION`. Included for completeness: this macro is referenced in `main.cpp` and `logger.cpp` for application header logging. No computational logic present.
+
+---
+
+### Rule 3 — Bijective Correspondence Between Deficiencies and Recommendations
+
+There is a **mandatory correspondence constraint** between deficiencies identified in Phases 1, 2, and 3 of the analysis and recommendations formulated in Phase 4. The logical structure of this constraint is as follows:
+
+> For every deficiency D identified in Phases 1–3, there must exist **at least one recommendation R** in Phase 4 that explicitly addresses D.
+
+#### Consequences of the Constraint
+
+- **No deficiency may be left without a proposed resolution**: if a problem is identified, it must mandatorily receive an operational response in Phase 4, even if the solution is complex or requires deep architectural intervention;
+- **Generic recommendations do not satisfy the constraint**: a recommendation such as "improve error handling" is insufficient unless it is directly linked to a specific deficiency previously observed;
+- **Tracing must be explicit**: every recommendation in Phase 4 must indicate which deficiency (identified by section and number) it refers to, using the cross-referencing system defined in Rule 6.
+
+#### Completeness Verification
+
+Before finalizing the document, the auditor must perform a **formal completeness check** by constructing a deficiency–recommendation traceability matrix, ensuring that every row (deficiency) has at least one filled cell in the corresponding recommendations column.
+
+---
+
+### Rule 4 — Immediate Actionability of Recommendations
+
+Every recommendation formulated in Phase 4 must satisfy the requirement of **immediate actionability**, meaning it must provide sufficient information for a software engineer to begin implementing it without requiring further clarification or preliminary research.
+
+#### Structural Requirements of an Actionable Recommendation
+
+A recommendation is considered immediately actionable if and only if it contains **all** of the following elements:
+
+1. **Problem description** — A clear and precise summary of the deficiency being addressed;
+2. **Recommendation objective** — What must be achieved at the end of implementation;
+3. **Concrete entry point** — The exact name of the file, class, and/or method from which to begin the modification;
+4. **Description of initial intervention** — The first operational steps to take, described with sufficient technical granularity;
+5. **Completion criteria** — How to verify that the recommendation has been correctly implemented.
+
+#### Example of Non-Actionable vs. Actionable Recommendation
+
+- ❌ **Non-actionable:** "Improve memory management in the rendering module."
+- ✅ **Actionable:** «In the file `render_pipeline.cpp`, the method `RenderPipeline::submitFrame()` allocates a temporary buffer via `new` without a corresponding `delete` in the error path at line ~142. Replace the raw allocation with `std::unique_ptr<FrameBuffer>` to guarantee automatic resource release. Entry point: open `render_pipeline.cpp`, locate `submitFrame()`, and introduce the declaration `auto buffer = std::make_unique<FrameBuffer>(params)` in place of the problematic line.»
+
+---
+
+### Rule 5 — Precision and Non-Ambiguity of Technical Language
+
+The entire document must be written in **precise, unambiguous technical English** — or in the language specified by Rule 9 — systematically avoiding the use of expressions that introduce unjustified uncertainty or interpretive vagueness.
+
+#### Expressions to Avoid
+
+The following expressions — and analogous linguistic constructions — are **explicitly prohibited** except in cases where the uncertainty is genuine and justified:
+
+| Prohibited expression | Precise alternative |
+|---|---|
+| "might" | "does" (if observed) or "Inferred:" (if hypothetical) |
+| "could possibly" | Describe the observed behavior directly |
+| "seems to" | Cite the specific code that supports the claim |
+| "appears to be" | Verify and assert with certainty or mark as inference |
+| "it is likely that" | Ground in evidence or use the `Inferred:` prefix |
+
+#### Handling Genuine Uncertainty
+
+In cases where uncertainty is genuinely real — for example, when a component's behavior depends on external factors not visible in the analyzed source code — the use of dubitative language is **permitted but must be explicitly justified** with an explanation of why certainty is not reachable. Example:
+
+> «The behavior of the method `NetworkManager::reconnect()` under timeout conditions cannot be determined with certainty from static code analysis, as it depends on the runtime configuration of the parameter `MAX_RETRY_COUNT` which is not initialized in `network_config.hpp`.»
+
+---
+
+### Rule 6 — Elimination of Redundancy via Cross-Referencing
+
+The document must not contain **verbatim duplications of information** across different sections. When a concept, observation, or description elaborated in one section is also relevant to another, the system of **cross-referencing by section number** must be used rather than repeating the content.
+
+#### Cross-Reference Format
+
+The standard format for an internal reference is:
+
+> «(see §*X.Y*)»
+
+where *X* indicates the number of the main phase or chapter and *Y* the number of the specific subsection.
+
+#### Operational Principle
+
+- If a deficiency is already described in §2.3, Phase 4 must not redescribe it: it must simply reference it with «(see §2.3)» and proceed directly to the recommendation;
+- If a component has already been introduced in §1.2, subsequent references may omit the full description and limit themselves to the cross-reference;
+- Summary tables, if present, may refer to the original sections without duplicating their content.
+
+#### Benefits of Cross-Referencing
+
+1. **Reduced document volume** without loss of information;
+2. **Improved maintainability**: a change to shared information needs to be made in only one place;
+3. **Structural clarity**: the reader immediately understands where to find the original information.
+
+---
+
+### Rule 7 — Mechanical Computation of Recommendation Priority
+
+The ordering of recommendations in Phase 4 must be determined **exclusively through the mechanical application of the scoring formula defined in §4.1**. Any reordering based on the auditor's subjective judgment after application of the formula is **explicitly prohibited**.
+
+#### Principle of Ranking Objectivity
+
+The formula defined in §4.1 is designed to ensure that recommendation prioritization reflects objective, measurable criteria — such as system impact, implementation cost, risk associated with the unresolved deficiency — rather than personal preferences or intuitions of the auditor.
+
+#### Application Procedure
+
+1. **Compute the score** for each recommendation by fully applying the formula from §4.1, without omitting any required factor;
+2. **Sort recommendations** in descending order by score;
+3. **Document the calculation**: for each recommendation, report the values of each individual factor used and the final score obtained, so that the ranking is reproducible and verifiable by third parties;
+4. **Do not modify the order** once the calculation is complete, even if the result appears counterintuitive — in that case, the doubt must be reported as a marginal note, not as justification for altering the ranking.
+
+---
+
+### Rule 8 — Minimum Depth Requirements per Section
+
+The document must respect **minimum length and depth requirements** differentiated by section type. These requirements represent **non-negotiable floors**, not targets to reach with precision: content must exceed these thresholds whenever the complexity of the material warrants it.
+
+#### Defined Minimum Thresholds
+
+| Section Type | Minimum Requirement |
+|---|---|
+| Component subsection (Phase 3) | **150 words** |
+| System section (Phase 2) | **300 words** |
+
+#### Interpretation of Thresholds
+
+- The thresholds are **floors**, not ceilings or targets: a quality analysis will substantially exceed these values when the material requires it;
+- A section that reaches exactly the minimum should be considered **suspect**: the analysis was likely terminated prematurely or lacks sufficient depth;
+- Padding words that artificially inflate the count without adding informational value are **explicitly prohibited** and constitute a violation of the spirit of this rule, even if they technically satisfy the numerical requirement.
+
+#### Application Example
+
+A subsection dedicated to the class `AudioManager` in `audio_manager.hpp` must contain at least 150 words concretely describing: the class's public interface, its dependencies, the mechanism for managing audio resources, any deficiencies identified, and the behavior observed in key methods. It is not acceptable to reach 150 words through generic introductory paragraphs or repetitions.
+
+---
+
+### Rule 9 — Document Language: Italian
+
+The entire document must be written in **Italian**, consistent with the language of the original request. This requirement applies to:
+
+- All narrative and descriptive text;
+- Section and subsection titles;
+- Notes, annotations, and comments;
+- Table and diagram labels.
+
+#### Permitted Exceptions
+
+The following exceptions are permitted, in which it is appropriate to maintain the original English terminology:
+
+- **File names, class names, method names, and variable names**: these identifiers must be reported exactly as they appear in the source code, without translation (e.g., `RenderPipeline::submitFrame()`);
+- **Established technical terms**: terms such as *template*, *namespace*, *buffer*, *overhead*, *callback* do not require translation and may be used directly in Italian without mandatory italics, as they have entered the Italian technical lexicon;
+- **Direct code quotations**: any fragment of source code must be reported verbatim in the original language.
+
+---
+
+### Rule 10 — Prohibition of Unsupported Generic Statements
+
+It is **explicitly prohibited** to include in the document generic statements applicable to any codebase, unless such statements are:
+
+1. **Directly substantiated** by a specific, concretely observed deficiency in this specific codebase;
+2. **Accompanied by a concrete remediation step** that identifies specific files, classes, or methods to intervene on.
+
+#### Typically Prohibited Generic Statements
+
+The following categories of statements, in the absence of specific substantiation, are prohibited:
+
+- "The code could be better documented" ❌
+- "It is recommended to add unit tests" ❌
+- "Error handling could be improved" ❌
+- "The architecture could benefit from refactoring" ❌
+
+#### How to Make a Generic Statement Acceptable
+
+Transforming a generic statement into a valid one requires three elements:
+
+1. **Specific observation**: «The method `ConfigLoader::parseFile()` in `config_loader.cpp` does not handle the case where the configuration file is malformed: in the absence of a `try-catch` block, an uncaught `std::runtime_error` exception would cause process termination.»
+2. **Link to the general deficiency**: «This is an instance of the broader problem of insufficient error handling in the configuration module.»
+3. **Concrete, file-specific remedy**: «Add a `try-catch` block around the call to `json::parse()` within `ConfigLoader::parseFile()` in `config_loader.cpp`, with exception handling that logs the error via `Logger::error()` and returns a return value that signals failure to the caller.»
 
 ### Patterns for Constraint Compliance
 
@@ -1256,3 +1452,6 @@ Use **inline `monospace`** for all identifiers, file names, method names, and ty
   technical lead must repeat the verification work the auditor should have done.
 - **Correct alternative:** Apply the **Constraint-by-Constraint Verification Gate** pattern to produce documented
   evidence of compliance for every constraint, rather than a blanket assertion.
+
+
+il risultato salvalo in @typechecker_audit.md @include/jsav/typechecker/ @src/jsav_Lib/typechecker/
