@@ -231,6 +231,20 @@ namespace jsv {
          */
         [[nodiscard]] bool operator!=(const TypeBase &other) const noexcept { return !(*this == other); }
 
+        /**
+         * @brief Polymorphic deep-copy via virtual clone.
+         * @return A shared_ptr to a new heap-allocated copy of this type.
+         *
+         * Enables deep copying through a TypeBase pointer without knowing
+         * the concrete type at compile time.
+         *
+         * @code
+         * TypePtr original = PrimitiveType::i32();
+         * TypePtr copy = original->clone();  // virtual dispatch
+         * @endcode
+         */
+        [[nodiscard]] virtual std::shared_ptr<const TypeBase> clone() const = 0;
+
     protected:
         /**
          * @brief Protected constructor - only derived classes can instantiate.
@@ -238,7 +252,7 @@ namespace jsv {
          */
         explicit constexpr TypeBase(TypeKind kind) noexcept : kind_{kind} {}
 
-        // Delete copy/move to enforce shared_ptr usage
+        // Delete copy/move to enforce shared_ptr usage and clone() for copying
         TypeBase(const TypeBase &) = delete;
         TypeBase &operator=(const TypeBase &) = delete;
         TypeBase(TypeBase &&) = delete;
@@ -251,7 +265,8 @@ namespace jsv {
     // ============================================================
     // Primitive Type - for simple types without additional data
     // ============================================================
-    class PrimitiveType final : public TypeBase {
+    class PrimitiveType final : public TypeBase,
+                                public std::enable_shared_from_this<const PrimitiveType> {
     public:
         /**
          * @brief Private tag type to restrict construction to singleton factories.
@@ -439,6 +454,12 @@ namespace jsv {
                    n->kind() == TypeKind::String || n->kind() == TypeKind::Bool || n->kind() == TypeKind::Void ||
                    n->kind() == TypeKind::NullPtr;
         }
+
+        /**
+         * @brief Polymorphic clone — returns the singleton instance (no allocation).
+         * @return Shared pointer to this singleton.
+         */
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override { return shared_from_this(); }
     };
 
     // ============================================================
@@ -482,6 +503,14 @@ namespace jsv {
          * @return true if n is a CustomType.
          */
         [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Custom; }
+
+        /**
+         * @brief Polymorphic clone — creates a new CustomType with the same name.
+         * @return Shared pointer to a new CustomType instance.
+         */
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override {
+            return std::make_shared<CustomType>(*name_);
+        }
 
     private:
         std::shared_ptr<const std::string> name_;
@@ -541,6 +570,14 @@ namespace jsv {
          */
         [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Array; }
 
+        /**
+         * @brief Polymorphic clone — deep-copies element type, shares size expression.
+         * @return Shared pointer to a new ArrayType instance.
+         */
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override {
+            return std::make_shared<ArrayType>(element_type_->clone(), size_expr_);
+        }
+
     private:
         /// @brief Compare two size expressions structurally (supports IntegerLiteral).
         [[nodiscard]] static bool sizes_equal(const Expr &a, const Expr &b) noexcept;
@@ -593,6 +630,14 @@ namespace jsv {
          * @return true if n is a VectorType.
          */
         [[nodiscard]] static constexpr bool classof(const TypeBase *n) { return n->kind() == TypeKind::Vector; }
+
+        /**
+         * @brief Polymorphic clone — deep-copies element type.
+         * @return Shared pointer to a new VectorType instance.
+         */
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override {
+            return std::make_shared<VectorType>(element_type_->clone());
+        }
 
     private:
         std::shared_ptr<const TypeBase> element_type_;

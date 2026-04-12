@@ -9,6 +9,8 @@ namespace jsv {
 
     std::string ErrorType::to_string() const { return "<error>"; }
 
+    TypePtr ErrorType::clone() const noexcept { return error_type(); }
+
     TypePtr error_type() noexcept {
         static const auto instance = std::make_shared<ErrorType>();
         return instance;

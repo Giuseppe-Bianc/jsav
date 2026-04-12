@@ -79,6 +79,14 @@ namespace jsv {
             return id_ == other_tv->id_;
         }
 
+        /**
+         * @brief Polymorphic clone — creates a new TypeVariable with the same ID.
+         * @return Shared pointer to a new TypeVariable instance.
+         */
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const override {
+            return std::make_shared<TypeVariable>(id_);
+        }
+
     private:
         TypeVarId id_;
     };

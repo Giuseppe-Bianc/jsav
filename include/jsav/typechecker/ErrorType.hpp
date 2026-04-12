@@ -45,6 +45,12 @@ namespace jsv {
          *       enabling error propagation without cascading diagnostics.
          */
         [[nodiscard]] bool operator==(const TypeBase &other) const noexcept override { return other.kind() == kind(); }
+
+        /**
+         * @brief Polymorphic clone — returns the singleton instance (no allocation).
+         * @return Shared pointer to the ErrorType singleton.
+         */
+        [[nodiscard]] std::shared_ptr<const TypeBase> clone() const noexcept override;
     };
 
     /// Singleton error type instance
