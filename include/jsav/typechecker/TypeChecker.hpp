@@ -104,6 +104,25 @@ namespace jsv {
         [[nodiscard]] TypedExprPtr zonk_expr_full(const Substitution &subst, const TypedExpr &expr);
         [[nodiscard]] std::unique_ptr<TypedBlockStmt> zonk_block_full(const Substitution &subst, const TypedBlockStmt &block);
 
+        /// Expression typing helpers (one per expression kind)
+        [[nodiscard]] TypedExprPtr type_integer_literal(const IntegerLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_float_literal(const FloatLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_string_literal(const StringLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_char_literal(const CharLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_bool_literal(const BoolLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_null_literal(const NullLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_identifier(const Identifier &expr);
+        [[nodiscard]] TypedExprPtr type_binary_expr(const BinaryExpr &expr);
+        [[nodiscard]] TypedExprPtr type_unary_expr(const UnaryExpr &expr);
+        [[nodiscard]] TypedExprPtr type_call_expr(const CallExpr &expr);
+        [[nodiscard]] TypedExprPtr type_array_literal(const ArrayLiteral &expr);
+        [[nodiscard]] TypedExprPtr type_grouping_expr(const GroupingExpr &expr);
+        [[nodiscard]] TypedExprPtr type_assign_expr(const AssignExpr &expr);
+        [[nodiscard]] TypedExprPtr type_ternary_expr(const TernaryExpr &expr);
+        [[nodiscard]] TypedExprPtr type_index_expr(const IndexExpr &expr);
+        [[nodiscard]] TypedExprPtr type_member_expr(const MemberExpr &expr);
+        [[nodiscard]] TypedExprPtr type_cast_expr(const CastExpr &expr);
+
         SymbolTable symbols_;
         ConstraintSet constraints_;
         std::vector<CompileError> errors_;

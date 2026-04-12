@@ -464,475 +464,447 @@ namespace jsv {
     }
 
     // ============================================================
+    // Expression typing helpers (one per expression kind)
+    // ============================================================
+
+    TypedExprPtr TypeChecker::type_integer_literal(const IntegerLiteral &expr) {
+        TypePtr type;
+        if(const auto &suffix = expr.type_suffix(); suffix.has_value()) {
+            type = parse_type_annotation(*suffix);
+            if(!type) { type = PrimitiveType::i32(); }
+        } else {
+            type = PrimitiveType::i64();
+        }
+        constraints_.add(type, type, expr.location(), FORMAT("integer literal type: {}", type->to_string()));
+        return std::make_unique<TypedIntegerLiteral>(expr.value(), std::move(type), expr.location(), expr.type_suffix());
+    }
+
+    TypedExprPtr TypeChecker::type_float_literal(const FloatLiteral &expr) {
+        auto type = PrimitiveType::f64();
+        constraints_.add(type, type, expr.location(), "float literal defaults to f64");
+        return std::make_unique<TypedFloatLiteral>(expr.value(), std::move(type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_string_literal(const StringLiteral &expr) {
+        auto type = PrimitiveType::string();
+        constraints_.add(type, type, expr.location(), "string literal type");
+        return std::make_unique<TypedStringLiteral>(expr.value(), std::move(type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_char_literal(const CharLiteral &expr) {
+        auto type = PrimitiveType::char_();
+        constraints_.add(type, type, expr.location(), "char literal type");
+        return std::make_unique<TypedCharLiteral>(expr.value(), std::move(type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_bool_literal(const BoolLiteral &expr) {
+        auto type = PrimitiveType::bool_();
+        constraints_.add(type, type, expr.location(), "bool literal type");
+        return std::make_unique<TypedBoolLiteral>(expr.value(), std::move(type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_null_literal(const NullLiteral &expr) {
+        auto type = PrimitiveType::nullptr_();
+        constraints_.add(type, type, expr.location(), "null literal type");
+        return std::make_unique<TypedNullLiteral>(std::move(type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_identifier(const Identifier &expr) {
+        auto sym = symbols_.lookup(expr.name());
+        if(!sym) {
+            message_storage_.push_back(FORMAT("Undeclared identifier: {}", expr.name()));
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2033, message_storage_.back(), expr.location(),
+                                                      FORMAT("Identifier '{}' was not declared in this scope", expr.name())));
+            return std::make_unique<TypedIdentifier>(expr.name(), error_type(), expr.location());
+        }
+        return std::make_unique<TypedIdentifier>(expr.name(), sym->instantiate(), expr.location());
+    }
+
+    // NOLINTNEXTLINE(*-function-cognitive-complexity)
+    TypedExprPtr TypeChecker::type_binary_expr(const BinaryExpr &expr) {
+        auto lhs_typed = type_expr(expr.lhs());
+        auto rhs_typed = type_expr(expr.rhs());
+
+        const auto &lhs_type = lhs_typed->node_type();
+        const auto &rhs_type = rhs_typed->node_type();
+
+        TypePtr result_type;
+        switch(expr.op()) {
+        case BinaryOp::Add:
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                const bool lhs_str = lhs_type->kind() == TypeKind::String;
+                const bool rhs_str = rhs_type->kind() == TypeKind::String;
+                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                if((lhs_str || lhs_chr) && (rhs_str || rhs_chr)) {
+                    result_type = PrimitiveType::string();
+                    break;
+                }
+            }
+            [[fallthrough]];
+        case BinaryOp::Sub:
+        case BinaryOp::Mul:
+        case BinaryOp::Div:
+        case BinaryOp::Mod:
+            {
+                constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
+                result_type = lhs_type;
+                if(expr.op() != BinaryOp::Add) {
+                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                        if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+                            message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                              binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                            errors_.push_back(
+                                CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                                                        "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+                        }
+                    }
+                } else {
+                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                        const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
+                        const bool lhs_str = lhs_type->kind() == TypeKind::String;
+                        const bool rhs_str = rhs_type->kind() == TypeKind::String;
+                        const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                        const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                        const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
+                        if(!both_numeric && !string_char_combo) {
+                            message_storage_.push_back(
+                                FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
+                                       binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                            errors_.push_back(
+                                CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                                                        "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
+                        }
+                    }
+                }
+            }
+            break;
+        case BinaryOp::Eq:
+        case BinaryOp::Neq:
+        case BinaryOp::Lt:
+        case BinaryOp::Gt:
+        case BinaryOp::Le:
+        case BinaryOp::Ge:
+            constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
+            result_type = PrimitiveType::bool_();
+            break;
+        case BinaryOp::And:
+        case BinaryOp::Or:
+            {
+                result_type = PrimitiveType::bool_();
+                bool mismatch_reported = false;
+                if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                    if(lhs_type->kind() != TypeKind::Bool || rhs_type->kind() != TypeKind::Bool) {
+                        message_storage_.push_back(FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
+                                                          binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                        errors_.push_back(CompileError::TypeError(ErrorCode::E2012, message_storage_.back(), expr.location(),
+                                                                  "Use boolean values (true/false) for logical operations."));
+                        mismatch_reported = true;
+                    }
+                }
+                if(!mismatch_reported) {
+                    constraints_.add(lhs_type, PrimitiveType::bool_(), expr.location(), "logical op: lhs must be bool");
+                    constraints_.add(rhs_type, PrimitiveType::bool_(), expr.location(), "logical op: rhs must be bool");
+                }
+            }
+            break;
+        case BinaryOp::BitAnd:
+        case BinaryOp::BitOr:
+        case BinaryOp::BitXor:
+        case BinaryOp::Shl:
+        case BinaryOp::Shr:
+            constraints_.add(lhs_type, rhs_type, expr.location(), "bitwise op: operands must match");
+            result_type = lhs_type;
+            break;
+        default:
+            result_type = fresh_type_variable();
+            constraints_.add(result_type, lhs_type, expr.location(), "binary expression default");
+            break;
+        }
+
+        // Bitwise operators require integer types — check here once types are resolved
+        switch(expr.op()) {
+        case BinaryOp::BitAnd:
+        case BinaryOp::BitOr:
+        case BinaryOp::BitXor:
+        case BinaryOp::Shl:
+        case BinaryOp::Shr:
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                if(!lhs_type->is_integer() || !rhs_type->is_integer()) {
+                    message_storage_.push_back(FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
+                                                      binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                    errors_.push_back(
+                        CompileError::TypeError(ErrorCode::E2011, message_storage_.back(), expr.location(),
+                                                "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
+                }
+            }
+            break;
+        default:
+            break;
+        }
+
+        return std::make_unique<TypedBinaryExpr>(expr.op(), std::move(lhs_typed), std::move(rhs_typed), std::move(result_type),
+                                                 expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_unary_expr(const UnaryExpr &expr) {
+        auto operand_typed = type_expr(expr.operand());
+        const auto &operand_type = operand_typed->node_type();
+
+        TypePtr result_type;
+        switch(expr.op()) {
+        case UnaryOp::Negate:
+            result_type = operand_type;
+            if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
+                if(!operand_type->is_numeric()) {
+                    message_storage_.push_back(FORMAT("Negation requires numeric type operand, found {}", operand_type->to_string()));
+                    errors_.push_back(CompileError::TypeError(ErrorCode::E2018, message_storage_.back(), expr.location(),
+                                                              "Use a numeric type (i8-i64, u8-u64, f32, f64) for negation."));
+                }
+            }
+            break;
+        case UnaryOp::Not:
+            if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
+                if(operand_type->kind() != TypeKind::Bool) {
+                    message_storage_.push_back(FORMAT("Logical not requires boolean type operand, found {}", operand_type->to_string()));
+                    errors_.push_back(CompileError::TypeError(ErrorCode::E2019, message_storage_.back(), expr.location(),
+                                                              "Use a boolean type (bool) for logical not."));
+                }
+            }
+            constraints_.add(operand_type, PrimitiveType::bool_(), expr.location(), "not: operand must be bool");
+            result_type = PrimitiveType::bool_();
+            break;
+        case UnaryOp::PreInc:
+        case UnaryOp::PostInc:
+        case UnaryOp::PreDec:
+        case UnaryOp::PostDec:
+            constraints_.add(operand_type, PrimitiveType::i32(), expr.location(), "inc/dec: operand must be integer");
+            result_type = operand_type;
+            break;
+        default:
+            result_type = fresh_type_variable();
+            constraints_.add(result_type, operand_type, expr.location(), "unary expression default");
+            break;
+        }
+
+        return std::make_unique<TypedUnaryExpr>(expr.op(), std::move(operand_typed), std::move(result_type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_call_expr(const CallExpr &expr) {
+        auto callee_typed = type_expr(expr.callee());
+        auto callee_type = callee_typed->node_type();
+
+        std::vector<TypedExprPtr> typed_args;
+        typed_args.reserve(expr.args().size());
+        std::vector<TypePtr> arg_types;
+        arg_types.reserve(expr.args().size());
+        for(const auto &arg : expr.args()) {
+            auto typed_arg = type_expr(*arg);
+            arg_types.push_back(typed_arg->node_type());
+            typed_args.push_back(std::move(typed_arg));
+        }
+
+        TypePtr result_type;
+
+        if(const auto *ident = dynamic_cast<const Identifier *>(&expr.callee())) {
+            const auto &func_name = ident->name();
+            auto func_decl_it = function_decls_.find(func_name);
+
+            if(func_decl_it != function_decls_.end()) {
+                const FuncDecl *func_decl = func_decl_it->second;
+                const auto &params = func_decl->params();
+
+                if(arg_types.size() != params.size()) {
+                    message_storage_.push_back(
+                        FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name, params.size(), arg_types.size()));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2028, message_storage_.back(), expr.location(),
+                        FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})", params.size(),
+                               arg_types.size())));
+                    result_type = error_type();
+                } else {
+                    for(std::size_t i = 0; i < arg_types.size(); ++i) {
+                        const auto &param_type = params[i].type_annotation;
+                        if(param_type) {
+                            constraints_.add(arg_types[i], param_type, expr.location(),
+                                             FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
+                        }
+                    }
+                    result_type = func_decl->return_type().value_or(fresh_type_variable());
+                }
+            } else {
+                result_type = fresh_type_variable();
+            }
+        } else {
+            result_type = fresh_type_variable();
+        }
+
+        return std::make_unique<TypedCallExpr>(std::move(callee_typed), std::move(typed_args), std::move(result_type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_array_literal(const ArrayLiteral &expr) {
+        if(expr.elements().empty()) {
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2020, "Array literals must have at least one element for type inference", expr.location(),
+                "Add at least one element to the array literal so the compiler can infer the element type"));
+            return nullptr;
+        }
+
+        std::vector<TypedExprPtr> typed_elements;
+        typed_elements.reserve(expr.elements().size());
+
+        auto first_typed = type_expr(*expr.elements()[0]);
+        if(!first_typed) { return nullptr; }
+        const TypePtr &expected_type = first_typed->node_type();
+        typed_elements.push_back(std::move(first_typed));
+
+        for(std::size_t i = 1; i < expr.elements().size(); ++i) {
+            auto typed_elem = type_expr(*expr.elements()[i]);
+            if(!typed_elem) { return nullptr; }
+
+            const TypePtr &actual_type = typed_elem->node_type();
+            if(!(*expected_type == *actual_type)) {
+                message_storage_.push_back(FORMAT("All array elements must be same type, found mixed types: {} and {}",
+                                                  expected_type->to_string(), actual_type->to_string()));
+                errors_.push_back(CompileError::TypeError(ErrorCode::E2021, message_storage_.back(), typed_elem->location(),
+                                                          "Ensure all elements in the array literal have the same type"));
+                return nullptr;
+            }
+
+            typed_elements.push_back(std::move(typed_elem));
+        }
+
+        auto size_expr = std::make_unique<IntegerLiteral>(static_cast<std::int64_t>(expr.elements().size()));
+        auto array_type = std::make_shared<ArrayType>(expected_type, std::move(size_expr));
+        return std::make_unique<TypedArrayLiteral>(std::move(typed_elements), std::move(array_type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_grouping_expr(const GroupingExpr &expr) {
+        auto inner = type_expr(expr.expression());
+        return std::make_unique<TypedGroupingExpr>(std::move(inner), inner->node_type(), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_assign_expr(const AssignExpr &expr) {
+        auto target_typed = type_expr(expr.target());
+        auto value_typed = type_expr(expr.value());
+
+        if(target_typed && target_typed->kind() == NodeKind::Identifier) {
+            const auto *ident = static_cast<const TypedIdentifier *>(target_typed.get());
+            if(ident != nullptr) {
+                auto sym = symbols_.lookup(ident->name());
+                if(sym && sym->is_const) {
+                    message_storage_.push_back(FORMAT("Cannot assign to immutable variable '{}'", ident->name()));
+                    errors_.push_back(
+                        CompileError::TypeError(ErrorCode::E2024, message_storage_.back(), expr.location(),
+                                                FORMAT("Variable '{}' was declared as const and cannot be modified", ident->name())));
+                    return nullptr;
+                }
+            }
+        }
+
+        if(!target_typed || !value_typed) { return nullptr; }
+
+        constraints_.add(target_typed->node_type(), value_typed->node_type(), expr.location(), "assignment: LHS type must match RHS type");
+
+        return std::make_unique<TypedAssignExpr>(std::move(target_typed), std::move(value_typed), target_typed->node_type(),
+                                                 expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_ternary_expr(const TernaryExpr &expr) {
+        auto cond_typed = type_expr(expr.condition());
+        constraints_.add(cond_typed->node_type(), PrimitiveType::bool_(), expr.location(), "ternary condition must be bool");
+
+        auto then_typed = type_expr(expr.then_expr());
+        auto else_typed = type_expr(expr.else_expr());
+
+        constraints_.add(then_typed->node_type(), else_typed->node_type(), expr.location(), "ternary branches must match type");
+
+        return std::make_unique<TypedTernaryExpr>(std::move(cond_typed), std::move(then_typed), std::move(else_typed),
+                                                  then_typed->node_type(), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_index_expr(const IndexExpr &expr) {
+        auto obj_typed = type_expr(expr.object());
+        auto index_typed = type_expr(expr.index());
+
+        if(!obj_typed || !index_typed) { return nullptr; }
+
+        if(obj_typed->node_type()->kind() != TypeKind::Array) {
+            message_storage_.push_back(FORMAT("Cannot index into non-array type {}", obj_typed->node_type()->to_string()));
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2031, message_storage_.back(), obj_typed->location(),
+                                                      "Array indexing is only valid on array types"));
+            return nullptr;
+        }
+
+        if(!index_typed->node_type()->is_integer()) {
+            message_storage_.push_back(FORMAT("Array index must be integer type, found {}", index_typed->node_type()->to_string()));
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2030, message_storage_.back(), index_typed->location(),
+                                                      "Use an integer expression for array indexing"));
+            return nullptr;
+        }
+
+        const auto *arr_type = static_cast<const ArrayType *>(obj_typed->node_type().get());
+        auto result_type = arr_type->element_type();
+
+        return std::make_unique<TypedIndexExpr>(std::move(obj_typed), std::move(index_typed), std::move(result_type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_member_expr(const MemberExpr &expr) {
+        auto obj_typed = type_expr(expr.object());
+        auto result_type = fresh_type_variable();
+
+        return std::make_unique<TypedMemberExpr>(std::move(obj_typed), expr.member(), std::move(result_type), expr.location());
+    }
+
+    TypedExprPtr TypeChecker::type_cast_expr(const CastExpr &expr) {
+        auto operand_typed = type_expr(expr.operand());
+
+        auto target_type = parse_type_annotation(expr.target_type());
+        if(!target_type) { target_type = fresh_type_variable(); }
+
+        return std::make_unique<TypedCastExpr>(expr.target_type(), std::move(operand_typed), std::move(target_type), expr.location());
+    }
+
+    // ============================================================
     // type_expr — Constraint generation for expressions
     // ============================================================
     // NOLINTNEXTLINE(*-function-cognitive-complexity)
     TypedExprPtr TypeChecker::type_expr(const Expr &expr) {
         switch(expr.kind()) {
         case NodeKind::IntegerLiteral:
-            {
-                const auto *lit = static_cast<const IntegerLiteral *>(&expr);
-                TypePtr type;
-                if(const auto &suffix = lit->type_suffix(); suffix.has_value()) {
-                    // Use the explicit type suffix to determine the literal's type
-                    type = parse_type_annotation(*suffix);
-                    if(!type) {
-                        // Unknown suffix — fall back to i32
-                        type = PrimitiveType::i32();
-                    }
-                } else {
-                    // No suffix — default to i64
-                    type = PrimitiveType::i64();
-                }
-                constraints_.add(type, type, lit->location(), FORMAT("integer literal type: {}", type->to_string()));
-                return std::make_unique<TypedIntegerLiteral>(lit->value(), std::move(type), lit->location(), lit->type_suffix());
-            }
+            return type_integer_literal(*static_cast<const IntegerLiteral *>(&expr));
         case NodeKind::FloatLiteral:
-            {
-                const auto *lit = static_cast<const FloatLiteral *>(&expr);
-                // Float literals with suffix: f32, f64. No suffix defaults to f64.
-                // The FloatLiteral doesn't have a type_suffix field, so we default to f64.
-                // If the parser ever adds suffix support, check it here.
-                auto type = PrimitiveType::f64();
-                constraints_.add(type, type, lit->location(), "float literal defaults to f64");
-                return std::make_unique<TypedFloatLiteral>(lit->value(), std::move(type), lit->location());
-            }
+            return type_float_literal(*static_cast<const FloatLiteral *>(&expr));
         case NodeKind::StringLiteral:
-            {
-                const auto *lit = static_cast<const StringLiteral *>(&expr);
-                auto type = PrimitiveType::string();
-                constraints_.add(type, type, lit->location(), "string literal type");
-                return std::make_unique<TypedStringLiteral>(lit->value(), std::move(type), lit->location());
-            }
+            return type_string_literal(*static_cast<const StringLiteral *>(&expr));
         case NodeKind::CharLiteral:
-            {
-                const auto *lit = static_cast<const CharLiteral *>(&expr);
-                auto type = PrimitiveType::char_();
-                constraints_.add(type, type, lit->location(), "char literal type");
-                return std::make_unique<TypedCharLiteral>(lit->value(), std::move(type), lit->location());
-            }
+            return type_char_literal(*static_cast<const CharLiteral *>(&expr));
         case NodeKind::BoolLiteral:
-            {
-                const auto *lit = static_cast<const BoolLiteral *>(&expr);
-                auto type = PrimitiveType::bool_();
-                constraints_.add(type, type, lit->location(), "bool literal type");
-                return std::make_unique<TypedBoolLiteral>(lit->value(), std::move(type), lit->location());
-            }
+            return type_bool_literal(*static_cast<const BoolLiteral *>(&expr));
         case NodeKind::NullLiteral:
-            {
-                const auto *lit = static_cast<const NullLiteral *>(&expr);
-                auto type = PrimitiveType::nullptr_();
-                constraints_.add(type, type, lit->location(), "null literal type");
-                return std::make_unique<TypedNullLiteral>(std::move(type), lit->location());
-            }
+            return type_null_literal(*static_cast<const NullLiteral *>(&expr));
         case NodeKind::Identifier:
-            {
-                const auto *id = static_cast<const Identifier *>(&expr);
-                auto sym = symbols_.lookup(id->name());
-                if(!sym) {
-                    message_storage_.push_back(FORMAT("Undeclared identifier: {}", id->name()));
-                    errors_.push_back(CompileError::TypeError(ErrorCode::E2033, message_storage_.back(), id->location(),
-                                                              FORMAT("Identifier '{}' was not declared in this scope", id->name())));
-                    return std::make_unique<TypedIdentifier>(id->name(), error_type(), id->location());
-                }
-                // Instantiate the type scheme to get fresh type variables for polymorphic values
-                return std::make_unique<TypedIdentifier>(id->name(), sym->instantiate(), id->location());
-            }
+            return type_identifier(*static_cast<const Identifier *>(&expr));
         case NodeKind::BinaryExpr:
-            {
-                const auto *bin = static_cast<const BinaryExpr *>(&expr);
-                auto lhs_typed = type_expr(bin->lhs());
-                auto rhs_typed = type_expr(bin->rhs());
-
-                const auto &lhs_type = lhs_typed->node_type();
-                const auto &rhs_type = rhs_typed->node_type();
-
-                TypePtr result_type;
-                switch(bin->op()) {
-                case BinaryOp::Add:
-                    // Special cases for string concatenation:
-                    // string + string → string
-                    // char + char → string
-                    // string + char → string
-                    // char + string → string
-                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                        const bool lhs_str = lhs_type->kind() == TypeKind::String;
-                        const bool rhs_str = rhs_type->kind() == TypeKind::String;
-                        const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                        const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                        if((lhs_str || lhs_chr) && (rhs_str || rhs_chr)) {
-                            result_type = PrimitiveType::string();
-                            break;
-                        }
-                    }
-                    // Fall through to numeric check
-                    [[fallthrough]];
-                case BinaryOp::Sub:
-                case BinaryOp::Mul:
-                case BinaryOp::Div:
-                case BinaryOp::Mod:
-                    {
-                        constraints_.add(lhs_type, rhs_type, bin->location(), "binary arithmetic: operands must match");
-                        result_type = lhs_type;
-                        // Early check: concrete non-numeric types → E2013 (only for non-Add ops)
-                        if(bin->op() != BinaryOp::Add) {
-                            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                                if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                                    message_storage_.push_back(
-                                        FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
-                                               binary_op_symbol(bin->op()), lhs_type->to_string(), rhs_type->to_string()));
-                                    errors_.push_back(
-                                        CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), bin->location(),
-                                                                "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
-                                }
-                            }
-                        } else {
-                            // Add: allow numeric, string, char, or any string/char combo
-                            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                                const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
-                                const bool lhs_str = lhs_type->kind() == TypeKind::String;
-                                const bool rhs_str = rhs_type->kind() == TypeKind::String;
-                                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                                const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
-                                if(!both_numeric && !string_char_combo) {
-                                    message_storage_.push_back(
-                                        FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
-                                               binary_op_symbol(bin->op()), lhs_type->to_string(), rhs_type->to_string()));
-                                    errors_.push_back(CompileError::TypeError(
-                                        ErrorCode::E2013, message_storage_.back(), bin->location(),
-                                        "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
-                                }
-                            }
-                        }
-                    }
-                    break;
-                case BinaryOp::Eq:
-                case BinaryOp::Neq:
-                case BinaryOp::Lt:
-                case BinaryOp::Gt:
-                case BinaryOp::Le:
-                case BinaryOp::Ge:
-                    constraints_.add(lhs_type, rhs_type, bin->location(), "comparison: operands must match");
-                    result_type = PrimitiveType::bool_();
-                    break;
-                case BinaryOp::And:
-                case BinaryOp::Or:
-                    {
-                        result_type = PrimitiveType::bool_();
-                        bool mismatch_reported = false;
-                        // Early check: concrete non-bool types → E2012
-                        if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                            if(lhs_type->kind() != TypeKind::Bool || rhs_type->kind() != TypeKind::Bool) {
-                                message_storage_.push_back(FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
-                                                                  binary_op_symbol(bin->op()), lhs_type->to_string(),
-                                                                  rhs_type->to_string()));
-                                errors_.push_back(CompileError::TypeError(ErrorCode::E2012, message_storage_.back(), bin->location(),
-                                                                          "Use boolean values (true/false) for logical operations."));
-                                mismatch_reported = true;
-                            }
-                        }
-                        if(!mismatch_reported) {
-                            // Defer to constraint solver for type variables
-                            constraints_.add(lhs_type, PrimitiveType::bool_(), bin->location(), "logical op: lhs must be bool");
-                            constraints_.add(rhs_type, PrimitiveType::bool_(), bin->location(), "logical op: rhs must be bool");
-                        }
-                    }
-                    break;
-                case BinaryOp::BitAnd:
-                case BinaryOp::BitOr:
-                case BinaryOp::BitXor:
-                case BinaryOp::Shl:
-                case BinaryOp::Shr:
-                    {
-                        constraints_.add(lhs_type, rhs_type, bin->location(), "bitwise op: operands must match");
-                        result_type = lhs_type;
-                        // Defer integer-type check to constraint solver for precise E2011 reporting
-                        // (handled below after switch)
-                    }
-                    break;
-                default:
-                    result_type = fresh_type_variable();
-                    // NOLINTNEXTLINE(*-suspicious-call-argument)
-                    constraints_.add(result_type, lhs_type, bin->location(), "binary expression default");
-                    break;
-                }
-
-                // Bitwise operators require integer types — check here once types are resolved
-                switch(bin->op()) {
-                case BinaryOp::BitAnd:
-                case BinaryOp::BitOr:
-                case BinaryOp::BitXor:
-                case BinaryOp::Shl:
-                case BinaryOp::Shr:
-                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                        if(!lhs_type->is_integer() || !rhs_type->is_integer()) {
-                            message_storage_.push_back(FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
-                                                              binary_op_symbol(bin->op()), lhs_type->to_string(), rhs_type->to_string()));
-                            errors_.push_back(CompileError::TypeError(
-                                ErrorCode::E2011, message_storage_.back(), bin->location(),
-                                "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
-                        }
-                    }
-                    break;
-                default:
-                    break;
-                }
-
-                return std::make_unique<TypedBinaryExpr>(bin->op(), std::move(lhs_typed), std::move(rhs_typed), std::move(result_type),
-                                                         bin->location());
-            }
+            return type_binary_expr(*static_cast<const BinaryExpr *>(&expr));
         case NodeKind::UnaryExpr:
-            {
-                const auto *un = static_cast<const UnaryExpr *>(&expr);
-                auto operand_typed = type_expr(un->operand());
-                const auto &operand_type = operand_typed->node_type();
-
-                TypePtr result_type;
-                switch(un->op()) {
-                case UnaryOp::Negate:
-                    result_type = operand_type;
-                    // Early check: concrete non-numeric type → E2018
-                    if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
-                        if(!operand_type->is_numeric()) {
-                            message_storage_.push_back(
-                                FORMAT("Negation requires numeric type operand, found {}", operand_type->to_string()));
-                            errors_.push_back(CompileError::TypeError(ErrorCode::E2018, message_storage_.back(), un->location(),
-                                                                      "Use a numeric type (i8-i64, u8-u64, f32, f64) for negation."));
-                        }
-                    }
-                    break;
-                case UnaryOp::Not:
-                    // Early check: concrete non-bool type → E2019
-                    if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
-                        if(operand_type->kind() != TypeKind::Bool) {
-                            message_storage_.push_back(
-                                FORMAT("Logical not requires boolean type operand, found {}", operand_type->to_string()));
-                            errors_.push_back(CompileError::TypeError(ErrorCode::E2019, message_storage_.back(), un->location(),
-                                                                      "Use a boolean type (bool) for logical not."));
-                        }
-                    }
-                    constraints_.add(operand_type, PrimitiveType::bool_(), un->location(), "not: operand must be bool");
-                    result_type = PrimitiveType::bool_();
-                    break;
-                case UnaryOp::PreInc:
-                case UnaryOp::PostInc:
-                case UnaryOp::PreDec:
-                case UnaryOp::PostDec:
-                    constraints_.add(operand_type, PrimitiveType::i32(), un->location(), "inc/dec: operand must be integer");
-                    result_type = operand_type;
-                    break;
-                default:
-                    result_type = fresh_type_variable();
-                    constraints_.add(result_type, operand_type, un->location(), "unary expression default");
-                    break;
-                }
-
-                return std::make_unique<TypedUnaryExpr>(un->op(), std::move(operand_typed), std::move(result_type), un->location());
-            }
+            return type_unary_expr(*static_cast<const UnaryExpr *>(&expr));
         case NodeKind::CallExpr:
-            {
-                const auto *call = static_cast<const CallExpr *>(&expr);
-
-                // Type the callee
-                auto callee_typed = type_expr(call->callee());
-                auto callee_type = callee_typed->node_type();
-
-                // Type all arguments
-                std::vector<TypedExprPtr> typed_args;
-                typed_args.reserve(call->args().size());
-                std::vector<TypePtr> arg_types;
-                arg_types.reserve(call->args().size());
-                for(const auto &arg : call->args()) {
-                    auto typed_arg = type_expr(*arg);
-                    arg_types.push_back(typed_arg->node_type());
-                    typed_args.push_back(std::move(typed_arg));
-                }
-
-                TypePtr result_type;
-
-                if(const auto *ident = dynamic_cast<const Identifier *>(&call->callee())) {
-                    const auto &func_name = ident->name();
-
-                    auto func_decl_it = function_decls_.find(func_name);
-
-                    if(func_decl_it != function_decls_.end()) {
-                        const FuncDecl *func_decl = func_decl_it->second;
-                        const auto &params = func_decl->params();
-
-                        if(arg_types.size() != params.size()) {
-                            message_storage_.push_back(FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name,
-                                                              params.size(), arg_types.size()));
-                            errors_.push_back(CompileError::TypeError(
-                                ErrorCode::E2028, message_storage_.back(), call->location(),
-                                FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})",
-                                       params.size(), arg_types.size())));
-                            result_type = error_type();
-                        } else {
-                            for(std::size_t i = 0; i < arg_types.size(); ++i) {
-                                const auto &param_type = params[i].type_annotation;
-                                if(param_type) {
-                                    constraints_.add(arg_types[i], param_type, call->location(),
-                                                     FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
-                                }
-                            }
-                            result_type = func_decl->return_type().value_or(fresh_type_variable());
-                        }
-                    } else {
-                        result_type = fresh_type_variable();
-                    }
-                } else {
-                    result_type = fresh_type_variable();
-                }
-
-                return std::make_unique<TypedCallExpr>(std::move(callee_typed), std::move(typed_args), std::move(result_type),
-                                                       call->location());
-            }
+            return type_call_expr(*static_cast<const CallExpr *>(&expr));
         case NodeKind::ArrayLiteral:
-            {
-                const auto *arr = static_cast<const ArrayLiteral *>(&expr);
-
-                if(arr->elements().empty()) {
-                    errors_.push_back(CompileError::TypeError(
-                        ErrorCode::E2020, "Array literals must have at least one element for type inference", arr->location(),
-                        "Add at least one element to the array literal so the compiler can infer the element type"));
-                    return nullptr;
-                }
-
-                std::vector<TypedExprPtr> typed_elements;
-                typed_elements.reserve(arr->elements().size());
-
-                // Type first element to establish expected element type
-                auto first_typed = type_expr(*arr->elements()[0]);
-                if(!first_typed) { return nullptr; }
-                const TypePtr &expected_type = first_typed->node_type();
-                typed_elements.push_back(std::move(first_typed));
-
-                // Type remaining elements and check consistency
-                for(std::size_t i = 1; i < arr->elements().size(); ++i) {
-                    auto typed_elem = type_expr(*arr->elements()[i]);
-                    if(!typed_elem) { return nullptr; }
-
-                    const TypePtr &actual_type = typed_elem->node_type();
-                    if(!(*expected_type == *actual_type)) {
-                        message_storage_.push_back(FORMAT("All array elements must be same type, found mixed types: {} and {}",
-                                                          expected_type->to_string(), actual_type->to_string()));
-                        errors_.push_back(CompileError::TypeError(ErrorCode::E2021, message_storage_.back(), typed_elem->location(),
-                                                                  "Ensure all elements in the array literal have the same type"));
-                        return nullptr;
-                    }
-
-                    typed_elements.push_back(std::move(typed_elem));
-                }
-
-                auto size_expr = std::make_unique<IntegerLiteral>(static_cast<std::int64_t>(arr->elements().size()));
-                auto array_type = std::make_shared<ArrayType>(expected_type, std::move(size_expr));
-                return std::make_unique<TypedArrayLiteral>(std::move(typed_elements), std::move(array_type), arr->location());
-            }
+            return type_array_literal(*static_cast<const ArrayLiteral *>(&expr));
         case NodeKind::GroupingExpr:
-            {
-                const auto *grp = static_cast<const GroupingExpr *>(&expr);
-                auto inner = type_expr(grp->expression());
-                return std::make_unique<TypedGroupingExpr>(std::move(inner), inner->node_type(), grp->location());
-            }
+            return type_grouping_expr(*static_cast<const GroupingExpr *>(&expr));
         case NodeKind::AssignExpr:
-            {
-                const auto *assign = static_cast<const AssignExpr *>(&expr);
-                auto target_typed = type_expr(assign->target());
-                auto value_typed = type_expr(assign->value());
-
-                // Check if target is an immutable variable
-                if(target_typed && target_typed->kind() == NodeKind::Identifier) {
-                    const auto *ident = static_cast<const TypedIdentifier *>(target_typed.get());
-                    if(ident != nullptr) {
-                        auto sym = symbols_.lookup(ident->name());
-                        if(sym && sym->is_const) {
-                            message_storage_.push_back(FORMAT("Cannot assign to immutable variable '{}'", ident->name()));
-                            errors_.push_back(CompileError::TypeError(
-                                ErrorCode::E2024, message_storage_.back(), assign->location(),
-                                FORMAT("Variable '{}' was declared as const and cannot be modified", ident->name())));
-                            return nullptr;
-                        }
-                    }
-                }
-
-                if(!target_typed || !value_typed) { return nullptr; }
-
-                constraints_.add(target_typed->node_type(), value_typed->node_type(), assign->location(),
-                                 "assignment: LHS type must match RHS type");
-
-                return std::make_unique<TypedAssignExpr>(std::move(target_typed), std::move(value_typed), target_typed->node_type(),
-                                                         assign->location());
-            }
+            return type_assign_expr(*static_cast<const AssignExpr *>(&expr));
         case NodeKind::TernaryExpr:
-            {
-                const auto *ter = static_cast<const TernaryExpr *>(&expr);
-                auto cond_typed = type_expr(ter->condition());
-                constraints_.add(cond_typed->node_type(), PrimitiveType::bool_(), ter->location(), "ternary condition must be bool");
-
-                auto then_typed = type_expr(ter->then_expr());
-                auto else_typed = type_expr(ter->else_expr());
-
-                // Both branches must have the same type
-                constraints_.add(then_typed->node_type(), else_typed->node_type(), ter->location(), "ternary branches must match type");
-
-                return std::make_unique<TypedTernaryExpr>(std::move(cond_typed), std::move(then_typed), std::move(else_typed),
-                                                          then_typed->node_type(), ter->location());
-            }
+            return type_ternary_expr(*static_cast<const TernaryExpr *>(&expr));
         case NodeKind::IndexExpr:
-            {
-                const auto *idx = static_cast<const IndexExpr *>(&expr);
-                auto obj_typed = type_expr(idx->object());
-                auto index_typed = type_expr(idx->index());
-
-                if(!obj_typed || !index_typed) { return nullptr; }
-
-                // Object must be an array type
-                if(obj_typed->node_type()->kind() != TypeKind::Array) {
-                    message_storage_.push_back(FORMAT("Cannot index into non-array type {}", obj_typed->node_type()->to_string()));
-                    errors_.push_back(CompileError::TypeError(ErrorCode::E2031, message_storage_.back(), obj_typed->location(),
-                                                              "Array indexing is only valid on array types"));
-                    return nullptr;
-                }
-
-                // Index must be integer
-                if(!index_typed->node_type()->is_integer()) {
-                    message_storage_.push_back(FORMAT("Array index must be integer type, found {}", index_typed->node_type()->to_string()));
-                    errors_.push_back(CompileError::TypeError(ErrorCode::E2030, message_storage_.back(), index_typed->location(),
-                                                              "Use an integer expression for array indexing"));
-                    return nullptr;
-                }
-
-                // Result type is the element type of the array
-                const auto *arr_type = static_cast<const ArrayType *>(obj_typed->node_type().get());
-                auto result_type = arr_type->element_type();
-
-                return std::make_unique<TypedIndexExpr>(std::move(obj_typed), std::move(index_typed), std::move(result_type),
-                                                        idx->location());
-            }
+            return type_index_expr(*static_cast<const IndexExpr *>(&expr));
         case NodeKind::MemberExpr:
-            {
-                const auto *mem = static_cast<const MemberExpr *>(&expr);
-                auto obj_typed = type_expr(mem->object());
-                auto result_type = fresh_type_variable();
-
-                return std::make_unique<TypedMemberExpr>(std::move(obj_typed), mem->member(), std::move(result_type), mem->location());
-            }
+            return type_member_expr(*static_cast<const MemberExpr *>(&expr));
         case NodeKind::CastExpr:
-            {
-                const auto *cast = static_cast<const CastExpr *>(&expr);
-                auto operand_typed = type_expr(cast->operand());
-
-                // Parse the target type annotation
-                auto target_type = parse_type_annotation(cast->target_type());
-                if(!target_type) {
-                    // Unknown target type — use a fresh type variable
-                    target_type = fresh_type_variable();
-                }
-
-                return std::make_unique<TypedCastExpr>(cast->target_type(), std::move(operand_typed), std::move(target_type),
-                                                       cast->location());
-            }
+            return type_cast_expr(*static_cast<const CastExpr *>(&expr));
         default:
             errors_.push_back(CompileError::TypeError(ErrorCode::E2033, "Constraint generation failed for expression", expr.location(),
                                                       FORMAT("Expression kind {} is not yet supported", C_I(expr.kind()))));
