@@ -119,7 +119,8 @@ namespace jsv {
         // clang-format on
         // cppcheck-suppress unreadVariable
         const auto *t2PtrForSwap = t2.get();
-        if([[maybe_unused]] const auto *tv2 = TypeVariable::classof(t2PtrForSwap) ? static_cast<const TypeVariable *>(t2PtrForSwap) : nullptr) {
+        if([[maybe_unused]] const auto *tv2 = TypeVariable::classof(t2PtrForSwap) ? static_cast<const TypeVariable *>(t2PtrForSwap)
+                                                                                  : nullptr) {
             // Concrete type = tv2: swap and unify
             return unify(t2, t1, constraint);
         }
