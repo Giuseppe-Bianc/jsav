@@ -25,6 +25,8 @@ namespace jsv {
             auto elem = self.applyImpl(vec.element_type());
             out = (elem == vec.element_type()) ? nullptr : std::make_shared<VectorType>(std::move(elem));
         }
+
+        void visit_custom(const CustomType &/*custom*/) override { /* no-op — CustomType contains no type variables to resolve */ }
     };
 
     void Substitution::bind(TypeVarId var, TypePtr type) {

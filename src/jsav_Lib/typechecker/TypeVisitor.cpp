@@ -17,6 +17,9 @@ namespace jsv {
         case TypeKind::Vector:
             visitor.visit_vector(static_cast<const VectorType &>(type));
             break;
+        case TypeKind::Custom:
+            visitor.visit_custom(static_cast<const CustomType &>(type));
+            break;
         default:
             break;
         }

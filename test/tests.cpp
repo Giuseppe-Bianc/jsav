@@ -20200,6 +20200,7 @@ TEST_CASE("TypeVisitor: dispatches to ArrayType", "[typechecker]") {
             elem = arr.element_type();
         }
         void visit_vector(const jsv::VectorType &) override {}
+        void visit_custom(const jsv::CustomType &) override {}
     };
 
     ArrayDetector visitor;
@@ -20222,6 +20223,7 @@ TEST_CASE("TypeVisitor: dispatches to VectorType", "[typechecker]") {
             is_vector = true;
             elem = vec.element_type();
         }
+        void visit_custom(const jsv::CustomType &) override {}
     };
 
     VectorDetector visitor;
@@ -20240,6 +20242,7 @@ TEST_CASE("TypeVisitor: no dispatch for primitive types", "[typechecker]") {
 
         void visit_array(const jsv::ArrayType &) override { ++array_count; }
         void visit_vector(const jsv::VectorType &) override { ++vector_count; }
+        void visit_custom(const jsv::CustomType &) override {}
     };
 
     Counter visitor;

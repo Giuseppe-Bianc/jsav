@@ -56,6 +56,12 @@ namespace jsv {
          * @param vec The vector type being visited.
          */
         virtual void visit_vector(const VectorType &vec) = 0;
+
+        /**
+         * @brief Called when visiting a CustomType.
+         * @param custom The custom type being visited.
+         */
+        virtual void visit_custom(const CustomType &custom) = 0;
     };
 
     /**

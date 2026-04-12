@@ -19,6 +19,7 @@ namespace jsv {
 
         void visit_array(const ArrayType &arr) override { found = ConstraintSolver::occurs_in(var, arr.element_type(), subst); }
         void visit_vector(const VectorType &vec) override { found = ConstraintSolver::occurs_in(var, vec.element_type(), subst); }
+        void visit_custom(const CustomType &/*custom*/) override { /* no-op — CustomType contains no type variables */ }
     };
 
     // Same kind - check compound types recursively via visitor
@@ -38,6 +39,17 @@ namespace jsv {
         void visit_vector(const VectorType &vec1) override {
             const auto *vec2 = static_cast<const VectorType *>(t2.get());
             result = solver.unify(vec1.element_type(), vec2->element_type(), constraint);
+        }
+
+        void visit_custom(const CustomType &custom1) override {
+            const auto *custom2 = static_cast<const CustomType *>(t2.get());
+            if(custom1.name() != custom2->name()) {
+                result = std::unexpected{CompileError::TypeError(
+                    ErrorCode::E2034, "Type mismatch", constraint.origin,
+                    FORMAT("Custom type '{}' does not match '{}'", custom1.name(), custom2->name()))};
+            } else {
+                result = std::expected<void, CompileError>{};
+            }
         }
     };
 
