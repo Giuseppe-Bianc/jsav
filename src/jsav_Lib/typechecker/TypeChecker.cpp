@@ -41,7 +41,8 @@ namespace jsv {
     [[nodiscard]] static TypePtr zonk_type(const Substitution &subst, const TypePtr &type) {
         if(!type) { return type; }
 
-        if(const auto *tvar = TypeVariable::classof(type.get()) ? static_cast<const TypeVariable *>(type.get()) : nullptr) {
+        const auto *typePtr = type.get();
+        if(const auto *tvar = TypeVariable::classof(typePtr) ? static_cast<const TypeVariable *>(typePtr) : nullptr) {
             if(auto resolved = subst.lookup(tvar->id())) {
                 // Recursively zonk the resolved type (may itself be a type variable)
                 return zonk_type(subst, *resolved);
@@ -49,14 +50,14 @@ namespace jsv {
             return type;  // Unresolved type variable — leave as-is
         }
 
-        if(const auto *arr = ArrayType::classof(type.get()) ? static_cast<const ArrayType *>(type.get()) : nullptr) {
+        if(const auto *arr = ArrayType::classof(typePtr) ? static_cast<const ArrayType *>(typePtr) : nullptr) {
             auto elem = zonk_type(subst, arr->element_type());
             if(elem == arr->element_type()) { return type; }
             // Preserve original size expression
             return std::make_shared<ArrayType>(std::move(elem), arr->size_expr());
         }
 
-        if(const auto *vec = VectorType::classof(type.get()) ? static_cast<const VectorType *>(type.get()) : nullptr) {
+        if(const auto *vec = VectorType::classof(typePtr) ? static_cast<const VectorType *>(typePtr) : nullptr) {
             auto elem = zonk_type(subst, vec->element_type());
             if(elem == vec->element_type()) { return type; }
             return std::make_shared<VectorType>(std::move(elem));
@@ -128,7 +129,8 @@ namespace jsv {
                 symbols_.define("main", TypeScheme::mono(PrimitiveType::void_(), false, PrimitiveType::void_(), "main"));
                 const auto *ms = static_cast<const MainStmt *>(&stmt);
                 symbols_.push_scope();
-                if(const auto *body_block = BlockStmt::classof(&ms->body()) ? static_cast<const BlockStmt *>(&ms->body()) : nullptr) {
+                const auto *body_ptr = &ms->body();
+                if(const auto *body_block = BlockStmt::classof(body_ptr) ? static_cast<const BlockStmt *>(body_ptr) : nullptr) {
                     for(const auto &s : body_block->statements()) { resolve_names_stmt(*s); }
                 } else {
                     resolve_names_stmt(ms->body());
@@ -313,7 +315,8 @@ namespace jsv {
                 const auto *ms = static_cast<const TypedMainStmt *>(&stmt);
                 // MainStmt body is a TypedStmtPtr — try to cast to BlockStmt and zonk
                 std::vector<TypedStmtPtr> zonked_body_stmts;
-                if(const auto *body_block = TypedBlockStmt::classof(&ms->body()) ? static_cast<const TypedBlockStmt *>(&ms->body()) : nullptr) {
+                const auto *body_ptr = &ms->body();
+                if(const auto *body_block = TypedBlockStmt::classof(body_ptr) ? static_cast<const TypedBlockStmt *>(body_ptr) : nullptr) {
                     for(const auto &s : body_block->statements()) {
                         if(s) {
                             auto zonked = zonk_stmt_full(subst, *s);
@@ -709,7 +712,8 @@ namespace jsv {
 
         TypePtr result_type;
 
-        if(const auto *ident = Identifier::classof(&expr.callee()) ? static_cast<const Identifier *>(&expr.callee()) : nullptr) {
+        const auto *callee_ptr = &expr.callee();
+        if(const auto *ident = Identifier::classof(callee_ptr) ? static_cast<const Identifier *>(callee_ptr) : nullptr) {
             const auto &func_name = ident->name();
             auto func_decl_it = function_decls_.find(func_name);
 
@@ -1189,7 +1193,8 @@ namespace jsv {
                 // Main is implicitly a void function — allow return statements inside it
                 symbols_.set_function_return_context(PrimitiveType::void_(), "main");
                 symbols_.push_scope();
-                if(const auto *body_block = BlockStmt::classof(&ms->body()) ? static_cast<const BlockStmt *>(&ms->body()) : nullptr) {
+                const auto *body_ptr = &ms->body();
+                if(const auto *body_block = BlockStmt::classof(body_ptr) ? static_cast<const BlockStmt *>(body_ptr) : nullptr) {
                     typed_body_stmts.reserve(body_block->statements().size());
                     std::ranges::transform(body_block->statements(), std::back_inserter(typed_body_stmts),
                                            [this](const auto &s) { return type_stmt(*s); });
