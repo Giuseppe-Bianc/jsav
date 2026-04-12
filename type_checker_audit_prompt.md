@@ -1165,7 +1165,7 @@ Use **inline `monospace`** for all identifiers, file names, method names, and ty
 
 ### Rule 1 — Empirical Grounding of Every Claim About the Code
 
-Every claim about the codebase must be **mandatorily anchored to specific, verifiable evidence** drawn directly from the `.hpp` or `.cpp` source files. This requirement admits no exceptions or partial waivers.
+Every claim about the codebase must be **mandatorily anchored to specific, verifiable evidence** drawn directly from the`.hpp` or `.cpp` source files. This requirement admits no exceptions or partial waivers.
 
 In practice, whenever describing the behavior of a class, method, data structure, or architectural mechanism, it is **mandatory to explicitly cite**:
 
@@ -1257,13 +1257,13 @@ The entire document must be written in **precise, unambiguous technical English*
 
 The following expressions — and analogous linguistic constructions — are **explicitly prohibited** except in cases where the uncertainty is genuine and justified:
 
-| Prohibited expression | Precise alternative |
-|---|---|
-| "might" | "does" (if observed) or "Inferred:" (if hypothetical) |
-| "could possibly" | Describe the observed behavior directly |
-| "seems to" | Cite the specific code that supports the claim |
-| "appears to be" | Verify and assert with certainty or mark as inference |
-| "it is likely that" | Ground in evidence or use the `Inferred:` prefix |
+| Prohibited expression | Precise alternative                                   |
+|-----------------------|-------------------------------------------------------|
+| "might"               | "does" (if observed) or "Inferred:" (if hypothetical) |
+| "could possibly"      | Describe the observed behavior directly               |
+| "seems to"            | Cite the specific code that supports the claim        |
+| "appears to be"       | Verify and assert with certainty or mark as inference |
+| "it is likely that"   | Ground in evidence or use the `Inferred:` prefix      |
 
 #### Handling Genuine Uncertainty
 
@@ -1322,10 +1322,10 @@ The document must respect **minimum length and depth requirements** differentiat
 
 #### Defined Minimum Thresholds
 
-| Section Type | Minimum Requirement |
-|---|---|
-| Component subsection (Phase 3) | **150 words** |
-| System section (Phase 2) | **300 words** |
+| Section Type                   | Minimum Requirement |
+|--------------------------------|---------------------|
+| Component subsection (Phase 3) | **150 words**       |
+| System section (Phase 2)       | **300 words**       |
 
 #### Interpretation of Thresholds
 
@@ -1452,6 +1452,5 @@ Transforming a generic statement into a valid one requires three elements:
   technical lead must repeat the verification work the auditor should have done.
 - **Correct alternative:** Apply the **Constraint-by-Constraint Verification Gate** pattern to produce documented
   evidence of compliance for every constraint, rather than a blanket assertion.
-
 
 il risultato salvalo in @typechecker_audit.md @include/jsav/typechecker/ @src/jsav_Lib/typechecker/
