@@ -30,7 +30,7 @@ namespace jsv {
         // match quantified_vars. We need to replace those.
 
         // Simple case: if body is a TypeVariable that's quantified, replace it
-        if(const auto *tv = dynamic_cast<const TypeVariable *>(body.get())) {
+        if(const auto *tv = TypeVariable::classof(body.get()) ? static_cast<const TypeVariable *>(body.get()) : nullptr) {
             auto it = fresh_vars.find(tv->id());
             if(it != fresh_vars.end()) { return it->second; }
             return body;

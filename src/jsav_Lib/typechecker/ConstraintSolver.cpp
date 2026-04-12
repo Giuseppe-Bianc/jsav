@@ -59,7 +59,7 @@ namespace jsv {
         auto resolved = subst.apply(type);
         if(!resolved) { return false; }
 
-        if(const auto *tv = dynamic_cast<const TypeVariable *>(resolved.get())) { return tv->id() == var; }
+        if(const auto *tv = TypeVariable::classof(resolved.get()) ? static_cast<const TypeVariable *>(resolved.get()) : nullptr) { return tv->id() == var; }
 
         OccursVisitor visitor{var, subst};
         visit_type(resolved, visitor);
@@ -77,8 +77,8 @@ namespace jsv {
         }
 
         // Type variable unification
-        if(const auto *tv1 = dynamic_cast<const TypeVariable *>(t1.get())) {
-            if(const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
+        if(const auto *tv1 = TypeVariable::classof(t1.get()) ? static_cast<const TypeVariable *>(t1.get()) : nullptr) {
+            if(const auto *tv2 = TypeVariable::classof(t2.get()) ? static_cast<const TypeVariable *>(t2.get()) : nullptr) {
                 if(tv1->id() == tv2->id()) { return {}; }  // Same variable
 
                 // Check occurs check
@@ -113,7 +113,7 @@ namespace jsv {
         // NOLINTBEGIN(*-diagnostic-unused-but-set-variable, *-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
         // clang-format on
         // cppcheck-suppress unreadVariable
-        if([[maybe_unused]] const auto *tv2 = dynamic_cast<const TypeVariable *>(t2.get())) {
+        if([[maybe_unused]] const auto *tv2 = TypeVariable::classof(t2.get()) ? static_cast<const TypeVariable *>(t2.get()) : nullptr) {
             // Concrete type = tv2: swap and unify
             return unify(t2, t1, constraint);
         }

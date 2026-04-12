@@ -51,7 +51,7 @@ namespace jsv {
 
         TypePtr result;
 
-        if(const auto *tv = dynamic_cast<const TypeVariable *>(type.get())) {
+        if(const auto *tv = TypeVariable::classof(type.get()) ? static_cast<const TypeVariable *>(type.get()) : nullptr) {
             const auto it = bindings_.find(tv->id());
             result = (it != bindings_.end()) ? applyImpl(it->second) : type;
         } else {
