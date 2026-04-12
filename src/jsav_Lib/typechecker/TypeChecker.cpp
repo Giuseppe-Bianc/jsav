@@ -325,7 +325,10 @@ namespace jsv {
                 return std::make_unique<TypedMainStmt>(std::move(zonked_body), PrimitiveType::void_(), stmt.location());
             }
         default:
-            return nullptr;
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2033, "Zonking failed: unsupported statement kind", stmt.location(),
+                                                      FORMAT("Statement kind {} is not handled in zonk_stmt_full", C_I(stmt.kind()))));
+            return std::make_unique<TypedExprStmt>(std::make_unique<TypedIdentifier>("unknown", error_type(), stmt.location()),
+                                                   PrimitiveType::void_(), stmt.location());
         }
     }
 
