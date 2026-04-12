@@ -95,7 +95,7 @@
  */
 #define DISABLE_GCC_WARNINGS_POP()
 
-#elif defined(__clang__)
+#elifdef __clang__
 /**
  * @brief Empty macro for cross-compiler compatibility on Clang.
  *
@@ -173,7 +173,7 @@
  */
 #define DISABLE_GCC_WARNINGS_POP()
 
-#elif defined(__GNUC__)
+#elifdef __GNUC__
 /**
  * @brief Empty macro for cross-compiler compatibility on GCC.
  *
