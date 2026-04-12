@@ -313,7 +313,8 @@ namespace jsv {
                 const auto *ms = static_cast<const TypedMainStmt *>(&stmt);
                 // MainStmt body is a TypedStmtPtr — try to cast to BlockStmt and zonk
                 std::vector<TypedStmtPtr> zonked_body_stmts;
-                if(const auto *body_block = TypedBlockStmt::classof(&ms->body()) ? static_cast<const TypedBlockStmt *>(&ms->body()) : nullptr) {
+                if(const auto *body_block = TypedBlockStmt::classof(&ms->body()) ? static_cast<const TypedBlockStmt *>(&ms->body())
+                                                                                 : nullptr) {
                     for(const auto &s : body_block->statements()) {
                         if(s) {
                             auto zonked = zonk_stmt_full(subst, *s);

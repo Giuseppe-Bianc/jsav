@@ -59,7 +59,9 @@ namespace jsv {
         auto resolved = subst.apply(type);
         if(!resolved) { return false; }
 
-        if(const auto *tv = TypeVariable::classof(resolved.get()) ? static_cast<const TypeVariable *>(resolved.get()) : nullptr) { return tv->id() == var; }
+        if(const auto *tv = TypeVariable::classof(resolved.get()) ? static_cast<const TypeVariable *>(resolved.get()) : nullptr) {
+            return tv->id() == var;
+        }
 
         OccursVisitor visitor{var, subst};
         visit_type(resolved, visitor);
