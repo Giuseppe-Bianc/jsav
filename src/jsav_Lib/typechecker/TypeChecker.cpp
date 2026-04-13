@@ -754,7 +754,7 @@ namespace jsv {
         if(expr.elements().empty()) {
             errors_.push_back(CompileError::TypeError(
                 ErrorCode::E2020, "Array literals must have at least one element for type inference", expr.location(),
-                "Add at least one element to the array literal so the compiler can infer the element type"));
+                "Add at least one element to the array literal so the compiler can infer the element type, or specify the type explicitly (e.g., `i32[]`)"));
             return nullptr;
         }
 

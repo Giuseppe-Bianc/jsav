@@ -12,7 +12,7 @@
 #ifdef __MINGW32__
 constexpr std::string_view filename = R"(..\..\vn_files\input.vn)";  // windows mingw form editor, use this when building for mingw
 #elifdef __clang__
-constexpr std::string_view filename = R"(..\..\..\vn_files\input.vn)";  // windows mingw form editor, use this when building for clang
+constexpr std::string_view filename = R"(..\..\..\..\vn_files\input.vn)";  // windows mingw form editor, use this when building for clang
 #else
 constexpr std::string_view filename = R"(..\..\..\vn_files\input.vn)";
 #endif
