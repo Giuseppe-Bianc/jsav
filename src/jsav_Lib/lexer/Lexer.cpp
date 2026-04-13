@@ -430,7 +430,8 @@ namespace jsv {
                 }
             }
             if(!has_hex) { make_error(ErrorCode::E0007, "Invalid unicode escape sequence: \\U requires 8 hexadecimal digits", start); }
-        } else if(c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '"' || c == '\'' || c == '0' || c == 'a' || c == 'b' || c == 'f' || c == 'v') {
+        } else if(c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '"' || c == '\'' || c == '0' || c == 'a' || c == 'b' || c == 'f' ||
+                  c == 'v') {
             // Valid simple escape sequences: \n, \t, \r, \\, \", \', \0, \a, \b, \f, \v
             // Already consumed by advance_byte() above
         } else if(c == 'x') {

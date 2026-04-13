@@ -93,9 +93,7 @@ namespace jsv {
         const auto rank2 = get_rank(t2);
 
         // Floating-point promotion: any float + higher float → higher float
-        if(t1->is_floating_point() && t2->is_floating_point()) {
-            return rank1 >= rank2 ? t1 : t2;
-        }
+        if(t1->is_floating_point() && t2->is_floating_point()) { return rank1 >= rank2 ? t1 : t2; }
 
         // Integer + floating-point → floating-point
         if(t1->is_floating_point()) { return t1; }
