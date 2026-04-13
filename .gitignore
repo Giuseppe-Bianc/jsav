@@ -6,6 +6,8 @@ out/coverage/*
 cmake-build-*/
 conan-cache/
 graphify-out/
+.graphify_*.json
+.graphify_python
 
 # User spesific settings
 CMakeUserPresets.json
