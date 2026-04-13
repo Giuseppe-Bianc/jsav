@@ -430,8 +430,10 @@ namespace jsv {
                 }
             }
             if(!has_hex) { make_error(ErrorCode::E0007, "Invalid unicode escape sequence: \\U requires 8 hexadecimal digits", start); }
-        }
-        /*else if(c == 'x') {
+        } else if(c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '"' || c == '\'' || c == '0' || c == 'a' || c == 'b' || c == 'f' || c == 'v') {
+            // Valid simple escape sequences: \n, \t, \r, \\, \", \', \0, \a, \b, \f, \v
+            // Already consumed by advance_byte() above
+        } else if(c == 'x') {
             // \x escape requires at least one hex digit
             bool has_hex = false;
             while(!is_at_end() && std::isxdigit(C_UC(peek_byte())) != 0) {
@@ -441,12 +443,10 @@ namespace jsv {
             if(!has_hex) {
                 make_error(ErrorCode::E0007, "Invalid hexadecimal escape sequence: \\x requires at least one hexadecimal digit", start);
             }
-        } */
-        else {
+        } else {
             // Invalid escape sequence
             make_error(ErrorCode::E0007, "Invalid escape sequence", start);
         }
-        // All other escapes (\\, \n, \t, \r, \", \', \0) fully consumed above.
     }
 
     Token Lexer::scan_string_literal(const SourceLocation &start) {
@@ -641,7 +641,7 @@ namespace jsv {
 
         // Replace inside TokenKind Lexer::classify_word(...)
         static constexpr std::array<std::pair<std::string_view, TokenKind>, 27> kTable{{
-            {"bool"sv, TokenKind::KeywordBool},
+            {"bool"sv, TokenKind::TypeBool},
             {"break"sv, TokenKind::KeywordBreak},
             {"char"sv, TokenKind::TypeChar},
             {"const"sv, TokenKind::KeywordConst},

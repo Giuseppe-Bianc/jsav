@@ -645,6 +645,30 @@ namespace jsv {
     // ============================================================
     using TypePtr = std::shared_ptr<const TypeBase>;
 
+    /**
+     * @brief Determine the common promoted type for two numeric types.
+     * @param t1 First type.
+     * @param t2 Second type.
+     * @return The promoted type that both types can safely convert to.
+     *
+     * Implements standard numeric promotion rules:
+     * - Same type → no promotion needed
+     * - Integer types → promote to wider type (i8 → i16 → i32 → i64)
+     * - Unsigned types → promote to wider unsigned (u8 → u16 → u32 → u64)
+     * - Mixed signed/unsigned → promote to signed if signed is wider, else unsigned
+     * - Integer + floating-point → promote to floating-point
+     * - f32 + f64 → promote to f64
+     * - Non-numeric types → returns nullptr (no promotion possible)
+     *
+     * @note This follows C/C++ "usual arithmetic conversions" semantics.
+     *
+     * @code
+     * auto promoted = numeric_promotion(PrimitiveType::i8(), PrimitiveType::i32());
+     * // promoted == PrimitiveType::i32()
+     * @endcode
+     */
+    [[nodiscard]] TypePtr numeric_promotion(const TypePtr &t1, const TypePtr &t2) noexcept;
+
 }  // namespace jsv
 
 // -------------------------------------------------------------------------

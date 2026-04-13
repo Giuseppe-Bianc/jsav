@@ -55,6 +55,92 @@ namespace jsv {
         return &a == &b;
     }
 
+    // ============================================================
+    // numeric_promotion - Implements C/C++ usual arithmetic conversions
+    // ============================================================
+    [[nodiscard]] TypePtr numeric_promotion(const TypePtr &t1, const TypePtr &t2) noexcept {
+        if(!t1 || !t2) { return nullptr; }
+        if(!t1->is_numeric() || !t2->is_numeric()) { return nullptr; }
+
+        // Same type - no promotion needed
+        if(*t1 == *t2) { return t1; }
+
+        // Helper lambda to get numeric rank (higher = "wider" type)
+        const auto get_rank = [](const TypePtr &t) -> int {
+            switch(t->kind()) {
+            case TypeKind::I8:
+            case TypeKind::U8:
+                return 1;
+            case TypeKind::I16:
+            case TypeKind::U16:
+                return 2;
+            case TypeKind::I32:
+            case TypeKind::U32:
+                return 3;
+            case TypeKind::I64:
+            case TypeKind::U64:
+                return 4;
+            case TypeKind::F32:
+                return 5;
+            case TypeKind::F64:
+                return 6;
+            default:
+                return 0;
+            }
+        };
+
+        const auto rank1 = get_rank(t1);
+        const auto rank2 = get_rank(t2);
+
+        // Floating-point promotion: any float + higher float → higher float
+        if(t1->is_floating_point() && t2->is_floating_point()) {
+            return rank1 >= rank2 ? t1 : t2;
+        }
+
+        // Integer + floating-point → floating-point
+        if(t1->is_floating_point()) { return t1; }
+        if(t2->is_floating_point()) { return t2; }
+
+        // Both are integers - promote to wider type
+        if(rank1 > rank2) { return t1; }
+        if(rank2 > rank1) { return t2; }
+
+        // Same rank but different types (signed vs unsigned of same size)
+        // Promote to unsigned to preserve bit pattern
+        if(t1->kind() == TypeKind::I8 || t1->kind() == TypeKind::I16 || t1->kind() == TypeKind::I32 || t1->kind() == TypeKind::I64) {
+            // t1 is signed, t2 is unsigned - promote to unsigned
+            switch(t2->kind()) {
+            case TypeKind::U8:
+                return PrimitiveType::u8();
+            case TypeKind::U16:
+                return PrimitiveType::u16();
+            case TypeKind::U32:
+                return PrimitiveType::u32();
+            case TypeKind::U64:
+                return PrimitiveType::u64();
+            default:
+                break;
+            }
+        }
+
+        // t1 is unsigned, t2 is signed - same rank, promote to unsigned
+        switch(t1->kind()) {
+        case TypeKind::U8:
+            return PrimitiveType::u8();
+        case TypeKind::U16:
+            return PrimitiveType::u16();
+        case TypeKind::U32:
+            return PrimitiveType::u32();
+        case TypeKind::U64:
+            return PrimitiveType::u64();
+        default:
+            break;
+        }
+
+        // Fallback - should not reach here for valid numeric types
+        return rank1 >= rank2 ? t1 : t2;
+    }
+
 }  // namespace jsv
 
 // NOLINTEND(*-include-cleaner, *-identifier-length)

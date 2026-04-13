@@ -553,8 +553,25 @@ namespace jsv {
         case BinaryOp::Div:
         case BinaryOp::Mod:
             {
-                constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
-                result_type = lhs_type;
+                // Apply numeric promotion for arithmetic operators
+                if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                    if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+                        message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                          binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                        errors_.push_back(
+                            CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                                                    "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+                    }
+                    // Apply numeric promotion
+                    if(auto promoted = numeric_promotion(lhs_type, rhs_type)) {
+                        result_type = promoted;
+                    } else {
+                        result_type = lhs_type;  // Fallback if promotion fails
+                    }
+                } else {
+                    constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
+                    result_type = lhs_type;
+                }
                 if(expr.op() != BinaryOp::Add) {
                     if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
                         if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
@@ -591,7 +608,16 @@ namespace jsv {
         case BinaryOp::Gt:
         case BinaryOp::Le:
         case BinaryOp::Ge:
-            constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
+            // Numeric promotion is implicit for comparison operators
+            // Both operands must be numeric, different numeric types are automatically compatible
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+                    constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
+                }
+                // No constraint needed for numeric promotion - it's implicit
+            } else {
+                constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
+            }
             result_type = PrimitiveType::bool_();
             break;
         case BinaryOp::And:

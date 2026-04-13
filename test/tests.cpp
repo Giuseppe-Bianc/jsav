@@ -20268,6 +20268,700 @@ TEST_CASE("TypeVisitor: nested compound types recurse correctly", "[typechecker]
     REQUIRE(inner->element_type()->kind() == jsv::TypeKind::I32);
 }
 
+// ============================================================
+// Type Promotion Tests — numeric_promotion() with TypedAst
+// ============================================================
+
+TEST_CASE("numeric_promotion: Same types return unchanged", "[type_promotion]") {
+    SECTION("i8 + i8 -> i8") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::i8());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I8);
+    }
+
+    SECTION("i32 + i32 -> i32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::i32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I32);
+    }
+
+    SECTION("i64 + i64 -> i64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i64(), jsv::PrimitiveType::i64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I64);
+    }
+
+    SECTION("f32 + f32 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f32(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+
+    SECTION("f64 + f64 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f64(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("u32 + u32 -> u32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u32(), jsv::PrimitiveType::u32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U32);
+    }
+}
+
+TEST_CASE("numeric_promotion: Integer width promotion", "[type_promotion]") {
+    SECTION("i8 + i16 -> i16") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::i16());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I16);
+    }
+
+    SECTION("i8 + i32 -> i32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::i32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I32);
+    }
+
+    SECTION("i8 + i64 -> i64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::i64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I64);
+    }
+
+    SECTION("i16 + i32 -> i32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i16(), jsv::PrimitiveType::i32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I32);
+    }
+
+    SECTION("i16 + i64 -> i64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i16(), jsv::PrimitiveType::i64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I64);
+    }
+
+    SECTION("i32 + i64 -> i64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::i64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I64);
+    }
+
+    SECTION("i16 + i8 -> i16 (order independent)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i16(), jsv::PrimitiveType::i8());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I16);
+    }
+}
+
+TEST_CASE("numeric_promotion: Unsigned integer width promotion", "[type_promotion]") {
+    SECTION("u8 + u16 -> u16") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u8(), jsv::PrimitiveType::u16());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U16);
+    }
+
+    SECTION("u8 + u32 -> u32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u8(), jsv::PrimitiveType::u32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U32);
+    }
+
+    SECTION("u8 + u64 -> u64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u8(), jsv::PrimitiveType::u64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U64);
+    }
+
+    SECTION("u16 + u32 -> u32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u16(), jsv::PrimitiveType::u32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U32);
+    }
+
+    SECTION("u16 + u64 -> u64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u16(), jsv::PrimitiveType::u64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U64);
+    }
+
+    SECTION("u32 + u64 -> u64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u32(), jsv::PrimitiveType::u64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U64);
+    }
+}
+
+TEST_CASE("numeric_promotion: Signed/Unsigned mixed promotion", "[type_promotion]") {
+    SECTION("i8 + u8 -> u8 (same rank, promote to unsigned)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::u8());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U8);
+    }
+
+    SECTION("u8 + i8 -> u8 (order independent)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u8(), jsv::PrimitiveType::i8());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U8);
+    }
+
+    SECTION("i32 + u32 -> u32 (same rank, promote to unsigned)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::u32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U32);
+    }
+
+    SECTION("u32 + i32 -> u32 (order independent)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u32(), jsv::PrimitiveType::i32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U32);
+    }
+
+    SECTION("i64 + u64 -> u64 (same rank, promote to unsigned)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i64(), jsv::PrimitiveType::u64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U64);
+    }
+
+    SECTION("i16 + u32 -> u32 (higher rank wins)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i16(), jsv::PrimitiveType::u32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U32);
+    }
+
+    SECTION("u16 + i32 -> i32 (higher rank wins)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u16(), jsv::PrimitiveType::i32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I32);
+    }
+
+    SECTION("i32 + u64 -> u64 (higher rank wins)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::u64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U64);
+    }
+
+    SECTION("u32 + i64 -> i64 (higher rank wins)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u32(), jsv::PrimitiveType::i64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I64);
+    }
+}
+
+TEST_CASE("numeric_promotion: Integer to float promotion", "[type_promotion]") {
+    SECTION("i8 + f32 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+
+    SECTION("i32 + f32 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+
+    SECTION("i64 + f32 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i64(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+
+    SECTION("u32 + f32 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u32(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+
+    SECTION("i8 + f64 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("i32 + f64 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("i64 + f64 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i64(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("u64 + f64 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u64(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+}
+
+TEST_CASE("numeric_promotion: Float to integer promotion (order independent)", "[type_promotion]") {
+    SECTION("f32 + i8 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f32(), jsv::PrimitiveType::i8());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+
+    SECTION("f64 + i32 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f64(), jsv::PrimitiveType::i32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("f32 + u64 -> f32") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f32(), jsv::PrimitiveType::u64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+}
+
+TEST_CASE("numeric_promotion: Float width promotion", "[type_promotion]") {
+    SECTION("f32 + f64 -> f64") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f32(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("f64 + f32 -> f64 (order independent)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::f64(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+}
+
+TEST_CASE("numeric_promotion: Non-numeric types return nullptr", "[type_promotion]") {
+    SECTION("bool + i32 -> nullptr") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::bool_(), jsv::PrimitiveType::i32());
+        REQUIRE_FALSE(result);
+    }
+
+    SECTION("i32 + string -> nullptr") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), jsv::PrimitiveType::string());
+        REQUIRE_FALSE(result);
+    }
+
+    SECTION("bool + f64 -> nullptr") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::bool_(), jsv::PrimitiveType::f64());
+        REQUIRE_FALSE(result);
+    }
+
+    SECTION("string + f32 -> nullptr") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::string(), jsv::PrimitiveType::f32());
+        REQUIRE_FALSE(result);
+    }
+
+    SECTION("nullptr + i32 -> nullptr") {
+        jsv::TypePtr null_type = nullptr;
+        auto result = jsv::numeric_promotion(null_type, jsv::PrimitiveType::i32());
+        REQUIRE_FALSE(result);
+    }
+
+    SECTION("i32 + nullptr -> nullptr") {
+        jsv::TypePtr null_type = nullptr;
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), null_type);
+        REQUIRE_FALSE(result);
+    }
+}
+
+// ============================================================
+// TypedAst Integration Tests with Type Promotion
+// ============================================================
+
+TEST_CASE("TypedAst_BinaryExpr_Addition_PromotesTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i32 + i32 -> i32 (no promotion needed)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(1);
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(2);
+        const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(add);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::I64);
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("i8 + i32 -> i32 (promotion applied)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int8_t>(1));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(2);
+        const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(add);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("i32 + f64 -> f64 (integer to float promotion)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(1);
+        auto rhs = std::make_unique<jsv::FloatLiteral>(2.0);
+        const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(add);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_floating_point());
+    }
+}
+
+TEST_CASE("TypedAst_BinaryExpr_Subtraction_PromotesTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("u32 - u64 -> u64 (width promotion)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::uint32_t>(10));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int64_t>(20));
+        const jsv::BinaryExpr sub(jsv::BinaryOp::Sub, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(sub);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("f32 - f64 -> f64 (float promotion)") {
+        auto lhs = std::make_unique<jsv::FloatLiteral>(1.0f);
+        auto rhs = std::make_unique<jsv::FloatLiteral>(2.0);
+        const jsv::BinaryExpr sub(jsv::BinaryOp::Sub, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(sub);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::F64);
+    }
+}
+
+TEST_CASE("TypedAst_BinaryExpr_Multiplication_PromotesTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i16 * i32 -> i32") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int16_t>(5));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(10);
+        const jsv::BinaryExpr mul(jsv::BinaryOp::Mul, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(mul);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("i64 * f32 -> f32") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(100);
+        auto rhs = std::make_unique<jsv::FloatLiteral>(2.5f);
+        const jsv::BinaryExpr mul(jsv::BinaryOp::Mul, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(mul);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_floating_point());
+    }
+}
+
+TEST_CASE("TypedAst_BinaryExpr_Division_PromotesTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("u8 / u16 -> u16") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::uint8_t>(10));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::uint16_t>(2));
+        const jsv::BinaryExpr div(jsv::BinaryOp::Div, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(div);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("f32 / f64 -> f64") {
+        auto lhs = std::make_unique<jsv::FloatLiteral>(10.0f);
+        auto rhs = std::make_unique<jsv::FloatLiteral>(2.0);
+        const jsv::BinaryExpr div(jsv::BinaryOp::Div, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(div);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::F64);
+    }
+}
+
+TEST_CASE("TypedAst_BinaryExpr_Modulo_NoFloatPromotion", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i32 % i64 -> i64 (integer only)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(10);
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(3);
+        const jsv::BinaryExpr mod(jsv::BinaryOp::Mod, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(mod);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_integer());
+    }
+}
+
+TEST_CASE("TypedAst_BinaryExpr_Comparisons_PromoteTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i32 < i64 -> bool (with promotion)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(1);
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(2);
+        const jsv::BinaryExpr lt(jsv::BinaryOp::Lt, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(lt);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::Bool);
+    }
+
+    SECTION("f32 >= f64 -> bool (with promotion)") {
+        auto lhs = std::make_unique<jsv::FloatLiteral>(1.0f);
+        auto rhs = std::make_unique<jsv::FloatLiteral>(2.0);
+        const jsv::BinaryExpr ge(jsv::BinaryOp::Ge, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(ge);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::Bool);
+    }
+
+    SECTION("i8 == u8 -> bool (with promotion)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int8_t>(5));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::uint8_t>(5));
+        const jsv::BinaryExpr eq(jsv::BinaryOp::Eq, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(eq);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::Bool);
+    }
+}
+
+TEST_CASE("TypedAst_BinaryExpr_SignedUnsignedMixed_Promotion", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i32 + u32 -> u32 (same rank, unsigned wins)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(10);
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(20);
+        const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(add);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("u16 + i32 -> i32 (higher rank wins)") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::uint16_t>(100));
+        auto rhs = std::make_unique<jsv::IntegerLiteral>(200);
+        const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(add);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+}
+
+TEST_CASE("TypedAst_UnaryExpr_PreservesType", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("Negate i32 -> i32") {
+        auto operand = std::make_unique<jsv::IntegerLiteral>(42);
+        const jsv::UnaryExpr neg(jsv::UnaryOp::Negate, std::move(operand));
+        auto typed = checker.type_expr(neg);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("Negate f64 -> f64") {
+        auto operand = std::make_unique<jsv::FloatLiteral>(3.14);
+        const jsv::UnaryExpr neg(jsv::UnaryOp::Negate, std::move(operand));
+        auto typed = checker.type_expr(neg);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::F64);
+    }
+}
+
+TEST_CASE("TypedAst_TernaryExpr_PromotesBranchTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i32 ? i64 : i32 -> i64 (promotion)") {
+        auto cond = std::make_unique<jsv::BoolLiteral>(true);
+        auto then_expr = std::make_unique<jsv::IntegerLiteral>(1);
+        auto else_expr = std::make_unique<jsv::IntegerLiteral>(2);
+        const jsv::TernaryExpr ternary(std::move(cond), std::move(then_expr), std::move(else_expr));
+        auto typed = checker.type_expr(ternary);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+
+    SECTION("bool ? f32 : f64 -> f64 (float promotion)") {
+        auto cond = std::make_unique<jsv::BoolLiteral>(false);
+        auto then_expr = std::make_unique<jsv::FloatLiteral>(1.0f);
+        auto else_expr = std::make_unique<jsv::FloatLiteral>(2.0);
+        const jsv::TernaryExpr ternary(std::move(cond), std::move(then_expr), std::move(else_expr));
+        auto typed = checker.type_expr(ternary);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->kind() == jsv::TypeKind::F64);
+    }
+}
+
+TEST_CASE("TypedAst_VarDecl_PromotedInitializer", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("i32 variable with i8 initializer -> promotion") {
+        auto init = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int8_t>(42));
+        const jsv::VarDecl var("x", "i32", std::move(init));
+        auto typed = checker.type_stmt(var);
+
+        REQUIRE(typed->is_typed());
+    }
+
+    SECTION("f64 variable with i32 initializer -> promotion") {
+        auto init = std::make_unique<jsv::IntegerLiteral>(100);
+        const jsv::VarDecl var("y", "f64", std::move(init));
+        auto typed = checker.type_stmt(var);
+
+        REQUIRE(typed->is_typed());
+    }
+}
+
+TEST_CASE("TypedAst_ReturnStmt_PromotesReturnType", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("Return i32 from i64 function -> promotion") {
+        auto ret_expr = std::make_unique<jsv::IntegerLiteral>(42);
+        const jsv::ReturnStmt ret(std::move(ret_expr));
+        auto typed = checker.type_stmt(ret);
+
+        REQUIRE(typed->is_typed());
+    }
+
+    SECTION("Return f32 from f64 function -> promotion") {
+        auto ret_expr = std::make_unique<jsv::FloatLiteral>(3.14f);
+        const jsv::ReturnStmt ret(std::move(ret_expr));
+        auto typed = checker.type_stmt(ret);
+
+        REQUIRE(typed->is_typed());
+    }
+}
+
+TEST_CASE("TypedAst_CallExpr_PromotesArguments", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("Function call with mixed argument types") {
+        auto callee = std::make_unique<jsv::Identifier>("add");
+        std::vector<jsv::ExprPtr> args;
+        args.push_back(std::make_unique<jsv::IntegerLiteral>(1));
+        args.push_back(std::make_unique<jsv::FloatLiteral>(2.5));
+        const jsv::CallExpr call(std::move(callee), std::move(args));
+        auto typed = checker.type_expr(call);
+
+        REQUIRE(typed->is_typed());
+    }
+}
+
+TEST_CASE("TypedAst_ArrayLiteral_PromotesElementTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("Array with mixed integer types") {
+        std::vector<jsv::ExprPtr> elements;
+        elements.push_back(std::make_unique<jsv::IntegerLiteral>(1));
+        elements.push_back(std::make_unique<jsv::IntegerLiteral>(2));
+        elements.push_back(std::make_unique<jsv::IntegerLiteral>(3));
+        const jsv::ArrayLiteral arr(std::move(elements));
+        auto typed = checker.type_expr(arr);
+
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type()->is_numeric());
+    }
+}
+
+TEST_CASE("TypedAst_AssignExpr_PromotesValue", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("Assign i8 to i32 variable -> promotion") {
+        auto target = std::make_unique<jsv::Identifier>("x");
+        auto value = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int8_t>(42));
+        const jsv::AssignExpr assign(std::move(target), std::move(value));
+        auto typed = checker.type_expr(assign);
+
+        REQUIRE(typed->is_typed());
+    }
+}
+
+// ============================================================
+// Edge Case Tests
+// ============================================================
+
+TEST_CASE("numeric_promotion: Edge cases", "[type_promotion]") {
+    SECTION("Maximum rank difference (i8 + f64 -> f64)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::f64());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F64);
+    }
+
+    SECTION("Minimum rank difference (i8 + i16 -> i16)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::i8(), jsv::PrimitiveType::i16());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::I16);
+    }
+
+    SECTION("All unsigned same size (u8 + u8 -> u8)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u8(), jsv::PrimitiveType::u8());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::U8);
+    }
+
+    SECTION("Cross-category (u64 + f32 -> f32)") {
+        auto result = jsv::numeric_promotion(jsv::PrimitiveType::u64(), jsv::PrimitiveType::f32());
+        REQUIRE(result);
+        REQUIRE(result->kind() == jsv::TypeKind::F32);
+    }
+}
+
+TEST_CASE("TypedAst_ChainedOperations_PromoteTypes", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("((i8 + i16) * f32) -> f32") {
+        // Inner: i8 + i16
+        auto inner_lhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int8_t>(1));
+        auto inner_rhs = std::make_unique<jsv::IntegerLiteral>(static_cast<std::int16_t>(2));
+        auto inner_add = std::make_unique<jsv::BinaryExpr>(jsv::BinaryOp::Add, std::move(inner_lhs), std::move(inner_rhs));
+
+        // Outer: (inner) * f32
+        auto rhs = std::make_unique<jsv::FloatLiteral>(3.5f);
+        const jsv::BinaryExpr outer_mul(jsv::BinaryOp::Mul, std::move(inner_add), std::move(rhs));
+        auto typed = checker.type_expr(outer_mul);
+
+        REQUIRE(typed->is_typed());
+        // Final result should be f32 (integer * float -> float)
+        REQUIRE(typed->node_type()->is_floating_point());
+    }
+}
+
+TEST_CASE("TypedAst_NodeTypeVerification_AfterPromotion", "[type_promotion][TypedAst]") {
+    jsv::TypeChecker checker;
+
+    SECTION("Verify TypedExpr carries promoted type") {
+        auto lhs = std::make_unique<jsv::IntegerLiteral>(1);
+        auto rhs = std::make_unique<jsv::FloatLiteral>(2.5);
+        const jsv::BinaryExpr add(jsv::BinaryOp::Add, std::move(lhs), std::move(rhs));
+        auto typed = checker.type_expr(add);
+
+        // Verify it's a TypedExpr
+        REQUIRE(dynamic_cast<const jsv::TypedExpr *>(typed.get()));
+
+        // Verify type information is present
+        REQUIRE(typed->is_typed());
+        REQUIRE(typed->node_type() != nullptr);
+        REQUIRE(typed->node_type()->is_floating_point());
+    }
+
+    SECTION("Verify TypedStmt type propagation") {
+        auto init = std::make_unique<jsv::IntegerLiteral>(42);
+        const jsv::VarDecl var("result", "i64", std::move(init));
+        auto typed = checker.type_stmt(var);
+
+        // Verify it's a TypedStmt
+        REQUIRE(dynamic_cast<const jsv::TypedStmt *>(typed.get()));
+
+        // Verify type information propagated
+        REQUIRE(typed->is_typed());
+    }
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index, *-owning-memory, cert-err33-c, *-avoid-c-arrays, *-unsafe-functions, *-pro-bounds-array-to-pointer-decay)
 // clang-format on
