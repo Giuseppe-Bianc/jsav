@@ -11,6 +11,7 @@ namespace jsv {
 
     // Use visitor to dispatch on compound types
     struct ApplyVisitor : TypeVisitor {
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-const-or-ref-data-members)
         const Substitution &self;
         TypePtr out{nullptr};
 

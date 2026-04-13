@@ -20199,8 +20199,8 @@ TEST_CASE("TypeVisitor: dispatches to ArrayType", "[typechecker]") {
             is_array = true;
             elem = arr.element_type();
         }
-        void visit_vector(const jsv::VectorType &) override {}
-        void visit_custom(const jsv::CustomType &) override {}
+        void visit_vector(const jsv::VectorType & /*vec*/) override {}
+        void visit_custom(const jsv::CustomType & /*custom*/) override {}
     };
 
     ArrayDetector visitor;
@@ -20218,7 +20218,7 @@ TEST_CASE("TypeVisitor: dispatches to VectorType", "[typechecker]") {
         bool is_vector = false;
         jsv::TypePtr elem;
 
-        void visit_array(const jsv::ArrayType &) override {}
+        void visit_array(const jsv::ArrayType & /*arr*/) override {}
         void visit_vector(const jsv::VectorType &vec) override {
             is_vector = true;
             elem = vec.element_type();
@@ -20240,9 +20240,9 @@ TEST_CASE("TypeVisitor: no dispatch for primitive types", "[typechecker]") {
         int array_count = 0;
         int vector_count = 0;
 
-        void visit_array(const jsv::ArrayType &) override { ++array_count; }
-        void visit_vector(const jsv::VectorType &) override { ++vector_count; }
-        void visit_custom(const jsv::CustomType &) override {}
+        void visit_array(const jsv::ArrayType & /*arr*/) override { ++array_count; }
+        void visit_vector(const jsv::VectorType & /*vec*/) override { ++vector_count; }
+        void visit_custom(const jsv::CustomType & /*custom*/) override {}
     };
 
     Counter visitor;
@@ -20257,7 +20257,7 @@ TEST_CASE("TypeVisitor: nested compound types recurse correctly", "[typechecker]
     auto inner_vec = std::make_shared<jsv::VectorType>(int_type);
     auto outer_vec = std::make_shared<jsv::VectorType>(inner_vec);
 
-    jsv::Substitution sub;
+    const jsv::Substitution sub;
     auto result = sub.apply(outer_vec);
 
     REQUIRE(result);

@@ -2,7 +2,7 @@
  * Created by gbian on 11 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-
+// NOLINTBEGIN(*-include-cleaner, *-pro-type-static-cast-downcast)
 // clang-format off
 #include "jsav/typechecker/TypeVisitor.hpp"
 // clang-format on
@@ -30,3 +30,5 @@ namespace jsv {
     }
 
 }  // namespace jsv
+
+// NOLINTEND(*-include-cleaner, *-pro-type-static-cast-downcast)

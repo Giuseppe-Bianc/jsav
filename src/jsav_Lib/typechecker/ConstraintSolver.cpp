@@ -2,7 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast, *-avoid-const-or-ref-data-members)
 #include "jsav/typechecker/ConstraintSolver.hpp"
 #include "jsav/typechecker/ErrorType.hpp"
 #include "jsav/typechecker/TypeVisitor.hpp"
@@ -125,7 +125,7 @@ namespace jsv {
             return {};
         }
 
-        // NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+        // NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast, *-avoid-const-or-ref-data-members)
         // clang-format off
         // NOLINTBEGIN(*-diagnostic-unused-but-set-variable, *-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
         // clang-format on
@@ -139,7 +139,7 @@ namespace jsv {
         // clang-format off
         // NOLINTEND(*-diagnostic-unused-but-set-variable, *-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
         // clang-format on
-        // NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+        // NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast, *-avoid-const-or-ref-data-members)
 
         // Both are concrete types - check structural equality
         if(t1->kind() != t2->kind()) {
@@ -165,4 +165,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
+// NOLINTEND(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast, *-avoid-const-or-ref-data-members)

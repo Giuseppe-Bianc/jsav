@@ -2,7 +2,7 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
 #include "jsav/typechecker/SymbolTable.hpp"
 
 namespace jsv {
@@ -59,4 +59,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner)
+// NOLINTEND(*-include-cleaner, *-identifier-length)

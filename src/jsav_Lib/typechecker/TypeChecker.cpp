@@ -223,9 +223,9 @@ namespace jsv {
                     zonked_initializers.reserve(vd->num_variables());
 
                     const auto &initializers = vd->initializers();
-                    for(std::size_t i = 0; i < initializers.size(); ++i) {
-                        if(initializers[i]) {
-                            zonked_initializers.push_back(zonk_expr_full(subst, *initializers[i]));
+                    for(const auto &initializer : initializers) {
+                        if(initializer) {
+                            zonked_initializers.push_back(zonk_expr_full(subst, *initializer));
                         } else {
                             zonked_initializers.push_back(nullptr);
                         }
@@ -518,7 +518,7 @@ namespace jsv {
     TypedExprPtr TypeChecker::type_identifier(const Identifier &expr) {
         auto sym = symbols_.lookup(expr.name());
         if(!sym) {
-            message_storage_.push_back(FORMAT("Undeclared identifier: {}", expr.name()));
+            message_storage_.emplace_back(FORMAT("Undeclared identifier: {}", expr.name()));
             errors_.push_back(CompileError::TypeError(ErrorCode::E2033, message_storage_.back(), expr.location(),
                                                       FORMAT("Identifier '{}' was not declared in this scope", expr.name())));
             return std::make_unique<TypedIdentifier>(expr.name(), error_type(), expr.location());
@@ -624,6 +624,7 @@ namespace jsv {
             break;
         default:
             result_type = fresh_type_variable();
+            // NOLINTNEXTLINE(*-suspicious-call-argument)
             constraints_.add(result_type, lhs_type, expr.location(), "binary expression default");
             break;
         }
@@ -1010,7 +1011,7 @@ namespace jsv {
             {
                 const auto *fd = static_cast<const FuncDecl *>(&stmt);
                 auto func_scheme = symbols_.lookup(fd->name());
-                TypePtr func_tvar = func_scheme.has_value() && func_scheme->body ? func_scheme->body : fresh_type_variable();
+                const TypePtr func_tvar = func_scheme.has_value() && func_scheme->body ? func_scheme->body : fresh_type_variable();
 
                 auto func_type = fd->return_type().value_or(PrimitiveType::void_());
                 // Set return type context in SymbolTable for return statement validation
