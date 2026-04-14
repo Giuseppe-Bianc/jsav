@@ -4,6 +4,7 @@
  */
 // NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-pro-type-static-cast-downcast)
 #include "jsav/typechecker/TypeScheme.hpp"
+#include "jsav/ast/Type.hpp"
 #include "jsav/typechecker/TypeVariable.hpp"
 
 namespace jsv {
@@ -16,30 +17,50 @@ namespace jsv {
                           .function_name = std::move(func_name)};
     }
 
+    namespace {
+        /// Recursive visitor that substitutes quantified type variables with fresh ones
+        [[nodiscard]] TypePtr substitute_quantified(const TypePtr &type, const std::unordered_map<TypeVarId, TypePtr> &fresh_vars) {
+            const auto *base = type.get();
+
+            // TypeVariable: replace if quantified
+            if(TypeVariable::classof(base)) {
+                const auto *tv = static_cast<const TypeVariable *>(base);
+                auto it = fresh_vars.find(tv->id());
+                if(it != fresh_vars.end()) { return it->second; }
+                return type;
+            }
+
+            // ArrayType: recurse into element type
+            if(ArrayType::classof(base)) {
+                const auto *arr = static_cast<const ArrayType *>(base);
+                auto new_element = substitute_quantified(arr->element_type(), fresh_vars);
+                if(new_element == arr->element_type()) { return type; }  // No change
+                return std::make_shared<ArrayType>(new_element, arr->size_expr());
+            }
+
+            // VectorType: recurse into element type
+            if(VectorType::classof(base)) {
+                const auto *vec = static_cast<const VectorType *>(base);
+                auto new_element = substitute_quantified(vec->element_type(), fresh_vars);
+                if(new_element == vec->element_type()) { return type; }  // No change
+                return std::make_shared<VectorType>(new_element);
+            }
+
+            // CustomType, PrimitiveType, Error: no type variables to substitute
+            return type;
+        }
+    }  // namespace
+
     TypePtr TypeScheme::instantiate() const {
         if(quantified_vars.empty()) { return body; }
 
         // Generate fresh type variables for each quantified variable
         std::unordered_map<TypeVarId, TypePtr> fresh_vars;
+        fresh_vars.reserve(quantified_vars.size());
         for(auto qvar : quantified_vars) { fresh_vars[qvar] = fresh_type_variable(); }
 
-        // Substitute quantified variables with fresh ones
-        // For now, return body as-is since the substitution logic for
-        // TypeVariable IDs within compound types requires full AST traversal.
-        // The body contains references to TypeVariable instances whose IDs
-        // match quantified_vars. We need to replace those.
-
-        // Simple case: if body is a TypeVariable that's quantified, replace it
-        const auto *bodyPtr = body.get();
-        if(const auto *tv = TypeVariable::classof(bodyPtr) ? static_cast<const TypeVariable *>(bodyPtr) : nullptr) {
-            auto it = fresh_vars.find(tv->id());
-            if(it != fresh_vars.end()) { return it->second; }
-            return body;
-        }
-
-        // For compound types, we'd need to traverse and replace.
-        // This is a simplified implementation - full version would use a visitor.
-        return body;
+        // Traverse the entire type body, substituting all quantified variables
+        return substitute_quantified(body, fresh_vars);
     }
 
 }  // namespace jsv

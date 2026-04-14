@@ -19496,6 +19496,81 @@ TEST_CASE("TypeScheme: instantiate returns body for monomorphic", "[typechecker]
     REQUIRE(inst->kind() == jsv::TypeKind::Bool);
 }
 
+TEST_CASE("TypeScheme: instantiate substitutes TypeVariable in body", "[typechecker]") {
+    // Create a polymorphic type scheme: ∀T. T
+    auto tv = jsv::fresh_type_variable();
+    const auto *tv_ptr = static_cast<const jsv::TypeVariable *>(tv.get());
+    auto id = tv_ptr->id();
+
+    jsv::TypeScheme scheme{.quantified_vars = {id}, .body = tv};
+    auto inst = scheme.instantiate();
+
+    // Should return a fresh type variable, not the original
+    REQUIRE(inst->kind() == jsv::TypeKind::TypeVar);
+    const auto *inst_tv = static_cast<const jsv::TypeVariable *>(inst.get());
+    REQUIRE(inst_tv->id() != id);  // Fresh ID should differ
+}
+
+TEST_CASE("TypeScheme: instantiate substitutes nested TypeVariable in ArrayType", "[typechecker]") {
+    // Create: ∀T. [T; 10]
+    auto tv = jsv::fresh_type_variable();
+    const auto *tv_ptr = static_cast<const jsv::TypeVariable *>(tv.get());
+    auto id = tv_ptr->id();
+
+    auto size_expr = std::make_shared<jsv::IntegerLiteral>(10);
+    auto array_type = std::make_shared<jsv::ArrayType>(tv, size_expr);
+
+    jsv::TypeScheme scheme{.quantified_vars = {id}, .body = array_type};
+    auto inst = scheme.instantiate();
+
+    REQUIRE(inst->kind() == jsv::TypeKind::Array);
+    const auto *inst_array = static_cast<const jsv::ArrayType *>(inst.get());
+    REQUIRE(inst_array->element_type()->kind() == jsv::TypeKind::TypeVar);
+    const auto *elem_tv = static_cast<const jsv::TypeVariable *>(inst_array->element_type().get());
+    REQUIRE(elem_tv->id() != id);  // Should be a fresh variable
+}
+
+TEST_CASE("TypeScheme: instantiate substitutes nested TypeVariable in VectorType", "[typechecker]") {
+    // Create: ∀T. Vec<T>
+    auto tv = jsv::fresh_type_variable();
+    const auto *tv_ptr = static_cast<const jsv::TypeVariable *>(tv.get());
+    auto id = tv_ptr->id();
+
+    auto vec_type = std::make_shared<jsv::VectorType>(tv);
+
+    jsv::TypeScheme scheme{.quantified_vars = {id}, .body = vec_type};
+    auto inst = scheme.instantiate();
+
+    REQUIRE(inst->kind() == jsv::TypeKind::Vector);
+    const auto *inst_vec = static_cast<const jsv::VectorType *>(inst.get());
+    REQUIRE(inst_vec->element_type()->kind() == jsv::TypeKind::TypeVar);
+    const auto *elem_tv = static_cast<const jsv::TypeVariable *>(inst_vec->element_type().get());
+    REQUIRE(elem_tv->id() != id);  // Should be a fresh variable
+}
+
+TEST_CASE("TypeScheme: instantiate preserves non-quantified TypeVariables", "[typechecker]") {
+    // Create: ∀T. Vec<T> where body contains both quantified and non-quantified vars
+    auto quant_tv = jsv::fresh_type_variable();
+    const auto *quant_ptr = static_cast<const jsv::TypeVariable *>(quant_tv.get());
+    auto quant_id = quant_ptr->id();
+
+    auto non_quant_tv = jsv::fresh_type_variable();
+    const auto *non_quant_ptr = static_cast<const jsv::TypeVariable *>(non_quant_tv.get());
+    auto non_quant_id = non_quant_ptr->id();
+
+    // Create a vector type with the quantified variable
+    auto vec_type = std::make_shared<jsv::VectorType>(quant_tv);
+
+    jsv::TypeScheme scheme{.quantified_vars = {quant_id}, .body = vec_type};
+    auto inst = scheme.instantiate();
+
+    // Quantified variable should be replaced with fresh one
+    const auto *inst_vec = static_cast<const jsv::VectorType *>(inst.get());
+    const auto *elem_tv = static_cast<const jsv::TypeVariable *>(inst_vec->element_type().get());
+    REQUIRE(elem_tv->id() != quant_id);
+    REQUIRE(elem_tv->id() != non_quant_id);  // Should not accidentally use other var's ID
+}
+
 // T011: Constraint tests
 TEST_CASE("ConstraintSet: add returns sequential IDs", "[typechecker]") {
     jsv::ConstraintSet cs;
