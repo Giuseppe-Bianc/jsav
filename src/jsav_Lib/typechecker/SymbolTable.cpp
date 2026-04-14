@@ -35,9 +35,6 @@ namespace jsv {
     std::size_t SymbolTable::depth() const noexcept { return scopes_.size(); }
 
     void SymbolTable::set_function_return_context(TypePtr ret_type, std::string func_name) {
-        // Push a synthetic function context marker into the current innermost scope.
-        // This ensures get_function_return_context finds the NEAREST enclosing function,
-        // not an arbitrary one from an outer scope.
         if(scopes_.empty()) { scopes_.emplace_back(); }
         auto &current_scope = scopes_.back();
         TypeScheme ctx_marker;
@@ -50,8 +47,13 @@ namespace jsv {
         // Search from innermost to outermost scope for the nearest function context marker
         for(const auto &scope : std::ranges::reverse_view(scopes_)) {
             auto it = scope.find("__function_context__");
-            if(it != scope.end() && it->second.is_function_binding() && it->second.return_type) {
-                return std::make_pair(*it->second.return_type, std::string_view{*it->second.function_name});
+            if(it != scope.end() && it->second.is_function_binding()) {
+                const auto &scheme = it->second;
+                if(scheme.return_type.has_value() && scheme.function_name.has_value()) {
+                    const TypePtr &ret = scheme.return_type.value();
+                    const std::string &fname = scheme.function_name.value();
+                    return std::make_pair(ret, std::string_view{fname});
+                }
             }
         }
         return std::nullopt;
