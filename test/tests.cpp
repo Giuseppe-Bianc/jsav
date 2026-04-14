@@ -4553,7 +4553,7 @@ TEST_CASE("Lexer_AsciiKeywords_UnchangedAfterUtf8", "[lexer]") {
         {.text = "const", .kind = jsv::TokenKind::KeywordConst},
         {.text = "break", .kind = jsv::TokenKind::KeywordBreak},
         {.text = "continue", .kind = jsv::TokenKind::KeywordContinue},
-        {.text = "bool", .kind = jsv::TokenKind::KeywordBool},
+        {.text = "bool", .kind = jsv::TokenKind::TypeBool},
         {.text = "i32", .kind = jsv::TokenKind::TypeI32},
         {.text = "f64", .kind = jsv::TokenKind::TypeF64},
         {.text = "string", .kind = jsv::TokenKind::TypeString},
@@ -20939,7 +20939,9 @@ TEST_CASE("TypedAst_ArrayLiteral_PromotesElementTypes", "[type_promotion][TypedA
         auto typed = checker.type_expr(arr);
 
         REQUIRE(typed->is_typed());
-        REQUIRE(typed->node_type()->is_numeric());
+        const auto* array_type = dynamic_cast<const jsv::ArrayType*>(typed->node_type().get());
+        REQUIRE(array_type != nullptr);
+        REQUIRE(array_type->element_type()->is_integer());
     }
 }
 
