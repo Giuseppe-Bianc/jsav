@@ -123,6 +123,12 @@ namespace jsv {
         [[nodiscard]] TypedExprPtr type_member_expr(const MemberExpr &expr);
         [[nodiscard]] TypedExprPtr type_cast_expr(const CastExpr &expr);
 
+        /// Binary expression sub-handlers (one per operator group) — called by type_binary_expr
+        [[nodiscard]] TypePtr type_binary_arithmetic_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
+        [[nodiscard]] TypePtr type_binary_comparison_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
+        [[nodiscard]] TypePtr type_binary_logical_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
+        [[nodiscard]] TypePtr type_binary_bitwise_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
+
         SymbolTable symbols_;
         ConstraintSet constraints_;
         std::vector<CompileError> errors_;

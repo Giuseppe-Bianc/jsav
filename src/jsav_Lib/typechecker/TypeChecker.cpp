@@ -526,7 +526,113 @@ namespace jsv {
         return std::make_unique<TypedIdentifier>(expr.name(), sym->instantiate(), expr.location());
     }
 
-    // NOLINTNEXTLINE(*-function-cognitive-complexity)
+    TypePtr TypeChecker::type_binary_arithmetic_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        // For Add: string/char concatenation takes priority — return early before numeric checks.
+        if(expr.op() == BinaryOp::Add) {
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                const bool lhs_str = lhs_type->kind() == TypeKind::String;
+                const bool rhs_str = rhs_type->kind() == TypeKind::String;
+                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                if((lhs_str || lhs_chr) && (rhs_str || rhs_chr)) { return PrimitiveType::string(); }
+            }
+        }
+
+        TypePtr result_type;
+
+        // Apply numeric promotion; emit an error when concrete types are not numeric.
+        if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+            if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+                message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                  binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                errors_.push_back(CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                                                          "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+            }
+            result_type = lhs_type;  // Fallback if promotion fails
+            if(auto promoted = numeric_promotion(lhs_type, rhs_type)) { result_type = promoted; }
+        } else {
+            constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
+            result_type = lhs_type;
+        }
+
+        // Secondary type validation per operator: Sub/Mul/Div/Mod require strictly numeric
+        // operands; Add additionally accepts string/char combinations.
+        if(expr.op() != BinaryOp::Add) {
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+                    message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                      binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                    errors_.push_back(CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                                                              "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+                }
+            }
+        } else {
+            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+                const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
+                const bool lhs_str = lhs_type->kind() == TypeKind::String;
+                const bool rhs_str = rhs_type->kind() == TypeKind::String;
+                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
+                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
+                const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
+                if(!both_numeric && !string_char_combo) {
+                    message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
+                                                      binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                    errors_.push_back(
+                        CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                                                "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
+                }
+            }
+        }
+
+        return result_type;
+    }
+
+    TypePtr TypeChecker::type_binary_comparison_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        // Numeric promotion is implicit for comparison operators; different numeric types are
+        // automatically compatible so no unification constraint is needed between them.
+        if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+            if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+                constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
+            }
+        } else {
+            constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
+        }
+        return PrimitiveType::bool_();
+    }
+
+    TypePtr TypeChecker::type_binary_logical_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        bool mismatch_reported = false;
+        if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+            if(lhs_type->kind() != TypeKind::Bool || rhs_type->kind() != TypeKind::Bool) {
+                message_storage_.push_back(FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
+                                                  binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                errors_.push_back(CompileError::TypeError(ErrorCode::E2012, message_storage_.back(), expr.location(),
+                                                          "Use boolean values (true/false) for logical operations."));
+                mismatch_reported = true;
+            }
+        }
+        if(!mismatch_reported) {
+            constraints_.add(lhs_type, PrimitiveType::bool_(), expr.location(), "logical op: lhs must be bool");
+            constraints_.add(rhs_type, PrimitiveType::bool_(), expr.location(), "logical op: rhs must be bool");
+        }
+        return PrimitiveType::bool_();
+    }
+
+    TypePtr TypeChecker::type_binary_bitwise_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        constraints_.add(lhs_type, rhs_type, expr.location(), "bitwise op: operands must match");
+        // Integer-type validation is performed here (previously a separate post-switch).
+        if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
+            if(!lhs_type->is_integer() || !rhs_type->is_integer()) {
+                message_storage_.push_back(FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
+                                                  binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
+                errors_.push_back(
+                    CompileError::TypeError(ErrorCode::E2011, message_storage_.back(), expr.location(),
+                                            "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
+            }
+        }
+        return lhs_type;
+    }
+
     TypedExprPtr TypeChecker::type_binary_expr(const BinaryExpr &expr) {
         auto lhs_typed = type_expr(expr.lhs());
         auto rhs_typed = type_expr(expr.rhs());
@@ -537,70 +643,11 @@ namespace jsv {
         TypePtr result_type;
         switch(expr.op()) {
         case BinaryOp::Add:
-            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                const bool lhs_str = lhs_type->kind() == TypeKind::String;
-                const bool rhs_str = rhs_type->kind() == TypeKind::String;
-                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                if((lhs_str || lhs_chr) && (rhs_str || rhs_chr)) {
-                    result_type = PrimitiveType::string();
-                    break;
-                }
-            }
-            [[fallthrough]];
         case BinaryOp::Sub:
         case BinaryOp::Mul:
         case BinaryOp::Div:
         case BinaryOp::Mod:
-            {
-                // Apply numeric promotion for arithmetic operators
-                if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                    if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                        message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
-                                                          binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                        errors_.push_back(
-                            CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
-                                                    "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
-                    }
-                    // Apply numeric promotion
-                    if(auto promoted = numeric_promotion(lhs_type, rhs_type)) {
-                        result_type = promoted;
-                    } else {
-                        result_type = lhs_type;  // Fallback if promotion fails
-                    }
-                } else {
-                    constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
-                    result_type = lhs_type;
-                }
-                if(expr.op() != BinaryOp::Add) {
-                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                        if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                            message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
-                                                              binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                            errors_.push_back(
-                                CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
-                                                        "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
-                        }
-                    }
-                } else {
-                    if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                        const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
-                        const bool lhs_str = lhs_type->kind() == TypeKind::String;
-                        const bool rhs_str = rhs_type->kind() == TypeKind::String;
-                        const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                        const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                        const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
-                        if(!both_numeric && !string_char_combo) {
-                            message_storage_.push_back(
-                                FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
-                                       binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                            errors_.push_back(
-                                CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
-                                                        "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
-                        }
-                    }
-                }
-            }
+            result_type = type_binary_arithmetic_op(expr, lhs_type, rhs_type);
             break;
         case BinaryOp::Eq:
         case BinaryOp::Neq:
@@ -608,69 +655,18 @@ namespace jsv {
         case BinaryOp::Gt:
         case BinaryOp::Le:
         case BinaryOp::Ge:
-            // Numeric promotion is implicit for comparison operators
-            // Both operands must be numeric, different numeric types are automatically compatible
-            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                    constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
-                }
-                // No constraint needed for numeric promotion - it's implicit
-            } else {
-                constraints_.add(lhs_type, rhs_type, expr.location(), "comparison: operands must match");
-            }
-            result_type = PrimitiveType::bool_();
+            result_type = type_binary_comparison_op(expr, lhs_type, rhs_type);
             break;
         case BinaryOp::And:
         case BinaryOp::Or:
-            {
-                result_type = PrimitiveType::bool_();
-                bool mismatch_reported = false;
-                if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                    if(lhs_type->kind() != TypeKind::Bool || rhs_type->kind() != TypeKind::Bool) {
-                        message_storage_.push_back(FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
-                                                          binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                        errors_.push_back(CompileError::TypeError(ErrorCode::E2012, message_storage_.back(), expr.location(),
-                                                                  "Use boolean values (true/false) for logical operations."));
-                        mismatch_reported = true;
-                    }
-                }
-                if(!mismatch_reported) {
-                    constraints_.add(lhs_type, PrimitiveType::bool_(), expr.location(), "logical op: lhs must be bool");
-                    constraints_.add(rhs_type, PrimitiveType::bool_(), expr.location(), "logical op: rhs must be bool");
-                }
-            }
+            result_type = type_binary_logical_op(expr, lhs_type, rhs_type);
             break;
         case BinaryOp::BitAnd:
         case BinaryOp::BitOr:
         case BinaryOp::BitXor:
         case BinaryOp::Shl:
         case BinaryOp::Shr:
-            constraints_.add(lhs_type, rhs_type, expr.location(), "bitwise op: operands must match");
-            result_type = lhs_type;
-            break;
-        default:
-            result_type = fresh_type_variable();
-            // NOLINTNEXTLINE(*-suspicious-call-argument)
-            constraints_.add(result_type, lhs_type, expr.location(), "binary expression default");
-            break;
-        }
-
-        // Bitwise operators require integer types — check here once types are resolved
-        switch(expr.op()) {
-        case BinaryOp::BitAnd:
-        case BinaryOp::BitOr:
-        case BinaryOp::BitXor:
-        case BinaryOp::Shl:
-        case BinaryOp::Shr:
-            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                if(!lhs_type->is_integer() || !rhs_type->is_integer()) {
-                    message_storage_.push_back(FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
-                                                      binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                    errors_.push_back(
-                        CompileError::TypeError(ErrorCode::E2011, message_storage_.back(), expr.location(),
-                                                "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
-                }
-            }
+            result_type = type_binary_bitwise_op(expr, lhs_type, rhs_type);
             break;
         default:
             break;

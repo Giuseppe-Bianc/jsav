@@ -396,11 +396,32 @@ namespace jsv {
         return token;
     }
 
-    // NOLINTEND(readability-function-cognitive-complexity)
+    void Lexer::scan_unicode_escape(const SourceLocation &start, const int count, const char escape_char) {
+        int consumed = 0;
+        for(int i = 0; i < count && !is_at_end(); ++i) {
+            if(std::isxdigit(C_UC(peek_byte())) != 0) {
+                advance_byte();
+                ++consumed;
+            } else {
+                break;
+            }
+        }
+        if(consumed != count) {
+            make_error(ErrorCode::E0007,
+                       fmt::format("Invalid unicode escape sequence: \\{} requires {} hexadecimal digits", escape_char, count), start);
+        }
+    }
 
-    // =========================================================================
-    // String / char literal scanners
-    // =========================================================================
+    void Lexer::scan_hex_escape(const SourceLocation &start) {
+        bool has_hex = false;
+        while(!is_at_end() && std::isxdigit(C_UC(peek_byte())) != 0) {
+            advance_byte();
+            has_hex = true;
+        }
+        if(!has_hex) {
+            make_error(ErrorCode::E0007, "Invalid hexadecimal escape sequence: \\x requires at least one hexadecimal digit", start);
+        }
+    }
 
     void Lexer::skip_escape(const SourceLocation &start) {
         if(is_at_end()) {
@@ -409,41 +430,14 @@ namespace jsv {
         }
         // Unicode escapes consume additional hex digits
         if(const char c = advance_byte(); c == 'u') {
-            bool has_hex = false;
-            for(int i = 0; i < 4 && !is_at_end(); ++i) {
-                if(std::isxdigit(C_UC(peek_byte())) != 0) {
-                    advance_byte();
-                    has_hex = true;
-                } else {
-                    break;
-                }
-            }
-            if(!has_hex) { make_error(ErrorCode::E0007, "Invalid unicode escape sequence: \\u requires 4 hexadecimal digits", start); }
+            scan_unicode_escape(start, 4, 'u');
         } else if(c == 'U') {
-            bool has_hex = false;
-            for(int i = 0; i < 8 && !is_at_end(); ++i) {
-                if(std::isxdigit(C_UC(peek_byte())) != 0) {
-                    advance_byte();
-                    has_hex = true;
-                } else {
-                    break;
-                }
-            }
-            if(!has_hex) { make_error(ErrorCode::E0007, "Invalid unicode escape sequence: \\U requires 8 hexadecimal digits", start); }
-        } else if(c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '"' || c == '\'' || c == '0' || c == 'a' || c == 'b' || c == 'f' ||
-                  c == 'v') {
+            scan_unicode_escape(start, 8, 'U');
+        } else if(is_simple_escape(c)) {
             // Valid simple escape sequences: \n, \t, \r, \\, \", \', \0, \a, \b, \f, \v
             // Already consumed by advance_byte() above
         } else if(c == 'x') {
-            // \x escape requires at least one hex digit
-            bool has_hex = false;
-            while(!is_at_end() && std::isxdigit(C_UC(peek_byte())) != 0) {
-                advance_byte();
-                has_hex = true;
-            }
-            if(!has_hex) {
-                make_error(ErrorCode::E0007, "Invalid hexadecimal escape sequence: \\x requires at least one hexadecimal digit", start);
-            }
+            scan_hex_escape(start);
         } else {
             // Invalid escape sequence
             make_error(ErrorCode::E0007, "Invalid escape sequence", start);

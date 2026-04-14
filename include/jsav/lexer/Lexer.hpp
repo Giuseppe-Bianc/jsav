@@ -154,6 +154,20 @@ namespace jsv {
         // ── Keyword / type classification ─────────────────────────────────
         /// Map a lexed word to its `TokenKind` (keyword, type, or identifier).
         [[nodiscard]] static TokenKind classify_word(std::string_view text) noexcept;
+
+        // ── Escape sequence helpers ───────────────────────────────────────
+        /// Consume exactly `count` hex digits for a \u or \U escape.
+        /// Reports E0007 if fewer than `count` hex digits are found.
+        void scan_unicode_escape(const SourceLocation &start, int count, char escape_char);
+
+        /// Returns true if `c` is a valid simple escape character (n, t, r, \, ", ', 0, a, b, f, v).
+        [[nodiscard]] static constexpr bool is_simple_escape(const char c) noexcept {
+            return c == 'n' || c == 't' || c == 'r' || c == '\\' || c == '"' || c == '\'' || c == '0' || c == 'a' || c == 'b' || c == 'f' ||
+                   c == 'v';
+        }
+
+        /// Consume a \x hex escape (one or more hex digits). Reports E0007 if none found.
+        void scan_hex_escape(const SourceLocation &start);
     };
 
 }  // namespace jsv
