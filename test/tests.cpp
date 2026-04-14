@@ -20939,7 +20939,7 @@ TEST_CASE("TypedAst_ArrayLiteral_PromotesElementTypes", "[type_promotion][TypedA
         auto typed = checker.type_expr(arr);
 
         REQUIRE(typed->is_typed());
-        const auto* array_type = dynamic_cast<const jsv::ArrayType*>(typed->node_type().get());
+        const auto *array_type = dynamic_cast<const jsv::ArrayType *>(typed->node_type().get());
         REQUIRE(array_type != nullptr);
         REQUIRE(array_type->element_type()->is_integer());
     }
