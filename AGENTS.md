@@ -183,7 +183,7 @@ The project utilizes a minimal, carefully curated set of external dependencies, 
 
 **Source**: `Dependencies.cmake`, `src/jsav/main.cpp`
 
-#### Catch2 (v3.13.0)
+#### Catch2 (v3.14.0)
 
 **Purpose**: Modern C++ testing framework with support for unit tests, benchmarks, and compile-time verification
 **Integration**: Linked as `Catch2::Catch2WithMain` target (includes main entry point)
@@ -397,7 +397,7 @@ The build process follows a well-defined sequence of stages, each with specific 
 
 - `fmt` (v12.1.0) → `fmtlib::fmt` target
 - `spdlog` (v1.17.0) → `spdlog::spdlog` target
-- `Catch2` (v3.13.0) → `Catch2::Catch2WithMain` target
+- `Catch2` (v3.14.0) → `Catch2::Catch2WithMain` target
 - `CLI11` (v2.6.1) → `CLI11::CLI11` target
 
 **Output Location**: `build/_deps/<name>-src/`
@@ -1615,7 +1615,7 @@ Testing is a fundamental pillar of the jsav development workflow. The project em
 
 ### 5.1 Test Framework
 
-**Framework**: Catch2 v3.13.0 (C++ Testing Framework)
+**Framework**: Catch2 v3.14.0 (C++ Testing Framework)
 
 **Selection Rationale**:
 
@@ -1632,7 +1632,7 @@ Testing is a fundamental pillar of the jsav development workflow. The project em
 **Installation**: Managed via CPM in `Dependencies.cmake`
 
 ```cmake
-cpmaddpackage("gh:catchorg/Catch2@3.13.0")
+cpmaddpackage("gh:catchorg/Catch2@3.14.0")
 ```
 
 **Documentation**: <https://catch2.docsforge.com/>
@@ -3048,7 +3048,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 
 **Technical Infrastructure:** The Tester Agent employs:
 
-- **Catch2 v3.13.0:** Standard unit, integration, and compile-time testing (`STATIC_REQUIRE`)
+- **Catch2 v3.14.0:** Standard unit, integration, and compile-time testing (`STATIC_REQUIRE`)
 - **gcovr:** Coverage report generation in HTML and Cobertura XML formats
 - **AddressSanitizer / UndefinedBehaviorSanitizer:** Configured via `jsav_ENABLE_SANITIZER_ADDRESS=ON` and `jsav_ENABLE_SANITIZER_UNDEFINED=ON`; all tests must report zero violations
 - **lizard:** Complexity and duplication analysis — `lizard --CCN 15 --length 100 --arguments 6 src/ include/ --exclude "src/jsav/main.cpp"`
@@ -3109,7 +3109,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 - **cmake/Hardening.cmake:** FORTIFY_SOURCE, RELRO, and related hardening flags
 - **AddressSanitizer:** Mandatory for security validation — zero leaks policy enforced
 - **Static analysis (clang-tidy, cppcheck):** Taint analysis and unsafe pattern detection
-- **Dependency auditing:** CVE lookups for fmtlib/fmt v12.1.0, spdlog v1.17.0, CLI11 v2.6.1, Catch2 v3.13.0
+- **Dependency auditing:** CVE lookups for fmtlib/fmt v12.1.0, spdlog v1.17.0, CLI11 v2.6.1, Catch2 v3.14.0
 
 **Key Constraint:** Per Section 4.3 and 4.4, any introduction of `reinterpret_cast` or manual memory management requires explicit justification and Security Agent approval. All raw pointer usage must be reviewed against the Non-Owning Reference policy.
 

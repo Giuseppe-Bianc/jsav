@@ -2,28 +2,17 @@
  * Created by gbian on 24 marzo 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-avoid-magic-numbers, *-magic-numbers)
 
 #include "jsav/ast/Type.hpp"
 #include "jsav/ast/Expressions.hpp"
 
 namespace jsv {
 
-    // Note: type_kind_name constexpr definition moved to header for cross-TU visibility
-
-    // ============================================================
-    // PrimitiveType::to_string
-    // ============================================================
     [[nodiscard]] std::string PrimitiveType::to_string() const { return std::string{type_kind_name(kind())}; }
 
-    // ============================================================
-    // CustomType::to_string
-    // ============================================================
     [[nodiscard]] std::string CustomType::to_string() const { return std::string{*name_}; }
 
-    // ============================================================
-    // ArrayType::to_string
-    // ============================================================
     [[nodiscard]] std::string ArrayType::to_string() const {
         std::string result;
         auto out = std::back_inserter(result);
@@ -43,9 +32,6 @@ namespace jsv {
         return result;
     }
 
-    // ============================================================
-    // VectorType::to_string
-    // ============================================================
     [[nodiscard]] std::string VectorType::to_string() const { return FORMAT("Vec<{}>", element_type_->to_string()); }
 
     [[nodiscard]] bool ArrayType::sizes_equal(const Expr &a, const Expr &b) noexcept {
@@ -55,9 +41,6 @@ namespace jsv {
         return &a == &b;
     }
 
-    // ============================================================
-    // numeric_promotion - Implements C/C++ usual arithmetic conversions
-    // ============================================================
     [[nodiscard]] TypePtr numeric_promotion(const TypePtr &t1, const TypePtr &t2) noexcept {
         if(!t1 || !t2) { return nullptr; }
         if(!t1->is_numeric() || !t2->is_numeric()) { return nullptr; }
@@ -138,7 +121,6 @@ namespace jsv {
         // Fallback - should not reach here for valid numeric types
         return rank1 >= rank2 ? t1 : t2;
     }
-
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner, *-identifier-length)
+// NOLINTEND(*-include-cleaner, *-identifier-length, *-avoid-magic-numbers, *-magic-numbers)

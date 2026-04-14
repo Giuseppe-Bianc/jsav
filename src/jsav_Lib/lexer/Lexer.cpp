@@ -395,6 +395,7 @@ namespace jsv {
         }
         return token;
     }
+    // NOLINTEND(readability-function-cognitive-complexity)
 
     void Lexer::scan_unicode_escape(const SourceLocation &start, const int count, const char escape_char) {
         int consumed = 0;
