@@ -441,9 +441,9 @@ namespace jsv {
         const bool is_last = next_is_last_;
         print_value(ansi::yellow("TypedBlock"), FORMAT(" [{}]", node.node_type() ? node.node_type()->to_string() : "none"), is_last);
 
-        if(!node.statements().empty()) {
+        const auto &stmts = node.statements();
+        if(!stmts.empty()) {
             const IndentGuard guard{*this, is_last};
-            const auto &stmts = node.statements();
             for(const auto &[i, stmt] : std::views::enumerate(stmts)) { visit_child(*stmt, i == std::ssize(stmts) - 1); }
         }
     }
