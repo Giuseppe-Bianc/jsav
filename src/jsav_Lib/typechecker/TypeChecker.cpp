@@ -76,6 +76,8 @@ namespace jsv {
         errors_ = std::vector<CompileError>{};
         message_storage_.clear();
         typed_stmts_.clear();
+        function_decls_.clear();
+        loop_depth_ = 0;
 
         // Phase 1: Name resolution
         resolve_names(program);
@@ -738,29 +740,33 @@ namespace jsv {
         const auto *callee_ptr = &expr.callee();
         if(const auto *ident = Identifier::classof(callee_ptr) ? static_cast<const Identifier *>(callee_ptr) : nullptr) {
             const auto &func_name = ident->name();
-            auto func_decl_it = function_decls_.find(func_name);
+            auto sym = symbols_.lookup(func_name);
+            if(sym && sym->is_function_binding()) {
+                auto func_decl_it = function_decls_.find(func_name);
+                if(func_decl_it != function_decls_.end()) {
+                    const FuncDecl *func_decl = func_decl_it->second;
+                    const auto &params = func_decl->params();
 
-            if(func_decl_it != function_decls_.end()) {
-                const FuncDecl *func_decl = func_decl_it->second;
-                const auto &params = func_decl->params();
-
-                if(arg_types.size() != params.size()) {
-                    message_storage_.push_back(
-                        FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name, params.size(), arg_types.size()));
-                    errors_.push_back(CompileError::TypeError(
-                        ErrorCode::E2028, message_storage_.back(), expr.location(),
-                        FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})", params.size(),
-                               arg_types.size())));
-                    result_type = error_type();
-                } else {
-                    for(std::size_t i = 0; i < arg_types.size(); ++i) {
-                        const auto &param_type = params[i].type_annotation;
-                        if(param_type) {
-                            constraints_.add(arg_types[i], param_type, expr.location(),
-                                             FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
+                    if(arg_types.size() != params.size()) {
+                        message_storage_.push_back(FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name,
+                                                          params.size(), arg_types.size()));
+                        errors_.push_back(CompileError::TypeError(
+                            ErrorCode::E2028, message_storage_.back(), expr.location(),
+                            FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})",
+                                   params.size(), arg_types.size())));
+                        result_type = error_type();
+                    } else {
+                        for(std::size_t i = 0; i < arg_types.size(); ++i) {
+                            const auto &param_type = params[i].type_annotation;
+                            if(param_type) {
+                                constraints_.add(arg_types[i], param_type, expr.location(),
+                                                 FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
+                            }
                         }
+                        result_type = sym->return_type.value_or(func_decl->return_type().value_or(fresh_type_variable()));
                     }
-                    result_type = func_decl->return_type().value_or(fresh_type_variable());
+                } else {
+                    result_type = sym->return_type.value_or(fresh_type_variable());
                 }
             } else {
                 result_type = fresh_type_variable();

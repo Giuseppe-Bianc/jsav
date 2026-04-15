@@ -19759,6 +19759,77 @@ TEST_CASE("TypeChecker_FunctionCall_ResolvesReturnType", "[typechecker]") {
     REQUIRE(typed->is_typed());
 }
 
+TEST_CASE("TypeChecker_FunctionCall_UsesDeclaredSignature", "[typechecker]") {
+    jsv::TypeChecker checker;
+
+    auto func_body_stmts = std::vector<jsv::StmtPtr>{};
+    func_body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::IntegerLiteral>(0)));
+    auto func_body = std::make_unique<jsv::BlockStmt>(std::move(func_body_stmts));
+
+    auto add_func = std::make_unique<jsv::FuncDecl>(
+        "add",
+        std::vector<jsv::FuncParam>{{.name = "lhs", .type_annotation = jsv::PrimitiveType::i64(), .loc = {}},
+                                    {.name = "rhs", .type_annotation = jsv::PrimitiveType::i64(), .loc = {}}},
+        jsv::PrimitiveType::i64(), std::move(func_body));
+
+    auto call_args = std::vector<jsv::ExprPtr>{};
+    call_args.push_back(std::make_unique<jsv::IntegerLiteral>(1));
+    call_args.push_back(std::make_unique<jsv::IntegerLiteral>(2));
+    auto call = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("add"), std::move(call_args));
+    auto main_body_stmts = std::vector<jsv::StmtPtr>{};
+    main_body_stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
+    auto main_body = std::make_unique<jsv::BlockStmt>(std::move(main_body_stmts));
+
+    std::vector<jsv::StmtPtr> stmts;
+    stmts.push_back(std::move(add_func));
+    stmts.push_back(std::make_unique<jsv::MainStmt>(std::move(main_body)));
+
+    const jsv::Program program(std::move(stmts));
+    auto result = checker.check(program);
+
+    REQUIRE(result.errors.empty());
+    REQUIRE(result.program.is_typed());
+    REQUIRE(result.program.statements().size() == 2);
+}
+
+TEST_CASE("TypeChecker_FunctionCall_ArgumentCountMismatch_ReportsE2028", "[typechecker]") {
+    jsv::TypeChecker checker;
+
+    auto func_body_stmts = std::vector<jsv::StmtPtr>{};
+    func_body_stmts.push_back(std::make_unique<jsv::ReturnStmt>(std::make_unique<jsv::IntegerLiteral>(0)));
+    auto func_body = std::make_unique<jsv::BlockStmt>(std::move(func_body_stmts));
+
+    auto add_func = std::make_unique<jsv::FuncDecl>(
+        "add",
+        std::vector<jsv::FuncParam>{{.name = "lhs", .type_annotation = jsv::PrimitiveType::i64(), .loc = {}},
+                                    {.name = "rhs", .type_annotation = jsv::PrimitiveType::i64(), .loc = {}}},
+        jsv::PrimitiveType::i64(), std::move(func_body));
+
+    auto call_args = std::vector<jsv::ExprPtr>{};
+    call_args.push_back(std::make_unique<jsv::IntegerLiteral>(1));
+    auto call = std::make_unique<jsv::CallExpr>(std::make_unique<jsv::Identifier>("add"), std::move(call_args));
+    auto main_body_stmts = std::vector<jsv::StmtPtr>{};
+    main_body_stmts.push_back(std::make_unique<jsv::ExprStmt>(std::move(call)));
+    auto main_body = std::make_unique<jsv::BlockStmt>(std::move(main_body_stmts));
+
+    std::vector<jsv::StmtPtr> stmts;
+    stmts.push_back(std::move(add_func));
+    stmts.push_back(std::make_unique<jsv::MainStmt>(std::move(main_body)));
+
+    const jsv::Program program(std::move(stmts));
+    auto result = checker.check(program);
+
+    REQUIRE(!result.errors.empty());
+    bool found_e2028 = false;
+    for(const auto &error : result.errors) {
+        if(error.error_code().has_value() && error.error_code().value() == jsv::ErrorCode::E2028) {
+            found_e2028 = true;
+            break;
+        }
+    }
+    REQUIRE(found_e2028);
+}
+
 // T035: If expression joins branch types
 TEST_CASE("TypeChecker_IfExpression_JoinsBranchTypes", "[typechecker]") {
     jsv::TypeChecker checker;

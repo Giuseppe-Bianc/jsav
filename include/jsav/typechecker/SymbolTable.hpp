@@ -101,11 +101,14 @@ namespace jsv {
         [[nodiscard]] std::optional<std::pair<TypePtr, std::string_view>> get_function_return_context() const;
 
     private:
+        using FunctionReturnContext = std::pair<TypePtr, std::string>;
+
         struct StringHash {
             using is_transparent = void;  // enables heterogeneous lookup
             [[nodiscard]] std::size_t operator()(std::string_view sv) const noexcept { return std::hash<std::string_view>{}(sv); }
         };
         std::vector<std::unordered_map<std::string_view, TypeScheme, StringHash, std::equal_to<>>> scopes_;
+        std::vector<std::optional<FunctionReturnContext>> function_return_contexts_;
     };
 
 }  // namespace jsv

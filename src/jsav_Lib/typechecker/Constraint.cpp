@@ -9,6 +9,7 @@ namespace jsv {
 
     ConstraintId ConstraintSet::add(TypePtr lhs, TypePtr rhs, SourceSpan origin, std::string_view reason) {
         auto id = next_id_++;
+        index_by_id_.insert_or_assign(id, constraints_.size());
         constraints_.push_back(
             Constraint{.id = id, .lhs = std::move(lhs), .rhs = std::move(rhs), .origin = origin, .reason = std::string{reason}});
         return id;
@@ -17,8 +18,11 @@ namespace jsv {
     [[nodiscard]] const std::vector<Constraint> &ConstraintSet::constraints() const noexcept { return constraints_; }
 
     [[nodiscard]] const Constraint *ConstraintSet::get(ConstraintId id) const noexcept {
-        const auto it = std::ranges::find(constraints_, id, &Constraint::id);
-        return it != constraints_.end() ? &*it : nullptr;
+        const auto it = index_by_id_.find(id);
+        if (it == index_by_id_.end()) {
+            return nullptr;
+        }
+        return &constraints_[it->second];
     }
 
     [[nodiscard]] std::size_t ConstraintSet::size() const noexcept { return constraints_.size(); }

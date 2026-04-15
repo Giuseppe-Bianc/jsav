@@ -103,14 +103,15 @@ namespace jsv {
         /**
          * @brief Look up a constraint by its unique identifier.
          *
-         * Performs a linear search for the constraint with the given ID.
+         * Uses an internal index map (ConstraintId -> vector position) for
+         * efficient retrieval.
          *
          * @param id The constraint identifier to search for.
          *
          * @return Pointer to the constraint if found, nullptr otherwise.
          *         The pointer remains valid until the next non-const operation.
          *
-         * @note Complexity: O(n) where n is the number of constraints.
+         * @note Complexity: O(1) average-case.
          *
          * @par Example
          * @code
@@ -137,6 +138,7 @@ namespace jsv {
 
     private:
         std::vector<Constraint> constraints_;
+        std::unordered_map<ConstraintId, std::size_t> index_by_id_;
         ConstraintId next_id_{1};
     };
 
