@@ -67,7 +67,7 @@ namespace jsv {
 
         Kind kind_;
         std::optional<ErrorCode> code_;
-        std::string_view message_;
+        std::string message_;
         SourceSpan span_;
         std::optional<std::string> help_;
     };

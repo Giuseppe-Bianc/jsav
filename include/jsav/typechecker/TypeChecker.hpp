@@ -6,6 +6,7 @@
 
 // clang-format off
 #include "../headers.hpp"
+#include "jsav/error/CompileError.hpp"
 #include "jsav/ast/Program.hpp"
 #include "jsav/ast/Statements.hpp"
 #include "jsav/ast/TypedProgram.hpp"
@@ -132,9 +133,7 @@ namespace jsv {
         SymbolTable symbols_;
         ConstraintSet constraints_;
         std::vector<CompileError> errors_;
-        std::deque<std::string> message_storage_;  // Owns dynamic strings for CompileError::message_ (std::string_view); deque prevents
-                                                   // view invalidation on reallocation
-        std::vector<TypedStmtPtr> typed_stmts_;    // Stored during constraint generation
+        std::vector<TypedStmtPtr> typed_stmts_;  // Stored during constraint generation
 
         /// Maps function names to their declarations for signature lookup during CallExpr type checking
         std::unordered_map<std::string, const FuncDecl *> function_decls_;

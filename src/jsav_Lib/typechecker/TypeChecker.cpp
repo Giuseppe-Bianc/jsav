@@ -73,8 +73,7 @@ namespace jsv {
     TypeCheckResult TypeChecker::check(const Program &program) {
         symbols_ = SymbolTable{};
         constraints_ = ConstraintSet{};
-        errors_ = std::vector<CompileError>{};
-        message_storage_.clear();
+        errors_.clear();
         typed_stmts_.clear();
         function_decls_.clear();
         loop_depth_ = 0;
@@ -518,14 +517,14 @@ namespace jsv {
     }
 
     TypedExprPtr TypeChecker::type_identifier(const Identifier &expr) {
-        auto sym = symbols_.lookup(expr.name());
+        const auto name = expr.name();
+        auto sym = symbols_.lookup(name);
         if(!sym) {
-            message_storage_.emplace_back(FORMAT("Undeclared identifier: {}", expr.name()));
-            errors_.push_back(CompileError::TypeError(ErrorCode::E2033, message_storage_.back(), expr.location(),
-                                                      FORMAT("Identifier '{}' was not declared in this scope", expr.name())));
-            return std::make_unique<TypedIdentifier>(expr.name(), error_type(), expr.location());
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2033, FORMAT("Undeclared identifier: {}", name), expr.location(),
+                                                      FORMAT("Identifier '{}' was not declared in this scope", name)));
+            return std::make_unique<TypedIdentifier>(name, error_type(), expr.location());
         }
-        return std::make_unique<TypedIdentifier>(expr.name(), sym->instantiate(), expr.location());
+        return std::make_unique<TypedIdentifier>(name, sym->instantiate(), expr.location());
     }
 
     TypePtr TypeChecker::type_binary_arithmetic_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
@@ -545,9 +544,10 @@ namespace jsv {
         // Apply numeric promotion; emit an error when concrete types are not numeric.
         if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
             if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
-                                                  binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                errors_.push_back(CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
+                errors_.push_back(CompileError::TypeError(ErrorCode::E2013,
+                                                          FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                                 binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
+                                                          expr.location(),
                                                           "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
             }
             result_type = lhs_type;  // Fallback if promotion fails
@@ -562,10 +562,11 @@ namespace jsv {
         if(expr.op() != BinaryOp::Add) {
             if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
                 if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                    message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
-                                                      binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                    errors_.push_back(CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
-                                                              "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2013,
+                        FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}", binary_op_symbol(expr.op()),
+                               lhs_type->to_string(), rhs_type->to_string()),
+                        expr.location(), "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
                 }
             }
         } else {
@@ -577,11 +578,11 @@ namespace jsv {
                 const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
                 const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
                 if(!both_numeric && !string_char_combo) {
-                    message_storage_.push_back(FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
-                                                      binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                    errors_.push_back(
-                        CompileError::TypeError(ErrorCode::E2013, message_storage_.back(), expr.location(),
-                                                "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2013,
+                        FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
+                               binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
+                        expr.location(), "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
                 }
             }
         }
@@ -606,10 +607,10 @@ namespace jsv {
         bool mismatch_reported = false;
         if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
             if(lhs_type->kind() != TypeKind::Bool || rhs_type->kind() != TypeKind::Bool) {
-                message_storage_.push_back(FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
-                                                  binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                errors_.push_back(CompileError::TypeError(ErrorCode::E2012, message_storage_.back(), expr.location(),
-                                                          "Use boolean values (true/false) for logical operations."));
+                errors_.push_back(CompileError::TypeError(ErrorCode::E2012,
+                                                          FORMAT("Logical operator '{}' requires boolean operand types, found {} and {}",
+                                                                 binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
+                                                          expr.location(), "Use boolean values (true/false) for logical operations."));
                 mismatch_reported = true;
             }
         }
@@ -625,11 +626,11 @@ namespace jsv {
         // Integer-type validation is performed here (previously a separate post-switch).
         if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
             if(!lhs_type->is_integer() || !rhs_type->is_integer()) {
-                message_storage_.push_back(FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}",
-                                                  binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()));
-                errors_.push_back(
-                    CompileError::TypeError(ErrorCode::E2011, message_storage_.back(), expr.location(),
-                                            "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
+                errors_.push_back(CompileError::TypeError(
+                    ErrorCode::E2011,
+                    FORMAT("Bitwise operator '{}' requires integer operand types, found {} and {}", binary_op_symbol(expr.op()),
+                           lhs_type->to_string(), rhs_type->to_string()),
+                    expr.location(), "Use integer types (i8, i16, i32, i64, u8, u16, u32, u64) for bitwise operations."));
             }
         }
         return lhs_type;
@@ -688,18 +689,18 @@ namespace jsv {
             result_type = operand_type;
             if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
                 if(!operand_type->is_numeric()) {
-                    message_storage_.push_back(FORMAT("Negation requires numeric type operand, found {}", operand_type->to_string()));
-                    errors_.push_back(CompileError::TypeError(ErrorCode::E2018, message_storage_.back(), expr.location(),
-                                                              "Use a numeric type (i8-i64, u8-u64, f32, f64) for negation."));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2018, FORMAT("Negation requires numeric type operand, found {}", operand_type->to_string()),
+                        expr.location(), "Use a numeric type (i8-i64, u8-u64, f32, f64) for negation."));
                 }
             }
             break;
         case UnaryOp::Not:
             if(operand_type->kind() != TypeKind::TypeVar && operand_type->kind() != TypeKind::Error) {
                 if(operand_type->kind() != TypeKind::Bool) {
-                    message_storage_.push_back(FORMAT("Logical not requires boolean type operand, found {}", operand_type->to_string()));
-                    errors_.push_back(CompileError::TypeError(ErrorCode::E2019, message_storage_.back(), expr.location(),
-                                                              "Use a boolean type (bool) for logical not."));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2019, FORMAT("Logical not requires boolean type operand, found {}", operand_type->to_string()),
+                        expr.location(), "Use a boolean type (bool) for logical not."));
                 }
             }
             constraints_.add(operand_type, PrimitiveType::bool_(), expr.location(), "not: operand must be bool");
@@ -724,11 +725,13 @@ namespace jsv {
     TypedExprPtr TypeChecker::type_call_expr(const CallExpr &expr) {
         auto callee_typed = type_expr(expr.callee());
         auto callee_type = callee_typed->node_type();
+        const auto args_size = expr.args().size();
 
         std::vector<TypedExprPtr> typed_args;
-        typed_args.reserve(expr.args().size());
         std::vector<TypePtr> arg_types;
-        arg_types.reserve(expr.args().size());
+
+        typed_args.reserve(args_size);
+        arg_types.reserve(args_size);
         for(const auto &arg : expr.args()) {
             auto typed_arg = type_expr(*arg);
             arg_types.push_back(typed_arg->node_type());
@@ -748,10 +751,10 @@ namespace jsv {
                     const auto &params = func_decl->params();
 
                     if(arg_types.size() != params.size()) {
-                        message_storage_.push_back(FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name,
-                                                          params.size(), arg_types.size()));
                         errors_.push_back(CompileError::TypeError(
-                            ErrorCode::E2028, message_storage_.back(), expr.location(),
+                            ErrorCode::E2028,
+                            FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name, params.size(), arg_types.size()),
+                            expr.location(),
                             FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})", params.size(),
                                    arg_types.size())));
                         result_type = error_type();
@@ -801,9 +804,10 @@ namespace jsv {
 
             const TypePtr &actual_type = typed_elem->node_type();
             if(!(*expected_type == *actual_type)) {
-                message_storage_.push_back(FORMAT("All array elements must be same type, found mixed types: {} and {}",
-                                                  expected_type->to_string(), actual_type->to_string()));
-                errors_.push_back(CompileError::TypeError(ErrorCode::E2021, message_storage_.back(), typed_elem->location(),
+                errors_.push_back(CompileError::TypeError(ErrorCode::E2021,
+                                                          FORMAT("All array elements must be same type, found mixed types: {} and {}",
+                                                                 expected_type->to_string(), actual_type->to_string()),
+                                                          typed_elem->location(),
                                                           "Ensure all elements in the array literal have the same type"));
                 return nullptr;
             }
@@ -830,10 +834,9 @@ namespace jsv {
             if(ident != nullptr) {
                 auto sym = symbols_.lookup(ident->name());
                 if(sym && sym->is_const) {
-                    message_storage_.push_back(FORMAT("Cannot assign to immutable variable '{}'", ident->name()));
-                    errors_.push_back(
-                        CompileError::TypeError(ErrorCode::E2024, message_storage_.back(), expr.location(),
-                                                FORMAT("Variable '{}' was declared as const and cannot be modified", ident->name())));
+                    errors_.push_back(CompileError::TypeError(
+                        ErrorCode::E2024, FORMAT("Cannot assign to immutable variable '{}'", ident->name()), expr.location(),
+                        FORMAT("Variable '{}' was declared as const and cannot be modified", ident->name())));
                     return nullptr;
                 }
             }
@@ -867,16 +870,16 @@ namespace jsv {
         if(!obj_typed || !index_typed) { return nullptr; }
 
         if(obj_typed->node_type()->kind() != TypeKind::Array) {
-            message_storage_.push_back(FORMAT("Cannot index into non-array type {}", obj_typed->node_type()->to_string()));
-            errors_.push_back(CompileError::TypeError(ErrorCode::E2031, message_storage_.back(), obj_typed->location(),
-                                                      "Array indexing is only valid on array types"));
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2031,
+                                                      FORMAT("Cannot index into non-array type {}", obj_typed->node_type()->to_string()),
+                                                      obj_typed->location(), "Array indexing is only valid on array types"));
             return nullptr;
         }
 
         if(!index_typed->node_type()->is_integer()) {
-            message_storage_.push_back(FORMAT("Array index must be integer type, found {}", index_typed->node_type()->to_string()));
-            errors_.push_back(CompileError::TypeError(ErrorCode::E2030, message_storage_.back(), index_typed->location(),
-                                                      "Use an integer expression for array indexing"));
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2030, FORMAT("Array index must be integer type, found {}", index_typed->node_type()->to_string()),
+                index_typed->location(), "Use an integer expression for array indexing"));
             return nullptr;
         }
 
@@ -1003,9 +1006,11 @@ namespace jsv {
                     }
                 } else {
                     std::vector<TypedExprPtr> typed_initializers;
-                    typed_initializers.reserve(names.size());
+                    const std::size_t names_count = names.size();
+                    ;
+                    typed_initializers.reserve(names_count);
 
-                    for(std::size_t i = 0; i < names.size(); ++i) {
+                    for(std::size_t i = 0; i < names_count; ++i) {
                         TypePtr elem_type = var_type;
                         TypedExprPtr typed_init;
 
@@ -1110,11 +1115,11 @@ namespace jsv {
                         bool mismatch_reported = false;
                         if(return_type->kind() != TypeKind::TypeVar && expected_return_type->kind() != TypeKind::TypeVar) {
                             if(!(*return_type == *expected_return_type)) {
-                                message_storage_.push_back(FORMAT("Return type mismatch, expected {} found {}",
-                                                                  expected_return_type->to_string(), return_type->to_string()));
-                                errors_.push_back(
-                                    CompileError::TypeError(ErrorCode::E2007, message_storage_.back(), rs->location(),
-                                                            "Change the return value type or update the function's return type."));
+                                errors_.push_back(CompileError::TypeError(
+                                    ErrorCode::E2007,
+                                    FORMAT("Return type mismatch, expected {} found {}", expected_return_type->to_string(),
+                                           return_type->to_string()),
+                                    rs->location(), "Change the return value type or update the function's return type."));
                                 mismatch_reported = true;
                             }
                         }
@@ -1127,10 +1132,9 @@ namespace jsv {
                 } else {
                     // Void return — function expects a value but none provided
                     if(expected_return_type->kind() != TypeKind::Void) {
-                        message_storage_.push_back(
-                            FORMAT("Return type mismatch, expected {} found void", expected_return_type->to_string()));
-                        errors_.push_back(CompileError::TypeError(ErrorCode::E2008, message_storage_.back(), rs->location(),
-                                                                  "Return statement has no value but function expects a return type."));
+                        errors_.push_back(CompileError::TypeError(
+                            ErrorCode::E2008, FORMAT("Return type mismatch, expected {} found void", expected_return_type->to_string()),
+                            rs->location(), "Return statement has no value but function expects a return type."));
                     }
                 }
 
