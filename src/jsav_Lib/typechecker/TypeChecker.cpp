@@ -752,8 +752,8 @@ namespace jsv {
                                                           params.size(), arg_types.size()));
                         errors_.push_back(CompileError::TypeError(
                             ErrorCode::E2028, message_storage_.back(), expr.location(),
-                            FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})",
-                                   params.size(), arg_types.size())));
+                            FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})", params.size(),
+                                   arg_types.size())));
                         result_type = error_type();
                     } else {
                         for(std::size_t i = 0; i < arg_types.size(); ++i) {

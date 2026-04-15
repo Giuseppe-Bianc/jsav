@@ -19,9 +19,7 @@ namespace jsv {
 
     [[nodiscard]] const Constraint *ConstraintSet::get(ConstraintId id) const noexcept {
         const auto it = index_by_id_.find(id);
-        if (it == index_by_id_.end()) {
-            return nullptr;
-        }
+        if(it == index_by_id_.end()) { return nullptr; }
         return &constraints_[it->second];
     }
 
