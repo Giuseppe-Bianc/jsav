@@ -286,11 +286,8 @@ namespace jsv {
         // First, collect non-null initializers to determine proper tree connectors
         std::vector<std::size_t> child_indices;
         child_indices.reserve(inits.size());
-        std::ranges::copy_if(std::views::iota(std::size_t{0}, inits.size()),
-                             std::back_inserter(child_indices),
-                             [&inits](const std::size_t i) -> bool { 
-                                 return static_cast<bool>(inits[i]);
-                             });
+        std::ranges::copy_if(std::views::iota(std::size_t{0}, inits.size()), std::back_inserter(child_indices),
+                             [&inits](const std::size_t i) -> bool { return static_cast<bool>(inits[i]); });
 
         const std::size_t child_count = child_indices.size();
 
