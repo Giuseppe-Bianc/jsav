@@ -285,13 +285,18 @@ namespace jsv {
         // Initializers for each variable — follow the Ast_printer.cpp pattern
         // First, collect non-null initializers to determine proper tree connectors
         std::vector<std::size_t> child_indices;
-        for(std::size_t i = 0; i < inits.size(); ++i) {
-            if(inits[i]) { child_indices.push_back(i); }
-        }
+        child_indices.reserve(inits.size());
+        std::ranges::copy_if(std::views::iota(std::size_t{0}, inits.size()),
+                             std::back_inserter(child_indices),
+                             [&inits](const std::size_t i) -> bool { 
+                                 return static_cast<bool>(inits[i]);
+                             });
 
-        for(std::size_t idx = 0; idx < child_indices.size(); ++idx) {
+        const std::size_t child_count = child_indices.size();
+
+        for(std::size_t idx = 0; idx < child_count; ++idx) {
             const std::size_t i = child_indices[idx];
-            const bool is_last_child = (idx == child_indices.size() - 1);
+            const bool is_last_child = (idx == child_count - 1);
             print_line(FORMAT("Initializer for '{}':", names[i]), is_last_child);
             const IndentGuard guard2{*this, is_last_child};
             visit_child(*inits[i], true);
