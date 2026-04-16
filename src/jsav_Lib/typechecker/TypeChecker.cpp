@@ -866,7 +866,7 @@ namespace jsv {
     bool TypeChecker::both_concrete(const TypePtr &lhs, const TypePtr &rhs) noexcept {
         return lhs->kind() != TypeKind::TypeVar && rhs->kind() != TypeKind::TypeVar;
     }
-    
+
     bool TypeChecker::is_string_char_combo(const TypePtr &lhs, const TypePtr &rhs) noexcept {
         const bool lhs_sc = lhs->kind() == TypeKind::String || lhs->kind() == TypeKind::Char;
         const bool rhs_sc = rhs->kind() == TypeKind::String || rhs->kind() == TypeKind::Char;
