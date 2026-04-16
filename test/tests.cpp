@@ -144,6 +144,12 @@ namespace {
         FdGuard &operator=(FdGuard &&) = delete;
     };
 
+    struct FileCloser {
+        void operator()(FILE *file) const noexcept {
+            if(file != nullptr) { (void)std::fclose(file); }
+        }
+    };
+
     // ─────────────────────────────────────────────────────────────
     // Helper: redirect stdout to a std::string for the duration of
     // a lambda, then restore it.
@@ -158,7 +164,7 @@ namespace {
             FILE *const raw_tmp = std::tmpfile();
             if(raw_tmp == nullptr) { return {}; }
 #endif
-            const std::unique_ptr<FILE, decltype(&std::fclose)> tmp{raw_tmp, &std::fclose};
+            const std::unique_ptr<FILE, FileCloser> tmp{raw_tmp};
 
             (void)std::fflush(stdout);
 
