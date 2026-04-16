@@ -220,7 +220,6 @@ jsav/
 ├── .devcontainer/                     # Dev Container configuration (Dockerfile, devcontainer.json)
 ├── .github/                           # GitHub workflows, issue/PR templates, actions, prompts, and agent config
 ├── .specify/                          # Specify memory, templates, integrations, and workflow configuration
-├── cmake-build-debug-visual-studio/   # IDE-generated debug build tree
 ├── CMakeLists.txt                     # Root CMake configuration (project definition, options, install rules)
 ├── ProjectOptions.cmake               # Compiler options, sanitizers, static analysis setup, feature flags
 ├── Dependencies.cmake                 # External dependency management via CPM (version-locked)
