@@ -217,104 +217,189 @@ The repository follows a conventional CMake project structure with clear separat
 
 ```text
 jsav/
-├── CMakeLists.txt              # Main CMake configuration (project definition, options, install rules)
-├── ProjectOptions.cmake        # Compiler options, sanitizers, static analysis setup, feature flags
-├── Dependencies.cmake          # External dependency management via CPM (version-locked)
-├── CMakePresets.json           # Predefined CMake configurations for all platforms and toolchains
-├── include/
-│   ├── jsav/                   # Public headers (main module API — installed for consumers)
-│   │   ├── headers.hpp         # Master include for jsav module (convenience header)
-│   │   ├── jsav.hpp            # Main module header (exports lexer, fs, tokens — primary API)
-│   │   ├── fs/                 # Filesystem utilities (public API — cross-platform file ops)
-│   │   │   ├── FileCreationResult.hpp
-│   │   │   ├── FileDeletionResult.hpp
-│   │   │   ├── FolderCreationResult.hpp
-│   │   │   ├── FolderDeletionResult.hpp
-│   │   │   ├── fs.hpp
-│   │   │   ├── FSConstats.hpp
-│   │   │   └── OSOperationResult.hpp
-│   │   └── lexer/              # Lexer interfaces (public API — lexical analysis)
-│   │       ├── unicode/        # Unicode support utilities
-│   │       │   ├── UnicodeData.hpp
-│   │       │   └── Utf8.hpp
-│   │       ├── Lexer.hpp
-│   │       ├── SourceLocation.hpp
-│   │       ├── SourceSpan.hpp
-│   │       └── Token.hpp
-│   └── jsavCore/               # Core library headers (internal utilities — NOT installed)
-│       ├── headersCore.hpp     # Core master include (convenience header for core module)
-│       ├── jsavCore.hpp        # Core module header (internal implementation details)
-│       ├── cast/               # Casting utilities (type-safe conversions)
-│       │   ├── BaseCast.hpp
-│       │   ├── BitCast.hpp
-│       │   ├── casts.hpp
-│       │   ├── NarrowCast.hpp
-│       │   └── TypeSizes.hpp
-│       ├── timer/              # Timer utilities (performance measurement)
-│       │   ├── timeFactors.hpp
-│       │   ├── Timer.hpp
-│       │   ├── TimerConstats.hpp
-│       │   └── Times.hpp
-│       ├── disableWarn.hpp     # Warning suppression macros (compiler-specific)
-│       ├── FileReader.hpp      # File reading utilities (internal file I/O)
-│       ├── FileReaderError.hpp # File reader error types (structured error handling)
-│       ├── format.hpp          # Formatting utilities (wrapper around fmt/std::format)
-│       ├── Log.hpp             # Logging setup (spdlog configuration and macros)
-│       └── move.hpp            # Move semantics utilities (perfect forwarding helpers)
-├── src/
-│   ├── CMakeLists.txt          # Source subdirectory configuration (target definitions)
-│   ├── jsav/                   # Main executable (application entry point)
-│   │   ├── CMakeLists.txt      # Executable target configuration
-│   │   ├── Costanti.hpp        # Compile-time constants (application-specific)
-│   │   └── main.cpp            # Entry point with CLI parsing (program startup)
-│   ├── jsav_Core_lib/          # Core library implementation (foundational utilities)
-│   │   ├── CMakeLists.txt      # Core library target configuration
-│   │   └── jsavCore.cpp        # Core module definitions (logging, file I/O, timers)
-│   └── jsav_Lib/               # Main library implementation (compiler logic)
-│       ├── CMakeLists.txt      # Main library target configuration
-│       ├── jsav.cpp            # Main library definitions (compiler orchestration)
-│       └── lexer/              # Lexer implementation (tokenization logic)
-│           ├── Lexer.cpp
-│           ├── SourceLocation.cpp
-│           ├── SourceSpan.cpp
-│           └── Token.cpp
-├── test/
-│   ├── CMakeLists.txt          # Test configuration (Catch2 setup, test discovery)
-│   ├── constexpr_tests.cpp     # Compile-time constexpr tests (STATIC_REQUIRE assertions)
-│   ├── tests.cpp               # Runtime unit tests (REQUIRE assertions, I/O tests)
-│   └── testsConstanst.hpp      # Test constants and utilities (shared test fixtures)
-├── fuzz_test/                  # Fuzz testing (optional, libFuzzer-based mutation testing)
-│   ├── CMakeLists.txt
-│   └── fuzz_tester.cpp
-├── cmake/                      # CMake modules and utilities (build system infrastructure)
-│   ├── _FORTIFY_SOURCE.hpp    # Security hardening definitions
-│   ├── Cache.cmake             # Compilation caching configuration (ccache integration)
-│   ├── CompilerWarnings.cmake  # Compiler-specific warning flags (GCC/Clang/MSVC)
-│   ├── CPM.cmake               # CMake Package Manager (dependency fetching)
-│   ├── Cuda.cmake              # CUDA support configuration (optional)
-│   ├── Doxygen.cmake           # Documentation generation configuration
-│   ├── Emscripten.cmake        # WebAssembly compilation support (optional)
-│   ├── Hardening.cmake         # Security hardening options (FORTIFY, relro, etc.)
+├── .devcontainer/                     # Dev Container configuration (Dockerfile, devcontainer.json)
+├── .github/                           # GitHub workflows, issue/PR templates, actions, prompts, and agent config
+├── .specify/                          # Specify memory, templates, integrations, and workflow configuration
+├── cmake-build-debug-visual-studio/   # IDE-generated debug build tree
+├── CMakeLists.txt                     # Root CMake configuration (project definition, options, install rules)
+├── ProjectOptions.cmake               # Compiler options, sanitizers, static analysis setup, feature flags
+├── Dependencies.cmake                 # External dependency management via CPM (version-locked)
+├── CMakePresets.json                  # Predefined CMake configurations for supported toolchains
+├── include/                           # Public and internal header trees
+│   ├── jsav/                          # Installed public API headers and umbrella includes
+│   │   ├── ast/                       # Untyped/typed AST nodes, type model, visitors, and printers
+│   │   │   ├── Ast_printer.hpp        # AST pretty-printer interfaces
+│   │   │   ├── Expressions.hpp        # Expression node declarations
+│   │   │   ├── Node.hpp               # Base AST node declarations
+│   │   │   ├── NodeKind.hpp           # AST node kind enumeration
+│   │   │   ├── Program.hpp            # Root program node declarations
+│   │   │   ├── Statements.hpp         # Statement node declarations
+│   │   │   ├── Type.hpp               # Language type node/model declarations
+│   │   │   ├── TypedAst.hpp           # Aggregate typed AST declarations
+│   │   │   ├── TypedAst_printer.hpp   # Typed AST pretty-printer interfaces
+│   │   │   ├── TypedExpressions.hpp   # Typed expression node declarations
+│   │   │   ├── TypedNode.hpp          # Base typed AST node declarations
+│   │   │   ├── TypedProgram.hpp       # Root typed program node declarations
+│   │   │   ├── TypedStatements.hpp    # Typed statement node declarations
+│   │   │   ├── TypedVisitor.hpp       # Visitor interface for typed AST traversal
+│   │   │   └── Visitor.hpp            # Visitor interface for AST traversal
+│   │   ├── error/                     # Diagnostic types, error codes, reporting, and Unicode column helpers
+│   │   │   ├── CompileError.hpp       # Structured compile-time error objects
+│   │   │   ├── error_codes.hpp        # Shared compiler diagnostic/error code definitions
+│   │   │   ├── ErrorReporter.hpp      # Diagnostic emission and formatting interface
+│   │   │   └── UnicodeColumn.hpp      # Unicode-aware column width and position helpers
+│   │   ├── fs/                        # Filesystem facade plus operation result/status types
+│   │   │   ├── FileCreationResult.hpp # Result type for file creation operations
+│   │   │   ├── FileDeletionResult.hpp # Result type for file deletion operations
+│   │   │   ├── FolderCreationResult.hpp  # Result type for directory creation operations
+│   │   │   ├── FolderDeletionResult.hpp  # Result type for directory deletion operations
+│   │   │   ├── fs.hpp                 # Public filesystem utility facade
+│   │   │   ├── FSConstats.hpp         # Filesystem constants and shared enums
+│   │   │   └── OSOperationResult.hpp  # Common status/result abstraction for OS operations
+│   │   ├── lexer/                     # Tokenization interfaces, tokens, and Unicode-aware lexer support
+│   │   │   ├── unicode/               # Unicode tables and UTF-8 decoding helpers
+│   │   │   │   ├── UnicodeData.hpp    # Generated Unicode classification/table data
+│   │   │   │   └── Utf8.hpp           # UTF-8 decoding and validation helpers
+│   │   │   ├── Lexer.hpp              # Public lexer interface
+│   │   │   └── Token.hpp              # Token type definitions and helpers
+│   │   ├── location/                  # Source positions, spans, and line-mapping helpers
+│   │   │   ├── LineTracker.hpp        # Maps byte offsets to line/column information
+│   │   │   ├── SourceLocation.hpp     # Single source position representation
+│   │   │   └── SourceSpan.hpp         # Half-open source range representation
+│   │   ├── parser/                    # Parser front-end interface and operator precedence definitions
+│   │   │   ├── Parser.hpp             # Recursive-descent parser interface
+│   │   │   └── precedence.hpp         # Operator precedence and associativity tables
+│   │   ├── typechecker/               # Constraint-based typing, substitutions, schemes, visitors, and union-find
+│   │   │   ├── Constraint.hpp         # Type constraint representation
+│   │   │   ├── ConstraintSolver.hpp   # Constraint solving engine interface
+│   │   │   ├── ErrorType.hpp          # Sentinel/error type definitions
+│   │   │   ├── Substitution.hpp       # Type substitution model and operations
+│   │   │   ├── SymbolTable.hpp        # Scoped symbol/type environment interface
+│   │   │   ├── TypeChecker.hpp        # Main type-checking front-end
+│   │   │   ├── TypeScheme.hpp         # Polymorphic type scheme representation
+│   │   │   ├── TypeVariable.hpp       # Type variable representation
+│   │   │   ├── TypeVisitor.hpp        # Visitor utilities for type structures
+│   │   │   └── UnionFind.hpp          # Disjoint-set structure for unification
+│   │   ├── util/                      # ANSI terminal styling helpers
+│   │   │   └── AnsiStyles.hpp         # ANSI escape sequence/style helpers
+│   │   ├── headers.hpp                # Thin public shim that pulls in the core shared utilities
+│   │   └── jsav.hpp                   # Public umbrella header aggregating the jsav APIs
+│   └── jsavCore/                      # Internal shared utilities and common includes (not installed)
+│       ├── cast/                      # Base/bit/narrow cast helpers and type-size utilities
+│       │   ├── BaseCast.hpp           # Foundational cast helper templates
+│       │   ├── BitCast.hpp            # Bit-level cast wrappers
+│       │   ├── casts.hpp              # Aggregate include for cast helpers
+│       │   ├── NarrowCast.hpp         # Checked narrowing conversion helpers
+│       │   └── TypeSizes.hpp          # Compile-time type-size utilities/constants
+│       ├── timer/                     # Timers, durations, and unit conversion constants
+│       │   ├── timeFactors.hpp        # Time unit conversion factors
+│       │   ├── Timer.hpp              # Timing utility class declarations
+│       │   ├── TimerConstats.hpp      # Timer-related constants
+│       │   └── Times.hpp              # Duration aliases and time value helpers
+│       ├── disableWarn.hpp            # Compiler-specific warning suppression macros
+│       ├── FileReader.hpp             # Shared file-reading utilities
+│       ├── FileReaderError.hpp        # Error types for file reading and path handling
+│       ├── format.hpp                 # Formatting abstraction over std::format and fmt
+│       ├── headersCore.hpp            # Core umbrella header with STL/common utility includes
+│       ├── jsavCore.hpp               # Aggregator for core logging, file I/O, and shared utilities
+│       ├── Log.hpp                    # spdlog setup, logger access, and log macros
+│       └── move.hpp                   # Move/forward helper utilities
+├── src/                               # Source tree for executable and libraries
+│   ├── CMakeLists.txt                 # Source subdirectory configuration (target definitions)
+│   ├── jsav/                          # Main executable (application entry point)
+│   │   ├── CMakeLists.txt             # Executable target configuration
+│   │   ├── Costanti.hpp               # Compile-time constants (application-specific)
+│   │   └── main.cpp                   # Entry point with CLI parsing and compiler orchestration
+│   ├── jsav_Core_lib/                 # Core library implementation (foundational utilities)
+│   │   ├── CMakeLists.txt             # Core library target configuration
+│   │   └── jsavCore.cpp               # Core module definitions (logging, file I/O, timers)
+│   └── jsav_Lib/                      # Main compiler library implementation
+│       ├── ast/                       # AST, typed AST, visitor, and printer implementation
+│       │   ├── Ast_printer.cpp        # AST pretty-printer implementation
+│       │   ├── Expressions.cpp        # Expression node implementation
+│       │   ├── Node.cpp               # Base AST node implementation
+│       │   ├── NodeKind.cpp           # AST node kind helpers/formatting
+│       │   ├── Program.cpp            # Program node implementation
+│       │   ├── Statements.cpp         # Statement node implementation
+│       │   ├── Type.cpp               # Language type node/model implementation
+│       │   ├── TypedAst_printer.cpp   # Typed AST pretty-printer implementation
+│       │   ├── TypedExpressions.cpp   # Typed expression node implementation
+│       │   ├── TypedNode.cpp          # Base typed AST node implementation
+│       │   ├── TypedProgram.cpp       # Typed program node implementation
+│       │   ├── TypedStatements.cpp    # Typed statement node implementation
+│       │   └── Visitor.cpp            # AST visitor implementation
+│       ├── error/                     # Diagnostic/reporting implementation
+│       │   ├── CompileError.cpp       # Structured compile-time error implementation
+│       │   ├── error_codes.cpp        # Diagnostic/error code definitions
+│       │   ├── ErrorReporter.cpp      # Diagnostic reporting implementation
+│       │   └── UnicodeColumn.cpp      # Unicode-aware column calculation helpers
+│       ├── lexer/                     # Lexer and token implementation
+│       │   ├── Lexer.cpp              # Lexer implementation
+│       │   └── Token.cpp              # Token helper/type implementation
+│       ├── location/                  # Source location/span/line tracking implementation
+│       │   ├── LineTracker.cpp        # Line/column mapping implementation
+│       │   ├── SourceLocation.cpp     # Source position implementation
+│       │   └── SourceSpan.cpp         # Source range implementation
+│       ├── parser/                    # Parser implementation
+│       │   └── Parser.cpp             # Recursive-descent parser implementation
+│       ├── typechecker/               # Type inference and constraint solver implementation
+│       │   ├── Constraint.cpp         # Type constraint implementation
+│       │   ├── ConstraintSolver.cpp   # Constraint solving engine implementation
+│       │   ├── ErrorType.cpp          # Sentinel/error type implementation
+│       │   ├── Substitution.cpp       # Type substitution implementation
+│       │   ├── SymbolTable.cpp        # Symbol/type environment implementation
+│       │   ├── TypeChecker.cpp        # Main type-checker implementation
+│       │   ├── TypeScheme.cpp         # Polymorphic type scheme implementation
+│       │   ├── TypeVariable.cpp       # Type variable implementation
+│       │   ├── TypeVisitor.cpp        # Type visitor implementation
+│       │   └── UnionFind.cpp          # Union-find/unification support implementation
+│       ├── util/                      # Console styling implementation
+│       │   └── AnsiStyles.cpp         # ANSI escape sequence/style helper implementation
+│       ├── CMakeLists.txt             # Main library target configuration
+│       └── jsav.cpp                   # Main library definitions
+├── test/                              # Unit tests, constexpr tests, and benchmarks
+│   ├── benchmarks.cpp                 # Catch2 benchmarks
+│   ├── CMakeLists.txt                 # Test configuration (Catch2 setup, test discovery)
+│   ├── constexpr_tests.cpp            # Compile-time constexpr tests (STATIC_REQUIRE assertions)
+│   ├── tests.cpp                      # Runtime unit and integration-style tests
+│   └── testsConstanst.hpp             # Shared test constants/utilities
+├── fuzz_test/                         # Fuzz testing (optional, libFuzzer-based mutation testing)
+│   ├── CMakeLists.txt                 # Fuzz target configuration
+│   └── fuzz_tester.cpp                # libFuzzer entry point and fuzz harness
+├── cmake/                             # CMake modules and utilities (build system infrastructure)
+│   ├── _FORTIFY_SOURCE.hpp            # Security hardening definitions
+│   ├── Cache.cmake                    # Compilation caching configuration (ccache integration)
+│   ├── CompilerWarnings.cmake         # Compiler-specific warning flags (GCC/Clang/MSVC)
+│   ├── CPM.cmake                      # CMake Package Manager (dependency fetching)
+│   ├── Cuda.cmake                     # CUDA support configuration (optional)
+│   ├── Doxygen.cmake                  # Documentation generation configuration
+│   ├── Emscripten.cmake               # WebAssembly compilation support (optional)
+│   ├── Hardening.cmake                # Security hardening options (FORTIFY, relro, etc.)
 │   ├── InterproceduralOptimization.cmake  # LTO/IPO configuration
-│   ├── LibFuzzer.cmake         # LibFuzzer integration for fuzz testing
-│   ├── Linker.cmake            # Linker-specific flags and configuration
-│   ├── PackageProject.cmake    # CMake package configuration for installation
+│   ├── LibFuzzer.cmake                # LibFuzzer integration for fuzz testing
+│   ├── Linker.cmake                   # Linker-specific flags and configuration
+│   ├── PackageProject.cmake           # CMake package configuration for installation
 │   ├── PreventInSourceBuilds.cmake  # Enforces out-of-source builds
-│   ├── Sanitizers.cmake        # Sanitizer configuration (ASan, UBSan, TSan)
-│   ├── Simd.cmake              # SIMD feature detection and configuration
+│   ├── Sanitizers.cmake               # Sanitizer configuration (ASan, UBSan, TSan)
+│   ├── Simd.cmake                     # SIMD feature detection and configuration
 │   ├── StandardProjectSettings.cmake  # Standard CMake project defaults
-│   ├── StaticAnalyzers.cmake   # Static analysis configuration (clang-tidy, cppcheck)
-│   ├── SystemLink.cmake        # System-specific linker configuration
-│   ├── Tests.cmake             # Test configuration utilities (coverage, discovery)
-│   ├── Utilities.cmake         # General CMake utility functions
-│   └── VCEnvironment.cmake     # Visual Studio environment configuration
-├── configured_files/           # Template files for CMake generation (configured at build time)
-│   ├── CMakeLists.txt
-│   └── config.hpp.in           # Version and configuration header template
-├── scripts/                    # Utility scripts (automation, code generation)
-│   └── generate_unicode_tables.py  # Unicode data table generation
-├── specs/                      # Specification documents (formal requirements, design docs)
-└── vn_files/                   # Version number files (semantic versioning metadata)
+│   ├── StaticAnalyzers.cmake          # Static analysis configuration (clang-tidy, cppcheck)
+│   ├── SystemLink.cmake               # System-specific linker configuration
+│   ├── Tests.cmake                    # Test configuration utilities (coverage, discovery)
+│   ├── Utilities.cmake                # General CMake utility functions
+│   └── VCEnvironment.cmake            # Visual Studio environment configuration
+├── configured_files/                  # Template files for CMake generation (configured at build time)
+│   ├── CMakeLists.txt                 # Configuration-time generation rules
+│   └── config.hpp.in                  # Version and configuration header template
+├── scripts/                           # Utility scripts (automation and code generation)
+│   └── generate_unicode_tables.py     # Unicode data table generation
+├── specs/                             # Feature specifications, plans, and design notes
+├── vn_files/                          # Sample `.vn` programs and semantic/type-checker fixtures
+├── AGENTS.md                          # Authoritative agent/developer guidance
+├── AI_GUIDELINES.md                   # Legacy AI-facing guidance
+├── HUMAN_GUIDELINES.md                # Legacy human-facing guidance
+├── README*.md                         # Project, build, dependency, and Docker documentation
+└── *.sh / *.ps1 / *_prompt.md         # Local build helpers, profiling scripts, and audit/generation prompts
 ```
 
 **Source**: Direct observation of repository structure, `QWEN.md`
