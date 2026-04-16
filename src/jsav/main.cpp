@@ -19,157 +19,150 @@ DISABLE_WARNINGS_POP()
 
 namespace {
 
-struct MemberInfo {
-    std::string_view name;
-    std::string_view type;
-    std::size_t offset;
-    std::size_t size;
-    std::size_t alignment;
-};
+    struct MemberInfo {
+        std::string_view name;
+        std::string_view type;
+        std::size_t offset;
+        std::size_t size;
+        std::size_t alignment;
+    };
 
-template <typename T, std::size_t N>
-void print_layout(std::string_view type_name, const std::array<MemberInfo, N> &members) {
-    if constexpr(!std::is_standard_layout_v<T>) {
+    template <typename T, std::size_t N> void print_layout(std::string_view type_name, const std::array<MemberInfo, N> &members) {
+        if constexpr(!std::is_standard_layout_v<T>) {
+            fmt::print("\n=== {} ===\n\n", type_name);
+            fmt::print("// Layout unavailable: type is not standard-layout, so offsetof-based analysis is not well-defined.\n");
+            return;
+        }
+
         fmt::print("\n=== {} ===\n\n", type_name);
-        fmt::print("// Layout unavailable: type is not standard-layout, so offsetof-based analysis is not well-defined.\n");
-        return;
+        fmt::print("[Layout Calculation: {}]\n", type_name);
+
+        std::size_t wasted_padding = 0;
+        std::size_t previous_end = 0;
+
+        for(const auto &member : members) {
+            const std::size_t padding_before = member.offset - previous_end;
+            wasted_padding += padding_before;
+
+            fmt::print("  offset {} : {} -> size {}, align {}, padding_before {}, ends at {}\n", member.offset, member.name, member.size,
+                       member.alignment, padding_before, member.offset + member.size);
+
+            previous_end = member.offset + member.size;
+        }
+
+        const std::size_t raw_end = previous_end;
+        const std::size_t type_align = alignof(T);
+        const std::size_t trailing_padding = (type_align - (raw_end % type_align)) % type_align;
+        wasted_padding += trailing_padding;
+
+        fmt::print("  raw_end = {}, type_align = {}, trailing_padding = {}\n", raw_end, type_align, trailing_padding);
+        fmt::print("  sizeof({}) = {}, alignof({}) = {}, wasted = {}\n\n", type_name, sizeof(T), type_name, alignof(T), wasted_padding);
+
+        fmt::print("Member Layout:\n");
+        fmt::print("┌─────────────────────┬───────────────────────┬──────────────┬────────┬─────────────────┐\n");
+        fmt::print("│ Member              │ Type                  │ Size (bytes) │ Offset │ Padding before  │\n");
+        fmt::print("├─────────────────────┼───────────────────────┼──────────────┼────────┼─────────────────┤\n");
+
+        previous_end = 0;
+        for(const auto &member : members) {
+            const std::size_t padding_before = member.offset - previous_end;
+            fmt::print("│ {:<19} │ {:<21} │ {:>12} │ {:>6} │ {:>15} │\n", member.name, member.type, member.size, member.offset,
+                       padding_before);
+            previous_end = member.offset + member.size;
+        }
+
+        fmt::print("├─────────────────────┼───────────────────────┼──────────────┼────────┼─────────────────┤\n");
+        fmt::print("│ {:<19} │ {:<21} │ {:>12} │ {:>6} │ {:>15} │\n", "(trailing padding)", "—", trailing_padding, raw_end, "—");
+        fmt::print("└─────────────────────┴───────────────────────┴──────────────┴────────┴─────────────────┘\n\n");
+
+        fmt::print("Size:                 {} bytes\n", sizeof(T));
+        fmt::print("Alignment:            {} bytes\n", alignof(T));
+        fmt::print("Wasted padding space: {} bytes\n", wasted_padding);
     }
 
-    fmt::print("\n=== {} ===\n\n", type_name);
-    fmt::print("[Layout Calculation: {}]\n", type_name);
-
-    std::size_t wasted_padding = 0;
-    std::size_t previous_end = 0;
-
-    for(const auto &member : members) {
-        const std::size_t padding_before = member.offset - previous_end;
-        wasted_padding += padding_before;
-
-        fmt::print("  offset {} : {} -> size {}, align {}, padding_before {}, ends at {}\n", member.offset, member.name, member.size,
-                   member.alignment, padding_before, member.offset + member.size);
-
-        previous_end = member.offset + member.size;
+    template <typename T> void print_layout_unavailable(std::string_view type_name, std::string_view reason) {
+        fmt::print("\n=== {} ===\n\n", type_name);
+        fmt::print("// {}\n", reason);
+        fmt::print("Size:                 {} bytes\n", sizeof(T));
+        fmt::print("Alignment:            {} bytes\n", alignof(T));
+        fmt::print("Wasted padding space: n/a\n");
     }
 
-    const std::size_t raw_end = previous_end;
-    const std::size_t type_align = alignof(T);
-    const std::size_t trailing_padding = (type_align - (raw_end % type_align)) % type_align;
-    wasted_padding += trailing_padding;
-
-    fmt::print("  raw_end = {}, type_align = {}, trailing_padding = {}\n", raw_end, type_align, trailing_padding);
-    fmt::print("  sizeof({}) = {}, alignof({}) = {}, wasted = {}\n\n", type_name, sizeof(T), type_name, alignof(T), wasted_padding);
-
-    fmt::print("Member Layout:\n");
-    fmt::print("┌─────────────────────┬───────────────────────┬──────────────┬────────┬─────────────────┐\n");
-    fmt::print("│ Member              │ Type                  │ Size (bytes) │ Offset │ Padding before  │\n");
-    fmt::print("├─────────────────────┼───────────────────────┼──────────────┼────────┼─────────────────┤\n");
-
-    previous_end = 0;
-    for(const auto &member : members) {
-        const std::size_t padding_before = member.offset - previous_end;
-        fmt::print("│ {:<19} │ {:<21} │ {:>12} │ {:>6} │ {:>15} │\n", member.name, member.type, member.size, member.offset, padding_before);
-        previous_end = member.offset + member.size;
+#define MEMBER(TYPE, FIELD, FIELD_TYPE)                                                                                                    \
+    MemberInfo {                                                                                                                           \
+        #FIELD, FIELD_TYPE, offsetof(TYPE, FIELD), sizeof(std::remove_reference_t<decltype(((TYPE *)nullptr)->FIELD)>),                    \
+            alignof(std::remove_reference_t<decltype(((TYPE *)nullptr)->FIELD)>)                                                           \
     }
 
-    fmt::print("├─────────────────────┼───────────────────────┼──────────────┼────────┼─────────────────┤\n");
-    fmt::print("│ {:<19} │ {:<21} │ {:>12} │ {:>6} │ {:>15} │\n", "(trailing padding)", "—", trailing_padding, raw_end, "—");
-    fmt::print("└─────────────────────┴───────────────────────┴──────────────┴────────┴─────────────────┘\n\n");
+    void print_layout_report() {
+        print_layout<jsv::SourceLocation>(
+            "jsv::SourceLocation",
+            std::to_array<MemberInfo>({MEMBER(jsv::SourceLocation, line, "std::size_t"), MEMBER(jsv::SourceLocation, column, "std::size_t"),
+                                       MEMBER(jsv::SourceLocation, absolute_pos, "std::size_t")}));
 
-    fmt::print("Size:                 {} bytes\n", sizeof(T));
-    fmt::print("Alignment:            {} bytes\n", alignof(T));
-    fmt::print("Wasted padding space: {} bytes\n", wasted_padding);
-}
+        print_layout<jsv::SourceSpan>("jsv::SourceSpan", std::to_array<MemberInfo>({MEMBER(jsv::SourceSpan, file_path, "std::string_view"),
+                                                                                    MEMBER(jsv::SourceSpan, start, "jsv::SourceLocation"),
+                                                                                    MEMBER(jsv::SourceSpan, end, "jsv::SourceLocation")}));
 
-template <typename T>
-void print_layout_unavailable(std::string_view type_name, std::string_view reason) {
-    fmt::print("\n=== {} ===\n\n", type_name);
-    fmt::print("// {}\n", reason);
-    fmt::print("Size:                 {} bytes\n", sizeof(T));
-    fmt::print("Alignment:            {} bytes\n", alignof(T));
-    fmt::print("Wasted padding space: n/a\n");
-}
+        print_layout<jsv::unicode::Utf8DecodeResult>(
+            "jsv::unicode::Utf8DecodeResult",
+            std::to_array<MemberInfo>({MEMBER(jsv::unicode::Utf8DecodeResult, codepoint, "char32_t"),
+                                       MEMBER(jsv::unicode::Utf8DecodeResult, byte_length, "std::uint8_t"),
+                                       MEMBER(jsv::unicode::Utf8DecodeResult, status, "jsv::unicode::Utf8Status")}));
 
-#define MEMBER(TYPE, FIELD, FIELD_TYPE)                                                                                                      \
-    MemberInfo{#FIELD, FIELD_TYPE, offsetof(TYPE, FIELD),                                                                                    \
-               sizeof(std::remove_reference_t<decltype(((TYPE *)nullptr)->FIELD)>),                                                         \
-               alignof(std::remove_reference_t<decltype(((TYPE *)nullptr)->FIELD)>) }
+        print_layout<jsv::unicode::CodepointRange>("jsv::unicode::CodepointRange",
+                                                   std::to_array<MemberInfo>({MEMBER(jsv::unicode::CodepointRange, first, "char32_t"),
+                                                                              MEMBER(jsv::unicode::CodepointRange, last, "char32_t")}));
 
-void print_layout_report() {
-    print_layout<jsv::SourceLocation>("jsv::SourceLocation",
-                                      std::to_array<MemberInfo>({MEMBER(jsv::SourceLocation, line, "std::size_t"),
-                                                                 MEMBER(jsv::SourceLocation, column, "std::size_t"),
-                                                                 MEMBER(jsv::SourceLocation, absolute_pos, "std::size_t")}));
+        print_layout<jsv::ErrorDisplayConfig>("jsv::ErrorDisplayConfig",
+                                              std::to_array<MemberInfo>({MEMBER(jsv::ErrorDisplayConfig, tab_stop_width, "std::size_t"),
+                                                                         MEMBER(jsv::ErrorDisplayConfig, ansi_color, "bool")}));
 
-    print_layout<jsv::SourceSpan>("jsv::SourceSpan",
-                                  std::to_array<MemberInfo>({MEMBER(jsv::SourceSpan, file_path, "std::string_view"),
-                                                             MEMBER(jsv::SourceSpan, start, "jsv::SourceLocation"),
-                                                             MEMBER(jsv::SourceSpan, end, "jsv::SourceLocation")}));
+        print_layout<jsv::ErrorInfo>(
+            "jsv::ErrorInfo", std::to_array<MemberInfo>(
+                                  {MEMBER(jsv::ErrorInfo, code, "const char *"), MEMBER(jsv::ErrorInfo, numeric_code, "uint16_t"),
+                                   MEMBER(jsv::ErrorInfo, severity, "jsv::Severity"), MEMBER(jsv::ErrorInfo, phase, "jsv::CompilerPhase"),
+                                   MEMBER(jsv::ErrorInfo, message, "const char *"), MEMBER(jsv::ErrorInfo, explanation, "const char *"),
+                                   MEMBER(jsv::ErrorInfo, suggestions, "std::span<const char *const>")}));
 
-    print_layout<jsv::unicode::Utf8DecodeResult>("jsv::unicode::Utf8DecodeResult",
-                                                  std::to_array<MemberInfo>({MEMBER(jsv::unicode::Utf8DecodeResult, codepoint,
-                                                                                   "char32_t"),
-                                                                             MEMBER(jsv::unicode::Utf8DecodeResult,
-                                                                                    byte_length, "std::uint8_t"),
-                                                                             MEMBER(jsv::unicode::Utf8DecodeResult, status,
-                                                                                    "jsv::unicode::Utf8Status")}));
+        print_layout<SizeSystem>(
+            "SizeSystem", std::to_array<MemberInfo>({MEMBER(SizeSystem, name, "std::string_view"), MEMBER(SizeSystem, base, "long double"),
+                                                     MEMBER(SizeSystem, prefixes, "std::array<std::string_view, 6>")}));
 
-    print_layout<jsv::unicode::CodepointRange>("jsv::unicode::CodepointRange",
-                                               std::to_array<MemberInfo>({MEMBER(jsv::unicode::CodepointRange, first, "char32_t"),
-                                                                          MEMBER(jsv::unicode::CodepointRange, last,
-                                                                                 "char32_t")}));
+        print_layout<FormattedSize>("FormattedSize", std::to_array<MemberInfo>({MEMBER(FormattedSize, value, "long double"),
+                                                                                MEMBER(FormattedSize, suffix, "std::string_view")}));
 
-    print_layout<jsv::ErrorDisplayConfig>("jsv::ErrorDisplayConfig",
-                                          std::to_array<MemberInfo>({MEMBER(jsv::ErrorDisplayConfig, tab_stop_width, "std::size_t"),
-                                                                     MEMBER(jsv::ErrorDisplayConfig, ansi_color, "bool")}));
+        print_layout<FileSizeInfo>("FileSizeInfo", std::to_array<MemberInfo>({MEMBER(FileSizeInfo, bytes, "uintmax_t")}));
 
-    print_layout<jsv::ErrorInfo>("jsv::ErrorInfo",
-                                 std::to_array<MemberInfo>({MEMBER(jsv::ErrorInfo, code, "const char *"),
-                                                            MEMBER(jsv::ErrorInfo, numeric_code, "uint16_t"),
-                                                            MEMBER(jsv::ErrorInfo, severity, "jsv::Severity"),
-                                                            MEMBER(jsv::ErrorInfo, phase, "jsv::CompilerPhase"),
-                                                            MEMBER(jsv::ErrorInfo, message, "const char *"),
-                                                            MEMBER(jsv::ErrorInfo, explanation, "const char *"),
-                                                            MEMBER(jsv::ErrorInfo, suggestions, "std::span<const char *const>")}));
+        print_layout<FormattedSizePair>("FormattedSizePair", std::to_array<MemberInfo>({MEMBER(FormattedSizePair, si, "FormattedSize"),
+                                                                                        MEMBER(FormattedSizePair, iec, "FormattedSize")}));
 
-    print_layout<SizeSystem>("SizeSystem", std::to_array<MemberInfo>({MEMBER(SizeSystem, name, "std::string_view"),
-                                                                        MEMBER(SizeSystem, base, "long double"),
-                                                                        MEMBER(SizeSystem, prefixes,
-                                                                               "std::array<std::string_view, 6>")}));
+        print_layout_unavailable<FileSizeReport>(
+            "FileSizeReport", "Layout unavailable: contains reference members; field storage is implementation-defined in this report.");
 
-    print_layout<FormattedSize>("FormattedSize",
-                                std::to_array<MemberInfo>({MEMBER(FormattedSize, value, "long double"),
-                                                           MEMBER(FormattedSize, suffix, "std::string_view")}));
-
-    print_layout<FileSizeInfo>("FileSizeInfo", std::to_array<MemberInfo>({MEMBER(FileSizeInfo, bytes, "uintmax_t")}));
-
-    print_layout<FormattedSizePair>("FormattedSizePair",
-                                    std::to_array<MemberInfo>({MEMBER(FormattedSizePair, si, "FormattedSize"),
-                                                               MEMBER(FormattedSizePair, iec, "FormattedSize")}));
-
-    print_layout_unavailable<FileSizeReport>("FileSizeReport",
-                                             "Layout unavailable: contains reference members; field storage is implementation-defined in this report.");
-
-    print_layout_unavailable<vnd::Timer>("vnd::Timer",
-                                         "Layout unavailable: non-standard-layout class with private/protected members and deleted special members.");
-    print_layout_unavailable<vnd::AutoTimer>("vnd::AutoTimer",
-                                             "Layout unavailable: class hierarchy with base subobject; member-level offsetof analysis is not exposed here.");
-    print_layout_unavailable<jsv::Token>("jsv::Token",
-                                         "Layout unavailable: members are private; this report does not bypass access control.");
-    print_layout_unavailable<jsv::LineTracker>("jsv::LineTracker",
-                                               "Layout unavailable: members are private; this report does not bypass access control.");
-    print_layout_unavailable<jsv::ErrorReporter>("jsv::ErrorReporter",
-                                                 "Layout unavailable: members are private; this report does not bypass access control.");
-    print_layout_unavailable<jsv::Lexer>("jsv::Lexer",
-                                         "Layout unavailable: members are private; this report does not bypass access control.");
-    print_layout_unavailable<jsv::Parser>("jsv::Parser",
-                                          "Layout unavailable: members are private; this report does not bypass access control.");
-    print_layout_unavailable<jsv::TypeChecker>("jsv::TypeChecker",
-                                               "Layout unavailable: members are private; this report does not bypass access control.");
-    print_layout_unavailable<jsv::TypedAstPrinter>("jsv::TypedAstPrinter",
-                                                   "Layout unavailable: visitor-based class hierarchy; member-level offsetof analysis is not exposed here.");
-    print_layout_unavailable<jsv::TypeCheckResult>("jsv::TypeCheckResult",
-                                                   "Layout unavailable: non-standard-layout aggregate containing complex non-standard-layout members.");
-}
+        print_layout_unavailable<vnd::Timer>(
+            "vnd::Timer", "Layout unavailable: non-standard-layout class with private/protected members and deleted special members.");
+        print_layout_unavailable<vnd::AutoTimer>(
+            "vnd::AutoTimer",
+            "Layout unavailable: class hierarchy with base subobject; member-level offsetof analysis is not exposed here.");
+        print_layout_unavailable<jsv::Token>("jsv::Token",
+                                             "Layout unavailable: members are private; this report does not bypass access control.");
+        print_layout_unavailable<jsv::LineTracker>("jsv::LineTracker",
+                                                   "Layout unavailable: members are private; this report does not bypass access control.");
+        print_layout_unavailable<jsv::ErrorReporter>(
+            "jsv::ErrorReporter", "Layout unavailable: members are private; this report does not bypass access control.");
+        print_layout_unavailable<jsv::Lexer>("jsv::Lexer",
+                                             "Layout unavailable: members are private; this report does not bypass access control.");
+        print_layout_unavailable<jsv::Parser>("jsv::Parser",
+                                              "Layout unavailable: members are private; this report does not bypass access control.");
+        print_layout_unavailable<jsv::TypeChecker>("jsv::TypeChecker",
+                                                   "Layout unavailable: members are private; this report does not bypass access control.");
+        print_layout_unavailable<jsv::TypedAstPrinter>(
+            "jsv::TypedAstPrinter",
+            "Layout unavailable: visitor-based class hierarchy; member-level offsetof analysis is not exposed here.");
+        print_layout_unavailable<jsv::TypeCheckResult>(
+            "jsv::TypeCheckResult", "Layout unavailable: non-standard-layout aggregate containing complex non-standard-layout members.");
+    }
 
 #undef MEMBER
 
