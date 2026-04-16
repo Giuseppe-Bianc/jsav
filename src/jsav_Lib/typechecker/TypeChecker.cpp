@@ -469,6 +469,40 @@ namespace jsv {
         auto resolved_type = zonk_type(subst, block.node_type());
         return std::make_unique<TypedBlockStmt>(std::move(zonked_stmts), std::move(resolved_type), block.location());
     }
+    TypePtr TypeChecker::check_call_args_against_decl(const CallExpr &expr, const std::string_view func_name, const FuncDecl &func_decl,
+                                                      const std::vector<TypePtr> &arg_types) {
+        const auto &params = func_decl.params();
+        if(arg_types.size() != params.size()) {
+            errors_.push_back(CompileError::TypeError(
+                ErrorCode::E2028,
+                FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name, params.size(), arg_types.size()),
+                expr.location(),
+                FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})", params.size(),
+                       arg_types.size())));
+            return error_type();
+        }
+
+        for(std::size_t i = 0; i < arg_types.size(); ++i) {
+            const auto &param_type = params[i].type_annotation;
+            if(param_type) {
+                constraints_.add(arg_types[i], param_type, expr.location(),
+                                 FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
+            }
+        }
+        return func_decl.return_type().value_or(fresh_type_variable());
+    }
+    TypePtr TypeChecker::resolve_call_result_type(const CallExpr &expr, const std::string &func_name, const TypeScheme &sym,
+                                                  const std::vector<TypePtr> &arg_types) {
+        if(!sym.is_function_binding()) { return fresh_type_variable(); }
+
+        const auto func_decl_it = function_decls_.find(func_name);
+        if(func_decl_it == function_decls_.end()) { return sym.return_type.value_or(fresh_type_variable()); }
+
+        const auto decl_result = check_call_args_against_decl(expr, func_name, *func_decl_it->second, arg_types);
+        // If arity error, check_call_args_against_decl already returned error_type();
+        // otherwise honour any explicit sym return type override.
+        return sym.return_type.value_or(decl_result);
+    }
 
     // ============================================================
     // Expression typing helpers (one per expression kind)
@@ -517,7 +551,7 @@ namespace jsv {
     }
 
     TypedExprPtr TypeChecker::type_identifier(const Identifier &expr) {
-        const auto name = expr.name();
+        const auto &name = expr.name();
         auto sym = symbols_.lookup(name);
         if(!sym) {
             errors_.push_back(CompileError::TypeError(ErrorCode::E2033, FORMAT("Undeclared identifier: {}", name), expr.location(),
@@ -528,63 +562,17 @@ namespace jsv {
     }
 
     TypePtr TypeChecker::type_binary_arithmetic_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
-        // For Add: string/char concatenation takes priority — return early before numeric checks.
+        // Add: string/char concatenation takes priority over numeric path.
         if(expr.op() == BinaryOp::Add) {
-            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                const bool lhs_str = lhs_type->kind() == TypeKind::String;
-                const bool rhs_str = rhs_type->kind() == TypeKind::String;
-                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                if((lhs_str || lhs_chr) && (rhs_str || rhs_chr)) { return PrimitiveType::string(); }
-            }
+            if(const auto concat_type = try_add_string_concat(lhs_type, rhs_type)) { return *concat_type; }
         }
 
-        TypePtr result_type;
+        const TypePtr result_type = apply_numeric_promotion(expr, lhs_type, rhs_type);
 
-        // Apply numeric promotion; emit an error when concrete types are not numeric.
-        if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-            if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                errors_.push_back(CompileError::TypeError(ErrorCode::E2013,
-                                                          FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
-                                                                 binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
-                                                          expr.location(),
-                                                          "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
-            }
-            result_type = lhs_type;  // Fallback if promotion fails
-            if(auto promoted = numeric_promotion(lhs_type, rhs_type)) { result_type = promoted; }
+        if(expr.op() == BinaryOp::Add) {
+            validate_add_operands(expr, lhs_type, rhs_type);
         } else {
-            constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
-            result_type = lhs_type;
-        }
-
-        // Secondary type validation per operator: Sub/Mul/Div/Mod require strictly numeric
-        // operands; Add additionally accepts string/char combinations.
-        if(expr.op() != BinaryOp::Add) {
-            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
-                    errors_.push_back(CompileError::TypeError(
-                        ErrorCode::E2013,
-                        FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}", binary_op_symbol(expr.op()),
-                               lhs_type->to_string(), rhs_type->to_string()),
-                        expr.location(), "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
-                }
-            }
-        } else {
-            if(lhs_type->kind() != TypeKind::TypeVar && rhs_type->kind() != TypeKind::TypeVar) {
-                const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
-                const bool lhs_str = lhs_type->kind() == TypeKind::String;
-                const bool rhs_str = rhs_type->kind() == TypeKind::String;
-                const bool lhs_chr = lhs_type->kind() == TypeKind::Char;
-                const bool rhs_chr = rhs_type->kind() == TypeKind::Char;
-                const bool string_char_combo = (lhs_str || lhs_chr) && (rhs_str || rhs_chr);
-                if(!both_numeric && !string_char_combo) {
-                    errors_.push_back(CompileError::TypeError(
-                        ErrorCode::E2013,
-                        FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
-                               binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
-                        expr.location(), "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
-                }
-            }
+            validate_non_add_operands(expr, lhs_type, rhs_type);
         }
 
         return result_type;
@@ -732,50 +720,20 @@ namespace jsv {
 
         typed_args.reserve(args_size);
         arg_types.reserve(args_size);
+
         for(const auto &arg : expr.args()) {
             auto typed_arg = type_expr(*arg);
             arg_types.push_back(typed_arg->node_type());
             typed_args.push_back(std::move(typed_arg));
         }
 
-        TypePtr result_type;
+        TypePtr result_type = fresh_type_variable();
 
         const auto *callee_ptr = &expr.callee();
-        if(const auto *ident = Identifier::classof(callee_ptr) ? static_cast<const Identifier *>(callee_ptr) : nullptr) {
+        const auto *ident = Identifier::classof(callee_ptr) ? static_cast<const Identifier *>(callee_ptr) : nullptr;
+        if(ident != nullptr) {
             const auto &func_name = ident->name();
-            auto sym = symbols_.lookup(func_name);
-            if(sym && sym->is_function_binding()) {
-                auto func_decl_it = function_decls_.find(func_name);
-                if(func_decl_it != function_decls_.end()) {
-                    const FuncDecl *func_decl = func_decl_it->second;
-                    const auto &params = func_decl->params();
-
-                    if(arg_types.size() != params.size()) {
-                        errors_.push_back(CompileError::TypeError(
-                            ErrorCode::E2028,
-                            FORMAT("Function '{}' expects {} argument(s) but {} were provided", func_name, params.size(), arg_types.size()),
-                            expr.location(),
-                            FORMAT("Adjust the number of arguments to match the function signature (expected {}, got {})", params.size(),
-                                   arg_types.size())));
-                        result_type = error_type();
-                    } else {
-                        for(std::size_t i = 0; i < arg_types.size(); ++i) {
-                            const auto &param_type = params[i].type_annotation;
-                            if(param_type) {
-                                constraints_.add(arg_types[i], param_type, expr.location(),
-                                                 FORMAT("call argument {} must match parameter '{}' type", i + 1, params[i].name));
-                            }
-                        }
-                        result_type = sym->return_type.value_or(func_decl->return_type().value_or(fresh_type_variable()));
-                    }
-                } else {
-                    result_type = sym->return_type.value_or(fresh_type_variable());
-                }
-            } else {
-                result_type = fresh_type_variable();
-            }
-        } else {
-            result_type = fresh_type_variable();
+            if(auto sym = symbols_.lookup(func_name)) { result_type = resolve_call_result_type(expr, func_name, *sym, arg_types); }
         }
 
         return std::make_unique<TypedCallExpr>(std::move(callee_typed), std::move(typed_args), std::move(result_type), expr.location());
@@ -903,6 +861,57 @@ namespace jsv {
         if(!target_type) { target_type = fresh_type_variable(); }
 
         return std::make_unique<TypedCastExpr>(expr.target_type(), std::move(operand_typed), std::move(target_type), expr.location());
+    }
+
+    bool TypeChecker::both_concrete(const TypePtr &lhs, const TypePtr &rhs) noexcept {
+        return lhs->kind() != TypeKind::TypeVar && rhs->kind() != TypeKind::TypeVar;
+    }
+    
+    bool TypeChecker::is_string_char_combo(const TypePtr &lhs, const TypePtr &rhs) noexcept {
+        const bool lhs_sc = lhs->kind() == TypeKind::String || lhs->kind() == TypeKind::Char;
+        const bool rhs_sc = rhs->kind() == TypeKind::String || rhs->kind() == TypeKind::Char;
+        return lhs_sc && rhs_sc;
+    }
+    std::optional<TypePtr> TypeChecker::try_add_string_concat(const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        if(!both_concrete(lhs_type, rhs_type)) { return std::nullopt; }
+        if(!is_string_char_combo(lhs_type, rhs_type)) { return std::nullopt; }
+        return PrimitiveType::string();
+    }
+    TypePtr TypeChecker::apply_numeric_promotion(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        if(!both_concrete(lhs_type, rhs_type)) {
+            constraints_.add(lhs_type, rhs_type, expr.location(), "binary arithmetic: operands must match");
+            return lhs_type;
+        }
+        if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2013,
+                                                      FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                             binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
+                                                      expr.location(),
+                                                      "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+        }
+        if(auto promoted = numeric_promotion(lhs_type, rhs_type)) { return promoted; }
+        return lhs_type;
+    }
+    void TypeChecker::validate_add_operands(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        if(!both_concrete(lhs_type, rhs_type)) { return; }
+        const bool both_numeric = lhs_type->is_numeric() && rhs_type->is_numeric();
+        if(!both_numeric && !is_string_char_combo(lhs_type, rhs_type)) {
+            errors_.push_back(
+                CompileError::TypeError(ErrorCode::E2013,
+                                        FORMAT("Binary operator '{}' requires numeric or string operand types, found {} and {}",
+                                               binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
+                                        expr.location(), "Use numeric types (i8-i64, u8-u64, f32, f64) or string for the + operator."));
+        }
+    }
+    void TypeChecker::validate_non_add_operands(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type) {
+        if(!both_concrete(lhs_type, rhs_type)) { return; }
+        if(!lhs_type->is_numeric() || !rhs_type->is_numeric()) {
+            errors_.push_back(CompileError::TypeError(ErrorCode::E2013,
+                                                      FORMAT("Binary operator '{}' requires numeric operand types, found {} and {}",
+                                                             binary_op_symbol(expr.op()), lhs_type->to_string(), rhs_type->to_string()),
+                                                      expr.location(),
+                                                      "Use numeric types (i8-i64, u8-u64, f32, f64) for arithmetic operations."));
+        }
     }
 
     // ============================================================

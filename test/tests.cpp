@@ -19499,74 +19499,88 @@ TEST_CASE("TypeScheme: instantiate returns body for monomorphic", "[typechecker]
 TEST_CASE("TypeScheme: instantiate substitutes TypeVariable in body", "[typechecker]") {
     // Create a polymorphic type scheme: ∀T. T
     auto tv = jsv::fresh_type_variable();
-    const auto *tv_ptr = static_cast<const jsv::TypeVariable *>(tv.get());
+    const auto *tv_ptr = dynamic_cast<const jsv::TypeVariable *>(tv.get());
+    REQUIRE(tv_ptr != nullptr);
     auto id = tv_ptr->id();
 
-    jsv::TypeScheme scheme{.quantified_vars = {id}, .body = tv};
+    const jsv::TypeScheme scheme{.quantified_vars = {id}, .body = tv, .return_type = std::nullopt, .function_name = std::nullopt};
     auto inst = scheme.instantiate();
 
     // Should return a fresh type variable, not the original
     REQUIRE(inst->kind() == jsv::TypeKind::TypeVar);
-    const auto *inst_tv = static_cast<const jsv::TypeVariable *>(inst.get());
+    const auto *inst_tv = dynamic_cast<const jsv::TypeVariable *>(inst.get());
+    REQUIRE(inst_tv != nullptr);
     REQUIRE(inst_tv->id() != id);  // Fresh ID should differ
 }
 
 TEST_CASE("TypeScheme: instantiate substitutes nested TypeVariable in ArrayType", "[typechecker]") {
     // Create: ∀T. [T; 10]
     auto tv = jsv::fresh_type_variable();
-    const auto *tv_ptr = static_cast<const jsv::TypeVariable *>(tv.get());
+    const auto *tv_ptr = dynamic_cast<const jsv::TypeVariable *>(tv.get());
+    REQUIRE(tv_ptr != nullptr);
     auto id = tv_ptr->id();
 
     auto size_expr = std::make_shared<jsv::IntegerLiteral>(10);
     auto array_type = std::make_shared<jsv::ArrayType>(tv, size_expr);
 
-    jsv::TypeScheme scheme{.quantified_vars = {id}, .body = array_type};
+    const jsv::TypeScheme scheme{
+        .quantified_vars = {id}, .body = array_type, .return_type = std::nullopt, .function_name = std::nullopt};
     auto inst = scheme.instantiate();
 
     REQUIRE(inst->kind() == jsv::TypeKind::Array);
-    const auto *inst_array = static_cast<const jsv::ArrayType *>(inst.get());
+    const auto *inst_array = dynamic_cast<const jsv::ArrayType *>(inst.get());
+    REQUIRE(inst_array != nullptr);
     REQUIRE(inst_array->element_type()->kind() == jsv::TypeKind::TypeVar);
-    const auto *elem_tv = static_cast<const jsv::TypeVariable *>(inst_array->element_type().get());
+    const auto *elem_tv = dynamic_cast<const jsv::TypeVariable *>(inst_array->element_type().get());
+    REQUIRE(elem_tv != nullptr);
     REQUIRE(elem_tv->id() != id);  // Should be a fresh variable
 }
 
 TEST_CASE("TypeScheme: instantiate substitutes nested TypeVariable in VectorType", "[typechecker]") {
     // Create: ∀T. Vec<T>
     auto tv = jsv::fresh_type_variable();
-    const auto *tv_ptr = static_cast<const jsv::TypeVariable *>(tv.get());
+    const auto *tv_ptr = dynamic_cast<const jsv::TypeVariable *>(tv.get());
+    REQUIRE(tv_ptr != nullptr);
     auto id = tv_ptr->id();
 
     auto vec_type = std::make_shared<jsv::VectorType>(tv);
 
-    jsv::TypeScheme scheme{.quantified_vars = {id}, .body = vec_type};
+    const jsv::TypeScheme scheme{.quantified_vars = {id}, .body = vec_type, .return_type = std::nullopt, .function_name = std::nullopt};
     auto inst = scheme.instantiate();
 
     REQUIRE(inst->kind() == jsv::TypeKind::Vector);
-    const auto *inst_vec = static_cast<const jsv::VectorType *>(inst.get());
+    const auto *inst_vec = dynamic_cast<const jsv::VectorType *>(inst.get());
+    REQUIRE(inst_vec != nullptr);
     REQUIRE(inst_vec->element_type()->kind() == jsv::TypeKind::TypeVar);
-    const auto *elem_tv = static_cast<const jsv::TypeVariable *>(inst_vec->element_type().get());
+    const auto *elem_tv = dynamic_cast<const jsv::TypeVariable *>(inst_vec->element_type().get());
+    REQUIRE(elem_tv != nullptr);
     REQUIRE(elem_tv->id() != id);  // Should be a fresh variable
 }
 
 TEST_CASE("TypeScheme: instantiate preserves non-quantified TypeVariables", "[typechecker]") {
     // Create: ∀T. Vec<T> where body contains both quantified and non-quantified vars
     auto quant_tv = jsv::fresh_type_variable();
-    const auto *quant_ptr = static_cast<const jsv::TypeVariable *>(quant_tv.get());
+    const auto *quant_ptr = dynamic_cast<const jsv::TypeVariable *>(quant_tv.get());
+    REQUIRE(quant_ptr != nullptr);
     auto quant_id = quant_ptr->id();
 
     auto non_quant_tv = jsv::fresh_type_variable();
-    const auto *non_quant_ptr = static_cast<const jsv::TypeVariable *>(non_quant_tv.get());
+    const auto *non_quant_ptr = dynamic_cast<const jsv::TypeVariable *>(non_quant_tv.get());
+    REQUIRE(non_quant_ptr != nullptr);
     auto non_quant_id = non_quant_ptr->id();
 
     // Create a vector type with the quantified variable
     auto vec_type = std::make_shared<jsv::VectorType>(quant_tv);
 
-    jsv::TypeScheme scheme{.quantified_vars = {quant_id}, .body = vec_type};
+    const jsv::TypeScheme scheme{
+        .quantified_vars = {quant_id}, .body = vec_type, .return_type = std::nullopt, .function_name = std::nullopt};
     auto inst = scheme.instantiate();
 
     // Quantified variable should be replaced with fresh one
-    const auto *inst_vec = static_cast<const jsv::VectorType *>(inst.get());
-    const auto *elem_tv = static_cast<const jsv::TypeVariable *>(inst_vec->element_type().get());
+    const auto *inst_vec = dynamic_cast<const jsv::VectorType *>(inst.get());
+    REQUIRE(inst_vec != nullptr);
+    const auto *elem_tv = dynamic_cast<const jsv::TypeVariable *>(inst_vec->element_type().get());
+    REQUIRE(elem_tv != nullptr);
     REQUIRE(elem_tv->id() != quant_id);
     REQUIRE(elem_tv->id() != non_quant_id);  // Should not accidentally use other var's ID
 }
@@ -20369,7 +20383,7 @@ TEST_CASE("TypeVisitor: dispatches to VectorType", "[typechecker]") {
             is_vector = true;
             elem = vec.element_type();
         }
-        void visit_custom(const jsv::CustomType &) override {}
+        void visit_custom(const jsv::CustomType & /*custom*/) override {}
     };
 
     VectorDetector visitor;
@@ -20408,9 +20422,11 @@ TEST_CASE("TypeVisitor: nested compound types recurse correctly", "[typechecker]
 
     REQUIRE(result);
     REQUIRE(result->kind() == jsv::TypeKind::Vector);
-    const auto *outer = static_cast<const jsv::VectorType *>(result.get());
+    const auto *outer = dynamic_cast<const jsv::VectorType *>(result.get());
+    REQUIRE(outer != nullptr);
     REQUIRE(outer->element_type()->kind() == jsv::TypeKind::Vector);
-    const auto *inner = static_cast<const jsv::VectorType *>(outer->element_type().get());
+    const auto *inner = dynamic_cast<const jsv::VectorType *>(outer->element_type().get());
+    REQUIRE(inner != nullptr);
     REQUIRE(inner->element_type()->kind() == jsv::TypeKind::I32);
 }
 
@@ -20700,13 +20716,13 @@ TEST_CASE("numeric_promotion: Non-numeric types return nullptr", "[type_promotio
     }
 
     SECTION("nullptr + i32 -> nullptr") {
-        jsv::TypePtr null_type = nullptr;
+        const jsv::TypePtr null_type = nullptr;
         auto result = jsv::numeric_promotion(null_type, jsv::PrimitiveType::i32());
         REQUIRE_FALSE(result);
     }
 
     SECTION("i32 + nullptr -> nullptr") {
-        jsv::TypePtr null_type = nullptr;
+        const jsv::TypePtr null_type = nullptr;
         auto result = jsv::numeric_promotion(jsv::PrimitiveType::i32(), null_type);
         REQUIRE_FALSE(result);
     }

@@ -22,14 +22,11 @@ namespace jsv {
      * TypeScheme with an empty quantified_vars list.
      */
     struct TypeScheme {
-        std::vector<TypeVarId> quantified_vars;  ///< Bound type variables
-        TypePtr body;                            ///< Type body with references to vars
-        bool is_const{false};                    ///< Whether the binding is immutable (const)
-
-        /// For function bindings: the declared return type (used for return statement validation)
-        std::optional<TypePtr> return_type;
-        /// For function bindings: the function name (used in error messages)
-        std::optional<std::string> function_name;
+        std::vector<TypeVarId> quantified_vars;    ///< Bound type variables
+        TypePtr body;                              ///< Type body with references to vars
+        std::optional<TypePtr> return_type;        ///< For function bindings: declared return type
+        std::optional<std::string> function_name;  ///< For function bindings: function name
+        bool is_const{false};                      ///< Whether the binding is immutable (const)
 
         /**
          * @brief Check if this scheme represents a function binding.

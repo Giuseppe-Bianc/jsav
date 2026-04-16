@@ -105,6 +105,10 @@ namespace jsv {
         [[nodiscard]] TypedExprPtr zonk_expr_full(const Substitution &subst, const TypedExpr &expr);
         [[nodiscard]] std::unique_ptr<TypedBlockStmt> zonk_block_full(const Substitution &subst, const TypedBlockStmt &block);
 
+        TypePtr check_call_args_against_decl(const CallExpr &expr, const std::string_view func_name, const FuncDecl &func_decl,
+                                             const std::vector<TypePtr> &arg_types);
+        TypePtr resolve_call_result_type(const CallExpr &expr, const std::string &func_name, const TypeScheme &sym,
+                                         const std::vector<TypePtr> &arg_types);
         /// Expression typing helpers (one per expression kind)
         [[nodiscard]] TypedExprPtr type_integer_literal(const IntegerLiteral &expr);
         [[nodiscard]] TypedExprPtr type_float_literal(const FloatLiteral &expr);
@@ -123,6 +127,14 @@ namespace jsv {
         [[nodiscard]] TypedExprPtr type_index_expr(const IndexExpr &expr);
         [[nodiscard]] TypedExprPtr type_member_expr(const MemberExpr &expr);
         [[nodiscard]] TypedExprPtr type_cast_expr(const CastExpr &expr);
+
+        [[nodiscard]] static bool both_concrete(const TypePtr &lhs, const TypePtr &rhs) noexcept;
+        [[nodiscard]] static bool is_string_char_combo(const TypePtr &lhs, const TypePtr &rhs) noexcept;
+
+        static std::optional<TypePtr> try_add_string_concat(const TypePtr &lhs_type, const TypePtr &rhs_type);
+        TypePtr apply_numeric_promotion(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
+        void validate_add_operands(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
+        void validate_non_add_operands(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);
 
         /// Binary expression sub-handlers (one per operator group) — called by type_binary_expr
         [[nodiscard]] TypePtr type_binary_arithmetic_op(const BinaryExpr &expr, const TypePtr &lhs_type, const TypePtr &rhs_type);

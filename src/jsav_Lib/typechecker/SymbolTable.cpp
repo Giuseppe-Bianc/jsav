@@ -49,9 +49,13 @@ namespace jsv {
         // Search from innermost to outermost scope for the nearest function context.
         const auto contexts = std::ranges::reverse_view(function_return_contexts_);
         const auto found = std::ranges::find_if(contexts, [](const auto &ctx_opt) { return ctx_opt.has_value(); });
+
         if(found != contexts.end()) {
-            const auto &[ret, fname] = **found;
-            return std::make_pair(ret, std::string_view{fname});
+            const auto &ctx_opt = *found;                    // name the optional directly
+            if(ctx_opt.has_value()) {                        // guard on the named variable
+                const auto &[ret, fname] = ctx_opt.value();  // access on the same variable
+                return std::make_pair(ret, std::string_view{fname});
+            }
         }
         return std::nullopt;
     }
