@@ -19523,8 +19523,7 @@ TEST_CASE("TypeScheme: instantiate substitutes nested TypeVariable in ArrayType"
     auto size_expr = std::make_shared<jsv::IntegerLiteral>(10);
     auto array_type = std::make_shared<jsv::ArrayType>(tv, size_expr);
 
-    const jsv::TypeScheme scheme{
-        .quantified_vars = {id}, .body = array_type, .return_type = std::nullopt, .function_name = std::nullopt};
+    const jsv::TypeScheme scheme{.quantified_vars = {id}, .body = array_type, .return_type = std::nullopt, .function_name = std::nullopt};
     auto inst = scheme.instantiate();
 
     REQUIRE(inst->kind() == jsv::TypeKind::Array);

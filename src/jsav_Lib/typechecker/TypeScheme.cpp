@@ -10,8 +10,11 @@
 namespace jsv {
 
     TypeScheme TypeScheme::mono(TypePtr type, bool const_flag, std::optional<TypePtr> ret_type, std::optional<std::string> func_name) {
-        return TypeScheme {
-            .quantified_vars = {}, .body = std::move(type), .return_type = std::move(ret_type), .function_name = std::move(func_name),
+        return TypeScheme{
+            .quantified_vars = {},
+            .body = std::move(type),
+            .return_type = std::move(ret_type),
+            .function_name = std::move(func_name),
             .is_const = const_flag,
         };
     }
