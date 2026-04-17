@@ -8,39 +8,56 @@
 namespace jsv {
 
     void UnionFind::make_set(TypeVarId var) {
-        auto [it, inserted] = parent_.try_emplace(var, var);
-        if(inserted) { rank_[var] = 0; }
+        nodes_.try_emplace(var, Node{var, 0u});
     }
 
     TypeVarId UnionFind::find(TypeVarId var) {
-        // Path compression: point directly to root
-        if(parent_.at(var) != var) { parent_[var] = find(parent_.at(var)); }
-        return parent_.at(var);
+        // PERF: iterative two-pass path compression replaces the previous recursive
+        // implementation.  The recursive version risked stack overflow on long chains
+        // and performed three hash lookups per stack frame.  Two passes over the chain
+        // achieve identical O(α(n)) amortised complexity with O(1) stack usage and
+        // one map lookup per step.
+
+        // Pass 1 — walk up to the root without modifying parent pointers.
+        TypeVarId root = var;
+        while(nodes_.at(root).parent != root) { root = nodes_.at(root).parent; }
+
+        // Pass 2 — full path compression: point every node in the chain directly to root.
+        while(nodes_.at(var).parent != root) {
+            const TypeVarId next = nodes_.at(var).parent;
+            nodes_.at(var).parent = root;
+            var = next;
+        }
+
+        return root;
     }
 
     void UnionFind::unite(TypeVarId x, TypeVarId y) {
-        auto root_x = find(x);
-        auto root_y = find(y);
+        const TypeVarId root_x = find(x);
+        const TypeVarId root_y = find(y);
 
         if(root_x == root_y) { return; }
 
-        // Union by rank
-        if(rank_.at(root_x) < rank_.at(root_y)) {
-            parent_[root_x] = root_y;
-        } else if(rank_.at(root_x) > rank_.at(root_y)) {
-            parent_[root_y] = root_x;
+        // Union by rank — attach the shorter tree under the taller one.
+        auto &nx = nodes_.at(root_x);
+        auto &ny = nodes_.at(root_y);
+
+        if(nx.rank < ny.rank) {
+            nx.parent = root_y;
+        } else if(nx.rank > ny.rank) {
+            ny.parent = root_x;
         } else {
-            parent_[root_y] = root_x;
-            rank_[root_x]++;
+            ny.parent = root_x;
+            ++nx.rank;
         }
     }
 
     bool UnionFind::same_set(TypeVarId x, TypeVarId y) {
-        if(!parent_.contains(x) || !parent_.contains(y)) { return false; }
+        if(!nodes_.contains(x) || !nodes_.contains(y)) { return false; }
         return find(x) == find(y);
     }
 
-    std::size_t UnionFind::size() const noexcept { return parent_.size(); }
+    std::size_t UnionFind::size() const noexcept { return nodes_.size(); }
 
 }  // namespace jsv
 
