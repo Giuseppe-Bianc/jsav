@@ -723,12 +723,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)  # Strict standard conformance
 
 **Key C++23 Features Used**:
 
-- `std::format` and `std::print` — Type-safe formatting (with fmt fallback)
-- Enhanced `constexpr` — More functions can be evaluated at compile-time
-- `std::expected<T, E>` — Error handling without exceptions (where available)
-- Designated initializers — Clearer aggregate initialization
-- `if consteval` — Compile-time branching
-- Improved template deduction — Reduced boilerplate
+- `std::format` and `std::print` (or project `FORMAT()` fallback) — Type-safe formatting with consistent cross-compiler behavior
+- Enhanced `constexpr` and compile-time evaluation — broader compile-time validation and stronger invariants
+- `std::expected<T, E>` (progressive adoption) — explicit error propagation without exception-centric control flow
+- Designated initializers — more readable aggregate initialization for structs and value objects
+- `if consteval` and compile-time branching patterns — clearer separation between compile-time and runtime code paths
+- Ranges and views (`std::ranges`, `std::views`) — composable, expressive data transformation pipelines
+- `std::span` and `std::string_view` — low-overhead non-owning views for safer APIs and reduced copies
+- Modern comparison and utility features (e.g., spaceship operator support, improved type traits, CTAD refinements) — reduced boilerplate and clearer intent
 
 **Compiler Flag Mapping**:
 
@@ -1050,13 +1052,16 @@ cmake -G Ninja \
 
 ## 4. Code Style Guidelines
 
-This section defines the coding standards and style conventions for the jsav project. Adherence to these guidelines ensures code consistency, readability, and maintainability across the codebase. The guidelines are derived from observed patterns in the existing code, `.clang-format` and `.clang-tidy` configurations, and the project's philosophical foundation in C++23 best practices.
+This section defines the coding standards and style conventions for the JSAV project, including the principles that govern formatting, naming, code organization, and related implementation choices. Consistent adherence to these guidelines helps maintain uniform coding practices, improves readability for current and future contributors, and supports long-term maintainability across the codebase. The guidelines are derived from recurring patterns in the existing codebase, the project’s `.clang-format` and `.clang-tidy` configurations, and established C++23 best practices that reflect the project’s design philosophy.
 
-**Philosophy**: Code style is not arbitrary — it serves to reduce cognitive load, prevent bugs, and facilitate collaboration. The guidelines prioritize:
+**Philosophy**: Code style is not arbitrary. It encompasses formatting, naming conventions, and structural organization, and it plays a critical role in reducing cognitive load, preventing defects, and enabling effective collaboration across development teams. These guidelines are based on the following priorities:
 
-1. **Clarity over cleverness**: Readable code is better than clever code
-2. **Consistency over personal preference**: Uniform style reduces distraction
-3. **Automation over manual enforcement**: Let tools handle style, humans handle logic
+1. **Clarity over cleverness**: Readable code is preferable to overly clever or obscure implementations. Code should communicate its intent directly, minimizing the need for additional interpretation. For example, straightforward control flow and descriptive naming improve comprehension and reduce the likelihood of misinterpretation.
+
+2. **Consistency over personal preference**: A uniform style reduces unnecessary cognitive distraction during code review and maintenance. When code follows consistent patterns, developers can focus on functionality rather than stylistic differences. This is particularly important in collaborative environments, where multiple contributors interact with the same codebase.
+
+3. **Automation over manual enforcement**: Automated tools should enforce stylistic conventions, allowing developers to focus on logical correctness and system design. Linters and formatters can systematically apply rules, ensuring consistency without requiring manual intervention. This reduces friction in the development process and minimizes subjective debates about style.
+
 
 **Source**: `.clang-format`, `.clang-tidy`, `AI_GUIDELINES.md`, `HUMAN_GUIDELINES.md`, `.specify/memory/constitution.md`
 
