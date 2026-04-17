@@ -7,9 +7,7 @@
 
 namespace jsv {
 
-    void UnionFind::make_set(TypeVarId var) {
-        nodes_.try_emplace(var, Node{var, 0u});
-    }
+    void UnionFind::make_set(TypeVarId var) { nodes_.try_emplace(var, Node{var, 0u}); }
 
     TypeVarId UnionFind::find(TypeVarId var) {
         // PERF: iterative two-pass path compression replaces the previous recursive
