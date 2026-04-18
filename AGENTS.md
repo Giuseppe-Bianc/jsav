@@ -39,7 +39,9 @@ This document provides comprehensive, authoritative guidance for both human deve
 
 The project recognizes that compiler development presents unique challenges: complex state management, intricate error handling, performance-critical parsing algorithms, and the need for precise diagnostics. jsav addresses these challenges by establishing a strong architectural foundation with rigorous quality gates.
 
-**Philosophical Foundation**: The project is based on the guidelines from [C++23 Best Practices](https://leanpub.com/cpp23_best_practices/) by Jason Turner, emphasizing tool-assisted development, type safety, and modern C++ idioms.
+**Philosophical Foundation**: The project is based on the guidelines
+from [C++23 Best Practices](https://leanpub.com/cpp23_best_practices/) by Jason Turner, emphasizing tool-assisted
+development, type safety, and modern C++ idioms.
 
 **Source**: `QWEN.md`, `AI_GUIDELINES.md`, `HUMAN_GUIDELINES.md`, `.specify/memory/constitution.md`
 
@@ -193,7 +195,7 @@ The project utilizes a minimal, carefully curated set of external dependencies, 
 - `STATIC_REQUIRE` for compile-time assertions
 - Benchmark support for performance regression testing
 - XML reporter for CI integration
-**License**: Boost Software License 1.0 (compatible with project distribution)
+  **License**: Boost Software License 1.0 (compatible with project distribution)
 
 **Source**: `Dependencies.cmake`, `test/CMakeLists.txt`
 
@@ -201,7 +203,7 @@ The project utilizes a minimal, carefully curated set of external dependencies, 
 
 **Version Locking**:All dependencies are pinned to exact versions, ensuring that builds remain reproducible across local machines, CI pipelines, production environments, and different points in time. This practice reduces variation in dependency resolution, supports deterministic builds, and helps prevent unexpected changes introduced by newer package releases or shifting transitive dependencies.
 
-**Header Isolation**: Headers originating from external libraries, system libraries, or internal project dependencies are included exclusively within implementation files (`.cpp`) or non-public internal headers. These headers are not exposed through public API headers, which are intended to define stable interfaces independent of implementation details.This separation enforces a strict boundary between interface and implementation. It ensures that public headers remain free of transitive dependencies introduced by implementation details. This practice prevents the "header leak" anti-pattern, in which dependency headers included in public interfaces propagate through inclusion chains. Such propagation forces consumers of the API to compile against unintended dependencies, increases build times, and reduces modular isolation. It also creates tighter coupling between components, making refactoring more complex and increasing the risk of widespread compilation breakage when internal dependencies change.
+**Header Isolation**: Headers originating from external libraries, system libraries, or internal project dependencies are included exclusively within implementation files (`.cpp`) or non-public internal headers. These headers are not exposed through public API headers, which are intended to define stable interfaces independent of implementation details. This separation enforces a strict boundary between interface and implementation. It ensures that public headers remain free of transitive dependencies introduced by implementation details. This practice prevents the "header leak" anti-pattern, in which dependency headers included in public interfaces propagate through inclusion chains. Such propagation forces consumers of the API to compile against unintended dependencies, increases build times, and reduces modular isolation. It also creates tighter coupling between components, making refactoring more complex and increasing the risk of widespread compilation breakage when internal dependencies change.
 
 **Private Linkage**: Dependencies are linked with `PRIVATE` visibility in CMake targets, preventing propagation to downstream consumers.
 
@@ -539,9 +541,9 @@ jsav (executable)
 
 1. CMake processes `test/CMakeLists.txt`
 2. Creates three test executables:
-   - `constexpr_tests` — Compile-time verification
-   - `relaxed_constexpr_tests` — Runtime constexpr testing
-   - `tests` — Runtime unit tests
+    - `constexpr_tests` — Compile-time verification
+    - `relaxed_constexpr_tests` — Runtime constexpr testing
+    - `tests` — Runtime unit tests
 3. Catch2's `catch_discover_tests()` scans test files for `TEST_CASE` macros
 4. Registers individual tests with CTest
 
@@ -549,12 +551,12 @@ jsav (executable)
 
 ```cmake
 catch_discover_tests(
-    tests
-    TEST_PREFIX "unittests."
-    REPORTER XML
-    OUTPUT_DIR .
-    OUTPUT_PREFIX "unittests."
-    OUTPUT_SUFFIX .xml)
+        tests
+        TEST_PREFIX "unittests."
+        REPORTER XML
+        OUTPUT_DIR .
+        OUTPUT_PREFIX "unittests."
+        OUTPUT_SUFFIX .xml)
 ```
 
 **Output**: Individual test executables in `build/test/` directory
@@ -775,19 +777,19 @@ The project provides predefined configurations via `CMakePresets.json`. Presets 
 
 ```json
 {
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "windows-msvc-debug-developer-mode",
-            "displayName": "msvc Debug (Developer Mode)",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "ENABLE_DEVELOPER_MODE": "ON"
-            }
-        }
-    ]
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "windows-msvc-debug-developer-mode",
+      "displayName": "msvc Debug (Developer Mode)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "ENABLE_DEVELOPER_MODE": "ON"
+      }
+    }
+  ]
 }
 ```
 
@@ -1916,12 +1918,12 @@ ctest --output-on-failure -R "unittests"
 
 ```cmake
 catch_discover_tests(
-    tests
-    TEST_PREFIX "unittests."
-    REPORTER XML
-    OUTPUT_DIR .
-    OUTPUT_PREFIX "unittests."
-    OUTPUT_SUFFIX .xml)
+        tests
+        TEST_PREFIX "unittests."
+        REPORTER XML
+        OUTPUT_DIR .
+        OUTPUT_PREFIX "unittests."
+        OUTPUT_SUFFIX .xml)
 ```
 
 **Output Location**: `build/test/Testing/` (CTest reports)
@@ -2187,7 +2189,8 @@ TEST_CASE("Parser handles file read errors", "[parser]") {
 }
 ```
 
-**Future Enhancement**: Consider integrating [trompeloeil](https://github.com/rollbear/trompeloeil) or [FakeIt](https://github.com/eranpeer/FakeIt) for more sophisticated mocking if needed.
+**Future Enhancement**: Consider integrating [trompeloeil](https://github.com/rollbear/trompeloeil)
+or [FakeIt](https://github.com/eranpeer/FakeIt) for more sophisticated mocking if needed.
 
 **Source**: `test/tests.cpp`, observed patterns
 
