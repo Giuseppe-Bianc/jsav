@@ -63,9 +63,9 @@ namespace jsv {
         [[nodiscard]] static constexpr bool classof(const Node *n) { return n->kind() == NodeKind::VarDecl; }
 
     private:
+        std::vector<ExprPtr> initializers_;
         std::vector<std::string> names_;
         std::optional<std::string> type_annotation_;
-        std::vector<ExprPtr> initializers_;
         bool is_const_;
     };
 

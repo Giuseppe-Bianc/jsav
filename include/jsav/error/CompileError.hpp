@@ -65,10 +65,10 @@ namespace jsv {
                      std::optional<std::string> help)
           : kind_(kind), code_(vnd_move(code)), message_(message), span_(span), help_(vnd_move(help)) {}
 
-        Kind kind_;
-        std::optional<ErrorCode> code_;
-        std::string message_;
         SourceSpan span_;
+        std::string message_;
         std::optional<std::string> help_;
+        std::optional<ErrorCode> code_;
+        Kind kind_;
     };
 }  // namespace jsv
