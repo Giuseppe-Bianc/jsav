@@ -1067,7 +1067,7 @@ This section defines the coding standards and style conventions for the JSAV pro
 
 ### 4.1 Naming Conventions
 
-Naming is a critical aspect of code readability. Consistent naming allows developers to quickly understand the role and purpose of identifiers without consulting documentation.
+Naming is a central component of code readability. Effective naming depends on consistency, as it enables developers to understand the purpose of identifiers without consulting documentation. By applying consistent naming conventions, developers can recognize patterns across a codebase, which reduces cognitive effort and improves comprehension.
 
 **Evidence Base**: The conventions below are observed across `include/`, `src/`, and `test/` directories, and are enforced by `.clang-tidy` configuration.
 
@@ -1125,7 +1125,7 @@ CheckOptions:
 
 ### 4.2 File Organization
 
-Proper file organization ensures that code is easy to navigate, understand, and maintain. The jsav project follows established C++ conventions with project-specific adaptations.
+Proper file organization improves code navigability, readability, and maintainability. The jsav project follows established C++ conventions as an application of this principle, incorporating project specific adaptations to meet internal requirements.
 
 #### Header Guards
 
@@ -1696,11 +1696,41 @@ ctest --output-on-failure
 
 **Source**: `AI_GUIDELINES.md`, `.specify/memory/constitution.md`, `ProjectOptions.cmake`, `cmake/Sanitizers.cmake`
 
----
+## 5. Data Layout, Alignment, and Padding Efficiency
 
----
+In C++, object layout is constrained by alignment requirements. The compiler may insert **padding bytes** between members and at the end of a type so that each subobject starts at an address compatible with its alignment. This padding does not carry semantic data, but it still contributes to `sizeof(T)` and therefore to memory footprint, cache pressure, and data movement cost.
 
-## 5. Testing
+For aggregate types such as `struct` and `class`, member order has a direct impact on internal padding. A poor ordering can introduce repeated alignment gaps. A better ordering usually places members with higher alignment requirements first, followed by progressively less-aligned members. In practice, sorting by descending `alignof(member_type)` tends to minimize wasted space.
+
+```cpp
+struct InefficientLayout {
+    std::uint8_t tag;       // alignof = 1
+    std::uint64_t id;       // alignof = 8 -> compiler inserts padding before this field
+    std::uint32_t flags;    // alignof = 4
+    std::uint16_t kind;     // alignof = 2
+};
+
+struct EfficientLayout {
+    std::uint64_t id;       // alignof = 8
+    std::uint32_t flags;    // alignof = 4
+    std::uint16_t kind;     // alignof = 2
+    std::uint8_t tag;       // alignof = 1
+};
+
+static_assert(sizeof(EfficientLayout) <= sizeof(InefficientLayout));
+```
+
+Technical guidance for portable, standards-conforming code:
+
+- Treat object representation and exact layout as implementation-defined unless constrained by the standard for specific type categories.
+- Use `alignof`, `sizeof`, and `offsetof` to verify assumptions explicitly instead of relying on intuition.
+- Prefer layout-aware reordering before considering non-portable packing directives.
+- Use forced packing (`#pragma pack`, compiler-specific attributes) only when ABI/protocol constraints require it, and document trade-offs (misalignment penalties, portability risks).
+- Keep semantic clarity and invariants intact: layout optimization must not compromise maintainability, type safety, or correctness.
+
+This approach aligns with ISO C++ object model and alignment rules, cppreference technical documentation on alignment/layout facilities, and C++ Core Guidelines recommendations on performance-aware data design and maintainable class structure.
+
+## 6. Testing
 
 Testing is a fundamental pillar of the jsav development workflow. The project employs a comprehensive testing strategy with three distinct test targets, each serving a specific purpose in the verification pipeline. This section provides detailed guidance on the testing framework, test organization, execution commands, and best practices for writing effective tests.
 
@@ -1708,7 +1738,7 @@ Testing is a fundamental pillar of the jsav development workflow. The project em
 
 **Source**: `test/CMakeLists.txt`, `QWEN.md`, `AI_GUIDELINES.md`, `.specify/memory/constitution.md`
 
-### 5.1 Test Framework
+### 6.1 Test Framework
 
 **Framework**: Catch2 v3.14.0 (C++ Testing Framework)
 
@@ -1734,7 +1764,7 @@ cpmaddpackage("gh:catchorg/Catch2@3.14.0")
 
 **Source**: `Dependencies.cmake`, `test/CMakeLists.txt`
 
-### 5.2 Test Targets
+### 6.2 Test Targets
 
 The project maintains three distinct test targets, each compiled and executed separately. This separation enables compile-time verification, runtime testing of constexpr code, and runtime-only testing for I/O and system-dependent functionality.
 
@@ -1850,7 +1880,7 @@ TEST_CASE("Logger setup", "[setup_logger]") {
 
 **Source**: `test/CMakeLists.txt`, `test/tests.cpp`
 
-### 5.3 Build and Run Commands
+### 6.3 Build and Run Commands
 
 This subsection provides comprehensive commands for building and executing tests at various levels of granularity.
 
@@ -1977,7 +2007,7 @@ ctest --output-on-failure
 
 **Source**: `cmake/Sanitizers.cmake`, `ProjectOptions.cmake`
 
-### 5.4 Test Naming Conventions
+### 6.4 Test Naming Conventions
 
 Consistent test naming enables easy test discovery, clear failure messages, and self-documenting test suites.
 
@@ -2058,7 +2088,7 @@ TEST_CASE("Testing the lexer with empty input to see what happens", "[lexer]")  
 
 **Source**: `test/tests.cpp`, C++ testing best practices
 
-### 5.5 Test Fixtures and Mocks
+### 6.5 Test Fixtures and Mocks
 
 #### Test Fixtures
 
@@ -2161,7 +2191,7 @@ TEST_CASE("Parser handles file read errors", "[parser]") {
 
 **Source**: `test/tests.cpp`, observed patterns
 
-### 5.6 Workflow for Adding Tests
+### 6.6 Workflow for Adding Tests
 
 The project follows a specific workflow for adding new tests, particularly for constexpr-capable code.
 
@@ -2241,7 +2271,7 @@ The project encourages Test-Driven Development following the Red-Green-Refactor 
 
 **Source**: `.specify/memory/constitution.md`, `AI_GUIDELINES.md`
 
-### 5.7 Test Coverage
+### 6.7 Test Coverage
 
 **Tool**: gcovr (Coverage Report Generator)
 
@@ -2285,9 +2315,9 @@ gcovr -r .. --config=../gcovr.cfg
 
 ---
 
-## 6. Development Workflow
+## 7. Development Workflow
 
-### 6.1 Branching
+### 7.1 Branching
 
 **Strategy**: Feature branches from `main`
 
@@ -2295,23 +2325,84 @@ gcovr -r .. --config=../gcovr.cfg
 
 **Source**: `.specify/memory/constitution.md`
 
-### 6.2 Commit Messages
+### 7.2 Commit Messages
 
-**Format**: Conventional Commits (recommended, observed in project culture)
+**Standard**: Conventional Commits (mandatory)
 
 ```text
 <type>(<scope>): <description>
 
 [optional body]
 
-Closes #<issue-number>
+[optional footer(s)]
 ```
 
-**Types**: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
+**Allowed types**:
 
-**Source**: Project convention (observed), `AI_GUIDELINES.md`
+- `feat`: new features or functionality
+- `fix`: bug fixes
+- `chore`: maintenance, tooling, configuration
+- `docs`: documentation-only changes
+- `style`: formatting/style changes without logic changes
+- `refactor`: restructuring without behavior changes
+- `perf`: performance improvements
+- `test`: adding or updating tests
+- `build`: build system or external dependency changes
+- `ci`: CI configuration/workflow changes
+- `revert`: revert of a previous commit
 
-### 6.3 Pull Requests
+**Scope rules** (optional but recommended):
+
+- Use lowercase scope names.
+- Use hyphens for multi-word scopes (e.g. `user-profile`).
+- Use `/` for nested scopes with max depth 2-3 (e.g. `api/users`).
+- Prefer concise names (`auth` instead of `authentication`).
+- Use singular for single entity scopes and plural for module collections when appropriate.
+
+**Subject line requirements**:
+
+- Use imperative mood (e.g. "Add parser validation", not "Added parser validation").
+- Keep subject length under 72 characters.
+- Be specific and descriptive.
+- Do not end with a period.
+
+**Body requirements** (required for non-trivial changes):
+
+1. List specific modifications (files, functions, classes, methods).
+2. Explain rationale (why the change was needed).
+3. Include technical details where relevant (algorithmic changes, dependency updates, performance notes).
+
+**Footer usage** (when applicable):
+
+- Breaking changes: `BREAKING CHANGE: <description>`
+- Issue references: `Fixes #<id>`, `Closes #<id>`, `Relates to #<id>`
+- Co-authors: `Co-authored-by: Name <email>`
+- Deprecation notices
+
+**Breaking change notation**:
+
+- Use `!` in the header when introducing a breaking change (e.g. `feat(api)!: ...`).
+- Provide a matching `BREAKING CHANGE:` footer with migration impact.
+
+**Commit quality rules**:
+
+- Keep commits atomic and single-purpose.
+- Ensure the commit builds and tests pass before finalizing.
+- Avoid mixing unrelated changes in the same commit.
+- Verify referenced paths, symbols, and issue numbers.
+- Wrap long body lines near 72 characters for terminal readability.
+
+**Anti-patterns**:
+
+- Vague subjects (e.g. "update files", "fix bug").
+- Past tense in subject line.
+- Missing body for complex changes.
+- Missing breaking-change footer when behavior/API is broken.
+- Missing issue linkage when applicable.
+
+**Source**: `.github/copilot-commit-message-instructions.md`
+
+### 7.3 Pull Requests
 
 **Required Components**:
 
@@ -2323,7 +2414,7 @@ Closes #<issue-number>
 
 **Source**: `.specify/memory/constitution.md`, `AI_GUIDELINES.md`
 
-### 6.4 Code Review Criteria
+### 7.4 Code Review Criteria
 
 **Automated Checks** (CI-enforced):
 
@@ -2348,7 +2439,7 @@ Closes #<issue-number>
 
 ---
 
-## 7. Rules for Automated Agents and AI Tools
+## 8. Rules for Automated Agents and AI Tools
 
 This section contains **enforceable rules** for automated agents. Violations are categorized by severity.
 
@@ -3069,13 +3160,13 @@ ctest -E "benchmark" --output-on-failure
 
 ---
 
-## 8. Agent-Based Code Generation Framework
+## 9. Agent-Based Code Generation Framework
 
 This section introduces a comprehensive framework of autonomous AI agents for automating code generation, maintenance, and quality assurance within the `jsav` compiler project. Each agent has a specialized role and operates in coordination with the others through well-defined interfaces and communication protocols.
 
 ---
 
-### 8.1 Specialized Agent Roles and Responsibilities
+### 9.1 Specialized Agent Roles and Responsibilities
 
 #### Agent 1: Planner Agent — Strategic Task Decomposition and Workflow Orchestration
 
@@ -3120,7 +3211,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 
 #### Agent 3: Tester Agent — Quality Assurance and Code Integrity Validation
 
-**Primary Responsibility:** The Tester Agent provides comprehensive quality assurance by automating test generation and execution, alongside systematic code quality analysis. It verifies functional correctness using the three-target Catch2 testing strategy established in Section 5.
+**Primary Responsibility:** The Tester Agent provides comprehensive quality assurance by automating test generation and execution, alongside systematic code quality analysis. It verifies functional correctness using the three-target Catch2 testing strategy established in Section 6.
 
 **Input Specifications:**
 
@@ -3156,7 +3247,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 
 **Input Specifications:**
 
-- Target modules or functions requiring refactoring, with specific quality metrics to improve (cyclomatic complexity ≤15, function length ≤100 lines, parameters ≤6 per Section 7)
+- Target modules or functions requiring refactoring, with specific quality metrics to improve (cyclomatic complexity ≤15, function length ≤100 lines, parameters ≤6 per Section 8)
 - Architectural constraints: refactoring must not introduce circular dependencies between `jsav_Core_lib` and `jsav_Lib`
 - Performance benchmarks and acceptance criteria for optimization-focused refactors
 - Compatibility requirements when modifying public API headers in `include/jsav/`
@@ -3276,7 +3367,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 
 - Usage examples and short how-to guides for common workflows (lexer initialization, token stream traversal, filesystem operations)
 - Updates to this `AGENTS.md` and `QWEN.md` when architectural decisions change
-- A contributor onboarding checklist covering: prerequisites installation (Section 3.1), first build (Section 3.4), running tests (Section 5.3), and code style setup (Section 4)
+- A contributor onboarding checklist covering: prerequisites installation (Section 3.1), first build (Section 3.4), running tests (Section 6.3), and code style setup (Section 4)
 - Doxygen configuration updates in `cmake/Doxygen.cmake` for new modules
 
 **Technical Infrastructure:**
@@ -3287,7 +3378,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 
 ---
 
-### 8.2 Agent Interaction Protocol and Workflow Architecture
+### 9.2 Agent Interaction Protocol and Workflow Architecture
 
 The agent ecosystem operates through a carefully orchestrated sequential workflow:
 
@@ -3318,7 +3409,7 @@ The agent ecosystem operates through a carefully orchestrated sequential workflo
 
 ---
 
-### 8.3 Patterns: Established Best Practices for Agent-Based Code Generation
+### 9.3 Patterns: Established Best Practices for Agent-Based Code Generation
 
 #### Pattern 1: Single Responsibility Agent Design
 
@@ -3354,7 +3445,7 @@ Create discrete documentation modules targeting specific audiences: new contribu
 
 ---
 
-### 8.4 Anti-Patterns: Common Pitfalls to Avoid
+### 9.4 Anti-Patterns: Common Pitfalls to Avoid
 
 | Anti-Pattern | Description | Consequence | Correct Alternative |
 |---|---|---|---|
@@ -3369,9 +3460,9 @@ Create discrete documentation modules targeting specific audiences: new contribu
 
 ---
 
-### 8.5 Enforced Rules for Agent Operations
+### 9.5 Enforced Rules for Agent Operations
 
-The following rules are mandatory for all agents operating on this codebase. They extend and reinforce Section 7 (Rules for Automated Agents and AI Tools).
+The following rules are mandatory for all agents operating on this codebase. They extend and reinforce Section 8 (Rules for Automated Agents and AI Tools).
 
 | Rule | Scope | Enforcement |
 |---|---|---|
@@ -3383,8 +3474,8 @@ The following rules are mandatory for all agents operating on this codebase. The
 | **Always produce unified diff output** for every code modification | Refactor, Security, Performance | Audit trail requirement (Pattern 7) |
 | **Exclude `test/` and `fuzz_test/` from `lizard` analysis** | Tester | False positive prevention |
 | **Zero sanitizer violations** required before any phase transition | Tester | AddressSanitizer + UndefinedBehaviorSanitizer |
-| **Never disable compiler warnings** project-wide; fix the underlying code | All agents | Section 7 Compilation Rules |
-| **All `constexpr`-capable functions must have `STATIC_REQUIRE` coverage** in `constexpr_tests.cpp` | Tester | Section 5.2 requirements |
+| **Never disable compiler warnings** project-wide; fix the underlying code | All agents | Section 8 Compilation Rules |
+| **All `constexpr`-capable functions must have `STATIC_REQUIRE` coverage** in `constexpr_tests.cpp` | Tester | Section 6.2 requirements |
 
 ## Appendix C: Document Verification
 

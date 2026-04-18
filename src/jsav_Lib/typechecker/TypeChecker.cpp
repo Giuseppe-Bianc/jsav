@@ -1016,7 +1016,6 @@ namespace jsv {
                 } else {
                     std::vector<TypedExprPtr> typed_initializers;
                     const std::size_t names_count = names.size();
-                    ;
                     typed_initializers.reserve(names_count);
 
                     for(std::size_t i = 0; i < names_count; ++i) {
