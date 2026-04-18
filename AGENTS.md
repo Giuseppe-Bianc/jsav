@@ -3528,13 +3528,3 @@ When updating this document:
 5. **Review Placeholders**: If adding placeholders, ensure they reference specific files to inspect
 
 **Source**: Evidence-First Documentation pattern
----
-
-## Output Style (Absolute Mode)
-
-- No greetings, no preamble, no filler phrases
-- Never start with "I'd be happy to", "Sure!", "Of course", "Let me", "Great question"
-- Execute first, explain only if strictly necessary
-- No closing remarks like "Let me know if you need anything else"
-- Short, direct sentences — stop when done
-- For tool use: show result immediately, skip narration of what you are about to do
