@@ -199,9 +199,9 @@ The project utilizes a minimal, carefully curated set of external dependencies, 
 
 #### Dependency Management Principles
 
-**Version Locking**: All dependencies specify exact versions to ensure reproducible builds across time and environments.
+**Version Locking**:All dependencies are pinned to exact versions, ensuring that builds remain reproducible across local machines, CI pipelines, production environments, and different points in time. This practice reduces variation in dependency resolution, supports deterministic builds, and helps prevent unexpected changes introduced by newer package releases or shifting transitive dependencies.
 
-**Header Isolation**: Dependency headers are included only in implementation files (`.cpp`) or internal headers, never exposed through public API headers. This prevents "header leak" anti-pattern where consumers become coupled to project dependencies.
+**Header Isolation**: Headers originating from external libraries, system libraries, or internal project dependencies are included exclusively within implementation files (`.cpp`) or non-public internal headers. These headers are not exposed through public API headers, which are intended to define stable interfaces independent of implementation details.This separation enforces a strict boundary between interface and implementation. It ensures that public headers remain free of transitive dependencies introduced by implementation details. This practice prevents the "header leak" anti-pattern, in which dependency headers included in public interfaces propagate through inclusion chains. Such propagation forces consumers of the API to compile against unintended dependencies, increases build times, and reduces modular isolation. It also creates tighter coupling between components, making refactoring more complex and increasing the risk of widespread compilation breakage when internal dependencies change.
 
 **Private Linkage**: Dependencies are linked with `PRIVATE` visibility in CMake targets, preventing propagation to downstream consumers.
 
