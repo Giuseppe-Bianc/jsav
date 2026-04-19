@@ -183,6 +183,12 @@ Ambito escluso:
 - Generazione diretta di codice macchina
 - Interfacce utente"
 
+## Clarifications
+
+### Session 2026-04-19
+
+- Q: Quale strategia SSA/PHI deve essere canonica nel MIR? -> A: PHI basati su reaching definitions; dominance-frontier solo supporto analitico non vincolante.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Costruzione e Validazione IR (Priority: P1)
@@ -249,10 +255,10 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-003**: Il sistema MUST consentire la costruzione di IR a qualunque livello, purché ogni rappresentazione soddisfi le regole di validazione del livello scelto.
 - **FR-004**: Il sistema MUST mantenere un grafo di controllo per ogni Funzione con entry unico, archi validi e terminatori di controllo in ogni blocco.
 - **FR-005**: Il sistema MUST modellare Valori immutabili con singolo punto di definizione, Tipo esplicito e tracciabilità completa definizione-uso.
-- **FR-006**: Il sistema MUST mantenere forma SSA completa in MIR, inclusi inserimento, aggiornamento e rimozione minima dei nodi PHI.
-- **FR-007**: Il sistema MUST inserire nodi PHI solo nei punti di convergenza in cui reaching definitions indica definizioni distinte provenienti da predecessori diversi.
+- **FR-006**: Il sistema MUST mantenere forma SSA completa in MIR, inclusi inserimento, aggiornamento e rimozione minima dei nodi PHI, usando reaching definitions come criterio canonico di placement.
+- **FR-007**: Il sistema MUST inserire nodi PHI solo nei punti di convergenza in cui reaching definitions indica definizioni distinte provenienti da predecessori diversi; dominance-frontier può essere usata solo come supporto analitico non vincolante.
 - **FR-008**: Il sistema MUST garantire che ogni nodo PHI includa esattamente un operando per predecessore del blocco target.
-- **FR-009**: Il sistema MUST aggiornare automaticamente la struttura SSA e i PHI dopo qualunque modifica del grafo di controllo.
+- **FR-009**: Il sistema MUST aggiornare automaticamente la struttura SSA e i PHI dopo qualunque modifica del grafo di controllo, preservando il criterio canonico basato su reaching definitions.
 - **FR-010**: Il sistema MUST supportare un sistema di tipi con tipi primitivi, composti e definiti dall’utente, includendo regole di struttura, equivalenza e compatibilità operazionale.
 - **FR-011**: Il sistema MUST rifiutare operazioni con Tipi incompatibili e interrompere il pass corrente con errori espliciti e localizzati.
 - **FR-012**: Il sistema MUST preservare i Tipi durante le trasformazioni oppure dichiarare conversioni valide e verificabili.
@@ -399,11 +405,11 @@ Implicazione:
 
 ## 6. Impatto architetturale sul sistema IR
 
-Il MIR supporta tre modalità SSA:
+Il MIR adotta una modalità SSA canonica:
 
-1. Dominance frontier SSA
-2. Reaching definitions SSA
-3. Incremental SSA construction
+1. Reaching definitions SSA (criterio normativo per inserimento PHI)
+
+Dominance frontier è consentita come supporto di analisi e ottimizzazione, ma non definisce da sola la validità finale dei PHI.
 
 Vincolo globale:
 
@@ -413,20 +419,20 @@ Vincolo globale:
 
 ## 7. Integrazione nei requisiti
 
-FR-006 SSA completa include modalità multiple di costruzione.
+FR-006 SSA completa richiede criterio canonico RD per il placement PHI.
 
-FR-007 PHI placement dipende da analisi DF o RD.
+FR-007 PHI placement dipende da reaching definitions; DF resta ausiliaria.
 
-FR-009 aggiornamento SSA richiede invalidazione DF o RD locale.
+FR-009 aggiornamento SSA richiede ricalcolo locale coerente con RD.
 
 ---
 
 ## 8. Sintesi strutturale
 
-Il sistema IR non assume una singola teoria SSA:
+Il sistema IR adotta una teoria SSA canonica nel MIR:
 
-- DF-based: efficiente e standard
-- RD-based: più preciso
-- Incrementale: costruzione dinamica
+- RD-based: criterio normativo di correttezza e minimalità PHI
+- DF-based: supporto opzionale per accelerare analisi o candidati di inserimento
+- Incrementale: ammessa solo se produce output equivalente al criterio RD
 
-Il MIR seleziona la strategia come proprietà del pass, non come dettaglio implementativo.
+Il MIR non delega la scelta canonica al singolo pass: la validità finale è sempre verificata rispetto a reaching definitions.
