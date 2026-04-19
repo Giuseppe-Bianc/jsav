@@ -277,8 +277,8 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-018**: Il sistema MUST eseguire verifiche automatiche dopo ogni pass e produrre output validato oppure interrompere la pipeline con errori.
 - **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) mediante ID immutabili globali per entità IR (Modulo/Funzione/Blocco/Istruzione/Valore) e relazioni di derivazione esplicite, per supportare audit delle trasformazioni.
 - **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
-- **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell’ordine relativo tra accessi in dipendenza.
-- **FR-022**: Il sistema MUST eseguire ogni pass con semantica atomica: in caso di errore di validazione o trasformazione deve ripristinare integralmente l’ultimo stato IR valido.
+- **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell'ordine relativo tra accessi con dipendenze (come definite in FR-016).
+- **FR-022**: Il sistema MUST eseguire ogni pass con semantica atomica: in caso di errore di validazione o trasformazione deve ripristinare integralmente lo stato IR immediatamente precedente all'inizio del pass corrente (pre-pass state).
 - **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall’utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito.
 - **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando), a parità di input, ordine pass e configurazione.
 - **FR-025**: Il sistema MUST supportare il caso d'uso target di scala media: fino a 100k istruzioni per Funzione e fino a 2M istruzioni complessive per Modulo mantenendo validazione, analisi e trasformazioni complete.
@@ -328,7 +328,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-008**: Nel 100% dei pass falliti, lo stato IR osservabile post-failure coincide con l’ultimo stato valido pre-pass (rollback completo, nessun commit parziale).
 - **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura.
 - **SC-010**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, l’ordine di analisi, errori e report coincide esattamente secondo la chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando).
-- **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata o originaria.
+- **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata nel livello precedente; per supportare audit completo, il sistema SHOULD mantenere anche relazioni transitive verso l'entità originaria nel primo livello HIR quando disponibile.
 - **SC-012**: Sulla suite di benchmark approvata di scala target (fino a 100k istruzioni per Funzione e 2M per Modulo), nel 100% dei casi il sistema completa validazione, analisi principali e pass previsti senza violare i vincoli funzionali definiti in FR-001..FR-025.
 
 ## Assumptions
