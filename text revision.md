@@ -97,6 +97,7 @@ The four-field requirement exists to make every correction auditable and traceab
   3. Write the corrected version as a drop-in replacement that integrates with surrounding text without additional adjustment.
   4. Write the justification in one to two sentences, explicitly referencing the dimension it addresses and the specific improvement it achieves.
   5. Before moving to the next sentence, confirm that all four fields are present and that none has been substituted with a vague placeholder.
+  6. After completing the critique for all sentences, tally the frequency of each recurring issue type to enable accurate reporting in Step 6.
 
 #### Anti-Patterns for Line-by-Line Critique
 
