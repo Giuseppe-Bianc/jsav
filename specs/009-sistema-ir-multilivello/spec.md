@@ -315,3 +315,118 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - Le pipeline di pass sono dichiarate esplicitamente e valutate in ordine deterministico.
 - I tipi definiti dall’utente forniscono metadati sufficienti per equivalenza e compatibilità operazionale.
 - Le esigenze di interfaccia grafica e output machine code non fanno parte di questa feature.
+
+# 🔧 ESTENSIONE TECNICA: MODELLO SSA E COSTRUZIONE PHI
+
+Questa sezione integra formalmente i risultati della letteratura su SSA, dominance frontier e reaching definitions nel livello MIR.
+
+---
+
+## 1. Vincolo fondamentale SSA nel MIR
+
+Il MIR è vincolato alla forma SSA:
+
+\forall v,\ \exists!\ \text{def}(v) \land \text{def}(v) \text{ domina tutte le use}(v)
+
+Questo implica un controllo strutturale completo del grafo di flusso e delle definizioni.
+
+---
+
+## 2. Costruzione classica basata su dominanza
+
+La strategia standard usa dominance frontier.
+
+DF(n)={m \mid n \text{ domina un predecessore di } m \land n \not\succ m}
+
+Iterazione:
+
+DF^{+}(S)=\mu X.; S \cup DF(X)
+
+Uso:
+
+- inserzione PHI nei join points
+- dipendenza da dominanza globale
+
+Limite:
+
+- over-approximation
+- PHI ridondanti possibili
+
+---
+
+## 3. Limite strutturale del modello DF
+
+Il modello DF introduce approssimazione:
+
+- join points stimati per struttura, non per reale reachability
+- sensibilità a CFG non riducibili
+- PHI non necessari in casi locali
+
+---
+
+## 4. Costruzione basata su reaching definitions
+
+Alternativa dataflow-based.
+
+RD(n)={d \mid d \text{ raggiunge } n}
+
+Condizione PHI:
+
+\text{PHI}(n,x) \iff |RD_{pred}(n,x)| > 1
+
+Proprietà:
+
+- PHI solo quando semanticamente necessari
+- riduzione ridondanza
+- dipendenza da dataflow reale
+
+---
+
+## 5. Costruzione incrementale SSA
+
+Modello alternativo:
+
+- PHI inseriti durante costruzione CFG
+- rinomina simultanea
+- nessuna fase DF globale necessaria
+
+Implicazione:
+
+- MIR può essere costruito direttamente in SSA valida
+- aggiornamenti locali propagano modifiche SSA
+
+---
+
+## 6. Impatto architetturale sul sistema IR
+
+Il MIR supporta tre modalità SSA:
+
+1. Dominance frontier SSA
+2. Reaching definitions SSA
+3. Incremental SSA construction
+
+Vincolo globale:
+
+\forall \phi,\ \forall i,\ operand_i \in RD(pred_i)
+
+---
+
+## 7. Integrazione nei requisiti
+
+FR-006 SSA completa include modalità multiple di costruzione.
+
+FR-007 PHI placement dipende da analisi DF o RD.
+
+FR-009 aggiornamento SSA richiede invalidazione DF o RD locale.
+
+---
+
+## 8. Sintesi strutturale
+
+Il sistema IR non assume una singola teoria SSA:
+
+- DF-based: efficiente e standard
+- RD-based: più preciso
+- Incrementale: costruzione dinamica
+
+Il MIR seleziona la strategia come proprietà del pass, non come dettaglio implementativo.
