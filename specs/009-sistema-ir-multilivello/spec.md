@@ -195,6 +195,8 @@ Ambito escluso:
 - Q: Quale struttura deve avere la chiave canonica stabile di ordinamento? -> A: Chiave gerarchica stabile: modulo/funzione/blocco/indice-istruzione/indice-operando.
 - Q: Quale strategia di tracciabilita tra livelli deve essere canonica? -> A: ID immutabile globale per ogni entita IR con relazioni di derivazione esplicite tra HIR, MIR e LIR.
 - Q: Quale obiettivo di scala deve essere assunto per la feature? -> A: Scala media: fino a 100k istruzioni per funzione e 2M per modulo.
+- Q: Quando un predecessore diventa non raggiungibile, quale politica PHI deve essere canonica? -> A: Rimozione immediata di arco e operando PHI corrispondente durante aggiornamento CFG (normalizzazione eager).
+- Q: Per gli ID immutabili globali, quale politica di generazione deve essere canonica? -> A: ID deterministici derivati da percorso canonico strutturale, stabili a parità di input e pipeline.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -247,7 +249,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 
 ### Edge Cases
 
-- Cosa accade quando un blocco ha predecessori multipli con definizioni parziali della stessa variabile?
+- Quando un predecessore diventa non raggiungibile dopo una trasformazione, il sistema rimuove immediatamente l'arco e l'operando PHI corrispondente durante l'aggiornamento CFG (normalizzazione eager), mantenendo la validita SSA/PHI senza mismatch temporanei.
 - Come viene gestita una trasformazione che elimina un blocco con PHI usati in più punti?
 - Cosa accade quando un Tipo definito dall’utente cambia regole di equivalenza mentre esistono già Valori tipizzati?
 - Come viene gestita la convergenza di controllo con percorsi non raggiungibili che influenzano la minimalità dei PHI?
@@ -265,7 +267,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-006**: Il sistema MUST mantenere forma SSA completa in MIR, inclusi inserimento, aggiornamento e rimozione minima dei nodi PHI, usando reaching definitions come criterio canonico di placement.
 - **FR-007**: Il sistema MUST inserire nodi PHI solo nei punti di convergenza in cui reaching definitions indica definizioni distinte provenienti da predecessori diversi; dominance-frontier può essere usata solo come supporto analitico non vincolante.
 - **FR-008**: Il sistema MUST garantire che ogni nodo PHI includa esattamente un operando per predecessore del blocco target.
-- **FR-009**: Il sistema MUST aggiornare automaticamente la struttura SSA e i PHI dopo qualunque modifica del grafo di controllo, preservando il criterio canonico basato su reaching definitions.
+- **FR-009**: Il sistema MUST aggiornare automaticamente la struttura SSA e i PHI dopo qualunque modifica del grafo di controllo, preservando il criterio canonico basato su reaching definitions; se un predecessore diventa non raggiungibile, MUST rimuovere immediatamente arco e operando PHI corrispondente (normalizzazione eager).
 - **FR-010**: Il sistema MUST supportare un sistema di tipi con tipi primitivi, composti e definiti dall’utente, includendo regole di struttura, equivalenza e compatibilità operazionale.
 - **FR-011**: Il sistema MUST rifiutare operazioni con Tipi incompatibili e interrompere il pass corrente con errori espliciti e localizzati.
 - **FR-012**: Il sistema MUST preservare i Tipi durante le trasformazioni oppure dichiarare conversioni valide e verificabili.
@@ -275,12 +277,12 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-016**: Il sistema MUST impedire trasformazioni che alterano l’ordine osservabile degli accessi memoria quando esistono dipendenze.
 - **FR-017**: Il sistema MUST consentire pipeline esplicite di pass (analisi, trasformazione, ottimizzazione, lowering) con precondizioni, invarianti preservati ed effetti dichiarati.
 - **FR-018**: Il sistema MUST eseguire verifiche automatiche dopo ogni pass e produrre output validato oppure interrompere la pipeline con errori.
-- **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) mediante ID immutabili globali per entità IR (Modulo/Funzione/Blocco/Istruzione/Valore) e relazioni di derivazione esplicite, per supportare audit delle trasformazioni.
+- **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) mediante ID immutabili globali per entità IR (Modulo/Funzione/Blocco/Istruzione/Valore) e relazioni di derivazione esplicite, per supportare audit delle trasformazioni; la generazione ID MUST essere deterministica e derivata da un percorso canonico strutturale dell'entità (modulo/funzione/blocco/indice e tipo entità), stabile a parità di input, ordine pass e configurazione.
 - **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
 - **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell'ordine relativo tra accessi con dipendenze (come definite in FR-016).
 - **FR-022**: Il sistema MUST eseguire ogni pass con semantica atomica: in caso di errore di validazione o trasformazione deve ripristinare integralmente lo stato IR immediatamente precedente all'inizio del pass corrente (pre-pass state).
 - **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall’utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito.
-- **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando), a parità di input, ordine pass e configurazione.
+- **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando), a parità di input, ordine pass e configurazione; tale chiave MUST essere allineata alla politica canonica di generazione ID deterministici definita in FR-019.
 - **FR-025**: Il sistema MUST supportare il caso d'uso target di scala media: fino a 100k istruzioni per Funzione e fino a 2M istruzioni complessive per Modulo mantenendo validazione, analisi e trasformazioni complete.
 
 ### Key Entities *(include if feature involves data)*
@@ -328,7 +330,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-008**: Nel 100% dei pass falliti, lo stato IR osservabile post-failure coincide con l’ultimo stato valido pre-pass (rollback completo, nessun commit parziale).
 - **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura.
 - **SC-010**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, l’ordine di analisi, errori e report coincide esattamente secondo la chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando).
-- **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata nel livello precedente; per supportare audit completo, il sistema SHOULD mantenere anche relazioni transitive verso l'entità originaria nel primo livello HIR quando disponibile.
+- **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale deterministico (derivato da percorso canonico strutturale) e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata nel livello precedente; per supportare audit completo, il sistema SHOULD mantenere anche relazioni transitive verso l'entità originaria nel primo livello HIR quando disponibile.
 - **SC-012**: Sulla suite di benchmark approvata di scala target (fino a 100k istruzioni per Funzione e 2M per Modulo), nel 100% dei casi il sistema completa validazione, analisi principali e pass previsti senza violare i vincoli funzionali definiti in FR-001..FR-025.
 
 ## Assumptions
