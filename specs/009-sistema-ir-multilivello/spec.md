@@ -188,6 +188,7 @@ Ambito escluso:
 ### Session 2026-04-19
 
 - Q: Quale strategia SSA/PHI deve essere canonica nel MIR? -> A: PHI basati su reaching definitions; dominance-frontier solo supporto analitico non vincolante.
+- Q: Come va definita l'equivalenza semantica tra livelli IR? -> A: Stessi valori finali e stessi effetti osservabili su memoria, con ordine relativo delle dipendenze preservato.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -270,6 +271,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-018**: Il sistema MUST eseguire verifiche automatiche dopo ogni pass e produrre output validato oppure interrompere la pipeline con errori.
 - **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) per supportare audit delle trasformazioni.
 - **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
+- **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell’ordine relativo tra accessi in dipendenza.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -312,12 +314,13 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-004**: Nel 100% delle trasformazioni HIR→MIR e MIR→LIR su suite di regressione approvata, l’equivalenza semantica osservabile su valori e memoria è preservata.
 - **SC-005**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, i risultati delle analisi (dominanza, reaching definitions, liveness, dipendenze) sono identici.
 - **SC-006**: Nel 100% dei casi di incompatibilità di tipo o violazione strutturale, la pipeline si interrompe nella fase corretta con errore localizzato e motivazione verificabile.
+- **SC-007**: Nel 100% dei casi validati come equivalenti tra livelli, devono risultare invariati sia i valori finali osservabili sia gli effetti osservabili su memoria con ordine relativo delle dipendenze preservato.
 
 ## Assumptions
 
 - Gli utenti sono sviluppatori del compilatore e operano su programmi già lessicalmente e sintatticamente validi.
 - La validazione richiesta riguarda coerenza strutturale, tipologica, di flusso e di memoria delle rappresentazioni IR.
-- La nozione di equivalenza semantica è definita in termini di effetti osservabili su valori prodotti e stato memoria osservabile.
+- La nozione di equivalenza semantica richiede uguaglianza dei valori finali osservabili e conservazione degli effetti osservabili su memoria, inclusa la preservazione dell’ordine relativo imposto dalle dipendenze.
 - Le pipeline di pass sono dichiarate esplicitamente e valutate in ordine deterministico.
 - I tipi definiti dall’utente forniscono metadati sufficienti per equivalenza e compatibilità operazionale.
 - Le esigenze di interfaccia grafica e output machine code non fanno parte di questa feature.
