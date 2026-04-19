@@ -189,6 +189,9 @@ Ambito escluso:
 
 - Q: Quale strategia SSA/PHI deve essere canonica nel MIR? -> A: PHI basati su reaching definitions; dominance-frontier solo supporto analitico non vincolante.
 - Q: Come va definita l'equivalenza semantica tra livelli IR? -> A: Stessi valori finali e stessi effetti osservabili su memoria, con ordine relativo delle dipendenze preservato.
+- Q: Qual è la politica di commit/failure dei pass? -> A: Ogni pass è atomico; su errore avviene rollback completo allo stato IR valido precedente.
+- Q: Quale regola di equivalenza deve usare il sistema per i tipi definiti dall'utente? -> A: Equivalenza nominale (stessa identità di tipo dichiarato).
+- Q: Quale politica di ordinamento deve valere per output di analisi, errori e report? -> A: Ordinamento totale deterministico con chiave canonica stabile.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -272,6 +275,9 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) per supportare audit delle trasformazioni.
 - **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
 - **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell’ordine relativo tra accessi in dipendenza.
+- **FR-022**: Il sistema MUST eseguire ogni pass con semantica atomica: in caso di errore di validazione o trasformazione deve ripristinare integralmente l’ultimo stato IR valido.
+- **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall’utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito.
+- **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile, a parità di input, ordine pass e configurazione.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -315,6 +321,9 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-005**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, i risultati delle analisi (dominanza, reaching definitions, liveness, dipendenze) sono identici.
 - **SC-006**: Nel 100% dei casi di incompatibilità di tipo o violazione strutturale, la pipeline si interrompe nella fase corretta con errore localizzato e motivazione verificabile.
 - **SC-007**: Nel 100% dei casi validati come equivalenti tra livelli, devono risultare invariati sia i valori finali osservabili sia gli effetti osservabili su memoria con ordine relativo delle dipendenze preservato.
+- **SC-008**: Nel 100% dei pass falliti, lo stato IR osservabile post-failure coincide con l’ultimo stato valido pre-pass (rollback completo, nessun commit parziale).
+- **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura.
+- **SC-010**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, l’ordine di analisi, errori e report coincide esattamente secondo la chiave canonica stabile definita.
 
 ## Assumptions
 
@@ -323,6 +332,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - La nozione di equivalenza semantica richiede uguaglianza dei valori finali osservabili e conservazione degli effetti osservabili su memoria, inclusa la preservazione dell’ordine relativo imposto dalle dipendenze.
 - Le pipeline di pass sono dichiarate esplicitamente e valutate in ordine deterministico.
 - I tipi definiti dall’utente forniscono metadati sufficienti per equivalenza e compatibilità operazionale.
+- Per i tipi definiti dall’utente, l’equivalenza canonica adottata è nominale.
 - Le esigenze di interfaccia grafica e output machine code non fanno parte di questa feature.
 
 # 🔧 ESTENSIONE TECNICA: MODELLO SSA E COSTRUZIONE PHI
