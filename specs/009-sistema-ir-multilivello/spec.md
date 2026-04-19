@@ -197,6 +197,7 @@ Ambito escluso:
 - Q: Quale obiettivo di scala deve essere assunto per la feature? -> A: Scala media: fino a 100k istruzioni per funzione e 2M per modulo.
 - Q: Quando un predecessore diventa non raggiungibile, quale politica PHI deve essere canonica? -> A: Rimozione immediata di arco e operando PHI corrispondente durante aggiornamento CFG (normalizzazione eager).
 - Q: Per gli ID immutabili globali, quale politica di generazione deve essere canonica? -> A: ID deterministici derivati da percorso canonico strutturale, stabili a parità di input e pipeline.
+- Q: Quando cambia la definizione di un Tipo utente con Valori già tipizzati, quale politica deve valere? -> A: Versionamento nominale: nuova definizione crea nuova identità tipo; i Valori esistenti restano sulla versione precedente.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -251,7 +252,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 
 - Quando un predecessore diventa non raggiungibile dopo una trasformazione, il sistema rimuove immediatamente l'arco e l'operando PHI corrispondente durante l'aggiornamento CFG (normalizzazione eager), mantenendo la validita SSA/PHI senza mismatch temporanei.
 - Come viene gestita una trasformazione che elimina un blocco con PHI usati in più punti?
-- Cosa accade quando un Tipo definito dall’utente cambia regole di equivalenza mentre esistono già Valori tipizzati?
+- Quando la definizione di un Tipo utente cambia, il sistema applica versionamento nominale: crea una nuova identità di tipo e mantiene i Valori già tipizzati legati alla versione precedente.
 - Come viene gestita la convergenza di controllo con percorsi non raggiungibili che influenzano la minimalità dei PHI?
 - Cosa accade quando due accessi memoria possono aliasare e una trasformazione tenta il riordino?
 
@@ -281,7 +282,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
 - **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell'ordine relativo tra accessi con dipendenze (come definite in FR-016).
 - **FR-022**: Il sistema MUST eseguire ogni pass con semantica atomica: in caso di errore di validazione o trasformazione deve ripristinare integralmente lo stato IR immediatamente precedente all'inizio del pass corrente (pre-pass state).
-- **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall’utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito.
+- **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall’utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito; ogni modifica di definizione/shape/regole MUST generare una nuova identità nominale (versione), senza ritipizzare implicitamente i Valori già esistenti.
 - **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando), a parità di input, ordine pass e configurazione; tale chiave MUST essere allineata alla politica canonica di generazione ID deterministici definita in FR-019.
 - **FR-025**: Il sistema MUST supportare il caso d'uso target di scala media: fino a 100k istruzioni per Funzione e fino a 2M istruzioni complessive per Modulo mantenendo validazione, analisi e trasformazioni complete.
 
@@ -328,7 +329,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-006**: Nel 100% dei casi di incompatibilità di tipo o violazione strutturale, la pipeline si interrompe nella fase corretta con errore localizzato e motivazione verificabile.
 - **SC-007**: Nel 100% dei casi validati come equivalenti tra livelli, devono risultare invariati sia i valori finali osservabili sia gli effetti osservabili su memoria con ordine relativo delle dipendenze preservato.
 - **SC-008**: Nel 100% dei pass falliti, lo stato IR osservabile post-failure coincide con l’ultimo stato valido pre-pass (rollback completo, nessun commit parziale).
-- **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura.
+- **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura; in presenza di ridefinizione del tipo, il 100% dei Valori preesistenti resta associato alla versione nominale originaria.
 - **SC-010**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, l’ordine di analisi, errori e report coincide esattamente secondo la chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando).
 - **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale deterministico (derivato da percorso canonico strutturale) e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata nel livello precedente; per supportare audit completo, il sistema SHOULD mantenere anche relazioni transitive verso l'entità originaria nel primo livello HIR quando l'entità è derivata da HIR.
 - **SC-012**: Sulla suite di benchmark approvata di scala target (fino a 100k istruzioni per Funzione e 2M per Modulo), nel 100% dei casi il sistema completa validazione, analisi principali e pass previsti senza violare i vincoli funzionali definiti in FR-001..FR-025.
@@ -342,6 +343,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - La scala obiettivo della feature è media: fino a 100k istruzioni per Funzione e 2M istruzioni per Modulo.
 - I tipi definiti dall’utente forniscono metadati sufficienti per equivalenza e compatibilità operazionale.
 - Per i tipi definiti dall’utente, l’equivalenza canonica adottata è nominale.
+- Le evoluzioni dei tipi definiti dall'utente seguono versionamento nominale e non mutano retroattivamente la tipizzazione dei Valori già emessi.
 - Le esigenze di interfaccia grafica e output machine code non fanno parte di questa feature.
 
 # 🔧 ESTENSIONE TECNICA: MODELLO SSA E COSTRUZIONE PHI
