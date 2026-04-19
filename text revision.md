@@ -92,7 +92,21 @@ Every revision must be **traceable to a specific identified issue**. Do not rewr
 
 ---
 
-### Step 5 — Summary of Improvements
+### Step 5 — Analytical Expansion
+
+In the full-revision phase, the initial declaration of the **target register** must function as an explicit operational constraint for all subsequent linguistic choices. Register consistency requires lexical selection, level of formality, informational density, syntax, and tone to remain continuously aligned from the opening to the closing of the text, without shifts across heterogeneous styles.
+
+The **one-sentence summary** of the central purpose must be formulated as a concise, verifiable directive statement capable of guiding every corrective intervention. This summary operates as a control criterion: each modification is valid only if it reinforces or preserves the stated purpose, while any rephrasing that weakens or displaces it must be excluded.
+
+Production of the revised text must integrate, in a convergent manner, four sets of constraints already defined in prior phases: grammatical, syntactic, and lexical corrections identified in Step 2; organizational improvements emerging from Step 1; incorporation of only the expansions explicitly flagged in Step 3; and constant maintenance of the target register. The expected outcome is not a free rewrite, but a controlled recomposition in which every intervention is justified by prior analytical evidence.
+
+The requirement of **traceability** implies an explicit correspondence between the identified problem and the applied modification. Each revised segment must be attributable to an anomaly or improvement need already documented; in the absence of such correspondence, the intervention does not satisfy the established methodological criterion.
+
+The principle of minimal intervention defines editing granularity: modify only what is necessary to resolve the identified issue, while preserving argumentative structure, authorial intent, voice, and original conceptual content. Within this framework, revision quality depends on the precision of local substitutions and on overall textual continuity, not on the quantitative extent of rewrites.
+
+---
+
+### Step 6 — Summary of Improvements
 
 Provide a concise summary covering:
 
@@ -120,7 +134,10 @@ Deliver your response in exactly this structure:
 ### IV. Fully Revised Text
 [Target register stated. Central purpose stated. Full revised text follows.]
 
-### V. Summary of Improvements
+### V. Analytical Expansion
+[Expanded analytical development derived from Section IV, with no non-derivable additions.]
+
+### VI. Summary of Improvements
 [Concise account of changes and their impact]
 ```
 
