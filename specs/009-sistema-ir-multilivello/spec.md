@@ -207,6 +207,7 @@ Ambito escluso:
 - Q: Quale politica canonica deve valere per la minimalità PHI quando la convergenza include percorsi non raggiungibili? -> A: Pruning eager: rimozione immediata dei contributi non raggiungibili e ricomputo locale della minimalità PHI a ogni aggiornamento CFG.
 - Q: Quale modello di concorrenza deve essere canonico per esecuzione di pass e analisi? -> A: Esecuzione single-thread deterministica per pass (nessun parallelismo intra-pass).
 - Q: Quale evidenza deve essere canonica per accettare la prova formale di indipendenza che consente eccezione a strict no-reorder? -> A: Doppio criterio: certificato verificabile oppure dimostrazione interna riproducibile con alias/liveness/dependence analysis e log completo.
+- Q: Quale modello di mutazione IR deve essere canonico durante un pass? -> A: Working copy transazionale per funzione o pass, con commit atomico solo dopo validazione conclusa.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -290,7 +291,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) mediante ID immutabili globali per entità IR (Modulo/Funzione/Blocco/Istruzione/Valore) e relazioni di derivazione esplicite, per supportare audit delle trasformazioni; la generazione ID MUST essere deterministica e derivata da un percorso canonico strutturale dell'entità (modulo/funzione/blocco/indice e tipo entità), stabile a parità di input, ordine pass e configurazione.
 - **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
 - **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell'ordine relativo tra accessi con dipendenze (come definite in FR-016).
-- **FR-022**: Il sistema MUST eseguire ogni pass con semantica atomica: in caso di errore di validazione o trasformazione deve ripristinare integralmente lo stato IR immediatamente precedente all'inizio del pass corrente (pre-pass state).
+- **FR-022**: Il sistema MUST eseguire ogni pass su una working copy transazionale della rappresentazione interessata (funzione o pass): il commit sullo stato IR osservabile avviene solo dopo validazione conclusa; in caso di errore di validazione o trasformazione deve essere mantenuto integralmente lo stato pre-pass osservabile, senza commit parziali.
 - **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall'utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito; ogni modifica di definizione/shape/regole MUST generare una nuova identità nominale (versione), senza ritipizzare implicitamente i Valori già esistenti.
  Le versioni MUST essere identificate in modo univoco e deterministico (ad esempio tramite contatore monotono per tipo o hash della definizione); ogni Valore MUST mantenere un riferimento esplicito alla versione del Tipo a cui appartiene.
 
