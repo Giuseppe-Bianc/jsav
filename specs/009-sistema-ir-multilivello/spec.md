@@ -199,6 +199,12 @@ Ambito escluso:
 - Q: Per gli ID immutabili globali, quale politica di generazione deve essere canonica? -> A: ID deterministici derivati da percorso canonico strutturale, stabili a parità di input e pipeline.
 - Q: Quando cambia la definizione di un Tipo utente con Valori già tipizzati, quale politica deve valere? -> A: Versionamento nominale: nuova definizione crea nuova identità tipo; i Valori esistenti restano sulla versione precedente.
 
+### Session 2026-04-20
+
+- Q: Quale politica di reporting errori deve applicare la validazione di un pass fallito? -> A: Batch per pass: raccoglie tutti gli errori della rappresentazione corrente, poi fallisce il pass in blocco.
+- Q: Quando una trasformazione elimina un blocco che definisce valori usati in più punti (inclusi PHI), quale politica canonica deve valere? -> A: Rewrite-safe: riscrivere tutti gli usi verso definizioni equivalenti dominate, aggiornare PHI/CFG, poi eliminare il blocco solo se validazione passa.
+- Q: Quando due accessi memoria sono in relazione may-alias e una trasformazione propone un riordino, quale politica canonica deve valere? -> A: Strict no-reorder: vietato riordinare accessi may-alias, salvo prova formale di indipendenza.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Costruzione e Validazione IR (Priority: P1)
@@ -251,10 +257,10 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 ### Edge Cases
 
 - Quando un predecessore diventa non raggiungibile dopo una trasformazione, il sistema rimuove immediatamente l'arco e l'operando PHI corrispondente durante l'aggiornamento CFG (normalizzazione eager), mantenendo la validita SSA/PHI senza mismatch temporanei.
-- Come viene gestita una trasformazione che elimina un blocco con PHI usati in più punti?
+- Se una trasformazione elimina un blocco con definizioni usate in più punti (inclusi PHI), il sistema applica politica rewrite-safe: riscrive tutti gli usi verso definizioni equivalenti dominate, aggiorna PHI/CFG e consente l'eliminazione solo dopo validazione positiva.
 - Quando la definizione di un Tipo utente cambia, il sistema applica versionamento nominale: crea una nuova identità di tipo e mantiene i Valori già tipizzati legati alla versione precedente.
 - Come viene gestita la convergenza di controllo con percorsi non raggiungibili che influenzano la minimalità dei PHI?
-- Cosa accade quando due accessi memoria possono aliasare e una trasformazione tenta il riordino?
+- Se due accessi memoria sono in relazione may-alias, il sistema applica strict no-reorder: vieta il riordino, salvo disponibilità di una prova formale di indipendenza che dimostri assenza di dipendenza osservabile.
 
 ## Requirements *(mandatory)*
 
@@ -287,6 +293,9 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 
 - **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando), a parità di input, ordine pass e configurazione; tale chiave MUST essere allineata alla politica canonica di generazione ID deterministici definita in FR-019.
 - **FR-025**: Il sistema MUST supportare il caso d'uso target di scala media: fino a 100k istruzioni per Funzione e fino a 2M istruzioni complessive per Modulo mantenendo validazione, analisi e trasformazioni complete.
+- **FR-026**: In caso di fallimento di validazione di un pass, il sistema MUST applicare reporting batch-per-pass: raccogliere tutti gli errori rilevabili sulla rappresentazione corrente del pass e poi fallire il pass in blocco, senza commit parziali (coerente con FR-022).
+- **FR-027**: Se una trasformazione elimina un blocco con definizioni usate in più punti (inclusi nodi PHI), il sistema MUST applicare politica rewrite-safe: riscrivere prima tutti gli usi verso definizioni equivalenti dominate, aggiornare coerentemente PHI/CFG, quindi consentire l'eliminazione del blocco solo dopo validazione positiva post-trasformazione.
+- **FR-028**: Se due accessi memoria sono in relazione may-alias, il sistema MUST applicare strict no-reorder: vietare il riordino degli accessi, salvo disponibilità di prova formale di indipendenza che dimostri preservazione degli effetti osservabili su memoria.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -334,7 +343,10 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura; in presenza di ridefinizione del tipo, il 100% dei Valori preesistenti resta associato alla versione nominale originaria.
 - **SC-010**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, l’ordine di analisi, errori e report coincide esattamente secondo la chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando).
 - **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale deterministico (derivato da percorso canonico strutturale) e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata nel livello precedente; per supportare audit completo, il sistema SHOULD mantenere anche relazioni transitive verso l'entità originaria nel primo livello HIR quando l'entità è derivata da HIR.
-- **SC-012**: Sulla suite di benchmark approvata di scala target (fino a 100k istruzioni per Funzione e 2M per Modulo), nel 100% dei casi il sistema completa validazione, analisi principali e pass previsti senza violare i vincoli funzionali definiti in FR-001..FR-025.
+- **SC-012**: Sulla suite di benchmark approvata di scala target (fino a 100k istruzioni per Funzione e 2M per Modulo), nel 100% dei casi il sistema completa validazione, analisi principali e pass previsti senza violare i vincoli funzionali definiti in FR-001..FR-028.
+- **SC-013**: Nel 100% dei pass che falliscono validazione, il report include l'insieme completo degli errori rilevabili per quel pass sulla rappresentazione corrente e l'esecuzione termina con un unico esito di failure del pass (nessun commit parziale).
+- **SC-014**: Nel 100% delle trasformazioni che eliminano blocchi con usi multipli (inclusi PHI), tutti gli usi risultano riscritti verso definizioni equivalenti dominate e la validazione post-pass conferma assenza di use-def dangling e coerenza SSA/CFG.
+- **SC-015**: Nel 100% dei casi con accessi memoria may-alias, nessun pass effettua riordino senza prova formale di indipendenza; in presenza della prova, la validazione post-pass conferma preservazione degli effetti osservabili su memoria.
 
 ## Assumptions
 
