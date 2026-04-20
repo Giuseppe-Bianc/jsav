@@ -204,6 +204,9 @@ Ambito escluso:
 - Q: Quale politica di reporting errori deve applicare la validazione di un pass fallito? -> A: Batch per pass: raccoglie tutti gli errori della rappresentazione corrente, poi fallisce il pass in blocco.
 - Q: Quando una trasformazione elimina un blocco che definisce valori usati in più punti (inclusi PHI), quale politica canonica deve valere? -> A: Rewrite-safe: riscrivere tutti gli usi verso definizioni equivalenti dominate, aggiornare PHI/CFG, poi eliminare il blocco solo se validazione passa.
 - Q: Quando due accessi memoria sono in relazione may-alias e una trasformazione propone un riordino, quale politica canonica deve valere? -> A: Strict no-reorder: vietato riordinare accessi may-alias, salvo prova formale di indipendenza.
+- Q: Quale politica canonica deve valere per la minimalità PHI quando la convergenza include percorsi non raggiungibili? -> A: Pruning eager: rimozione immediata dei contributi non raggiungibili e ricomputo locale della minimalità PHI a ogni aggiornamento CFG.
+- Q: Quale modello di concorrenza deve essere canonico per esecuzione di pass e analisi? -> A: Esecuzione single-thread deterministica per pass (nessun parallelismo intra-pass).
+- Q: Quale evidenza deve essere canonica per accettare la prova formale di indipendenza che consente eccezione a strict no-reorder? -> A: Doppio criterio: certificato verificabile oppure dimostrazione interna riproducibile con alias/liveness/dependence analysis e log completo.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -259,7 +262,7 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - Quando un predecessore diventa non raggiungibile dopo una trasformazione, il sistema rimuove immediatamente l'arco e l'operando PHI corrispondente durante l'aggiornamento CFG (normalizzazione eager), mantenendo la validita SSA/PHI senza mismatch temporanei.
 - Se una trasformazione elimina un blocco con definizioni usate in più punti (inclusi PHI), il sistema applica politica rewrite-safe: riscrive tutti gli usi verso definizioni equivalenti dominate, aggiorna PHI/CFG e consente l'eliminazione solo dopo validazione positiva.
 - Quando la definizione di un Tipo utente cambia, il sistema applica versionamento nominale: crea una nuova identità di tipo e mantiene i Valori già tipizzati legati alla versione precedente.
-- Come viene gestita la convergenza di controllo con percorsi non raggiungibili che influenzano la minimalità dei PHI?
+- Quando la convergenza di controllo include percorsi non raggiungibili, il sistema applica pruning eager: rimuove immediatamente i contributi non raggiungibili e ricomputa localmente la minimalità dei PHI a ogni aggiornamento CFG.
 - Se due accessi memoria sono in relazione may-alias, il sistema applica strict no-reorder: vieta il riordino, salvo disponibilità di una prova formale di indipendenza che dimostri assenza di dipendenza osservabile.
 
 ## Requirements *(mandatory)*
@@ -296,6 +299,8 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **FR-026**: In caso di fallimento di validazione di un pass, il sistema MUST applicare reporting batch-per-pass: raccogliere tutti gli errori rilevabili sulla rappresentazione corrente del pass e poi fallire il pass in blocco, senza commit parziali (coerente con FR-022).
 - **FR-027**: Se una trasformazione elimina un blocco con definizioni usate in più punti (inclusi nodi PHI), il sistema MUST applicare politica rewrite-safe: riscrivere prima tutti gli usi verso definizioni equivalenti dominate, aggiornare coerentemente PHI/CFG, quindi consentire l'eliminazione del blocco solo dopo validazione positiva post-trasformazione.
 - **FR-028**: Se due accessi memoria sono in relazione may-alias, il sistema MUST applicare strict no-reorder: vietare il riordino degli accessi, salvo disponibilità di prova formale di indipendenza che dimostri preservazione degli effetti osservabili su memoria.
+- **FR-029**: L'esecuzione canonica di pass e analisi MUST essere single-thread deterministica per pass (nessun parallelismo intra-pass), preservando ordinamento canonico e ripetibilità bit-identica dei risultati a parità di input, pipeline e configurazione.
+- **FR-030**: Per derogare a strict no-reorder in presenza di may-alias (FR-028), il sistema MUST accettare solo prova formale di indipendenza con doppio criterio canonico: (a) certificato verificabile da checker dedicato, oppure (b) dimostrazione interna riproducibile basata su alias/liveness/dependence analysis con log completo e deterministico dell'evidenza.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -347,6 +352,8 @@ Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching 
 - **SC-013**: Nel 100% dei pass che falliscono validazione, il report include l'insieme completo degli errori rilevabili per quel pass sulla rappresentazione corrente e l'esecuzione termina con un unico esito di failure del pass (nessun commit parziale).
 - **SC-014**: Nel 100% delle trasformazioni che eliminano blocchi con usi multipli (inclusi PHI), tutti gli usi risultano riscritti verso definizioni equivalenti dominate e la validazione post-pass conferma assenza di use-def dangling e coerenza SSA/CFG.
 - **SC-015**: Nel 100% dei casi con accessi memoria may-alias, nessun pass effettua riordino senza prova formale di indipendenza; in presenza della prova, la validazione post-pass conferma preservazione degli effetti osservabili su memoria.
+- **SC-016**: Nel 100% delle esecuzioni con stesso input, pipeline e configurazione, pass e analisi eseguiti in modalità canonica single-thread producono output e report bit-identici, senza dipendenze da interleaving concorrenti intra-pass.
+- **SC-017**: Nel 100% dei casi in cui un pass applica eccezione a strict no-reorder su accessi may-alias, è presente evidenza verificabile conforme al doppio criterio canonico (certificato checker oppure dimostrazione interna riproducibile con log completo), e la validazione post-pass conferma preservazione degli effetti osservabili su memoria.
 
 ## Assumptions
 
