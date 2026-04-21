@@ -1,0 +1,14 @@
+include/jsav/error/error_codes.hpp
+  h_0b496d7e860864 55
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "b6e926e43055952103feeb4dddb19995e4eda211",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
