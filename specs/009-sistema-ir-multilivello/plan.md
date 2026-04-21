@@ -88,7 +88,7 @@ Monolite modulare semantico (non microservizi), con moduli isolati per: modello 
 ### Pre-Design Gate Evaluation
 
 - I. Platform Independence: PASS - design basato su C++23/STL e astrazioni portabili.
-- II. Visual Studio 2022+ Compatibility: PASS - baseline MSVC 2026 e feature C++23 supportate.
+- II. Visual Studio 2026 Compatibility: PASS - baseline MSVC 2026 e feature C++23 supportate.
 - III. C++ Core Guidelines Compliance: PASS - ownership RAII, `std::expected`, no raw ownership, `CompileError` unificato.
 - IV. TDD Red-Green + Test Pyramid: PASS - test constexpr/debug/runtime previsti con edge/corner coverage.
 - V. Dependency Management: PASS - uso esclusivo dipendenze approvate, version-pinned.
@@ -192,7 +192,7 @@ Output previsti:
 ## Post-Design Constitution Re-Check
 
 - I. Platform Independence: PASS
-- II. Visual Studio 2022+ Compatibility: PASS
+- II. Visual Studio 2026 Compatibility: PASS
 - III. C++ Core Guidelines Compliance: PASS
 - IV. TDD Red-Green + Test Pyramid: PASS
 - V. Dependency Management: PASS
