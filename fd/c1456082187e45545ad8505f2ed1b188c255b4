@@ -1,0 +1,14 @@
+OpenWSL-Cubic.ps1
+  h_0b496d7e860864 5-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "fdc1456082187e45545ad8505f2ed1b188c255b4",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
