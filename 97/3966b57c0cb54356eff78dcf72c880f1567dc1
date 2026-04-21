@@ -1,0 +1,26 @@
+specs/009-sistema-ir-multilivello/plan.md
+  h_0b496d7e860864 1,3-4,10,20-28,30-83,87-97,99,106,124-150,152-158,161-162,165,173-203
+specs/009-sistema-ir-multilivello/data-model.md
+  h_0b496d7e860864 1-134
+specs/009-sistema-ir-multilivello/contracts/cli-contract.md
+  h_0b496d7e860864 1-31
+specs/009-sistema-ir-multilivello/research.md
+  h_0b496d7e860864 1-56
+specs/009-sistema-ir-multilivello/contracts/ir-pass-contract.md
+  h_0b496d7e860864 1-65
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 1-284
+specs/009-sistema-ir-multilivello/quickstart.md
+  h_0b496d7e860864 1-70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "973966b57c0cb54356eff78dcf72c880f1567dc1",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
