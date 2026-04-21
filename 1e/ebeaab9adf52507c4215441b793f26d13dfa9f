@@ -1,0 +1,20 @@
+specs/009-sistema-ir-multilivello/contracts/cli-contract.md
+  h_0b496d7e860864 4,8,15,21,27,34
+specs/009-sistema-ir-multilivello/plan.md
+  h_0b496d7e860864 91,195
+specs/009-sistema-ir-multilivello/contracts/ir-pass-contract.md
+  h_0b496d7e860864 4,29-54,62-106,119,121-125,129-136,139,146,152
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 166-167,205
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "1eebeaab9adf52507c4215441b793f26d13dfa9f",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
