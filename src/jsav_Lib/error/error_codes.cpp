@@ -72,8 +72,10 @@ namespace jsv {
             return "lexer";
         case CompilerPhase::Parser:
             return "parser";
-        case CompilerPhase::Semantic:       return "semantico";
-        case CompilerPhase::IrGeneration:   return "gen-ir";
+        case CompilerPhase::Semantic:
+            return "semantico";
+        case CompilerPhase::IrGeneration:
+            return "gen-ir";
         /*  case CompilerPhase::CodeGeneration: return "codegen";
             case CompilerPhase::System:         return "sistema";*/
         default:

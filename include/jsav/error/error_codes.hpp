@@ -52,7 +52,7 @@ namespace jsv {
         /*CodeGeneration = 4,
         System = 5,*/
     };
-    std::string to_string(CompilerPhase phase);
+    [[nodiscard]] std::string to_string(CompilerPhase phase);
 
     // ---------------------------------------------------------------------------
     /// \enum ErrorCode error_codes.hpp jsav/error/error_codes.hpp
