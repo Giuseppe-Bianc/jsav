@@ -163,6 +163,8 @@
 - [ ] T078 Aggiungere target/verifica lizard nel workflow CI in .github/workflows/ci.yml
 - [ ] T079 Aggiungere target/verifica gcovr >=95% nel workflow CI in .github/workflows/ci.yml
 - [ ] T080 Eseguire validazione finale quickstart e allineare comandi in specs/009-sistema-ir-multilivello/quickstart.md
+- [ ] T081 Definire suite benchmark di scala target (100k istruzioni/funzione, 2M/modulo) in test/benchmarks.cpp
+- [ ] T082 Integrare esecuzione benchmark scala in CI con criteri pass/fail allineati a FR-025 e SC-012 in .github/workflows/ci.yml
 
 ---
 
@@ -200,6 +202,7 @@
 - US2: T052 e T054 possono iniziare in parallelo dopo T046-T051.
 - US3: T066, T068, T070 in parallelo.
 - Polish: T076 e T077 in parallelo; T078 e T079 in parallelo.
+- Benchmark scala: T081 prima di T082.
 
 ---
 
