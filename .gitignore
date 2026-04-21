@@ -40,3 +40,4 @@ ehthumbs.db
 Thumbs.db
 .env*
 run-claude.ps1
+OpenWSL-Cubic.ps1
