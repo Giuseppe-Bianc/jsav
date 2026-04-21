@@ -48,8 +48,8 @@ namespace jsv {
         Lexer = 0,   ///< Lexical analysis phase (tokenization)
         Parser = 1,  ///< Parsing phase (syntax analysis)
         Semantic = 2,
-        /*IrGeneration = 3,
-        CodeGeneration = 4,
+        IrGeneration = 3,
+        /*CodeGeneration = 4,
         System = 5,*/
     };
     std::string to_string(CompilerPhase phase);

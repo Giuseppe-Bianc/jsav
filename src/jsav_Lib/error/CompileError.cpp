@@ -25,12 +25,12 @@ namespace jsv {
         return {Kind::TypeError, vnd_move(code), message, span, vnd_move(help)};
     }
 
-    /*CompileError CompileError::IrGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message, const SourceSpan& span,
+    CompileError CompileError::IrGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message, const SourceSpan& span,
                                                 std::optional<std::string> help) {
         return {Kind::IrGeneratorError, vnd_move(code), message, span, vnd_move(help)};
     }
 
-    CompileError CompileError::AsmGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message) {
+    /*CompileError CompileError::AsmGeneratorError(std::optional<jsv::ErrorCode> code, std::string_view message) {
         return {Kind::AsmGeneratorError, vnd_move(code), message, SourceSpan{}, std::nullopt};
     }*/
 
@@ -42,6 +42,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             {
                 std::string result;
                 if(code_.has_value()) {
@@ -65,6 +66,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             return code_;
         }
         return code_;
@@ -75,6 +77,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             return message_;
         }
         return std::string_view{};
@@ -85,6 +88,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             return span_;
         default:
             return span_;
@@ -96,6 +100,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             return help_ ? std::optional<const std::string *>(&(*help_)) : std::nullopt;
         default:
             return std::nullopt;
@@ -113,6 +118,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             message_ = new_message;
             break;
         }
@@ -123,6 +129,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             span_ = vnd_move(new_span);
             break;
         default:
@@ -135,6 +142,7 @@ namespace jsv {
         case Kind::LexerError:
         case Kind::SyntaxError:
         case Kind::TypeError:
+        case Kind::IrGeneratorError:
             help_ = vnd_move(new_help);
             break;
         default:
