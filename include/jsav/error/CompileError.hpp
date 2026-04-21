@@ -17,8 +17,8 @@ namespace jsv {
             LexerError,
             SyntaxError,
             TypeError,
-            /*IrGeneratorError,
-            AsmGeneratorError,
+            IrGeneratorError,
+            /*AsmGeneratorError,
             IoError,*/
         };
 
@@ -33,14 +33,10 @@ namespace jsv {
         static CompileError TypeError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
                                       std::optional<std::string> help);
 
-        /*static CompileError IrGeneratorError(
-            std::optional<ErrorCode> code,
-            std::string_view message,
-            SourceSpan span,
-            std::optional<std::string> help
-        );
+        static CompileError IrGeneratorError(std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
+                                       std::optional<std::string> help);
 
-        static CompileError AsmGeneratorError(
+        /*static CompileError AsmGeneratorError(
             std::optional<ErrorCode> code,
             std::string_view message
         );*/

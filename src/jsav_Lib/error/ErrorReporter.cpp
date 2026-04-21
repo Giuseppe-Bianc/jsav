@@ -239,9 +239,9 @@ namespace jsv {
             case CompileError::Kind::TypeError:
                 output += format_spanned_error("TYPE", error);
                 break;
-                // case CompileError::Kind::IrGeneratorError:
-                //     output += format_spanned_error("IR GEN", error);
-                //     break;
+            case CompileError::Kind::IrGeneratorError:
+                output += format_spanned_error("IR GEN", error);
+                break;
                 // case CompileError::Kind::AsmGeneratorError:
                 //     output += format_simple_error("ASM GEN", error.message(), error.error_code());
                 //     break;
