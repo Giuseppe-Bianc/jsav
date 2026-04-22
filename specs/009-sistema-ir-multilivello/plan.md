@@ -7,7 +7,7 @@
 
 ## Summary
 
-Implementare un sistema IR multi-livello (HIR/MIR/LIR) in C++23 con MSVC 2026, senza introdurre nuove dipendenze, basato su monolite modulare con semantica transazionale per i pass (working copy + commit atomico post-validazione). La correttezza MIR SSA e PHI e garantita da criterio canonico reaching-definitions con minimizzazione eager. Gli errori sono modellati in modo uniforme con `CompileError` e `std::expected<T, std::vector<CompileError>>` per validazioni batch deterministiche. La tracciabilita tra livelli usa ID globali immutabili e deterministici derivati da percorsi strutturali canonici. Il piano di test adotta piramide rigorosa: compile-time (`test/constexpr_tests.cpp`), debug constexpr (`test/constexpr_tests.cpp`), runtime (`test/tests.cpp`) con copertura edge/corner case su CFG non riducibili, versionamento nominale tipi e strict no-reorder su may-alias.
+Implementare un sistema IR multi-livello (HIR/MIR/LIR) in C++23 con MSVC 2026, senza introdurre nuove dipendenze, basato su monolite modulare con meccanismo di **PassTransaction** (working copy + commit atomico post-validazione). La correttezza MIR SSA e PHI e garantita da criterio canonico reaching-definitions con minimizzazione eager. Gli errori sono modellati in modo uniforme con `CompileError` e `std::expected<T, std::vector<CompileError>>` per validazioni batch deterministiche. La tracciabilita tra livelli usa ID globali immutabili e deterministici derivati da percorsi strutturali canonici. Il piano di test adotta piramide rigorosa: compile-time (`test/constexpr_tests.cpp`), debug constexpr (`test/constexpr_tests.cpp`), runtime (`test/tests.cpp`) con copertura edge/corner case su CFG non riducibili, versionamento nominale tipi e strict no-reorder su may-alias.
 
 ## Technical Context
 
@@ -36,7 +36,7 @@ Implementare un sistema IR multi-livello (HIR/MIR/LIR) in C++23 con MSVC 2026, s
 
 ### Architecture Pattern
 
-Monolite modulare semantico (non microservizi), con moduli isolati per: modello IR, validazione, analisi dataflow/CFG, trasformazioni/lowering, orchestrazione pass. Scelta motivata da dominio compiler, team e codice coeso: riduce overhead operativo e massimizza consistenza transazionale e determinismo. Trigger di revisione architetturale: superamento stabile della soglia di complessita organizzativa (team >15 o coupling non gestibile tra sottosistemi principali) con evidenza che un boundary distribuito riduce costo totale.
+Monolite modulare semantico (non microservizi), con moduli isolati per: modello IR, validazione, analisi dataflow/CFG, trasformazioni/lowering, orchestrazione pass. Scelta motivata da dominio compiler, team e codice coeso: riduce overhead operativo e massimizza consistenza transazionale e determinismo. Trigger di revisione architetturale: superamento stabile della soglia di complessita organizzativa (team >15) o superamento sistematico delle soglie di complessità per funzione (CCN >15) o coupling non gestibile tra sottosistemi principali con evidenza che un boundary distribuito riduce costo totale.
 
 ### Libraries & Dependencies
 

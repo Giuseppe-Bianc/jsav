@@ -37,12 +37,12 @@
 - [ ] T009 Implementare PassContext deterministico e config canonica in include/jsav/passes/PassContext.hpp
 - [ ] T010 Implementare entita ID globali immutabili deterministici in include/jsav/ir/GlobalEntityId.hpp
 - [ ] T011 Implementare generatore ID da percorso strutturale canonico in src/jsav_Lib/ir/GlobalEntityId.cpp
-- [ ] T012 Implementare transazione working-copy/commit/rollback in include/jsav/passes/PassTransaction.hpp
-- [ ] T013 Implementare motore transazionale pass in src/jsav_Lib/passes/PassTransaction.cpp
+- [ ] T012 Implementare il meccanismo **PassTransaction** (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
+- [ ] T013 Implementare il motore **PassTransaction** in src/jsav_Lib/passes/PassTransaction.cpp
 - [ ] T014 Implementare utility ordinamento canonico report/errori in include/jsav/analysis/CanonicalOrder.hpp
 - [ ] T015 Implementare utility ordinamento canonico report/errori in src/jsav_Lib/analysis/CanonicalOrder.cpp
 - [ ] T016 Integrare policy errore uniforme (solo CompileError) includendo supporto per chiave canonica gerarchica in include/jsav/error/CompileError.hpp
-- [ ] T017 [P] Aggiungere test runtime fondazionale su PassResult/transaction rollback in test/tests.cpp
+- [ ] T017 [P] Aggiungere test runtime fondazionale in test/tests.cpp per verificare: (1) successo commit() su IR valido, (2) rollback() completo dello stato IR su fallimento pass, (3) persistenza errori aggregati in PassResult.
 - [ ] T018 [P] Aggiungere test constexpr fondazionale su chiave canonica/ID deterministici in test/constexpr_tests.cpp
 - [ ] T019 [P] Aggiungere test relaxed constexpr fondazionale in test/constexpr_tests.cpp
 
@@ -117,8 +117,8 @@
 - [ ] T057 [US2] Implementare validator memoria/alias strict no-reorder in src/jsav_Lib/validation/MemoryValidator.cpp
 - [ ] T058 [US2] Implementare policy rewrite-safe block elimination in include/jsav/passes/BlockRewritePass.hpp
 - [ ] T059 [US2] Implementare policy rewrite-safe block elimination in src/jsav_Lib/passes/BlockRewritePass.cpp
-- [ ] T083 [US2] Implementare struttura ProofWitness per prove formali di indipendenza in include/jsav/analysis/ProofWitness.hpp
-- [ ] T084 [US2] Implementare FormalProofChecker per validazione certificati di indipendenza in include/jsav/validation/FormalProofChecker.hpp
+- [ ] T060 [US2] Implementare struttura ProofWitness per prove formali di indipendenza in include/jsav/analysis/ProofWitness.hpp
+- [ ] T061 [US2] Implementare FormalProofChecker per validazione certificati di indipendenza in include/jsav/validation/FormalProofChecker.hpp
 
 **Checkpoint**: US1 e US2 funzionano e sono verificabili indipendentemente.
 
@@ -132,25 +132,28 @@
 
 ### Tests for User Story 3
 
-- [ ] T060 [US3] Aggiungere test runtime determinismo dominanza su riesecuzioni identiche in test/tests.cpp
-- [ ] T061 [US3] Aggiungere test runtime determinismo reaching definitions/liveness/dependence in test/tests.cpp
-- [ ] T062 [US3] Aggiungere test runtime ordinamento totale report/errori con chiave canonica in test/tests.cpp
-- [ ] T063 [US3] Aggiungere test runtime tracciabilita derivazione HIR->MIR->LIR in test/tests.cpp
-- [ ] T064 [US3] Aggiungere test edge case aggiornamento PHI dopo predecessore non raggiungibile in test/tests.cpp
-- [ ] T065 [US3] Aggiungere test corner case ridefinizione tipo utente con mantenimento binding versione precedente in test/tests.cpp
+- [ ] T062 [US3] Aggiungere test runtime determinismo dominanza su riesecuzioni identiche in test/tests.cpp
+- [ ] T063 [US3] Aggiungere test runtime determinismo reaching definitions/liveness/dependence in test/tests.cpp
+- [ ] T064 [US3] Aggiungere test runtime ordinamento totale report/errori con chiave canonica in test/tests.cpp
+- [ ] T065 [US3] Aggiungere test runtime tracciabilita derivazione HIR->MIR->LIR in test/tests.cpp
+- [ ] T066 [US3] Aggiungere test edge case aggiornamento PHI dopo predecessore non raggiungibile in test/tests.cpp
+- [ ] T067 [US3] Aggiungere test corner case ridefinizione tipo utente con mantenimento binding versione precedente in test/tests.cpp
+- [ ] T068 [US3] Aggiungere test runtime determinismo alias analysis in test/tests.cpp
 
 ### Implementation for User Story 3
 
-- [ ] T066 [US3] Implementare analisi dominanza in include/jsav/analysis/Dominance.hpp
-- [ ] T067 [US3] Implementare analisi dominanza in src/jsav_Lib/analysis/Dominance.cpp
-- [ ] T068 [US3] Implementare analisi liveness in include/jsav/analysis/Liveness.hpp
-- [ ] T069 [US3] Implementare analisi liveness in src/jsav_Lib/analysis/Liveness.cpp
-- [ ] T070 [US3] Implementare analisi dependence in include/jsav/analysis/Dependence.hpp
-- [ ] T071 [US3] Implementare analisi dependence in src/jsav_Lib/analysis/Dependence.cpp
-- [ ] T072 [US3] Implementare modello relazioni di derivazione tra livelli in include/jsav/ir/DerivationMap.hpp
-- [ ] T073 [US3] Implementare modello relazioni di derivazione tra livelli in src/jsav_Lib/ir/DerivationMap.cpp
-- [ ] T074 [US3] Integrare output report deterministici machine-readable in src/jsav/main.cpp
-- [ ] T075 [US3] Integrare comandi CLI validate/lower/analyze/pipeline in src/jsav/main.cpp
+- [ ] T069 [US3] Implementare analisi dominanza in include/jsav/analysis/Dominance.hpp
+- [ ] T070 [US3] Implementare analisi dominanza in src/jsav_Lib/analysis/Dominance.cpp
+- [ ] T071 [US3] Implementare analisi liveness in include/jsav/analysis/Liveness.hpp
+- [ ] T072 [US3] Implementare analisi liveness in src/jsav_Lib/analysis/Liveness.cpp
+- [ ] T073 [US3] Implementare analisi dependence in include/jsav/analysis/Dependence.hpp
+- [ ] T074 [US3] Implementare analisi dependence in src/jsav_Lib/analysis/Dependence.cpp
+- [ ] T075 [US3] Implementare analisi alias in include/jsav/analysis/Alias.hpp
+- [ ] T076 [US3] Implementare analisi alias in src/jsav_Lib/analysis/Alias.cpp
+- [ ] T077 [US3] Implementare modello relazioni di derivazione tra livelli in include/jsav/ir/DerivationMap.hpp
+- [ ] T078 [US3] Implementare modello relazioni di derivazione tra livelli in src/jsav_Lib/ir/DerivationMap.cpp
+- [ ] T079 [US3] Integrare output report deterministici machine-readable in src/jsav/main.cpp
+- [ ] T080 [US3] Integrare comandi CLI validate/lower/analyze/pipeline in src/jsav/main.cpp
 
 **Checkpoint**: Tutte le user story sono complete e testabili indipendentemente.
 
@@ -160,13 +163,14 @@
 
 **Purpose**: Hardening, quality gates finali e validazione quickstart end-to-end.
 
-- [ ] T076 [P] Aggiornare documentazione tecnica IR/SSA/PHI in README.md
-- [ ] T077 [P] Aggiornare quickstart con comandi reali di esecuzione pipeline in specs/009-sistema-ir-multilivello/quickstart.md
-- [ ] T078 Aggiungere target/verifica lizard nel workflow CI in .github/workflows/ci.yml
-- [ ] T079 Aggiungere target/verifica gcovr >=95% nel workflow CI in .github/workflows/ci.yml
-- [ ] T080 Eseguire validazione finale quickstart e allineare comandi in specs/009-sistema-ir-multilivello/quickstart.md
-- [ ] T081 Definire suite benchmark di scala target (100k istruzioni/funzione, 2M/modulo) in test/benchmarks.cpp
-- [ ] T082 Integrare esecuzione benchmark scala in CI con criteri pass/fail allineati a FR-025 e SC-012 in .github/workflows/ci.yml
+- [ ] T081 [P] Aggiornare documentazione tecnica IR/SSA/PHI in README.md
+- [ ] T082 [P] Aggiornare quickstart con comandi reali di esecuzione pipeline in specs/009-sistema-ir-multilivello/quickstart.md
+- [ ] T083 Aggiungere target/verifica lizard nel workflow CI in .github/workflows/ci.yml
+- [ ] T084 Aggiungere target/verifica gcovr >=95% nel workflow CI in .github/workflows/ci.yml
+- [ ] T085 Eseguire validazione finale quickstart e allineare comandi in specs/009-sistema-ir-multilivello/quickstart.md
+- [ ] T086 Definire suite benchmark di scala target (100k istruzioni/funzione, 2M/modulo) in test/benchmarks.cpp
+- [ ] T087 Integrare benchmark di scala in CI: validare che validazione e analisi su 100k istruzioni/funzione completino entro [2.0s] e con un picco di memoria < [1GB] (allineato a FR-025 e SC-012).
+- [ ] T088 [P] Verificare la conformità al Principle VIII (STL Algorithm Exclusivity) per tutte le implementazioni di algoritmi e strutture dati (es. Reaching Definitions, Dominance).
 
 ---
 
