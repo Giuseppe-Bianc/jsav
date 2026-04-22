@@ -1,0 +1,74 @@
+specs/009-sistema-ir-multilivello/plan.md
+  10d485516dd84acf 10,39
+specs/009-sistema-ir-multilivello/spec.md
+  2889035d4bdc344a 285
+  h_0b496d7e860864 295
+  10d485516dd84acf 282,284,294
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 120-121,135-141,145-156,166-170,172
+  10d485516dd84acf 40-41,45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "966053e3a81e80ff71fa7aea67fcb3f2f1dca493",
+  "prompts": {
+    "10d485516dd84acf": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "7599c210-aa5d-40ed-a4e2-1fbacd4baf55",
+        "model": "gemini-3-flash-preview"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 10,
+      "total_deletions": 9,
+      "accepted_lines": 8,
+      "overriden_lines": 1
+    },
+    "2889035d4bdc344a": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "8eef41a6-72f0-4c0c-b665-6597cbe1ff92",
+        "model": "gemini-3-flash-preview"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 4,
+      "total_deletions": 1,
+      "accepted_lines": 262,
+      "overriden_lines": 27
+    },
+    "ac4a7184c45ada3c": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "195e3340-3430-449f-9abb-23aec3715dfa",
+        "model": "gemini-3-flash-preview"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 1
+    },
+    "b1da716bdc05a3a6": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "836079c4-7cdb-43db-86e9-4a9975181b37",
+        "model": "gemini-3-flash-preview"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 0,
+      "overriden_lines": 1
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
