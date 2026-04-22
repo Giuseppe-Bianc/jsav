@@ -2,7 +2,7 @@
 
 ## Scope
 
-Contratto dell'interfaccia CLI per validazione, analisi e trasformazioni IR multi-livello.
+Contract for the CLI interface used for validation, analysis, and multi-level IR transformations.
 
 ## Commands
 
@@ -14,24 +14,25 @@ Contratto dell'interfaccia CLI per validazione, analisi e trasformazioni IR mult
 ## Inputs
 
 - Input IR/program file path esistente e leggibile.
-- Livelli e combinazioni pass validi secondo precondizioni dichiarate.
-- Config deterministic mode obbligatoria (default ON).
+- IR/program input file path must exist and be readable.
+- Levels and pass combinations must be valid according to declared preconditions.
+- Deterministic mode configuration is mandatory (default ON).
 
 ## Outputs
 
-- Successo: report ordinato deterministicamente con chiave canonica.
-- Fallimento: batch errori `CompileError` ordinati deterministicamente.
-- Nessun output parziale se pass fallisce dopo mutazioni su working copy.
+- Success: deterministically ordered report with canonical key.
+- Failure: deterministically ordered `CompileError` batch.
+- No partial output if a pass fails after mutations on the working copy.
 
 ## Exit Codes
 
-- `0`: successo.
-- `2`: errore di validazione/trasformazione (CompileError batch).
-- `3`: errore configurazione/pipeline invalida.
-- `4`: errore I/O.
+- `0`: success.
+- `2`: validation/transformation error (`CompileError` batch).
+- `3`: invalid configuration/pipeline error.
+- `4`: I/O error.
 
 ## Non-Functional Guarantees
 
-- Stabilita output su riesecuzioni identiche.
-- Nessuna esposizione segreti/config sensibili su stdout/stderr.
-- Compatibilita con pipeline CI per parsing machine-readable (json option).
+- Stable output across identical reruns.
+- No exposure of secrets/sensitive config on stdout/stderr.
+- CI pipeline compatibility for machine-readable parsing (json option).

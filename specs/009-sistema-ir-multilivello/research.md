@@ -1,56 +1,58 @@
-# Phase 0 Research - Sistema IR Multi-Livello Verificabile
+# Phase 0 Research - Verifiable Multi-Level IR System
 
 ## Decision 1: Stack e toolchain canonici
-- Decision: Usare C++23 con MSVC 2026 come baseline, CMake 4.2+ e Ninja.
-- Rationale: Coerenza con costituzione (compatibilita VS 2026), build riproducibile, toolchain gia standard nel repository.
-- Alternatives considered: Clang-only toolchain (scartato: non baseline per team), GCC-only (scartato: riduce allineamento con ambiente primario).
+## Decision 1: Canonical stack and toolchain
+- Decision: Use C++23 with MSVC 2026 as baseline, CMake 4.2+, and Ninja.
+- Rationale: Consistency with the constitution (VS 2026 compatibility), reproducible builds, and a toolchain already standard in the repository.
+- Alternatives considered: Clang-only toolchain (rejected: not the team baseline), GCC-only (rejected: lower alignment with the primary environment).
 
-## Decision 2: Architettura monolite modulare
-- Decision: Mantenere architettura monolite modulare con sottosistemi IR/analysis/passes/validation.
-- Rationale: Dominio compiler ad alta coesione, semplifica transazioni pass, riduce costo operativo rispetto a sistemi distribuiti.
-- Alternatives considered: Microservizi (scartato: overhead rete/osservabilita non giustificato), plugin runtime dinamici (scartato: complessita ABI).
+## Decision 2: Modular monolith architecture
+- Decision: Keep a modular monolith architecture with IR/analysis/passes/validation subsystems.
+- Rationale: Highly cohesive compiler domain, simpler pass transactions, lower operational cost than distributed systems.
+- Alternatives considered: Microservices (rejected: unjustified network/observability overhead), dynamic runtime plugins (rejected: ABI complexity).
 
-## Decision 3: Dipendenze ammesse e pinning
-- Decision: Usare solo fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 con version lock esistente.
-- Rationale: Vincolo esplicito di progetto (nessuna nuova dipendenza), stabilita e auditabilita.
-- Alternatives considered: Aggiunta librerie dataflow/graph esterne (scartato: violazione vincolo + costo integrazione).
+## Decision 3: Allowed dependencies and pinning
+- Decision: Use only fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 with the existing version lock.
+- Rationale: Explicit project constraint (no new dependencies), stability, and auditability.
+- Alternatives considered: Adding external dataflow/graph libraries (rejected: constraint violation + integration cost).
 
-## Decision 4: Error model unificato
-- Decision: Tutti i fallimenti recuperabili passano da CompileError e da std::expected<T, std::vector<CompileError>>.
-- Rationale: Supporta reporting batch deterministico per pass (FR-026), semplifica gestione errori cross-modulo.
-- Alternatives considered: Eccezioni per validazione (scartato: difficile batching deterministico), codici errore numerici (scartato: contesto insufficiente).
+## Decision 4: Unified error model
+- Decision: All recoverable failures use CompileError and std::expected<T, std::vector<CompileError>>.
+- Rationale: Supports deterministic batch-per-pass reporting (FR-026), simplifies cross-module error handling.
+- Alternatives considered: Exceptions for validation (rejected: difficult deterministic batching), numeric error codes (rejected: insufficient context).
 
 ## Decision 5: Canonical SSA/PHI
-- Decision: Placement PHI canonico basato su reaching definitions (dataflow iterativo con sparse bitset), con pruning/minimizzazione eager su aggiornamenti CFG.
-- Rationale: Aderenza diretta a FR-006/007/009 e riduzione PHI ridondanti rispetto a dominanza pura.
-- Alternatives considered: Dominance frontier come criterio primario (scartato: over-approximation), SSA incrementale senza verifica RD finale (scartato: non canonico).
+- Decision: Canonical PHI placement based on reaching definitions (iterative dataflow with sparse bitsets), with eager pruning/minimization on CFG updates.
+- Rationale: Direct alignment with FR-006/007/009 and fewer redundant PHIs versus pure dominance.
+- Alternatives considered: Dominance frontier as primary criterion (rejected: over-approximation), incremental SSA without final RD verification (rejected: non-canonical).
 
-## Decision 6: Tracciabilita cross-level
-- Decision: ID globali immutabili, deterministici da percorso canonico strutturale (modulo/funzione/blocco/indice/tipo entita) con relazioni di derivazione esplicite.
-- Rationale: Audit robusto HIR->MIR->LIR e ordinamento stabile output/errori/report.
-- Alternatives considered: UUID random (scartato: non deterministico), contatori runtime globali (scartato: dipendenza da ordine esecuzione).
+## Decision 6: Cross-level traceability
+- Decision: Immutable global IDs, deterministic from canonical structural paths (module/function/block/index/entity-type) with explicit derivation relations.
+- Rationale: Robust HIR->MIR->LIR auditing and stable ordering for output/errors/reports.
+- Alternatives considered: Random UUIDs (rejected: non-deterministic), global runtime counters (rejected: execution-order dependency).
 
-## Decision 7: Data e stato transazionale
-- Decision: Modello in-memory graph tipizzato con working copy transazionale per funzione/pass; commit atomico solo post-validazione.
-- Rationale: Garantisce FR-022/SC-008 e impedisce stati intermedi invalidi persistenti.
-- Alternatives considered: Mutazione in-place con undo log (scartato: maggiore superficie di bug), snapshot full-module per ogni pass (scartato: costo memoria eccessivo).
+## Decision 7: Data and transactional state
+- Decision: Typed in-memory graph model with transactional working copy per function/pass; atomic commit only after validation.
+- Rationale: Guarantees FR-022/SC-008 and prevents persistent invalid intermediate states.
+- Alternatives considered: In-place mutation with undo log (rejected: larger bug surface), full-module snapshot for each pass (rejected: excessive memory cost).
 
-## Decision 8: Strategia strict no-reorder memoria
-- Decision: In presenza di may-alias, riordino vietato salvo prova formale (certificato verificabile o dimostrazione interna riproducibile con log completo).
-- Rationale: Preserva equivalenza osservabile su memoria (FR-028/030) e riduce regressioni semantiche.
-- Alternatives considered: Heuristics di riordino permissive (scartato: rischio non determinismo/unsoundness).
+## Decision 8: Strict no-reorder memory strategy
+- Decision: In the presence of may-alias, reordering is forbidden unless formal proof exists (verifiable certificate or reproducible internal proof with full log).
+- Rationale: Preserves observable memory equivalence (FR-028/030) and reduces semantic regressions.
+- Alternatives considered: Permissive reordering heuristics (rejected: risk of non-determinism/unsoundness).
 
 ## Decision 9: Test pyramid e copertura
-- Decision: Usare tre livelli: constexpr compile-time, relaxed constexpr debug runtime, runtime completo; includere edge/corner case sistematici.
-- Rationale: Bilancia verifica formale compile-time e comportamento dinamico su condizioni normali/anomale.
-- Alternatives considered: Solo test runtime (scartato: perdita garanzie compile-time), solo property-based fuzzing (scartato: non sostituisce test deterministici).
+## Decision 9: Test pyramid and coverage
+- Decision: Use three levels: constexpr compile-time, relaxed constexpr debug runtime, full runtime; include systematic edge/corner cases.
+- Rationale: Balances formal compile-time verification and dynamic behavior on normal/anomalous conditions.
+- Alternatives considered: Runtime-only tests (rejected: loss of compile-time guarantees), property-based fuzzing only (rejected: does not replace deterministic tests).
 
-## Decision 10: Quality gates CI/CD
-- Decision: GitHub Actions con gate obbligatori: build zero warnings, test, clang-tidy/cppcheck, ASan/UBSan, lizard, gcovr >= 95%.
-- Rationale: Enforcement automatico costituzione + criteri di successo SC.
-- Alternatives considered: Validazione solo locale (scartato: drift tra ambienti), coverage non vincolante (scartato: rischio branch non testati).
+## Decision 10: CI/CD quality gates
+- Decision: GitHub Actions with mandatory gates: zero-warning build, tests, clang-tidy/cppcheck, ASan/UBSan, lizard, gcovr >= 95%.
+- Rationale: Automatic enforcement of constitution rules + SC success criteria.
+- Alternatives considered: Local-only validation (rejected: environment drift), non-binding coverage (rejected: risk of untested branches).
 
-## Decision 11: Configurazione ambienti
-- Decision: Configurazioni iniettate via CMake Presets e variabili ambiente, nessun segreto in repository.
-- Rationale: Parita ambiente dev/CI/release e tracciabilita configurazione.
-- Alternatives considered: Config hardcoded (scartato: anti-pattern), .env versionati (scartato: rischio sicurezza).
+## Decision 11: Environment configuration
+- Decision: Configurations injected via CMake Presets and environment variables, no secrets in the repository.
+- Rationale: Dev/CI/release environment parity and configuration traceability.
+- Alternatives considered: Hardcoded config (rejected: anti-pattern), versioned .env files (rejected: security risk).

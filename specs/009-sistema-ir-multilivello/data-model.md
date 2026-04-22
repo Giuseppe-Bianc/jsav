@@ -1,7 +1,7 @@
-# Phase 1 Data Model - Sistema IR Multi-Livello Verificabile
+# Phase 1 Data Model - Verifiable Multi-Level IR System
 
 ## 1. Module
-- Purpose: Contesto globale IR e boundary di validazione.
+- Purpose: Global IR context and validation boundary.
 - Core fields:
   - module_id: GlobalEntityId
   - name: string
@@ -10,11 +10,11 @@
   - functions: vector<Function>
   - metadata: ModuleMetadata
 - Validation rules:
-  - Nomi globali univoci nel modulo.
-  - type_table e function_table coerenti con definizioni concrete.
+  - Global names are unique within the module.
+  - type_table and function_table are consistent with concrete definitions.
 
 ## 2. Function
-- Purpose: Unita primaria di pass e dominio SSA.
+- Purpose: Primary pass unit and SSA domain.
 - Core fields:
   - function_id: GlobalEntityId
   - signature: FunctionSignature
@@ -23,12 +23,12 @@
   - cfg: ControlFlowGraph
   - ssa_index: SsaIndex
 - Validation rules:
-  - Un solo entry block.
-  - Ogni block termina con control terminator.
-  - Raggiungibilita/archi CFG validi.
+  - A single entry block.
+  - Each block ends with a control terminator.
+  - Reachability and CFG edges are valid.
 
 ## 3. BasicBlock
-- Purpose: Nodo CFG con sequenza istruzioni.
+- Purpose: CFG node with an instruction sequence.
 - Core fields:
   - block_id: GlobalEntityId
   - instructions: vector<Instruction>
@@ -36,11 +36,11 @@
   - successors: vector<BlockId>
   - terminator: Instruction
 - Validation rules:
-  - terminator obbligatorio.
-  - predecessori/successori consistenti bidirezionalmente.
+  - Terminator is mandatory.
+  - Predecessors/successors are bidirectionally consistent.
 
 ## 4. Instruction
-- Purpose: Operazione atomica calcolo/controllo/memoria.
+- Purpose: Atomic computation/control/memory operation.
 - Core fields:
   - instruction_id: GlobalEntityId
   - opcode: OpCode
@@ -49,12 +49,12 @@
   - memory_effect: MemoryEffectKind (none/read/write/readwrite)
   - type_constraints: ConstraintSet
 - Validation rules:
-  - Operandi compatibili con opcode.
-  - Result type coerente con type_constraints.
-  - Accessi memoria marcati e ordinabili per dipendenza.
+  - Operands are compatible with opcode.
+  - Result type is consistent with type_constraints.
+  - Memory accesses are marked and orderable by dependency.
 
 ## 5. Value
-- Purpose: Entita SSA immutabile con definizione unica.
+- Purpose: Immutable SSA entity with a single definition.
 - Core fields:
   - value_id: GlobalEntityId
   - defining_instruction: InstructionId
@@ -62,11 +62,11 @@
   - version: SsaVersion
   - use_sites: vector<UseSite>
 - Validation rules:
-  - Una sola definizione per value_id.
-  - Ogni uso dominato dalla definizione in MIR.
+  - A single definition for each value_id.
+  - Every use is dominated by the definition in MIR.
 
 ## 6. Type System
-- Purpose: Modello tipi primitivi/composti/utente.
+- Purpose: Primitive/composite/user type model.
 - Entities:
   - PrimitiveType
   - CompositeType
@@ -77,22 +77,22 @@
   - layout_spec: TypeLayout
   - equivalence_rule: nominal
 - Validation rules:
-  - Equivalenza utente nominale (identita + versione), non strutturale.
-  - Nessuna ritipizzazione implicita retroattiva.
+  - User type equivalence is nominal (identity + version), not structural.
+  - No implicit retroactive retyping.
 
 ## 7. PhiNode
-- Purpose: Convergenza definizioni in SSA.
+- Purpose: Definition convergence in SSA.
 - Core fields:
   - phi_id: GlobalEntityId
   - target_value: ValueId
   - incoming: vector<PhiIncoming>  # (predecessor_block_id, value_id)
 - Validation rules:
-  - Un operando per predecessore corrente del blocco.
-  - Ogni incoming value raggiunge il blocco dal predecessore associato.
-  - Pruning eager su predecessori non raggiungibili.
+  - One operand for each current predecessor of the block.
+  - Each incoming value reaches the block from its associated predecessor.
+  - Eager pruning on unreachable predecessors.
 
 ## 8. PassTransaction
-- Purpose: Isolare mutazioni e abilitare rollback totale.
+- Purpose: Isolate mutations and enable full rollback.
 - Core fields:
   - transaction_id: DeterministicPassTxnId
   - scope: FunctionId | ModuleId
@@ -100,18 +100,18 @@
   - status: started | validated | committed | rolled_back
   - errors: vector<CompileError>
 - Validation rules:
-  - Commit ammesso solo con status=validated e errors vuoto.
-  - On failure: status=rolled_back e nessun effetto osservabile persistente.
+  - Commit is allowed only with status=validated and empty errors.
+  - On failure: status=rolled_back with no persistent observable effects.
 
 ## 9. AnalysisReport
-- Purpose: Output deterministico per dominanza/RD/liveness/dependence.
+- Purpose: Deterministic output for dominance/RD/liveness/dependence.
 - Core fields:
   - report_kind: dominance | reaching_defs | liveness | dependence
   - items: vector<AnalysisItem>
   - sort_key: CanonicalStableKey
 - Validation rules:
-  - Ordinamento totale stabile: modulo/funzione/blocco/idx-istruzione/idx-operando.
-  - Ripetibilita bit-identica con stesso input/pipeline/config.
+  - Stable total ordering: module/function/block/instruction-index/operand-index.
+  - Bit-identical repeatability with the same input/pipeline/config.
 
 ## Relationships
 - Module 1..N Function
@@ -134,16 +134,16 @@
 - Non-reducible CFG: SSA validation still enforced by RD and dominance checks.
 
 ## 10. Formal Proof & Independence Certification
-- Purpose: Documentare e verificare prove formali che consentono deroghe a strict no-reorder su may-alias (FR-030).
+- Purpose: Document and verify formal proofs that allow exceptions to strict no-reorder on may-alias (FR-030).
 - Core fields (ProofWitness):
   - witness_id: GlobalEntityId
   - target_accesses: pair<InstructionId, InstructionId>
   - evidence: Variant<AliasWitness, LivenessWitness, DependenceWitness>
-  - inference_rules: vector<InferenceRuleKind> (es. NoOverlap, ImmutableRead, DisjointPointers)
+  - inference_rules: vector<InferenceRuleKind> (e.g. NoOverlap, ImmutableRead, DisjointPointers)
   - conclusion: IndependenceProofStatus (verified | rejected | inconclusive)
-  - internal_log: vector<InferenceStep> (formato machine-readable per riproducibilita)
+  - internal_log: vector<InferenceStep> (machine-readable format for reproducibility)
 - Validation rules (FormalProofChecker):
-  - Soundness check: ogni InferenceStep deve essere valido rispetto alle regole applicate.
-  - Witness completeness: l'evidenza deve coprire tutti i possibili scenari may-alias dichiarati.
-  - Determinismo: la prova deve essere rigenerabile bit-identica con stesso input e analisi.
-  - Formato standard: struttura serializzabile conforme a schema di verifica indipendente.
+  - Soundness check: each InferenceStep must be valid with respect to the applied rules.
+  - Witness completeness: evidence must cover all declared may-alias scenarios.
+  - Determinism: the proof must be regenerable as bit-identical with the same input and analysis.
+  - Standard format: serializable structure compliant with an independent verification schema.
