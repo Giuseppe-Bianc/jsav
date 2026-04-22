@@ -1,0 +1,33 @@
+specs/009-sistema-ir-multilivello/spec.md
+  7266f51dfeda9b98 282,304,308
+specs/009-sistema-ir-multilivello/contracts/proof-witness-contract.md
+  7266f51dfeda9b98 1-7,9-71,73-75
+  h_0b496d7e860864 8,72
+specs/009-sistema-ir-multilivello/tasks.md
+  7266f51dfeda9b98 44
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "dca45c0c706de2334e1c50a258a1d9e540e65064",
+  "prompts": {
+    "7266f51dfeda9b98": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "340b7249-17fc-486a-bdfa-850d8dc327b4",
+        "model": "gemini-3-flash-preview"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 77,
+      "total_deletions": 4,
+      "accepted_lines": 365,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
