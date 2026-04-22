@@ -1,0 +1,47 @@
+specs/009-sistema-ir-multilivello/research.md
+  h_0b496d7e860864 1,4-22,25-27,29-32,34-37,39-42,45-58
+specs/009-sistema-ir-multilivello/contracts/ir-pass-contract.md
+  h_0b496d7e860864 5,120,122-137,141,143-144,148-150,154-155
+commit-message.md
+  h_0b496d7e860864 1
+specs/009-sistema-ir-multilivello/data-model.md
+  h_0b496d7e860864 1,4,13-14,17,26-28,31,39-40,43,52-54,57,65-66,69,80-81,84,90-92,95,103-104,107,113-114,137,142,144,146-149
+specs/009-sistema-ir-multilivello/quickstart.md
+  h_0b496d7e860864 1,4,6,29,36,49,63-66
+specs/009-sistema-ir-multilivello/contracts/proof-witness-contract.md
+  h_0b496d7e860864 74
+specs/009-sistema-ir-multilivello/contracts/cli-contract.md
+  h_0b496d7e860864 5,17-19,23-25,29-32,36-38
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 1,6,8,12,14,18,20-24,30,32,34-47,49,53,55,57,61-66,70-85,89,91,93,97-102,106-123,127,129,131,135-141,145-158,164,166-173,181-182,185-188,192-194,198-201,207-213,265-269,273-277,281,283-286,292,294-296
+  1645296dcc17a584 293
+specs/009-sistema-ir-multilivello/plan.md
+  h_0b496d7e860864 1,10,21-22,24-28,35,39,45-47,49-50,54-55,57-59,63-65,69-72,76-77,79-82,90-97,99,165,173,177,179,183,185,203
+specs/009-sistema-ir-multilivello/checklists/requirements.md
+  h_0b496d7e860864 1,4,34-35
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "950ed59b88c6271f411b689ab68b2c4730b2f933",
+  "prompts": {
+    "1645296dcc17a584": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "280d754c-503a-4fd5-9eab-8c5f4886c274",
+        "model": "copilot/auto"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 1,
+      "total_deletions": 1,
+      "accepted_lines": 1,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
