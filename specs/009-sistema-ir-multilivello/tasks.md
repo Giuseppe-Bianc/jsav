@@ -41,7 +41,7 @@
 - [ ] T013 Implementare motore transazionale pass in src/jsav_Lib/passes/PassTransaction.cpp
 - [ ] T014 Implementare utility ordinamento canonico report/errori in include/jsav/analysis/CanonicalOrder.hpp
 - [ ] T015 Implementare utility ordinamento canonico report/errori in src/jsav_Lib/analysis/CanonicalOrder.cpp
-- [ ] T016 Integrare policy errore uniforme (solo CompileError) in include/jsav/error/CompileError.hpp
+- [ ] T016 Integrare policy errore uniforme (solo CompileError) includendo supporto per chiave canonica gerarchica in include/jsav/error/CompileError.hpp
 - [ ] T017 [P] Aggiungere test runtime fondazionale su PassResult/transaction rollback in test/tests.cpp
 - [ ] T018 [P] Aggiungere test constexpr fondazionale su chiave canonica/ID deterministici in test/constexpr_tests.cpp
 - [ ] T019 [P] Aggiungere test relaxed constexpr fondazionale in test/constexpr_tests.cpp
