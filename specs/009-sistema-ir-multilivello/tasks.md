@@ -117,6 +117,8 @@
 - [ ] T057 [US2] Implementare validator memoria/alias strict no-reorder in src/jsav_Lib/validation/MemoryValidator.cpp
 - [ ] T058 [US2] Implementare policy rewrite-safe block elimination in include/jsav/passes/BlockRewritePass.hpp
 - [ ] T059 [US2] Implementare policy rewrite-safe block elimination in src/jsav_Lib/passes/BlockRewritePass.cpp
+- [ ] T083 [US2] Implementare struttura ProofWitness per prove formali di indipendenza in include/jsav/analysis/ProofWitness.hpp
+- [ ] T084 [US2] Implementare FormalProofChecker per validazione certificati di indipendenza in include/jsav/validation/FormalProofChecker.hpp
 
 **Checkpoint**: US1 e US2 funzionano e sono verificabili indipendentemente.
 

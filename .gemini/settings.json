@@ -1,0 +1,11 @@
+{
+  "context": {
+    "fileName": "AGENTS.md"
+  },
+  "general": {
+    "preferredEditor": "vscode"
+  },
+  "ui": {
+    "errorVerbosity": "full"
+  }
+}
