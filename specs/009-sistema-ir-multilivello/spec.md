@@ -1,483 +1,483 @@
-# Feature Specification: Sistema IR Multi-Livello Verificabile
+# Feature Specification: Verifiable Multi-Level IR System
 
 **Feature Branch**: `009-sistema-ir-multilivello`  
-**Created**: 19 aprile 2026  
+**Created**: 19 April 2026  
 **Status**: Draft  
-**Input**: User description: "Progettare un sistema di rappresentazione intermedia multi-livello che consente di modellare, validare, analizzare e trasformare programmi lungo una pipeline di compilazione con progressiva riduzione dell’astrazione, garantendo conservazione semantica, precisione nel flusso dei dati e verificabilità formale delle trasformazioni.
+**Input**: User description: "Design a multi-level intermediate representation system that enables modeling, validation, analysis, and transformation of programs along a compilation pipeline with progressive abstraction reduction, ensuring semantic preservation, data-flow precision, and formal verifiability of transformations.
 
-Obiettivo e successo:
-Gli utenti possono rappresentare programmi come strutture formali basate su grafo di controllo e flusso dei dati, e trasformarli attraverso HIR, MIR e LIR senza perdita di significato osservabile. Il sistema garantisce che ogni trasformazione sia semanticamente equivalente alla precedente rispetto agli effetti su valori e memoria. Il successo è determinato da: assenza di errori strutturali dopo ogni pass, forma SSA valida e minimale, corretta gestione dei nodi PHI, coerenza del sistema di tipi anche con tipi definiti dall’utente, e risultati di analisi deterministici. Ogni fase deve produrre una rappresentazione validata oppure essere interrotta con errori espliciti.
+Goal and success:
+Users can represent programs as formal structures based on control-flow graphs and data flow, and transform them through HIR, MIR, and LIR without loss of observable meaning. The system guarantees that each transformation is semantically equivalent to the previous one with respect to effects on values and memory. Success is determined by: absence of structural errors after each pass, valid and minimal SSA form, correct handling of PHI nodes, consistency of the type system including user-defined types, and deterministic analysis results. Each phase must produce a validated representation or be interrupted with explicit errors.
 
-Entità principali:
+Main entities:
 
-- Modulo:
-  Contiene tutte le definizioni globali. Include Funzioni, Tipi definiti dall’utente e metadati. Definisce il contesto di visibilità e le regole globali di validazione. Mantiene una tabella dei Tipi e delle firme delle Funzioni.
-- Funzione:
-  Unità primaria di trasformazione. Definita da una firma con parametri e risultati tipizzati. Contiene un grafo di controllo con un unico punto di ingresso. È il dominio su cui si applica la forma SSA.
-- Blocco di base:
-  Nodo del grafo di controllo. Contiene una sequenza ordinata di Istruzioni senza interruzioni interne. Ha predecessori e successori espliciti. Termina con una Istruzione di controllo.
-- Grafo di controllo:
-  Struttura diretta che collega Blocchi tramite archi di esecuzione. Definisce l’ordine possibile delle esecuzioni. Include un nodo entry e zero o più nodi di uscita.
-- Istruzione:
-  Operazione atomica. Può rappresentare calcolo, controllo o accesso alla memoria. Consuma Valori e produce nuovi Valori.
-- Valore:
-  Entità immutabile associata a una singola definizione. Ogni Valore ha un Tipo e un punto di definizione univoco.
-- Tipo:
-  Definisce dominio, struttura e regole di utilizzo dei Valori. Include tipi primitivi, composti e definiti dall’utente.
+- Module:
+  Contains all global definitions. Includes Functions, user-defined Types, and metadata. Defines visibility context and global validation rules. Maintains a Type table and Function signature table.
+- Function:
+  Primary transformation unit. Defined by a signature with typed parameters and results. Contains a control-flow graph with a single entry point. It is the domain on which SSA form is applied.
+- Basic block:
+  Node in the control-flow graph. Contains an ordered sequence of Instructions with no internal interruption. Has explicit predecessors and successors. Ends with a control Instruction.
+- Control-flow graph:
+  Directed structure connecting Blocks through execution edges. Defines possible execution order. Includes one entry node and zero or more exit nodes.
+- Instruction:
+  Atomic operation. It can represent computation, control, or memory access. Consumes Values and produces new Values.
+- Value:
+  Immutable entity associated with a single definition. Each Value has a Type and a unique definition point.
+- Type:
+  Defines domain, structure, and usage rules for Values. Includes primitive, composite, and user-defined types.
 
-Relazioni:
+Relationships:
 
-- Un Modulo contiene Funzioni e Tipi.
-- Una Funzione contiene Blocchi collegati nel grafo di controllo.
-- Ogni Blocco contiene Istruzioni e termina con una Istruzione di controllo.
-- Le Istruzioni definiscono Valori che possono essere usati da altre Istruzioni.
-- Il grafo di controllo determina quali definizioni raggiungono ogni uso.
-- I nodi PHI combinano Valori provenienti da predecessori distinti.
+- A Module contains Functions and Types.
+- A Function contains Blocks connected in the control-flow graph.
+- Each Block contains Instructions and ends with a control Instruction.
+- Instructions define Values that can be used by other Instructions.
+- The control-flow graph determines which definitions reach each use.
+- PHI nodes combine Values coming from distinct predecessors.
 
-Livelli di astrazione:
+Abstraction levels:
 
 HIR:
 
-- Gli utenti possono esprimere il programma in forma semantica ad alto livello.
-- Le operazioni mantengono significato logico diretto e possono rappresentare costrutti complessi.
-- Le variabili possono essere concettualmente riassegnate prima della conversione completa in SSA.
-- Le analisi includono verifica semantica, coerenza dei tipi e struttura del controllo.
-- Non sono presenti vincoli legati a risorse o architettura.
+- Users can express the program in high-level semantic form.
+- Operations preserve direct logical meaning and can represent complex constructs.
+- Variables can be conceptually reassigned before full SSA conversion.
+- Analyses include semantic validation, type consistency, and control structure checks.
+- There are no resource- or architecture-related constraints.
 
 MIR:
 
-- Il programma è completamente convertito in forma SSA.
-- Tutte le definizioni sono uniche e i nodi PHI sono esplicitamente presenti.
-- Le operazioni sono granulari e rappresentano computazioni elementari.
-- Le analisi includono dominanza, reaching definitions, dipendenze tra istruzioni.
-- Le ottimizzazioni modificano il flusso dei dati mantenendo equivalenza semantica.
+- The program is fully converted to SSA form.
+- All definitions are unique and PHI nodes are explicit.
+- Operations are granular and represent elementary computations.
+- Analyses include dominance, reaching definitions, and instruction dependencies.
+- Optimizations modify data flow while preserving semantic equivalence.
 
 LIR:
 
-- Le istruzioni sono vincolate al modello di esecuzione.
-- Il controllo di flusso è espresso tramite salti espliciti.
-- Le dipendenze temporali e di memoria sono completamente esplicite.
-- Le operazioni sono ridotte a forme direttamente eseguibili.
-- Non sono presenti astrazioni di alto livello.
+- Instructions are constrained by the execution model.
+- Control flow is expressed through explicit jumps.
+- Temporal and memory dependencies are fully explicit.
+- Operations are reduced to directly executable forms.
+- No high-level abstractions are present.
 
-Forma SSA e costruzione:
+SSA form and construction:
 
-- Ogni Valore è definito una sola volta.
-- Ogni uso è dominato dalla definizione.
-- Il sistema mantiene una mappatura esplicita tra definizioni e usi.
-- I nodi PHI sono inseriti nei punti di convergenza del controllo.
+- Each Value is defined only once.
+- Each use is dominated by its definition.
+- The system maintains an explicit mapping between definitions and uses.
+- PHI nodes are inserted at control convergence points.
 
-Costruzione PHI:
+PHI construction:
 
-- Il sistema calcola le reaching definitions per ogni variabile.
-- Per ogni Blocco con più predecessori, verifica se arrivano definizioni distinte.
-- Inserisce un nodo PHI solo se necessario.
-- Ogni nodo PHI contiene una associazione completa tra predecessori e Valori.
-- Evita inserimenti ridondanti per mantenere una forma SSA minimale.
-- Aggiorna automaticamente i PHI quando il grafo di controllo cambia.
+- The system computes reaching definitions for each variable.
+- For each Block with multiple predecessors, it checks whether distinct definitions arrive.
+- It inserts a PHI node only when needed.
+- Each PHI node contains a complete association between predecessors and Values.
+- It avoids redundant insertions to keep SSA form minimal.
+- It automatically updates PHIs when the control-flow graph changes.
 
-Manutenzione SSA:
+SSA maintenance:
 
-- Rinominazione delle variabili per mantenere unicità.
-- Eliminazione di PHI non necessari.
-- Propagazione dei Valori quando possibile.
+- Variable renaming to preserve uniqueness.
+- Elimination of unnecessary PHIs.
+- Value propagation when possible.
 
-Sistema di tipi:
+Type system:
 
-- Ogni Valore ha un Tipo esplicito e immutabile.
-- Le Istruzioni definiscono vincoli sui Tipi degli operandi e dei risultati.
-- Il sistema supporta:
-    - Tipi primitivi
-    - Tipi composti
-    - Tipi definiti dall’utente
-- I Tipi definiti dall’utente devono specificare:
-    - struttura
-    - regole di equivalenza
-    - compatibilità con operazioni
-- Le operazioni devono essere valide rispetto ai Tipi.
-- Le trasformazioni devono preservare i Tipi o dichiarare conversioni valide.
-- Il sistema rifiuta operazioni con Tipi incompatibili.
+- Every Value has an explicit and immutable Type.
+- Instructions define constraints on operand and result Types.
+- The system supports:
+    - Primitive types
+    - Composite types
+    - User-defined types
+- User-defined Types must specify:
+    - structure
+    - equivalence rules
+    - operation compatibility
+- Operations must be valid with respect to Types.
+- Transformations must preserve Types or declare valid conversions.
+- The system rejects operations with incompatible Types.
 
-Flusso dei dati e analisi:
+Data flow and analysis:
 
-- Il sistema costruisce un grafo delle dipendenze tra Istruzioni.
-- Supporta analisi forward e backward.
+- The system builds a dependency graph among Instructions.
+- It supports forward and backward analyses.
 - Reaching definitions:
-    - determinano quali definizioni arrivano a ogni punto del programma
-    - guidano inserimento PHI e ottimizzazioni
-- Dominanza:
-    - definisce validità delle definizioni rispetto agli usi
-- Analisi di liveness:
-    - identifica Valori vivi in ogni punto
-- Le analisi sono consistenti con la forma SSA.
+    - determine which definitions reach each point in the program
+    - drive PHI insertion and optimizations
+- Dominance:
+    - defines definition validity with respect to uses
+- Liveness analysis:
+    - identifies live Values at each point
+- Analyses are consistent with SSA form.
 
-Gestione della memoria e aliasing:
+Memory management and aliasing:
 
-- Le operazioni di memoria sono esplicite e tipizzate.
-- Ogni accesso dichiara se è lettura o scrittura.
-- Le dipendenze tra accessi sono tracciate.
-- Il sistema modella possibili alias tra riferimenti.
-- Le analisi possono determinare quando accessi sono indipendenti.
-- Le trasformazioni non possono modificare l’ordine osservabile degli accessi in presenza di dipendenze.
-- Il sistema garantisce coerenza del modello di memoria.
+- Memory operations are explicit and typed.
+- Each access declares whether it is a read or write.
+- Dependencies among accesses are tracked.
+- The system models possible aliases among references.
+- Analyses can determine when accesses are independent.
+- Transformations cannot modify observable access order when dependencies exist.
+- The system guarantees consistency of the memory model.
 
-Pipeline di elaborazione:
+Processing pipeline:
 
-- Gli utenti possono definire sequenze di pass.
-- Ogni pass opera su una rappresentazione valida.
-- Tipi di pass:
-    - Analisi: non modifica la struttura
-    - Trasformazione: modifica la rappresentazione
-    - Ottimizzazione: riduce ridondanze
-    - Lowering: riduce il livello di astrazione
-- Ogni pass deve dichiarare:
-    - precondizioni
-    - invarianti preservati
-    - effetti sulla struttura
-- L’ordine dei pass è esplicito e controllato.
-- Il sistema supporta esecuzione incrementale dei pass.
+- Users can define pass sequences.
+- Each pass operates on a valid representation.
+- Pass types:
+    - Analysis: does not modify structure
+    - Transformation: modifies representation
+    - Optimization: reduces redundancy
+    - Lowering: reduces abstraction level
+- Each pass must declare:
+    - preconditions
+    - preserved invariants
+    - structural effects
+- Pass ordering is explicit and controlled.
+- The system supports incremental pass execution.
 
-Verifica e validazione:
+Verification and validation:
 
-- Il sistema esegue verifiche dopo ogni pass.
-- Verifica del grafo di controllo:
-    - presenza di entry unico
-    - archi validi
-- Verifica SSA:
-    - una sola definizione per Valore
-    - dominanza rispettata
-- Verifica PHI:
-    - un operando per ogni predecessore
-- Verifica dei Tipi:
-    - compatibilità tra operandi e risultati
-- Verifica delle dipendenze:
-    - nessun uso senza definizione
-- Verifica memoria:
-    - rispetto delle dipendenze e aliasing
-- Gli errori sono riportati con localizzazione precisa.
+- The system executes checks after each pass.
+- Control-flow graph check:
+    - single entry presence
+    - valid edges
+- SSA check:
+    - single definition per Value
+    - dominance respected
+- PHI check:
+    - one operand per predecessor
+- Type check:
+    - compatibility between operands and results
+- Dependency check:
+    - no use without definition
+- Memory check:
+    - dependency and aliasing compliance
+- Errors are reported with precise localization.
 
-Comportamenti attesi:
+Expected behavior:
 
-- Gli utenti possono costruire IR a qualsiasi livello.
-- Gli utenti possono trasformare IR mantenendo validità.
-- Gli utenti possono introdurre nuovi Tipi.
-- Gli utenti possono eseguire analisi e ottenere informazioni sul programma.
-- Il sistema mantiene tracciabilità tra rappresentazioni.
-- Il sistema impedisce stati intermedi non validi.
+- Users can build IR at any level.
+- Users can transform IR while preserving validity.
+- Users can introduce new Types.
+- Users can run analyses and obtain program information.
+- The system maintains traceability across representations.
+- The system prevents invalid intermediate states.
 
-Ambito incluso:
+Included scope:
 
-- IR multi-livello HIR MIR LIR
-- Forma SSA completa con nodi PHI
-- Costruzione precisa dei PHI basata su reaching definitions
-- Sistema di tipi rigoroso ed estensibile
-- Analisi di flusso dati e controllo
-- Pipeline di trasformazioni e ottimizzazioni
-- Verifica strutturale e semantica continua
-- Gestione memoria e aliasing
+- Multi-level IR HIR MIR LIR
+- Complete SSA form with PHI nodes
+- Precise PHI construction based on reaching definitions
+- Rigorous and extensible type system
+- Data-flow and control analyses
+- Transformation and optimization pipeline
+- Continuous structural and semantic verification
+- Memory and aliasing management
 
-Ambito escluso:
+Excluded scope:
 
-- Scelte di implementazione
-- Architetture hardware specifiche
-- Generazione diretta di codice macchina
-- Interfacce utente"
+- Implementation choices
+- Hardware-specific architectures
+- Direct machine code generation
+- User interfaces"
 
 ## Clarifications
 
 ### Session 2026-04-19
 
-- Q: Quale strategia SSA/PHI deve essere canonica nel MIR? -> A: PHI basati su reaching definitions; dominance-frontier solo supporto analitico non vincolante.
-- Q: Come va definita l'equivalenza semantica tra livelli IR? -> A: Stessi valori finali e stessi effetti osservabili su memoria, con ordine relativo delle dipendenze preservato.
-- Q: Qual è la politica di commit/failure dei pass? -> A: Ogni pass è atomico; su errore avviene rollback completo allo stato IR valido precedente.
-- Q: Quale regola di equivalenza deve usare il sistema per i tipi definiti dall'utente? -> A: Equivalenza nominale (stessa identità di tipo dichiarato).
-- Q: Quale politica di ordinamento deve valere per output di analisi, errori e report? -> A: Ordinamento totale deterministico con chiave canonica stabile.
-- Q: Quale struttura deve avere la chiave canonica stabile di ordinamento? -> A: Chiave gerarchica stabile: modulo/funzione/blocco/indice-istruzione/indice-operando.
-- Q: Quale strategia di tracciabilita tra livelli deve essere canonica? -> A: ID immutabile globale per ogni entita IR con relazioni di derivazione esplicite tra HIR, MIR e LIR.
-- Q: Quale obiettivo di scala deve essere assunto per la feature? -> A: Scala media: fino a 100k istruzioni per funzione e 2M per modulo.
-- Q: Quando un predecessore diventa non raggiungibile, quale politica PHI deve essere canonica? -> A: Rimozione immediata di arco e operando PHI corrispondente durante aggiornamento CFG (normalizzazione eager).
-- Q: Per gli ID immutabili globali, quale politica di generazione deve essere canonica? -> A: ID deterministici derivati da percorso canonico strutturale, stabili a parità di input e pipeline.
-- Q: Quando cambia la definizione di un Tipo utente con Valori già tipizzati, quale politica deve valere? -> A: Versionamento nominale: nuova definizione crea nuova identità tipo; i Valori esistenti restano sulla versione precedente.
+- Q: Which SSA/PHI strategy must be canonical in MIR? -> A: PHI based on reaching definitions; dominance frontier only as non-binding analytical support.
+- Q: How must semantic equivalence between IR levels be defined? -> A: Same final values and same observable effects on memory, with preserved relative order of dependencies.
+- Q: What is the commit/failure policy for passes? -> A: Each pass is atomic; on error, full rollback to the previous valid IR state occurs.
+- Q: What equivalence rule must the system use for user-defined types? -> A: Nominal equivalence (same declared type identity).
+- Q: Which ordering policy must apply to analysis output, errors, and reports? -> A: Deterministic total ordering with a stable canonical key.
+- Q: What structure must the stable canonical ordering key have? -> A: Stable hierarchical key: module/function/block/instruction-index/operand-index.
+- Q: Which traceability strategy between levels must be canonical? -> A: Global immutable ID for each IR entity with explicit derivation relations across HIR, MIR, and LIR.
+- Q: What scale target must be assumed for this feature? -> A: Medium scale: up to 100k instructions per function and 2M per module.
+- Q: When a predecessor becomes unreachable, what PHI policy must be canonical? -> A: Immediate removal of the corresponding edge and PHI operand during CFG update (eager normalization).
+- Q: For global immutable IDs, what generation policy must be canonical? -> A: Deterministic IDs derived from canonical structural paths, stable for identical input and pipeline.
+- Q: When the definition of a user Type changes while Values are already typed, what policy must apply? -> A: Nominal versioning: a new definition creates a new type identity; existing Values remain on the previous version.
 
 ### Session 2026-04-20
 
-- Q: Quale politica di reporting errori deve applicare la validazione di un pass fallito? -> A: Batch per pass: raccoglie tutti gli errori della rappresentazione corrente, poi fallisce il pass in blocco.
-- Q: Quando una trasformazione elimina un blocco che definisce valori usati in più punti (inclusi PHI), quale politica canonica deve valere? -> A: Rewrite-safe: riscrivere tutti gli usi verso definizioni equivalenti dominate, aggiornare PHI/CFG, poi eliminare il blocco solo se validazione passa.
-- Q: Quando due accessi memoria sono in relazione may-alias e una trasformazione propone un riordino, quale politica canonica deve valere? -> A: Strict no-reorder: vietato riordinare accessi may-alias, salvo prova formale di indipendenza.
-- Q: Quale politica canonica deve valere per la minimalità PHI quando la convergenza include percorsi non raggiungibili? -> A: Pruning eager: rimozione immediata dei contributi non raggiungibili e ricomputo locale della minimalità PHI a ogni aggiornamento CFG.
-- Q: Quale modello di concorrenza deve essere canonico per esecuzione di pass e analisi? -> A: Esecuzione single-thread deterministica per pass (nessun parallelismo intra-pass).
-- Q: Quale evidenza deve essere canonica per accettare la prova formale di indipendenza che consente eccezione a strict no-reorder? -> A: Doppio criterio: certificato verificabile oppure dimostrazione interna riproducibile con alias/liveness/dependence analysis e log completo.
-- Q: Quale modello di mutazione IR deve essere canonico durante un pass? -> A: Working copy transazionale per funzione o pass, con commit atomico solo dopo validazione conclusa.
+- Q: Which error reporting policy must be applied when validation of a failed pass occurs? -> A: Batch per pass: collect all errors in the current representation, then fail the pass as a whole.
+- Q: When a transformation removes a block that defines values used in multiple places (including PHIs), what canonical policy must apply? -> A: Rewrite-safe: rewrite all uses to dominated equivalent definitions, update PHI/CFG, then remove the block only if validation passes.
+- Q: When two memory accesses are in a may-alias relation and a transformation proposes reordering, what canonical policy must apply? -> A: Strict no-reorder: reordering may-alias accesses is forbidden unless there is formal proof of independence.
+- Q: Which canonical policy must apply to PHI minimality when convergence includes unreachable paths? -> A: Eager pruning: immediate removal of unreachable contributions and local recomputation of PHI minimality at each CFG update.
+- Q: Which concurrency model must be canonical for pass execution and analyses? -> A: Deterministic single-thread execution per pass (no intra-pass parallelism).
+- Q: What evidence must be canonical to accept formal proof of independence that allows exception to strict no-reorder? -> A: Dual criterion: verifiable certificate or reproducible internal proof with alias/liveness/dependence analysis and full logging.
+- Q: Which IR mutation model must be canonical during a pass? -> A: Transactional working copy per function or pass, with atomic commit only after validation completes.
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Costruzione e Validazione IR (Priority: P1)
+### User Story 1 - IR Construction and Validation (Priority: P1)
 
-Come sviluppatore del compilatore, voglio costruire programmi in HIR, MIR o LIR e ottenere immediatamente una validazione strutturale e semantica, così da impedire stati intermedi non validi.
+As a compiler developer, I want to build programs in HIR, MIR, or LIR and immediately obtain structural and semantic validation, so that invalid intermediate states are prevented.
 
-**Why this priority**: È il valore minimo indispensabile: senza validazione robusta, nessuna trasformazione successiva è affidabile.
+**Why this priority**: It is the minimum indispensable value: without robust validation, no subsequent transformation is reliable.
 
-**Independent Test**: Può essere testata costruendo un modulo con funzioni e blocchi validi/non validi a ogni livello; il sistema deve accettare solo rappresentazioni valide e interrompere i casi invalidi con errori espliciti.
+**Independent Test**: It can be tested by building a module with valid/invalid functions and blocks at each level; the system must accept only valid representations and stop invalid cases with explicit errors.
 
 **Acceptance Scenarios**:
 
-1. **Given** un Modulo con Funzioni ben tipizzate e grafo di controllo valido, **When** viene eseguita la validazione del livello corrente, **Then** la rappresentazione è marcata come valida e pronta ai pass successivi.
-2. **Given** una Funzione con blocchi senza terminatore o con archi incoerenti, **When** viene eseguita la validazione, **Then** la pipeline si interrompe con errori localizzati e descrittivi.
-3. **Given** un uso di Valore senza definizione raggiungibile, **When** viene eseguita la validazione, **Then** il sistema segnala errore di dipendenza con localizzazione precisa.
+1. **Given** a Module with well-typed Functions and a valid control-flow graph, **When** validation of the current level is executed, **Then** the representation is marked as valid and ready for subsequent passes.
+2. **Given** a Function with blocks missing a terminator or with inconsistent edges, **When** validation is executed, **Then** the pipeline stops with localized, descriptive errors.
+3. **Given** a Value use without a reachable definition, **When** validation is executed, **Then** the system reports a dependency error with precise localization.
 
 ---
 
-### User Story 2 - Trasformazioni Semantiche tra HIR/MIR/LIR (Priority: P2)
+### User Story 2 - Semantic Transformations Across HIR/MIR/LIR (Priority: P2)
 
-Come sviluppatore del compilatore, voglio trasformare il programma da HIR a MIR e poi a LIR mantenendo il significato osservabile su valori e memoria, così da ottenere una pipeline di lowering affidabile.
+As a compiler developer, I want to transform the program from HIR to MIR and then to LIR while preserving observable meaning on values and memory, so that I get a reliable lowering pipeline.
 
-**Why this priority**: Il cuore della feature è la riduzione progressiva dell’astrazione senza regressioni semantiche.
+**Why this priority**: The core of the feature is progressive abstraction reduction without semantic regressions.
 
-**Independent Test**: Può essere testata applicando sequenze di pass su programmi con controllo complesso e memoria; il risultato osservabile deve restare equivalente tra livelli consecutivi.
+**Independent Test**: It can be tested by applying pass sequences to programs with complex control and memory behavior; observable results must remain equivalent between consecutive levels.
 
 **Acceptance Scenarios**:
 
-1. **Given** un programma valido in HIR, **When** viene applicato il pass di lowering a MIR, **Then** il programma risultante è valido e semanticamente equivalente rispetto a valori e memoria.
-2. **Given** un programma valido in MIR, **When** viene applicato il pass di lowering a LIR, **Then** il controllo di flusso è espresso con salti espliciti e la semantica osservabile è preservata.
-3. **Given** una trasformazione che violerebbe dipendenze di memoria, **When** il pass viene eseguito, **Then** il sistema rifiuta la trasformazione con errore esplicito.
+1. **Given** a valid HIR program, **When** the MIR lowering pass is applied, **Then** the resulting program is valid and semantically equivalent with respect to values and memory.
+2. **Given** a valid MIR program, **When** the LIR lowering pass is applied, **Then** control flow is expressed with explicit jumps and observable semantics is preserved.
+3. **Given** a transformation that would violate memory dependencies, **When** the pass is executed, **Then** the system rejects the transformation with an explicit error.
 
 ---
 
-### User Story 3 - Analisi Deterministiche e Tracciabilità (Priority: P3)
+### User Story 3 - Deterministic Analyses and Traceability (Priority: P3)
 
-Come sviluppatore del compilatore, voglio eseguire analisi (dominanza, reaching definitions, liveness, dipendenze) con risultati deterministici e tracciabili tra livelli, così da supportare ottimizzazioni ripetibili e verificabili.
+As a compiler developer, I want to run analyses (dominance, reaching definitions, liveness, dependencies) with deterministic and traceable results across levels, so that I can support repeatable and verifiable optimizations.
 
-**Why this priority**: Migliora affidabilità e auditabilità dell’intera pipeline, ma si appoggia a validazione e trasformazioni già operative.
+**Why this priority**: It improves reliability and auditability of the whole pipeline, but depends on validation and transformations already being operational.
 
-**Independent Test**: Può essere testata rieseguendo le stesse analisi sullo stesso input e confrontando i risultati; devono essere identici e coerenti con la forma SSA.
+**Independent Test**: It can be tested by rerunning the same analyses on the same input and comparing results; they must be identical and consistent with SSA form.
 
 **Acceptance Scenarios**:
 
-1. **Given** una rappresentazione MIR valida in SSA, **When** vengono eseguite analisi forward e backward, **Then** i risultati sono deterministici e coerenti con dominanza e reaching definitions.
-2. **Given** modifiche del grafo di controllo dovute a ottimizzazioni, **When** il sistema aggiorna SSA e PHI, **Then** le analisi successive restano consistenti e senza incongruenze.
+1. **Given** a valid MIR representation in SSA, **When** forward and backward analyses are executed, **Then** results are deterministic and consistent with dominance and reaching definitions.
+2. **Given** control-flow graph modifications due to optimizations, **When** the system updates SSA and PHI, **Then** subsequent analyses remain consistent and free of inconsistencies.
 
 ---
 
 ### Edge Cases
 
-- Quando un predecessore diventa non raggiungibile dopo una trasformazione, il sistema rimuove immediatamente l'arco e l'operando PHI corrispondente durante l'aggiornamento CFG (normalizzazione eager), mantenendo la validita SSA/PHI senza mismatch temporanei.
-- Se una trasformazione elimina un blocco con definizioni usate in più punti (inclusi PHI), il sistema applica politica rewrite-safe: riscrive tutti gli usi verso definizioni equivalenti dominate, aggiorna PHI/CFG e consente l'eliminazione solo dopo validazione positiva.
-- Quando la definizione di un Tipo utente cambia, il sistema applica versionamento nominale: crea una nuova identità di tipo e mantiene i Valori già tipizzati legati alla versione precedente.
-- Quando la convergenza di controllo include percorsi non raggiungibili, il sistema applica pruning eager: rimuove immediatamente i contributi non raggiungibili e ricomputa localmente la minimalità dei PHI a ogni aggiornamento CFG.
-- Se due accessi memoria sono in relazione may-alias, il sistema applica strict no-reorder: vieta il riordino, salvo disponibilità di una prova formale di indipendenza che dimostri assenza di dipendenza osservabile (vedi FR-028, FR-030 per criteri di evidenza).
+- When a predecessor becomes unreachable after a transformation, the system immediately removes the corresponding edge and PHI operand during CFG update (eager normalization), preserving SSA/PHI validity with no temporary mismatches.
+- If a transformation eliminates a block with definitions used in multiple points (including PHIs), the system applies rewrite-safe policy: rewrites all uses toward dominated equivalent definitions, updates PHI/CFG, and allows elimination only after successful validation.
+- When the definition of a user Type changes, the system applies nominal versioning: it creates a new type identity and keeps already typed Values bound to the previous version.
+- When control convergence includes unreachable paths, the system applies eager pruning: immediately removes unreachable contributions and locally recomputes PHI minimality at each CFG update.
+- If two memory accesses are in a may-alias relation, the system applies strict no-reorder: it forbids reordering unless formal proof of independence demonstrates absence of observable dependency (see FR-028, FR-030 for evidence criteria).
 
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
 
-- **FR-001**: Il sistema MUST rappresentare programmi come Moduli contenenti Funzioni, Tipi e metadati con regole globali di visibilità e validazione.
-- **FR-002**: Il sistema MUST supportare tre livelli IR distinti (HIR, MIR, LIR) con regole di validità specifiche per livello.
-- **FR-003**: Il sistema MUST consentire la costruzione di IR a qualunque livello, purché ogni rappresentazione soddisfi le regole di validazione del livello scelto.
-- **FR-004**: Il sistema MUST mantenere un grafo di controllo per ogni Funzione con entry unico, archi validi e terminatori di controllo in ogni blocco.
-- **FR-005**: Il sistema MUST modellare Valori immutabili con singolo punto di definizione, Tipo esplicito e tracciabilità completa definizione-uso.
-- **FR-006**: Il sistema MUST mantenere forma SSA completa in MIR, inclusi inserimento, aggiornamento e rimozione minima dei nodi PHI, usando reaching definitions come criterio canonico di placement.
-- **FR-007**: Il sistema MUST inserire nodi PHI solo nei punti di convergenza in cui reaching definitions indica definizioni distinte provenienti da predecessori diversi; dominance-frontier può essere usata solo come supporto analitico non vincolante.
-- **FR-008**: Il sistema MUST garantire che ogni nodo PHI includa esattamente un operando per predecessore del blocco target.
-- **FR-009**: Il sistema MUST aggiornare automaticamente la struttura SSA e i PHI dopo qualunque modifica del grafo di controllo, preservando il criterio canonico basato su reaching definitions; se un predecessore diventa non raggiungibile, MUST rimuovere immediatamente arco e operando PHI corrispondente (normalizzazione eager).
-- **FR-010**: Il sistema MUST supportare un sistema di tipi con tipi primitivi (integers, floats, bool), composti (array a dimensione fissa, struct con campi tipizzati, puntatori tipizzati) e definiti dall’utente. I tipi definiti dall'utente MUST specificare obbligatoriamente: nome univoco, dimensione totale in byte, allineamento, e lista ordinata dei campi (ciascuno con Tipo e offset relativo), definendo così regole di struttura, equivalenza nominale e compatibilità operazionale.
-- **FR-011**: Il sistema MUST rifiutare operazioni con Tipi incompatibili e interrompere il pass corrente con errori espliciti e localizzati.
-- **FR-012**: Il sistema MUST preservare i Tipi durante le trasformazioni oppure dichiarare conversioni valide e verificabili mediante l'IrValidator eseguito al termine di ogni pass.
-- **FR-013**: Il sistema MUST supportare analisi di dominanza, reaching definitions, liveness, alias e dipendenze tra istruzioni in modalità forward e backward.
-- **FR-014**: Il sistema MUST garantire risultati di analisi deterministici a parità di input, ordine dei pass e configurazione.
-- **FR-015**: Il sistema MUST modellare accessi memoria tipizzati distinguendo lettura/scrittura e tracciando dipendenze e possibili alias.
-- **FR-016**: Il sistema MUST impedire trasformazioni che alterano l’ordine osservabile degli accessi memoria quando esistono dipendenze.
-- **FR-017**: Il sistema MUST consentire pipeline esplicite di pass (analisi, trasformazione, ottimizzazione, lowering) con precondizioni, invarianti preservati ed effetti dichiarati.
-- **FR-018**: Il sistema MUST eseguire verifiche automatiche dopo ogni pass e produrre output validato oppure interrompere la pipeline con errori.
-- **FR-019**: Il sistema MUST mantenere tracciabilità tra rappresentazioni consecutive (HIR→MIR→LIR) mediante ID immutabili globali per entità IR (Modulo/Funzione/Blocco/Istruzione/Valore) e relazioni di derivazione esplicite, per supportare audit delle trasformazioni; la generazione ID MUST essere deterministica e derivata da un percorso canonico strutturale dell'entità (modulo/funzione/blocco/indice e tipo entità), stabile a parità di input, ordine pass e configurazione.
-- **FR-020**: Il sistema MUST impedire la persistenza di stati intermedi non validi.
-- **FR-021**: Il sistema MUST considerare semanticamente equivalenti due rappresentazioni solo se preservano sia i valori finali osservabili sia gli effetti osservabili su memoria, inclusa la preservazione dell'ordine relativo tra accessi con dipendenze (come definite in FR-016).
-- **FR-022**: Il sistema MUST eseguire ogni pass tramite un meccanismo di **PassTransaction** su una working copy della rappresentazione interessata (funzione o pass): il commit sullo stato IR osservabile avviene solo dopo validazione conclusa; in caso di errore di validazione o trasformazione deve essere mantenuto integralmente lo stato pre-pass osservabile mediante rollback, senza commit parziali.
-- **FR-023**: Il sistema MUST applicare equivalenza nominale ai tipi definiti dall'utente: due tipi utente sono equivalenti solo se condividono la stessa identità dichiarativa nel modulo o nello spazio di visibilità definito; ogni modifica di definizione/shape/regole MUST generare una nuova identità nominale (versione), senza ritipizzare implicitamente i Valori già esistenti. Le versioni MUST essere identificate in modo univoco e deterministico tramite l'hash della definizione strutturale del tipo; ogni Valore MUST mantenere un riferimento esplicito alla versione del Tipo a cui appartiene.
+- **FR-001**: The system MUST represent programs as Modules containing Functions, Types, and metadata with global visibility and validation rules.
+- **FR-002**: The system MUST support three distinct IR levels (HIR, MIR, LIR) with level-specific validity rules.
+- **FR-003**: The system MUST allow IR construction at any level, provided each representation satisfies the validation rules of the selected level.
+- **FR-004**: The system MUST maintain a control-flow graph for each Function with a single entry, valid edges, and control terminators in each block.
+- **FR-005**: The system MUST model immutable Values with a single definition point, explicit Type, and full def-use traceability.
+- **FR-006**: The system MUST maintain complete SSA form in MIR, including insertion, update, and minimal removal of PHI nodes, using reaching definitions as canonical placement criterion.
+- **FR-007**: The system MUST insert PHI nodes only at convergence points where reaching definitions indicate distinct definitions coming from different predecessors; dominance frontier may be used only as non-binding analytical support.
+- **FR-008**: The system MUST guarantee that each PHI node includes exactly one operand for each predecessor of the target block.
+- **FR-009**: The system MUST automatically update SSA structure and PHIs after any control-flow graph modification, preserving the canonical criterion based on reaching definitions; if a predecessor becomes unreachable, it MUST immediately remove the corresponding edge and PHI operand (eager normalization).
+- **FR-010**: The system MUST support a type system with primitive types (integers, floats, bool), composite types (fixed-size arrays, structs with typed fields, typed pointers), and user-defined types. User-defined types MUST explicitly specify: unique name, total size in bytes, alignment, and ordered field list (each with Type and relative offset), thereby defining structure rules, nominal equivalence, and operational compatibility.
+- **FR-011**: The system MUST reject operations with incompatible Types and stop the current pass with explicit, localized errors.
+- **FR-012**: The system MUST preserve Types during transformations or declare valid and verifiable conversions through the IrValidator executed at the end of each pass.
+- **FR-013**: The system MUST support dominance, reaching definitions, liveness, alias, and instruction-dependency analyses in forward and backward modes.
+- **FR-014**: The system MUST guarantee deterministic analysis results for equal input, pass order, and configuration.
+- **FR-015**: The system MUST model typed memory accesses, distinguishing read/write and tracking dependencies and possible aliases.
+- **FR-016**: The system MUST prevent transformations that alter observable order of memory accesses when dependencies exist.
+- **FR-017**: The system MUST allow explicit pass pipelines (analysis, transformation, optimization, lowering) with declared preconditions, preserved invariants, and effects.
+- **FR-018**: The system MUST execute automatic checks after each pass and produce validated output or interrupt the pipeline with errors.
+- **FR-019**: The system MUST maintain traceability between consecutive representations (HIR->MIR->LIR) through global immutable IDs for IR entities (Module/Function/Block/Instruction/Value) and explicit derivation relations, to support transformation audits; ID generation MUST be deterministic and derived from a canonical structural path of the entity (module/function/block/index and entity type), stable for equal input, pass order, and configuration.
+- **FR-020**: The system MUST prevent persistence of invalid intermediate states.
+- **FR-021**: The system MUST consider two representations semantically equivalent only if they preserve both final observable values and observable memory effects, including preservation of relative order among dependent accesses (as defined in FR-016).
+- **FR-022**: The system MUST execute each pass through a **PassTransaction** mechanism on a working copy of the target representation (function or pass): commit to observable IR state occurs only after validation completes; in case of validation or transformation error, the pre-pass observable state must be fully preserved through rollback, with no partial commits.
+- **FR-023**: The system MUST apply nominal equivalence to user-defined types: two user types are equivalent only if they share the same declared identity in the module or defined visibility scope; each change in definition/shape/rules MUST generate a new nominal identity (version), without implicitly retyping existing Values. Versions MUST be uniquely and deterministically identified through the hash of the type's structural definition; each Value MUST keep an explicit reference to the Type version it belongs to.
 
-- **FR-024**: Il sistema MUST emettere output di analisi, errori e report in ordinamento totale deterministico basato su una chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando), a parità di input, ordine pass e configurazione; tale chiave MUST essere allineata alla politica canonica di generazione ID deterministici definita in FR-019.
-- **FR-025**: Il sistema MUST supportare il caso d'uso target di scala media: fino a 100k istruzioni per Funzione e fino a 2M istruzioni complessive per Modulo mantenendo validazione, analisi e trasformazioni complete.
-- **FR-026**: In caso di fallimento di validazione di un pass, il sistema MUST applicare reporting batch-per-pass: durante la fase di validazione post-trasformazione, raccogliere tutti gli errori rilevabili attraverso le verifiche strutturali, tipologiche, SSA, CFG e memoria applicabili sulla rappresentazione post-trasformazione, poi fallire il pass in blocco senza commit parziali (coerente con FR-022). Se un errore impedisce verifiche dipendenti, il sistema MUST annotare esplicitamente le verifiche omesse.
-- **FR-027**: Se una trasformazione elimina un blocco con definizioni usate in più punti (inclusi nodi PHI), il sistema MUST applicare politica rewrite-safe: (1) verificare preliminarmente che per ogni valore V definito nel blocco candidato esista una definizione alternativa SSA-identica o semanticamente equivalente che domina tutti gli usi di V; (2) se la verifica fallisce, rifiutare la trasformazione senza modifiche; (3) altrimenti, riscrivere tutti gli usi verso le definizioni alternative, aggiornare coerentemente PHI/CFG, quindi (4) consentire l'eliminazione del blocco solo dopo validazione positiva post-trasformazione.
-- **FR-028**: Se due accessi memoria sono in relazione may-alias, il sistema MUST applicare strict no-reorder: vietare il riordino degli accessi, salvo disponibilità di prova formale di indipendenza (come definita in FR-030) che dimostri preservazione degli effetti osservabili su memoria.
-- **FR-029**: L'esecuzione canonica di pass e analisi MUST essere single-thread deterministica per pass (nessun parallelismo intra-pass), preservando ordinamento canonico e ripetibilità bit-identica dei risultati a parità di input, pipeline e configurazione.
-- **FR-030**: Per derogare a strict no-reorder in presenza di may-alias (FR-028), il sistema MUST accettare solo prova formale di indipendenza con doppio criterio canonico: (a) certificato verificabile da checker dedicato conforme al formato JSON standard definito in `contracts/proof-witness-contract.md` (struttura dati contenente witness di indipendenza, regole di inferenza applicate, e fatto conclusivo), il cui checker MUST verificare soundness della derivazione; oppure (b) dimostrazione interna riproducibile basata su alias/liveness/dependence analysis con log deterministico completo conforme al formato definito in `contracts/proof-witness-contract.md`, contenente: fatti alias per gli accessi coinvolti, intervalli liveness dei valori, archi dependence rilevanti, passi di inferenza applicati, e conclusione di indipendenza, in formato machine-readable per verifica indipendente. In entrambi i casi, la prova MUST essere generata deterministicamente e riproducibile a parità di input, pipeline e configurazione (coerente con FR-014, FR-029).
+- **FR-024**: The system MUST emit analysis output, errors, and reports in deterministic total order based on a stable hierarchical canonical key (module/function/block/instruction-index/operand-index), for equal input, pass order, and configuration; this key MUST be aligned with the canonical deterministic ID generation policy defined in FR-019.
+- **FR-025**: The system MUST support the target medium-scale use case: up to 100k instructions per Function and up to 2M total instructions per Module, while maintaining complete validation, analyses, and transformations.
+- **FR-026**: If pass validation fails, the system MUST apply batch-per-pass reporting: during post-transformation validation, collect all detectable errors through applicable structural, type, SSA, CFG, and memory checks on the post-transformation representation, then fail the pass as a whole with no partial commits (consistent with FR-022). If an error prevents dependent checks, the system MUST explicitly annotate omitted checks.
+- **FR-027**: If a transformation removes a block with definitions used in multiple places (including PHI nodes), the system MUST apply rewrite-safe policy: (1) preliminarily verify that for each value V defined in the candidate block there exists an SSA-identical or semantically equivalent alternative definition that dominates all uses of V; (2) if verification fails, reject the transformation without modifications; (3) otherwise, rewrite all uses toward the alternative definitions, coherently update PHI/CFG, then (4) allow block elimination only after successful post-transformation validation.
+- **FR-028**: If two memory accesses are in may-alias relation, the system MUST apply strict no-reorder: forbid access reordering unless formal proof of independence (as defined in FR-030) is available and shows preservation of observable memory effects.
+- **FR-029**: Canonical execution of passes and analyses MUST be deterministic single-thread per pass (no intra-pass parallelism), preserving canonical ordering and bit-identical repeatability of results for equal input, pipeline, and configuration.
+- **FR-030**: To override strict no-reorder in the presence of may-alias (FR-028), the system MUST accept only formal proof of independence with a canonical dual criterion: (a) verifiable certificate checked by a dedicated checker conforming to the standard JSON format defined in `contracts/proof-witness-contract.md` (data structure containing independence witness, applied inference rules, and conclusive fact), whose checker MUST verify derivation soundness; or (b) reproducible internal proof based on alias/liveness/dependence analysis with full deterministic logging conforming to the format defined in `contracts/proof-witness-contract.md`, containing: alias facts for involved accesses, liveness intervals of values, relevant dependence edges, applied inference steps, and independence conclusion, in machine-readable format for independent verification. In both cases, the proof MUST be generated deterministically and reproducibly for equal input, pipeline, and configuration (consistent with FR-014, FR-029).
 
 ### Key Entities *(include if feature involves data)*
 
-- **Modulo**: Contenitore globale di Funzioni, Tipi definiti dall’utente e metadati strutturali (versione IR, origine sorgente, target triple), tabella tipi e firme funzione.
-- **Funzione**: Unità primaria di trasformazione con firma tipizzata, entry unico e dominio SSA.
-- **Blocco di base**: Nodo del grafo di controllo con sequenza ordinata di Istruzioni e terminatore di controllo obbligatorio.
-- **Grafo di controllo**: Struttura diretta di esecuzione tra blocchi con vincoli di raggiungibilità e convergenza.
-- **Istruzione**: Operazione atomica di calcolo, controllo o memoria che consuma e/o produce Valori.
-- **Valore**: Entità immutabile con Tipo e definizione univoca.
-- **Tipo**: Definizione formale di dominio e regole d’uso dei Valori, inclusa estensione con tipi definiti dall’utente.
-- **Nodo PHI**: Combinatore SSA di definizioni provenienti da predecessori multipli.
-- **Pass**: Trasformazione o analisi con contratto esplicito (precondizioni, invarianti, effetti).
+- **Module**: Global container for Functions, user-defined Types, and structural metadata (IR version, source origin, target triple), type table, and function signatures.
+- **Function**: Primary transformation unit with typed signature, single entry, and SSA domain.
+- **Basic block**: Control-flow graph node with ordered Instruction sequence and mandatory control terminator.
+- **Control-flow graph**: Directed execution structure among blocks with reachability and convergence constraints.
+- **Instruction**: Atomic computation, control, or memory operation that consumes and/or produces Values.
+- **Value**: Immutable entity with Type and unique definition.
+- **Type**: Formal definition of value domain and usage rules, including extension with user-defined types.
+- **PHI node**: SSA combiner of definitions coming from multiple predecessors.
+- **Pass**: Transformation or analysis with explicit contract (preconditions, invariants, effects).
 
-### Confini di Ambito
+### Scope Boundaries
 
 **In scope**:
 
-- IR multi-livello HIR/MIR/LIR.
-- Forma SSA completa con gestione PHI minimale.
-- Costruzione PHI basata su reaching definitions.
-- Sistema di tipi rigoroso ed estensibile.
-- Analisi di flusso dati/controllo deterministiche.
-- Pipeline di pass con verifica continua.
-- Modellazione esplicita memoria e aliasing.
+- Multi-level IR HIR/MIR/LIR.
+- Complete SSA form with minimal PHI management.
+- PHI construction based on reaching definitions.
+- Rigorous and extensible type system.
+- Deterministic data/control-flow analyses.
+- Pass pipeline with continuous verification.
+- Explicit memory and aliasing modeling.
 
 **Out of scope**:
 
-- Scelte di implementazione specifiche.
-- Dipendenze da architetture hardware specifiche.
-- Generazione diretta di codice macchina.
-- Interfacce utente.
+- Specific implementation choices.
+- Hardware-specific architectures.
+- Direct machine code generation.
+- User interfaces.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Il 100% dei pass eseguiti su input valido produce una rappresentazione validata oppure un errore esplicito, senza stati intermedi persistenti non validi.
-- **SC-002**: Nel 100% dei casi validi in MIR, ogni uso di Valore è dominato dalla sua definizione e ogni Valore ha una sola definizione.
-- **SC-003**: Nel 100% dei blocchi con PHI, ogni predecessore contribuisce con esattamente un operando e non sono presenti PHI ridondanti osservabili dopo la fase di minimizzazione.
-- **SC-004**: Nel 100% delle trasformazioni HIR→MIR e MIR→LIR su suite di regressione approvata, l’equivalenza semantica osservabile su valori e memoria è preservata.
-- **SC-005**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, i risultati delle analisi (dominanza, reaching definitions, liveness, dipendenze) sono identici.
-- **SC-006**: Nel 100% dei casi di incompatibilità di tipo o violazione strutturale, la pipeline si interrompe nella fase corretta con errore localizzato e motivazione verificabile.
-- **SC-007**: Nel 100% dei casi validati come equivalenti tra livelli, devono risultare invariati sia i valori finali osservabili sia gli effetti osservabili su memoria con ordine relativo delle dipendenze preservato.
-- **SC-008**: Nel 100% dei pass falliti, lo stato IR osservabile post-failure coincide con l’ultimo stato valido pre-pass (rollback completo, nessun commit parziale).
-- **SC-009**: Nel 100% delle verifiche tipo-su-tipo per tipi definiti dall’utente, l’esito di equivalenza dipende unicamente dall’identità nominale dichiarata e non dalla sola struttura; in presenza di ridefinizione del tipo, il 100% dei Valori preesistenti resta associato alla versione nominale originaria.
-- **SC-010**: Nel 100% delle esecuzioni ripetute con stesso input e stessa pipeline, l’ordine di analisi, errori e report coincide esattamente secondo la chiave canonica stabile gerarchica (modulo/funzione/blocco/indice-istruzione/indice-operando).
-- **SC-011**: Nel 100% delle trasformazioni valide HIR→MIR→LIR sulla suite di regressione approvata, ogni entità IR tracciata conserva un ID immutabile globale deterministico (derivato da percorso canonico strutturale) e presenta almeno una relazione di derivazione esplicita verificabile verso l'entità sorgente immediata nel livello precedente; per supportare audit completo, il sistema SHOULD mantenere anche relazioni transitive verso l'entità originaria nel primo livello HIR quando l'entità è derivata da HIR.
-- **SC-012**: Sulla suite di benchmark approvata di scala target (fino a 100k istruzioni per Funzione e 2M per Modulo), nel 100% dei casi il sistema completa validazione, analisi principali e pass previsti senza violare i vincoli funzionali definiti in FR-001..FR-030.
-- **SC-013**: Nel 100% dei pass che falliscono validazione, il report include l'insieme completo degli errori rilevabili per quel pass sulla rappresentazione corrente e l'esecuzione termina con un unico esito di failure del pass (nessun commit parziale).
-- **SC-014**: Nel 100% delle trasformazioni che eliminano blocchi con usi multipli (inclusi PHI), tutti gli usi risultano riscritti verso definizioni equivalenti dominate e la validazione post-pass conferma assenza di use-def dangling e coerenza SSA/CFG.
-- **SC-015**: Nel 100% dei casi con accessi memoria may-alias, nessun pass effettua riordino senza prova formale di indipendenza; in presenza della prova, la validazione post-pass conferma preservazione degli effetti osservabili su memoria.
-- **SC-016**: Nel 100% delle esecuzioni con stesso input, pipeline e configurazione, pass e analisi eseguiti in modalità canonica single-thread producono output e report bit-identici, senza dipendenze da interleaving concorrenti intra-pass.
-- **SC-017**: Nel 100% dei casi in cui un pass applica eccezione a strict no-reorder su accessi may-alias, è presente evidenza verificabile conforme al doppio criterio canonico (certificato checker oppure dimostrazione interna riproducibile con log completo), e la validazione post-pass conferma preservazione degli effetti osservabili su memoria.
+- **SC-001**: 100% of passes executed on valid input produce either a validated representation or an explicit error, with no persistent invalid intermediate states.
+- **SC-002**: In 100% of valid MIR cases, each Value use is dominated by its definition and each Value has exactly one definition.
+- **SC-003**: In 100% of blocks with PHI, each predecessor contributes exactly one operand and no observable redundant PHIs remain after minimization.
+- **SC-004**: In 100% of HIR->MIR and MIR->LIR transformations on the approved regression suite, observable semantic equivalence over values and memory is preserved.
+- **SC-005**: In 100% of repeated executions with the same input and same pipeline, analysis results (dominance, reaching definitions, liveness, dependencies) are identical.
+- **SC-006**: In 100% of type incompatibility or structural violation cases, the pipeline stops at the correct phase with localized error and verifiable rationale.
+- **SC-007**: In 100% of cases validated as equivalent across levels, both final observable values and observable memory effects remain unchanged, with preserved relative order of dependencies.
+- **SC-008**: In 100% of failed passes, post-failure observable IR state matches the last valid pre-pass state (full rollback, no partial commit).
+- **SC-009**: In 100% of type-to-type checks for user-defined types, equivalence outcome depends only on declared nominal identity and not solely on structure; in case of type redefinition, 100% of pre-existing Values remain associated with the original nominal version.
+- **SC-010**: In 100% of repeated executions with the same input and same pipeline, analysis/error/report ordering matches exactly according to the stable hierarchical canonical key (module/function/block/instruction-index/operand-index).
+- **SC-011**: In 100% of valid HIR->MIR->LIR transformations on the approved regression suite, each tracked IR entity keeps a deterministic global immutable ID (derived from canonical structural path) and has at least one explicit, verifiable derivation relation toward its immediate source entity in the previous level; for full audit support, the system SHOULD also keep transitive relations to the original first-level HIR entity when the entity is derived from HIR.
+- **SC-012**: On the approved benchmark suite at target scale (up to 100k instructions per Function and 2M per Module), in 100% of cases the system completes validation, core analyses, and planned passes without violating functional constraints defined in FR-001..FR-030.
+- **SC-013**: In 100% of passes that fail validation, the report includes the complete set of detectable errors for that pass on the current representation, and execution ends with a single pass-failure outcome (no partial commit).
+- **SC-014**: In 100% of transformations that remove blocks with multiple uses (including PHIs), all uses are rewritten toward dominated equivalent definitions and post-pass validation confirms absence of dangling use-def and SSA/CFG consistency.
+- **SC-015**: In 100% of cases with may-alias memory accesses, no pass performs reordering without formal proof of independence; when proof is present, post-pass validation confirms preservation of observable memory effects.
+- **SC-016**: In 100% of executions with same input, pipeline, and configuration, passes and analyses run in canonical single-thread mode produce bit-identical output and reports, with no dependency on intra-pass concurrent interleavings.
+- **SC-017**: In 100% of cases where a pass applies an exception to strict no-reorder on may-alias accesses, verifiable evidence compliant with the canonical dual criterion is present (checker certificate or reproducible internal proof with complete log), and post-pass validation confirms preservation of observable memory effects.
 
 ## Assumptions
 
-- Gli utenti sono sviluppatori del compilatore e operano su programmi già lessicalmente e sintatticamente validi.
-- La validazione richiesta riguarda coerenza strutturale, tipologica, di flusso e di memoria delle rappresentazioni IR.
-- La nozione di equivalenza semantica richiede uguaglianza dei valori finali osservabili e conservazione degli effetti osservabili su memoria, inclusa la preservazione dell’ordine relativo imposto dalle dipendenze.
-- Le pipeline di pass sono dichiarate esplicitamente e valutate in ordine deterministico.
-- La scala obiettivo della feature è media: fino a 100k istruzioni per Funzione e 2M istruzioni per Modulo.
-- I tipi definiti dall’utente forniscono metadati sufficienti per equivalenza e compatibilità operazionale.
-- Per i tipi definiti dall’utente, l’equivalenza canonica adottata è nominale.
-- Le evoluzioni dei tipi definiti dall'utente seguono versionamento nominale e non mutano retroattivamente la tipizzazione dei Valori già emessi.
-- Le esigenze di interfaccia grafica e output machine code non fanno parte di questa feature.
+- Users are compiler developers and operate on programs already lexically and syntactically valid.
+- Required validation concerns structural, type, flow, and memory coherence of IR representations.
+- The notion of semantic equivalence requires equality of final observable values and preservation of observable memory effects, including preservation of dependency-imposed relative order.
+- Pass pipelines are explicitly declared and evaluated in deterministic order.
+- The target feature scale is medium: up to 100k instructions per Function and 2M instructions per Module.
+- User-defined types provide sufficient metadata for equivalence and operational compatibility.
+- For user-defined types, the adopted canonical equivalence is nominal.
+- Evolution of user-defined types follows nominal versioning and does not retroactively change typing of already emitted Values.
+- GUI needs and machine code output are outside this feature.
 
-# 🔧 ESTENSIONE TECNICA: MODELLO SSA E COSTRUZIONE PHI
+# TECHNICAL EXTENSION: SSA MODEL AND PHI CONSTRUCTION
 
-Questa sezione integra formalmente i risultati della letteratura su SSA, dominance frontier e reaching definitions nel livello MIR.
-
----
-
-## 1. Vincolo fondamentale SSA nel MIR
-
-Il MIR è vincolato alla forma SSA:
-
-\forall v,\ \exists!\ \text{def}(v) \land \text{def}(v) \text{ domina tutte le use}(v)
-
-Questo implica un controllo strutturale completo del grafo di flusso e delle definizioni.
+This section formally integrates literature results on SSA, dominance frontier, and reaching definitions at MIR level.
 
 ---
 
-## 2. Costruzione classica basata su dominanza
+## 1. Fundamental SSA Constraint in MIR
 
-La strategia standard usa dominance frontier.
+MIR is constrained to SSA form:
 
-DF(n)={m \mid n \text{ domina un predecessore di } m \land n \not\succ m}
+\forall v,\ \exists!\ \text{def}(v) \land \text{def}(v) \text{ dominates all uses}(v)
 
-Iterazione:
+This implies complete structural control over flow graph and definitions.
+
+---
+
+## 2. Classical Dominance-Based Construction
+
+The standard strategy uses dominance frontier.
+
+DF(n)={m \mid n \text{ dominates a predecessor of } m \land n \not\succ m}
+
+Iteration:
 
 DF^{+}(S)=\mu X.; S \cup DF(X)
 
-Uso:
+Use:
 
-- inserzione PHI nei join points
-- dipendenza da dominanza globale
+- PHI insertion at join points
+- dependency on global dominance
 
-Limite:
+Limit:
 
 - over-approximation
-- PHI ridondanti possibili
+- possible redundant PHIs
 
 ---
 
-## 3. Limite strutturale del modello DF
+## 3. Structural Limit of DF Model
 
-Il modello DF introduce approssimazione:
+The DF model introduces approximation:
 
-- join points stimati per struttura, non per reale reachability
-- sensibilità a CFG non riducibili
-- PHI non necessari in casi locali
+- join points estimated by structure, not by actual reachability
+- sensitivity to irreducible CFGs
+- unnecessary PHIs in local cases
 
 ---
 
-## 4. Costruzione basata su reaching definitions
+## 4. Reaching-Definitions-Based Construction
 
-Alternativa dataflow-based.
+Dataflow-based alternative.
 
-RD(n)={d \mid d \text{ raggiunge } n}
+RD(n)={d \mid d \text{ reaches } n}
 
-Condizione PHI:
+PHI condition:
 
 \text{PHI}(n,x) \iff |RD_{pred}(n,x)| > 1
 
-Proprietà:
+Properties:
 
-- PHI solo quando semanticamente necessari
-- riduzione ridondanza
-- dipendenza da dataflow reale
-
----
-
-## 5. Costruzione incrementale SSA
-
-Modello alternativo:
-
-- PHI inseriti durante costruzione CFG
-- rinomina simultanea
-- nessuna fase DF globale necessaria
-
-Implicazione:
-
-- MIR può essere costruito direttamente in SSA valida
-- aggiornamenti locali propagano modifiche SSA
+- PHIs only when semantically necessary
+- reduced redundancy
+- dependency on real data flow
 
 ---
 
-## 6. Impatto architetturale sul sistema IR
+## 5. Incremental SSA Construction
 
-Il MIR adotta una modalità SSA canonica:
+Alternative model:
 
-1. Reaching definitions SSA (criterio normativo per inserimento PHI)
+- PHIs inserted during CFG construction
+- simultaneous renaming
+- no global DF phase needed
 
-Dominance frontier è consentita come supporto di analisi e ottimizzazione, ma non definisce da sola la validità finale dei PHI.
+Implication:
 
-Vincolo globale:
+- MIR can be built directly in valid SSA
+- local updates propagate SSA changes
+
+---
+
+## 6. Architectural Impact on IR System
+
+MIR adopts a canonical SSA mode:
+
+1. Reaching-definitions SSA (normative criterion for PHI insertion)
+
+Dominance frontier is allowed as support for analysis and optimization, but alone does not define final PHI validity.
+
+Global constraint:
 
 \forall \phi,\ \forall i,\ operand_i \in RD(pred_i)
 
 ---
 
-## 7. Integrazione nei requisiti
+## 7. Requirements Integration
 
-FR-006 SSA completa richiede criterio canonico RD per il placement PHI.
+FR-006 complete SSA requires canonical RD criterion for PHI placement.
 
-FR-007 PHI placement dipende da reaching definitions; DF resta ausiliaria.
+FR-007 PHI placement depends on reaching definitions; DF remains auxiliary.
 
-FR-009 aggiornamento SSA richiede ricalcolo locale coerente con RD.
+FR-009 SSA update requires local recomputation coherent with RD.
 
 ---
 
-## 8. Sintesi strutturale
+## 8. Structural Summary
 
-Il sistema IR adotta una teoria SSA canonica nel MIR:
+The IR system adopts a canonical SSA theory in MIR:
 
-- RD-based: criterio normativo di correttezza e minimalità PHI
-- DF-based: supporto opzionale per accelerare analisi o candidati di inserimento
-- Incrementale: ammessa solo se produce output equivalente al criterio RD
+- RD-based: normative criterion of PHI correctness and minimality
+- DF-based: optional support to accelerate analysis or insertion candidates
+- Incremental: allowed only if it produces output equivalent to RD criterion
 
-Il MIR non delega la scelta canonica al singolo pass: la validità finale è sempre verificata rispetto a reaching definitions.
+MIR does not delegate canonical choice to individual pass: final validity is always checked against reaching definitions.
