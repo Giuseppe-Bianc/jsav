@@ -1,4 +1,4 @@
-# Implementation Plan: Sistema IR Multi-Livello Verificabile
+# Implementation Plan: Verifiable Multi-Level IR System
 
 **Branch**: `009-sistema-ir-multilivello` | **Date**: 2026-04-21 | **Spec**: `specs/009-sistema-ir-multilivello/spec.md`
 **Input**: Feature specification from `/specs/009-sistema-ir-multilivello/spec.md`
@@ -7,7 +7,7 @@
 
 ## Summary
 
-Implementare un sistema IR multi-livello (HIR/MIR/LIR) in C++23 con MSVC 2026, senza introdurre nuove dipendenze, basato su monolite modulare con meccanismo di **PassTransaction** (working copy + commit atomico post-validazione). La correttezza MIR SSA e PHI e garantita da criterio canonico reaching-definitions con minimizzazione eager. Gli errori sono modellati in modo uniforme con `CompileError` e `std::expected<T, std::vector<CompileError>>` per validazioni batch deterministiche. La tracciabilita tra livelli usa ID globali immutabili e deterministici derivati da percorsi strutturali canonici. Il piano di test adotta piramide rigorosa: compile-time (`test/constexpr_tests.cpp`), debug constexpr (`test/constexpr_tests.cpp`), runtime (`test/tests.cpp`) con copertura edge/corner case su CFG non riducibili, versionamento nominale tipi e strict no-reorder su may-alias.
+Implement a multi-level IR system (HIR/MIR/LIR) in C++23 with MSVC 2026, without introducing new dependencies, based on a modular monolith with a **PassTransaction** mechanism (working copy + atomic post-validation commit). MIR SSA and PHI correctness is guaranteed by a canonical reaching-definitions criterion with eager minimization. Errors are modeled uniformly with `CompileError` and `std::expected<T, std::vector<CompileError>>` for deterministic batch validations. Traceability across levels uses immutable and deterministic global IDs derived from canonical structural paths. The test plan adopts a strict pyramid: compile-time (`test/constexpr_tests.cpp`), constexpr debug (`test/constexpr_tests.cpp`), runtime (`test/tests.cpp`) with edge/corner-case coverage on irreducible CFGs, nominal type versioning, and strict no-reorder on may-alias.
 
 ## Technical Context
 
@@ -18,68 +18,68 @@ Implementare un sistema IR multi-livello (HIR/MIR/LIR) in C++23 con MSVC 2026, s
 -->
 
 **Language/Version**: C++23 (MSVC Visual Studio 2026 toolset; GCC13+/Clang16+ compatibility target)  
-**Primary Dependencies**: fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 (gia approvate)  
-**Storage**: In-memory graph model (HIR/MIR/LIR + analysis artifacts) con persistenza solo tramite file input/output gia esistenti  
+**Primary Dependencies**: fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 (already approved)  
+**Storage**: In-memory graph model (HIR/MIR/LIR + analysis artifacts) with persistence only through existing input/output files  
 **Testing**: Catch2 3.14.0; `STATIC_REQUIRE` compile-time, runtime debug constexpr, runtime functional + integration  
-**Target Platform**: Windows 11 (MSVC 2026) come baseline; Linux/macOS come target portabile
-**Project Type**: Compiler (library + CLI) in monolite modulare  
-**Performance Goals**: Supportare fino a 100k istruzioni/funzione e 2M/modulo con output deterministico bit-identico e validazione completa per pass  
-**Constraints**: Nessuna nuova dipendenza; errore unificato via `CompileError`; pass single-thread deterministici; strict no-reorder per may-alias salvo prova formale; zero warning build  
-**Scale/Scope**: Feature IR core end-to-end (modello, validazione, analisi, trasformazioni, test, CI gates)
+**Target Platform**: Windows 11 (MSVC 2026) as baseline; Linux/macOS as portable target
+**Project Type**: Compiler (library + CLI) in a modular monolith  
+**Performance Goals**: Support up to 100k instructions/function and 2M/module with deterministic bit-identical output and full per-pass validation  
+**Constraints**: No new dependencies; unified error model via `CompileError`; deterministic single-thread passes; strict no-reorder for may-alias unless formally proven; zero-warning build  
+**Scale/Scope**: End-to-end IR core feature (model, validation, analysis, transformations, tests, CI gates)
 
 ### Technology Stack
 
 - Core language/toolchain: C++23 + CMake 4.2+ + Ninja + MSVC 2026
 - Logging/formatting/CLI/test: `spdlog 1.17.0`, `fmtlib 12.1.0`, `CLI11 2.6.1`, `Catch2 3.14.0`
 - Quality tools: `clang-tidy`, `cppcheck`, `AddressSanitizer`, `UndefinedBehaviorSanitizer`, `lizard`, `gcovr`
-- Version lock strategy: pin esplicito in `Dependencies.cmake` + `cpm-package-lock.cmake`
+- Version lock strategy: explicit pinning in `Dependencies.cmake` + `cpm-package-lock.cmake`
 
 ### Architecture Pattern
 
-Monolite modulare semantico (non microservizi), con moduli isolati per: modello IR, validazione, analisi dataflow/CFG, trasformazioni/lowering, orchestrazione pass. Scelta motivata da dominio compiler, team e codice coeso: riduce overhead operativo e massimizza consistenza transazionale e determinismo. Trigger di revisione architetturale: superamento stabile della soglia di complessita organizzativa (team >15) o superamento sistematico delle soglie di complessità per funzione (CCN >15) o coupling non gestibile tra sottosistemi principali con evidenza che un boundary distribuito riduce costo totale.
+Semantic modular monolith (not microservices), with isolated modules for: IR model, validation, dataflow/CFG analysis, transformations/lowering, and pass orchestration. This choice is motivated by the compiler domain, team, and cohesive codebase: it reduces operational overhead and maximizes transactional consistency and determinism. Architecture review triggers: stable exceedance of the organizational complexity threshold (team >15), systematic exceedance of per-function complexity thresholds (CCN >15), or unmanageable coupling between core subsystems with evidence that a distributed boundary lowers total cost.
 
 ### Libraries & Dependencies
 
 - Core:
 
-  - `fmtlib 12.1.0`: formatting robusto e portabile; alternativa `std::format` non pienamente uniforme su toolchain target.
-  - `spdlog 1.17.0`: logging strutturato multi-sink per audit pass/analisi; alternativa custom logger scartata per costo manutenzione.
-  - `CLI11 2.6.1`: parsing CLI stabile per pipeline/pass; alternativa parser manuale scartata per robustezza inferiore su edge input.
+  - `fmtlib 12.1.0`: robust and portable formatting; `std::format` alternative is not fully uniform on target toolchains.
+  - `spdlog 1.17.0`: structured multi-sink logging for pass/analysis auditing; custom logger alternative rejected due to maintenance cost.
+  - `CLI11 2.6.1`: stable CLI parsing for pipeline/pass execution; manual parser alternative rejected due to lower robustness on edge inputs.
 - Dev/Test:
-  - `Catch2 3.14.0`: framework unificato per compile-time/runtime test pyramid; alternativa framework multipli scartata per complessita.
-- Optional: nessuna (vincolo progetto: no dipendenze esterne aggiuntive).
+  - `Catch2 3.14.0`: unified framework for the compile-time/runtime test pyramid; multi-framework alternative rejected due to complexity.
+- Optional: none (project constraint: no additional external dependencies).
 
 ### Data Management
 
-- Modello dati primario: grafo IR tipizzato in memoria (Modulo -> Funzione -> Blocco -> Istruzione -> Valore/Tipo).
-- Schema approach: schema esplicito C++ con invarianti forti per ciascun livello IR e relazioni di derivazione HIR->MIR->LIR.
+- Primary data model: typed in-memory IR graph (Module -> Function -> Block -> Instruction -> Value/Type).
+- Schema approach: explicit C++ schema with strong invariants for each IR level and HIR->MIR->LIR derivation relationships.
 - Data flow strategy:
-  - reaching definitions con sparse bitset iterativo per PHI placement canonico;
-  - dominanza/liveness/dependence allineate alla chiave canonica stabile;
-  - output ordinati deterministicamente (modulo/funzione/blocco/idx-istruzione/idx-operando).
+  - reaching definitions with iterative sparse bitsets for canonical PHI placement;
+  - dominance/liveness/dependence aligned with the stable canonical key;
+  - deterministically ordered output (module/function/block/instruction-index/operand-index).
 
 ### State Management
 
-- Stato runtime IR gestito per working copy transazionale a granularita funzione/pass.
-- Commit atomico solo dopo validazione completa; rollback totale su qualunque failure.
-- Stato errori centralizzato in `std::vector<CompileError>` aggregato per pass (batch-per-pass).
+- IR runtime state managed with a transactional working copy at function/pass granularity.
+- Atomic commit only after full validation; full rollback on any failure.
+- Error state centralized in `std::vector<CompileError>` aggregated per pass (batch-per-pass).
 
 ### Deployment Strategy
 
-- Hosting/Execution: progetto nativo C++ distribuito come binario cross-platform buildato via CMake presets.
-- CI/CD: GitHub Actions con pipeline gate `lint -> static-analysis -> build -> test -> sanitizers -> complexity -> coverage`.
-- Environment parity: configurazioni interamente via CMake Presets; variabili ambiente per path/flag; nessun segreto nel repository.
-- Branch mapping: `main` produzione/rilascio, branch feature per sviluppo, PR gating obbligatorio.
+- Hosting/Execution: native C++ project distributed as a cross-platform binary built via CMake presets.
+- CI/CD: GitHub Actions with pipeline gates `lint -> static-analysis -> build -> test -> sanitizers -> complexity -> coverage`.
+- Environment parity: configurations entirely via CMake Presets; environment variables for paths/flags; no secrets in the repository.
+- Branch mapping: `main` for production/release, feature branches for development, mandatory PR gating.
 
 ### Development Workflow
 
-- Build tools: CMake + Ninja con preset dedicati MSVC/GCC/Clang.
-- Testing framework: Catch2 con piramide:
+- Build tools: CMake + Ninja with dedicated MSVC/GCC/Clang presets.
+- Testing framework: Catch2 with a pyramid:
   - compile-time in `test/constexpr_tests.cpp` (`STATIC_REQUIRE`)
-  - debug constexpr in `test/constexpr_tests.cpp`
-  - runtime completi in `test/tests.cpp`
-- Code organization: separazione header/public API in `include/jsav/`, implementazioni in `src/jsav_Lib/` e core condiviso in `include/jsavCore/` + `src/jsav_Core_lib/`.
-- Quality gates: zero warnings, clang-tidy/cppcheck clean, ASan/UBSan clean, lizard threshold pass, gcovr >= 95%.
+  - constexpr debug in `test/constexpr_tests.cpp`
+  - full runtime tests in `test/tests.cpp`
+- Code organization: separated headers/public API in `include/jsav/`, implementations in `src/jsav_Lib/`, and shared core in `include/jsavCore/` + `src/jsav_Core_lib/`.
+- Quality gates: zero warnings, clean clang-tidy/cppcheck, clean ASan/UBSan, lizard threshold pass, gcovr >= 95%.
 
 ## Constitution Check
 
@@ -87,16 +87,16 @@ Monolite modulare semantico (non microservizi), con moduli isolati per: modello 
 
 ### Pre-Design Gate Evaluation
 
-- I. Platform Independence: PASS - design basato su C++23/STL e astrazioni portabili.
-- II. Visual Studio 2026 Compatibility: PASS - baseline MSVC 2026 e feature C++23 supportate.
-- III. C++ Core Guidelines Compliance: PASS - ownership RAII, `std::expected`, no raw ownership, `CompileError` unificato.
-- IV. TDD Red-Green + Test Pyramid: PASS - test constexpr/debug/runtime previsti con edge/corner coverage.
-- V. Dependency Management: PASS - uso esclusivo dipendenze approvate, version-pinned.
-- VI. Documentation Standards: PASS - artifact di piano/research/design strutturati.
-- VII. Algorithmic Design Excellence: PASS - scelta formale di dataflow iterativo RD + minimizzazione PHI con analisi complessita.
-- VIII. STL Algorithm Exclusivity: PASS - preferenza STL per traversal/filter/transform dove semanticamente equivalente.
+- I. Platform Independence: PASS - design based on C++23/STL and portable abstractions.
+- II. Visual Studio 2026 Compatibility: PASS - MSVC 2026 baseline and supported C++23 features.
+- III. C++ Core Guidelines Compliance: PASS - RAII ownership, `std::expected`, no raw ownership, unified `CompileError`.
+- IV. TDD Red-Green + Test Pyramid: PASS - planned constexpr/debug/runtime tests with edge/corner coverage.
+- V. Dependency Management: PASS - exclusive use of approved, version-pinned dependencies.
+- VI. Documentation Standards: PASS - structured plan/research/design artifacts.
+- VII. Algorithmic Design Excellence: PASS - formal choice of iterative RD dataflow + PHI minimization with complexity analysis.
+- VIII. STL Algorithm Exclusivity: PASS - STL preference for traversal/filter/transform where semantically equivalent.
 
-Esito gate: PASS (nessuna violazione non giustificata).
+Gate result: PASS (no unjustified violations).
 
 ## Project Structure
 
@@ -162,7 +162,7 @@ tests/
 └── tests.cpp
 ```
 
-**Structure Decision**: Singolo progetto compiler (library + CLI) con separazione modulare interna per IR/analysis/passes/validation. Nessuna scomposizione in servizi distribuiti.
+**Structure Decision**: Single compiler project (library + CLI) with internal modular separation for IR/analysis/passes/validation. No decomposition into distributed services.
 
 ## Complexity Tracking
 
@@ -170,19 +170,19 @@ tests/
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| Nessuna | N/A | N/A |
+| None | N/A | N/A |
 
 ## Phase 0 Research Plan
 
-Obiettivo: consolidare decisioni tecniche finali senza `NEEDS CLARIFICATION` residue, con particolare focus su algoritmo RD-based SSA/PHI, error model batch deterministico e criteri di prova formale per eccezioni no-reorder.
+Objective: consolidate final technical decisions with no remaining `NEEDS CLARIFICATION` items, with particular focus on the RD-based SSA/PHI algorithm, deterministic batch error model, and formal proof criteria for no-reorder exceptions.
 
-Output previsto: `research.md`.
+Expected output: `research.md`.
 
 ## Phase 1 Design Plan
 
-Obiettivo: formalizzare modello dati, contratti e quickstart eseguibile allineato ai vincoli del progetto.
+Objective: formalize the data model, contracts, and executable quickstart aligned with project constraints.
 
-Output previsti:
+Expected outputs:
 
 - `data-model.md`
 - `contracts/ir-pass-contract.md`
@@ -200,4 +200,4 @@ Output previsti:
 - VII. Algorithmic Design Excellence: PASS
 - VIII. STL Algorithm Exclusivity: PASS
 
-Esito finale: PASS (nessuna violazione non giustificata dopo design).
+Final result: PASS (no unjustified violations after design).

@@ -71,5 +71,5 @@ The ProofWitness MUST follow this JSON schema for both external certificates and
 ## 4. Determinism Requirements
 
 - The GlobalIDs MUST match the canonical structural paths defined in `FR-019`.
-- The order of assertions in the array MUST be sorted by the hierarchical canonical key (Modulo/Funzione/Blocco/Indice-Istruzione) of `instr_a`, then `instr_b`.
+- The order of assertions in the array MUST be sorted by the hierarchical canonical key (Module/Function/Block/Instruction-Index) of `instr_a`, then `instr_b`.
 - The JSON output MUST be pretty-printed with a fixed 2-space indentation to ensure bit-identical results across platforms.

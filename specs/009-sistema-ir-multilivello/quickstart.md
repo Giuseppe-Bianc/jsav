@@ -1,9 +1,9 @@
-# Quickstart - Sistema IR Multi-Livello Verificabile
+# Quickstart - Verifiable Multi-Level IR System
 
 ## Prerequisites
-- Visual Studio 2026 con toolset C++23 MSVC.
+- Visual Studio 2026 with C++23 MSVC toolset.
 - CMake 4.2+, Ninja.
-- Dipendenze progetto gia gestite via CPM (nessuna aggiunta manuale).
+- Project dependencies are already managed via CPM (no manual additions).
 
 ## 1) Configure (MSVC Debug)
 
@@ -26,14 +26,14 @@ cmake --build --preset windows-msvc-debug-developer-mode --target constexpr_test
 ctest --preset test-windows-msvc-debug-developer-mode -R "constexpr"
 ```
 
-### 3.2 Debug constexpr runtime
+### 3.2 Constexpr debug runtime
 
 ```powershell
 cmake --build --preset windows-msvc-debug-developer-mode --target relaxed_constexpr_tests
 ctest --preset test-windows-msvc-debug-developer-mode -R "relaxed_constexpr"
 ```
 
-### 3.3 Runtime tests completi
+### 3.3 Full runtime tests
 
 ```powershell
 cmake --build --preset windows-msvc-debug-developer-mode --target tests
@@ -46,7 +46,7 @@ ctest --preset test-windows-msvc-debug-developer-mode -R "unittests" --output-on
 # Build zero-warning
 cmake --build --preset windows-msvc-debug-developer-mode
 
-# Static analysis (se abilitata da preset)
+# Static analysis (if enabled by preset)
 # clang-tidy / cppcheck via CMake options
 
 # Sanitizers (preset/toolchain support)
@@ -60,10 +60,10 @@ gcovr -r . --config=gcovr.cfg
 ```
 
 ## 5) Implementation Notes
-- Error handling uniforme: usare CompileError e std::expected<T, std::vector<CompileError>>.
-- Nessuna nuova dipendenza oltre le quattro approvate.
-- Tutte le trasformazioni passano da working copy transazionale con commit atomico.
-- Per may-alias, strict no-reorder salvo prova formale valida.
+- Uniform error handling: use CompileError and std::expected<T, std::vector<CompileError>>.
+- No new dependencies beyond the four approved ones.
+- All transformations go through a transactional working copy with atomic commit.
+- For may-alias, strict no-reorder unless a valid formal proof exists.
 
 ## 6) CI Pipeline Reference
 GitHub Actions stages: `lint -> static-analysis -> build -> test -> sanitizers -> complexity -> coverage`.

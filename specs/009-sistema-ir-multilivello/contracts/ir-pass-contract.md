@@ -2,7 +2,7 @@
 
 ## Scope
 
-Contratto per pass di analisi/trasformazione/ottimizzazione/lowering su HIR, MIR, LIR.
+Contract for analysis/transformation/optimization/lowering passes on HIR, MIR, and LIR.
 
 ## Canonical C++ Interface (design-level)
 
@@ -117,38 +117,39 @@ public:
 
 ## Behavioral Requirements
 
-- Ogni pass opera su working copy transazionale.
+- Each pass operates on a transactional working copy.
 - `runOnWorkingCopy` restituisce sempre un risultato posseduto dal chiamante.
-- `outputOwnershipSemantics()` documenta se il risultato e' trasferito come ownership unica
-    (`TransferOwnership`) oppure come copia profonda (`DeepCopy`).
-- `deepCopyIrUnit` definisce il meccanismo canonico per forzare una copia profonda quando
-    la semantica del pass o della pipeline lo richiede.
-- Commit consentito solo dopo validatePostconditions senza errori.
-- In caso errore: rollback completo e ritorno batch deterministico di CompileError.
-- Ordinamento errori/output: chiave canonica stabile.
-- `getRequiredPasses` e `getOrderingConstraints` definiscono dipendenze e ordering
-    condizionale/non-condizionale del pass nella pipeline.
-- `getRequiredAnalyses`, `getPreservedAnalyses`, `getInvalidatedAnalyses` modellano la
-    metadata di composizione analisi e invalidazione.
-- `onAnalysesInvalidated`, `registerAnalysisResult`, `deregisterAnalysisResult` forniscono
-    hook lifecycle per cache/composizione tra pass; default no-op.
-- `supportsIncremental` e `granularity` dichiarano la capacita' di esecuzione incrementale
-    e l'unita' di applicazione (modulo o funzione).
+- `runOnWorkingCopy` always returns a result owned by the caller.
+- `outputOwnershipSemantics()` documents whether the result is transferred as unique ownership
+    (`TransferOwnership`) or as a deep copy (`DeepCopy`).
+- `deepCopyIrUnit` defines the canonical mechanism to force a deep copy when
+    pass or pipeline semantics require it.
+- Commit is allowed only after validatePostconditions succeeds with no errors.
+- On error: full rollback and deterministic CompileError batch return.
+- Error/output ordering: stable canonical key.
+- `getRequiredPasses` and `getOrderingConstraints` define pass dependencies and
+    conditional/non-conditional ordering in the pipeline.
+- `getRequiredAnalyses`, `getPreservedAnalyses`, `getInvalidatedAnalyses` model
+    analysis composition and invalidation metadata.
+- `onAnalysesInvalidated`, `registerAnalysisResult`, `deregisterAnalysisResult` provide
+    lifecycle hooks for cache/composition across passes; default is no-op.
+- `supportsIncremental` and `granularity` declare incremental execution capability
+    and application unit (module or function).
 
 ## Error Contract
 
-- Tipo errore unico: CompileError.
+- Single error type: CompileError.
 - Reporting: `std::vector<CompileError>` batch-per-pass.
-- Errori devono includere localizzazione precisa e contesto invarianti falliti.
-- Verifiche bloccate da dipendenze fallite devono essere annotate come skipped.
+- Errors must include precise location and failed-invariant context.
+- Checks blocked by failed dependencies must be annotated as skipped.
 
 ## Memory Reorder Contract
 
-- Se esiste may-alias tra accessi, riordino vietato per default.
-- Eccezione consentita solo con prova formale verificabile (certificato o log analitico riproducibile).
-- Assenza di prova valida => pass fallito con CompileError dedicato.
+- If may-alias exists between accesses, reordering is forbidden by default.
+- Exception allowed only with verifiable formal proof (certificate or reproducible analytical log).
+- Missing valid proof => pass fails with dedicated CompileError.
 
 ## Determinism Contract
 
-- Nessun parallelismo intra-pass.
-- Stesso input + stessa pipeline + stessa config => stesso output bit-identico.
+- No intra-pass parallelism.
+- Same input + same pipeline + same config => same bit-identical output.
