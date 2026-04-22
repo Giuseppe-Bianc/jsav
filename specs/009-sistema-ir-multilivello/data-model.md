@@ -132,3 +132,18 @@
 - Block elimination rewrite-safe: rewrite all uses before structural delete.
 - May-alias reorder proposal: reject unless formal proof artifact is valid and reproducible.
 - Non-reducible CFG: SSA validation still enforced by RD and dominance checks.
+
+## 10. Formal Proof & Independence Certification
+- Purpose: Documentare e verificare prove formali che consentono deroghe a strict no-reorder su may-alias (FR-030).
+- Core fields (ProofWitness):
+  - witness_id: GlobalEntityId
+  - target_accesses: pair<InstructionId, InstructionId>
+  - evidence: Variant<AliasWitness, LivenessWitness, DependenceWitness>
+  - inference_rules: vector<InferenceRuleKind> (es. NoOverlap, ImmutableRead, DisjointPointers)
+  - conclusion: IndependenceProofStatus (verified | rejected | inconclusive)
+  - internal_log: vector<InferenceStep> (formato machine-readable per riproducibilita)
+- Validation rules (FormalProofChecker):
+  - Soundness check: ogni InferenceStep deve essere valido rispetto alle regole applicate.
+  - Witness completeness: l'evidenza deve coprire tutti i possibili scenari may-alias dichiarati.
+  - Determinismo: la prova deve essere rigenerabile bit-identica con stesso input e analisi.
+  - Formato standard: struttura serializzabile conforme a schema di verifica indipendente.
