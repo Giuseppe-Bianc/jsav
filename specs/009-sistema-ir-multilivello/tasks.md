@@ -78,6 +78,13 @@
 - [ ] T030 [P] [US1] Implement Value entity and use-site tracking in include/jsav/ir/Value.hpp
 - [ ] T031 [P] [US1] Implement base Type system + nominal versioning with SHA-256 hashing and canonical binary serialization in include/jsav/ir/Type.hpp
 - [ ] T032 [P] [US1] Implement PHI node and incoming map in include/jsav/ir/PhiNode.hpp
+- [ ] T032a [US1] Implement Module entity in src/jsav_Lib/ir/Module.cpp
+- [ ] T032b [US1] Implement Function entity in src/jsav_Lib/ir/Function.cpp
+- [ ] T032c [US1] Implement BasicBlock entity in src/jsav_Lib/ir/BasicBlock.cpp
+- [ ] T032d [US1] Implement Instruction entity in src/jsav_Lib/ir/Instruction.cpp
+- [ ] T032e [US1] Implement Value entity and use-site tracking in src/jsav_Lib/ir/Value.cpp
+- [ ] T032f [US1] Implement base Type system in src/jsav_Lib/ir/Type.cpp
+- [ ] T032g [US1] Implement PHI node in src/jsav_Lib/ir/PhiNode.cpp
 - [ ] T033 [US1] Implement CFG validator in include/jsav/validation/IrValidator.hpp
 - [ ] T034 [US1] Implement CFG validator in src/jsav_Lib/validation/IrValidator.cpp
 - [ ] T035 [US1] Implement type compatibility/nominal equivalence validator in include/jsav/validation/TypeValidator.hpp
