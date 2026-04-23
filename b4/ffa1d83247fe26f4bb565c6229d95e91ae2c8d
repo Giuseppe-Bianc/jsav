@@ -1,0 +1,40 @@
+specs/009-sistema-ir-multilivello/tasks.md
+  5ef24020022297d0 81-87
+specs/009-sistema-ir-multilivello/plan.md
+  859b95442cd8aa41 168
+specs/009-sistema-ir-multilivello/spec.md
+  859b95442cd8aa41 155,300
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "b4ffa1d83247fe26f4bb565c6229d95e91ae2c8d",
+  "prompts": {
+    "5ef24020022297d0": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "435a958b-979d-4220-939e-af18e4978e1e",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 0,
+      "accepted_lines": 314,
+      "overriden_lines": 0
+    },
+    "859b95442cd8aa41": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "fb0b17d4-d962-4dcb-860a-e7dd1284d544",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 2,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
