@@ -308,7 +308,8 @@ Task: T073-T074 [US3] Dependence.hpp/cpp
 
 - All tasks keep the constraint: no new external dependencies.
 - `CompileError` and `std::expected<T, std::vector<CompileError>>` are mandatory in every component.
-- All tasks keep the constraint: no new external dependencies.
+- Edge cases and corner cases are explicitly covered in test tasks.
+- Tasks marked with `[P]` are parallel only if they do not introduce conflicts on the same files.- All tasks keep the constraint: no new external dependencies.
 - `CompileError` and `std::expected<T, std::vector<CompileError>>` are mandatory in every component.
 - Edge cases and corner cases are explicitly covered in test tasks.
 - Tasks marked with `[P]` are parallel only if they do not introduce conflicts on the same files.
