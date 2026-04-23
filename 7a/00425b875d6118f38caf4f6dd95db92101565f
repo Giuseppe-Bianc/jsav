@@ -1,0 +1,92 @@
+specs/009-sistema-ir-multilivello/contracts/cli-contract.md
+  h_0b496d7e860864 24-28,33,37,41-53
+.gemini/commands/speckit.taskstoissues.toml
+  h_0b496d7e860864 82,122,124-125
+specs/009-sistema-ir-multilivello/spec.md
+  2c2078a9aef42bb4 300
+  34eaa0c8bf33200c 302
+  h_0b496d7e860864 46-47,57-58,67-68
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 25-26,151,224,259-266,292,304
+  41805f4e78cbe74c 50-51
+  34eaa0c8bf33200c 79,84,114-115,130,155-156,165-167
+  2c2078a9aef42bb4 85-90
+specs/009-sistema-ir-multilivello/data-model.md
+  h_0b496d7e860864 4,14-16,19,31-34,37,46-48,52,67,80,93-96,99,111,122-130,141-147,150,160,166
+.gemini/commands/speckit.checklist.toml
+  h_0b496d7e860864 222-226
+.gemini/commands/speckit.implement.toml
+  h_0b496d7e860864 142
+.gemini/commands/speckit.specify.toml
+  h_0b496d7e860864 178
+specs/009-sistema-ir-multilivello/research.md
+  h_0b496d7e860864 4,10,16,22,28,34,40,46,52,58,64
+specs/009-sistema-ir-multilivello/plan.md
+  41805f4e78cbe74c 167
+.gemini/commands/speckit.clarify.toml
+  h_0b496d7e860864 176-178,350
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "7a00425b875d6118f38caf4f6dd95db92101565f",
+  "prompts": {
+    "2c2078a9aef42bb4": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "47cf526d-78a2-4dfa-8618-9d033663f4ad",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 7,
+      "total_deletions": 3,
+      "accepted_lines": 7,
+      "overriden_lines": 0
+    },
+    "34eaa0c8bf33200c": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "53609acd-d9e4-479d-af0d-bb2bc25166f5",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 13,
+      "total_deletions": 9,
+      "accepted_lines": 11,
+      "overriden_lines": 1
+    },
+    "41805f4e78cbe74c": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "596e162f-05fc-4025-98d0-fa858a49bc94",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 1,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    },
+    "feddce61fd345a85": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "db206063-e70f-4ef8-a785-76ba954db679",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 2,
+      "total_deletions": 0,
+      "accepted_lines": 2,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
