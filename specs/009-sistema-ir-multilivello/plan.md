@@ -165,6 +165,7 @@ tests/
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
 | Principle V (Dependency Management) | FR-023 requires SHA-256 for nominal type versioning to ensure 2^128+ collision resistance and deterministic structural hashing. | Adding an external crypto library is rejected to keep the dependency surface minimal per Principle V. A custom implementation in `jsavCore` is selected, with a mandatory security and performance review (Task T019a) to mitigate Principle III risks. |
+| Principle VIII (STL Algorithm Exclusivity) | FR-025 and SC-012 require supporting up to 100k instructions per function. Reaching Definitions analysis using `std::vector<bool>` or `std::set` exhibits O(N^2) memory or cache-unfriendly access patterns at this scale. A custom Sparse Bitset is required for bit-parallel dataflow. | `std::vector<bool>` lacks bitwise operations across containers and has high memory overhead for sparse sets. `std::dynamic_bitset` (Boost) is rejected to avoid new dependencies (Principle V). A custom implementation enables O(1) bit-parallel operations and cache-efficient sparse representation. |
 
 ## Phase 0 Research Plan
 
