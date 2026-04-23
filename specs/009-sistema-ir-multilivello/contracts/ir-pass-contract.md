@@ -118,7 +118,6 @@ public:
 ## Behavioral Requirements
 
 - Each pass operates on a transactional working copy.
-- `runOnWorkingCopy` restituisce sempre un risultato posseduto dal chiamante.
 - `runOnWorkingCopy` always returns a result owned by the caller.
 - `outputOwnershipSemantics()` documents whether the result is transferred as unique ownership
     (`TransferOwnership`) or as a deep copy (`DeepCopy`).

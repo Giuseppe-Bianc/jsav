@@ -22,6 +22,8 @@
 - [ ] T003 Add skeleton directories and placeholder CMake include entries in src/jsav_Lib/CMakeLists.txt
 - [ ] T004 [P] Add CI stages section (lint->analysis->build->test->sanitizers->complexity->coverage) in .github/workflows/ci.yml
 - [ ] T005 [P] Update coverage threshold to >=95% in gcovr.cfg
+- US3: T075 and T077 in parallel (Alias analysis header/cpp and DerivationMap header).
+- Polish: T081 and T082 in parallel (documentation updates).
 
 ---
 
@@ -45,6 +47,8 @@
 - [ ] T017 [P] Add foundational runtime tests in test/tests.cpp to verify: (1) commit() success on valid IR, (2) full IR state rollback() on pass failure, (3) persistence of aggregated errors in PassResult.
 - [ ] T018 [P] Add foundational constexpr tests on canonical key/deterministic IDs in test/constexpr_tests.cpp
 - [ ] T019 [P] Add foundational relaxed constexpr tests in test/constexpr_tests.cpp
+- [ ] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)
+- [ ] T019b [P] Implement custom SHA-256 utility for nominal versioning in include/jsavCore/util/Sha256.hpp and src/jsav_Core_lib/util/Sha256.cpp
 
 **Checkpoint**: Foundation ready - user stories can begin.
 
@@ -72,14 +76,18 @@
 - [ ] T028 [P] [US1] Implement BasicBlock entity in include/jsav/ir/BasicBlock.hpp
 - [ ] T029 [P] [US1] Implement Instruction entity in include/jsav/ir/Instruction.hpp
 - [ ] T030 [P] [US1] Implement Value entity and use-site tracking in include/jsav/ir/Value.hpp
-- [ ] T031 [P] [US1] Implement base Type system + nominal versioning in include/jsav/ir/Type.hpp
+- [ ] T031 [P] [US1] Implement base Type system + nominal versioning with SHA-256 hashing and canonical binary serialization in include/jsav/ir/Type.hpp
 - [ ] T032 [P] [US1] Implement PHI node and incoming map in include/jsav/ir/PhiNode.hpp
 - [ ] T033 [US1] Implement CFG validator in include/jsav/validation/IrValidator.hpp
 - [ ] T034 [US1] Implement CFG validator in src/jsav_Lib/validation/IrValidator.cpp
 - [ ] T035 [US1] Implement type compatibility/nominal equivalence validator in include/jsav/validation/TypeValidator.hpp
-- [ ] T036 [US1] Implement type compatibility/nominal equivalence validator in src/jsav_Lib/validation/TypeValidator.cpp
-- [ ] T037 [US1] Implement use-def and base dependency validator in include/jsav/validation/UseDefValidator.hpp
-- [ ] T038 [US1] Implement use-def and base dependency validator in src/jsav_Lib/validation/UseDefValidator.cpp
+- [ ] T036 [US1] Implement type compatibility/nominal equivalence validator with SHA-256 hashing and canonical binary serialization in src/jsav_Lib/validation/TypeValidator.cpp
+- [ ] T037 [US1] use-def and base dependency validator in include/jsav/validation/UseDefValidator.hpp
+- [ ] T038 [US1] use-def and base dependency validator in src/jsav_Lib/validation/UseDefValidator.cpp
+- [ ] T038a [US1] SSA validator (single definition, dominance) in include/jsav/validation/SsaValidator.hpp
+- [ ] T038b [US1] SSA validator (single definition, dominance) in src/jsav_Lib/validation/SsaValidator.cpp
+- [ ] T038c [US1] PHI validator (one operand per predecessor) in include/jsav/validation/PhiValidator.hpp
+- [ ] T038d [US1] PHI validator (one operand per predecessor) in src/jsav_Lib/validation/PhiValidator.cpp
 - [ ] T039 [US1] Integrate post-pass validation orchestration with CompileError batch in src/jsav_Lib/passes/PassPipeline.cpp
 
 **Checkpoint**: US1 complete and independently testable.
@@ -103,8 +111,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T046 [US2] Implement iterative reaching-definitions dataflow (sparse bitset) in include/jsav/analysis/ReachingDefinitions.hpp
-- [ ] T047 [US2] Implement iterative reaching-definitions dataflow (sparse bitset) in src/jsav_Lib/analysis/ReachingDefinitions.cpp
+- [ ] T046 [US2] Implement iterative reaching-definitions dataflow (sparse bitset) per Principle VIII in include/jsav/analysis/ReachingDefinitions.hpp
+- [ ] T047 [US2] Implement iterative reaching-definitions dataflow (sparse bitset) per Principle VIII in src/jsav_Lib/analysis/ReachingDefinitions.cpp
 - [ ] T048 [US2] Implement SSA builder with canonical RD-based PHI placement in include/jsav/passes/SsaConstructionPass.hpp
 - [ ] T049 [US2] Implement SSA builder with canonical RD-based PHI placement in src/jsav_Lib/passes/SsaConstructionPass.cpp
 - [ ] T050 [US2] Implement eager PHI minimization/pruning on CFG updates in include/jsav/passes/PhiMaintenancePass.hpp
@@ -119,6 +127,7 @@
 - [ ] T059 [US2] Implement rewrite-safe block elimination policy in src/jsav_Lib/passes/BlockRewritePass.cpp
 - [ ] T060 [US2] Implement ProofWitness structure for formal independence proofs in include/jsav/analysis/ProofWitness.hpp
 - [ ] T061 [US2] Implement FormalProofChecker for independence certificate validation in include/jsav/validation/FormalProofChecker.hpp
+- [ ] T061a [US2] Implement InternalProofGenerator for independence proof generation (FR-030b) in src/jsav_Lib/analysis/InternalProofGenerator.cpp
 
 **Checkpoint**: US1 and US2 work and are independently verifiable.
 
@@ -139,11 +148,12 @@
 - [ ] T066 [US3] Add edge-case test for PHI updates after unreachable predecessor in test/tests.cpp
 - [ ] T067 [US3] Add corner-case test for user type redefinition with previous version binding preserved in test/tests.cpp
 - [ ] T068 [US3] Add runtime test for alias-analysis determinism in test/tests.cpp
+- [ ] T068a [US3] Add runtime test to verify bit-identical IR output and report determinism (SC-010, SC-016) in test/tests.cpp
 
 ### Implementation for User Story 3
 
-- [ ] T069 [US3] Implement dominance analysis in include/jsav/analysis/Dominance.hpp
-- [ ] T070 [US3] Implement dominance analysis in src/jsav_Lib/analysis/Dominance.cpp
+- [ ] T069 [US3] Implement dominance analysis per Principle VIII in include/jsav/analysis/Dominance.hpp
+- [ ] T070 [US3] Implement dominance analysis per Principle VIII in src/jsav_Lib/analysis/Dominance.cpp
 - [ ] T071 [US3] Implement liveness analysis in include/jsav/analysis/Liveness.hpp
 - [ ] T072 [US3] Implement liveness analysis in src/jsav_Lib/analysis/Liveness.cpp
 - [ ] T073 [US3] Implement dependence analysis in include/jsav/analysis/Dependence.hpp
@@ -152,6 +162,9 @@
 - [ ] T076 [US3] Implement alias analysis in src/jsav_Lib/analysis/Alias.cpp
 - [ ] T077 [US3] Implement derivation-relation model across levels in include/jsav/ir/DerivationMap.hpp
 - [ ] T078 [US3] Implement derivation-relation model across levels in src/jsav_Lib/ir/DerivationMap.cpp
+
+### Integration (Final Step of Phase 5)
+
 - [ ] T079 [US3] Integrate deterministic machine-readable report output in src/jsav/main.cpp
 - [ ] T080 [US3] Integrate CLI commands validate/lower/analyze/pipeline in src/jsav/main.cpp
 
@@ -180,8 +193,6 @@
 
 - Phase 1 (Setup): immediate start.
 - Phase 2 (Foundational): depends on Phase 1, blocks all user stories.
-- Phase 3 (US1): dipende da Phase 2.
-- Phase 4 (US2): dipende da Phase 2 e dai contratti/error model fondazionali.
 - Phase 3 (US1): depends on Phase 2.
 - Phase 4 (US2): depends on Phase 2 and foundational contracts/error model.
 - Phase 5 (US3): depends on Phase 2; integrates US1/US2 outcomes but remains independently testable.
@@ -210,8 +221,7 @@
 - US2: T052 and T054 can start in parallel after T046-T051.
 - US3: T066, T068, T070 in parallel.
 - Polish: T076 and T077 in parallel; T078 and T079 in parallel.
-- Scale benchmark: T081 before T082.
-
+- Scale benchmark: T086 before T087.
 ---
 
 ## Parallel Example: User Story 1
@@ -246,14 +256,14 @@ Task: T054 [US2] MirToLirLowering.hpp/cpp
 ## Parallel Example: User Story 3
 
 ```text
-Task: T060 [US3] deterministic dominance test in test/tests.cpp
-Task: T061 [US3] deterministic RD/liveness/dependence test in test/tests.cpp
-Task: T062 [US3] canonical ordering test in test/tests.cpp
-Task: T063 [US3] derivation traceability test in test/tests.cpp
+Task: T062 [US3] deterministic dominance test in test/tests.cpp
+Task: T063 [US3] deterministic RD/liveness/dependence test in test/tests.cpp
+Task: T064 [US3] canonical ordering test in test/tests.cpp
+Task: T065 [US3] derivation traceability test in test/tests.cpp
 
-Task: T066 [US3] Dominance.hpp/cpp
-Task: T068 [US3] Liveness.hpp/cpp
-Task: T070 [US3] Dependence.hpp/cpp
+Task: T069-T070 [US3] Dominance.hpp/cpp
+Task: T071-T072 [US3] Liveness.hpp/cpp
+Task: T073-T074 [US3] Dependence.hpp/cpp
 ```
 
 ---
@@ -279,7 +289,7 @@ Task: T070 [US3] Dependence.hpp/cpp
 ### Parallel Team Strategy
 
 1. Team aligns on foundation together.
-2. Dopo foundation:
+2. After foundation:
    - Dev A on validators/US1.
    - Dev B on lowering/US2.
    - Dev C on analyses/traceability/US3.
@@ -291,6 +301,7 @@ Task: T070 [US3] Dependence.hpp/cpp
 
 - All tasks keep the constraint: no new external dependencies.
 - `CompileError` and `std::expected<T, std::vector<CompileError>>` are mandatory in every component.
+- All tasks keep the constraint: no new external dependencies.
 - `CompileError` and `std::expected<T, std::vector<CompileError>>` are mandatory in every component.
 - Edge cases and corner cases are explicitly covered in test tasks.
 - Tasks marked with `[P]` are parallel only if they do not introduce conflicts on the same files.
