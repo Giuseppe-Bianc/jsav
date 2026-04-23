@@ -11,12 +11,6 @@ Implement a multi-level IR system (HIR/MIR/LIR) in C++23 with MSVC 2026, without
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
 **Language/Version**: C++23 (MSVC Visual Studio 2026 toolset; GCC13+/Clang16+ compatibility target)  
 **Primary Dependencies**: fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 (already approved)  
 **Storage**: In-memory graph model (HIR/MIR/LIR + analysis artifacts) with persistence only through existing input/output files  
@@ -170,7 +164,7 @@ tests/
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| None | N/A | N/A |
+| Principle V (Dependency Management) | FR-023 requires SHA-256 for nominal type versioning to ensure 2^128+ collision resistance and deterministic structural hashing. | Adding an external crypto library is rejected to keep the dependency surface minimal per Principle V. A custom implementation in `jsavCore` is selected, with a mandatory security and performance review (Task T019a) to mitigate Principle III risks. |
 
 ## Phase 0 Research Plan
 

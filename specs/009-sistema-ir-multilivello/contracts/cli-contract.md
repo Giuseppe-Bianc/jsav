@@ -13,7 +13,6 @@ Contract for the CLI interface used for validation, analysis, and multi-level IR
 
 ## Inputs
 
-- Input IR/program file path esistente e leggibile.
 - IR/program input file path must exist and be readable.
 - Levels and pass combinations must be valid according to declared preconditions.
 - Deterministic mode configuration is mandatory (default ON).
@@ -22,17 +21,34 @@ Contract for the CLI interface used for validation, analysis, and multi-level IR
 
 - Success: deterministically ordered report with canonical key.
 - Failure: deterministically ordered `CompileError` batch.
-- No partial output if a pass fails after mutations on the working copy.
+- Atomicity guarantee: If any pass fails, no partial output is produced regardless of failure timing.
+  - Working copy is discarded entirely on any failure
+  - Only the `CompileError` batch and exit code are emitted
+  - Mutations (transformations that modify IR structure) are transactional per-pass
+  - Validation and analysis operations are non-mutating and cannot leave partial state
 
 ## Exit Codes
 
 - `0`: success.
+- `1`: general/unspecified error (reserved for future use, currently unused).
 - `2`: validation/transformation error (`CompileError` batch).
 - `3`: invalid configuration/pipeline error.
 - `4`: I/O error.
+- `5`: internal error (unexpected failure, assertion, panic).
 
 ## Non-Functional Guarantees
 
-- Stable output across identical reruns.
-- No exposure of secrets/sensitive config on stdout/stderr.
+- Deterministic output: Given identical input file content, command flags, and tool version, 
+  output is byte-for-byte identical regardless of:
+  - File path or working directory
+  - Execution timestamp
+  - Machine architecture or OS (assuming same tool version compiled for that platform)
+  - Environment variables (except those explicitly documented as affecting output)
+  - Flag order (flags are order-independent)
+- No exposure of secrets/sensitive config on stdout/stderr:
+  - Never output: API keys, passwords, tokens, private keys, credentials
+  - Never output: absolute file paths (use relative paths or sanitized paths)
+  - Never output: environment variable values (except whitelisted safe vars)
+  - Error messages must not expose: stack traces with sensitive context, internal implementation details
+  - Safe to output: public API names, IR level/pass names, anonymized error categories
 - CI pipeline compatibility for machine-readable parsing (json option).

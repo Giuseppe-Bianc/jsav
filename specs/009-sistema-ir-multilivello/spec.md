@@ -43,6 +43,9 @@ HIR:
 - Variables can be conceptually reassigned before full SSA conversion.
 - Analyses include semantic validation, type consistency, and control structure checks.
 - There are no resource- or architecture-related constraints.
+- Validation rules: See FR-004 (CFG), FR-011 (type compatibility); SSA form
+ (FR-006) is not required; def-before-use is enforced locally.
+
 
 MIR:
 
@@ -51,6 +54,8 @@ MIR:
 - Operations are granular and represent elementary computations.
 - Analyses include dominance, reaching definitions, and instruction dependencies.
 - Optimizations modify data flow while preserving semantic equivalence.
+- Validation rules: Must satisfy FR-006 (complete SSA), FR-007 (RD-based PHI),
+ FR-008 (PHI operand completeness), and the fundamental SSA constraint (Line 380).
 
 LIR:
 
@@ -59,6 +64,8 @@ LIR:
 - Temporal and memory dependencies are fully explicit.
 - Operations are reduced to directly executable forms.
 - No high-level abstractions are present.
+- Validation rules: SSA form may be deconstructed; all control flow must be
+ explicit jumps/branches; operations must be execution-model compatible (see FR-002).
 
 SSA form and construction:
 
@@ -290,10 +297,9 @@ As a compiler developer, I want to run analyses (dominance, reaching definitions
 - **FR-018**: The system MUST execute automatic checks after each pass and produce validated output or interrupt the pipeline with errors.
 - **FR-019**: The system MUST maintain traceability between consecutive representations (HIR->MIR->LIR) through global immutable IDs for IR entities (Module/Function/Block/Instruction/Value) and explicit derivation relations, to support transformation audits; ID generation MUST be deterministic and derived from a canonical structural path of the entity (module/function/block/index and entity type), stable for equal input, pass order, and configuration.
 - **FR-020**: The system MUST prevent persistence of invalid intermediate states.
-- **FR-021**: The system MUST consider two representations semantically equivalent only if they preserve both final observable values and observable memory effects, including preservation of relative order among dependent accesses (as defined in FR-016).
+- **FR-021**: The system MUST consider two representations semantically equivalent only if they preserve both final observable values and observable memory effects, including preservation of relative order among dependent accesses (as defined in FR-016). For floating point values, "same final values" MUST be interpreted as bitwise equality (IEEE 754 bit-identical representation) to ensure deterministic results across transformations, unless a different precision-loss policy is explicitly permitted and documented for a specific optimization pass.
 - **FR-022**: The system MUST execute each pass through a **PassTransaction** mechanism on a working copy of the target representation (function or pass): commit to observable IR state occurs only after validation completes; in case of validation or transformation error, the pre-pass observable state must be fully preserved through rollback, with no partial commits.
-- **FR-023**: The system MUST apply nominal equivalence to user-defined types: two user types are equivalent only if they share the same declared identity in the module or defined visibility scope; each change in definition/shape/rules MUST generate a new nominal identity (version), without implicitly retyping existing Values. Versions MUST be uniquely and deterministically identified through the hash of the type's structural definition; each Value MUST keep an explicit reference to the Type version it belongs to.
-
+- **FR-023**: The system MUST apply nominal equivalence to user-defined types: two user types are equivalent only if they share the same declared identity in the module or defined visibility scope; each change in definition/shape/rules MUST generate a new nominal identity (version), without implicitly retyping existing Values. Versions MUST be uniquely and deterministically identified through the hash of the type's structural definition using a collision-resistant hash algorithm (minimum SHA-256 or equivalent with 2^128+ collision resistance); the structural definition MUST be serialized in a canonical binary format (fields sorted lexicographically by name, names encoded as UTF-8, and numeric values—size, alignment, offsets—encoded as big-endian 64-bit integers) before hashing; the system MUST detect and reject hash collisions by comparing full structural definitions on identifier match; each Value MUST keep an explicit reference to the Type version it belongs to.
 - **FR-024**: The system MUST emit analysis output, errors, and reports in deterministic total order based on a stable hierarchical canonical key (module/function/block/instruction-index/operand-index), for equal input, pass order, and configuration; this key MUST be aligned with the canonical deterministic ID generation policy defined in FR-019.
 - **FR-025**: The system MUST support the target medium-scale use case: up to 100k instructions per Function and up to 2M total instructions per Module, while maintaining complete validation, analyses, and transformations.
 - **FR-026**: If pass validation fails, the system MUST apply batch-per-pass reporting: during post-transformation validation, collect all detectable errors through applicable structural, type, SSA, CFG, and memory checks on the post-transformation representation, then fail the pass as a whole with no partial commits (consistent with FR-022). If an error prevents dependent checks, the system MUST explicitly annotate omitted checks.

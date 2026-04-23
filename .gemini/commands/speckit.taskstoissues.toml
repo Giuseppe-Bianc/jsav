@@ -79,7 +79,7 @@ The remote validation gate above is the single most important safety check in th
 - **Key characteristics:** The agent states the resolved repository (`owner/repo`), the number of issues it intends to create, and waits for the user to proceed. This provides a final human checkpoint against repository mismatch, especially in environments with multiple remotes or forked repositories.
 - **Operational guidance:**
   1. Output a summary line: "Resolved target repository: `owner/repo`. Preparing to create N issues."
-  2. If `$ARGUMENTS` contains an explicit flag to skip confirmation (e.g., "no-confirm"), proceed directly but log the skip.
+  2. If `{{args}}` contains an explicit flag to skip confirmation (e.g., "no-confirm"), proceed directly but log the skip.
   3. If the remote URL resolved to a fork or an unexpected organization, highlight this explicitly: "Note: resolved repository appears to be a fork of `upstream/repo`."
   4. Do not batch-create all issues before the user has had an opportunity to see the target repository.
 
@@ -119,7 +119,10 @@ Issue creation is where the structured task data from `tasks.md` is translated i
   1. Set the issue title to include the task ID and a concise summary derived from the task description (e.g., "TASK-003: Implement user authentication middleware").
   2. Structure the issue body with sections: **Description** (from task description), **Phase** (from phase grouping), **Dependencies** (list of predecessor task IDs, updated to issue cross-references as issues are created), **Files** (referenced file paths from the task), and **Parallel** (note if the task carries a `[P]` marker).
   3. Create issues in dependency order: predecessor tasks first, so that their issue numbers are available for cross-referencing in dependent issues.
+     - If a circular dependency is detected among tasks, abort issue creation and report the cycle to the user (e.g., "Circular dependency detected: TASK-001 → TASK-002 → TASK-001").
   4. After all issues are created, verify that every dependency reference in every issue body points to a valid, existing issue number.
+     - If verification fails (e.g., a referenced issue does not exist), log a warning with the affected issue numbers and suggest manual correction.
+
 
 #### Idempotent Creation Guard
 
