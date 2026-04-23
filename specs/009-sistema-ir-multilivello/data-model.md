@@ -14,6 +14,12 @@
   - type_table entries must have exactly one corresponding UserDefinedTypeVersion definition.
   - function_table entries must have exactly one corresponding Function definition with matching signature.
   - No forward declarations are permitted; all referenced entities must be defined within the module.
+  - Bidirectional function consistency: the functions vector and function_table must contain exactly the same set of function names.
+  - Circular type dependencies must be detected and either prohibited or require explicit indirection (e.g., pointer/reference types).
+  - module_id must be globally unique and follow the GlobalEntityId format specification.
+  - name must be non-empty and contain only valid identifier characters.
+  - All TypeRef and FunctionRef used within the module must resolve to entries in type_table or function_table respectively.
+
 
 ## 2. Function
 
@@ -46,6 +52,11 @@
   - Terminator is mandatory and must be the last element of the instructions vector.
   - The terminator instruction must have a control-flow opcode.
 
+  - The instructions vector must contain at least one instruction (the terminator).
+  - All phi nodes (if any) must appear consecutively at the beginning of the instructions vector, before any non-phi instructions.
+  - Within a single basic block, instruction operands must only reference values defined in dominating blocks or earlier in the current block (local SSA ordering).
+  - block_id must be unique within the containing function.
+  - All BlockIds in predecessors and successors vectors must reference blocks that exist in the function's blocks vector.
   - Predecessors/successors are bidirectionally consistent.
 
 ## 4. Instruction
@@ -127,9 +138,11 @@
 - Concurrency:
   - Multiple function-scoped transactions may execute concurrently if they operate on disjoint functions.
   - Module-scoped transactions are exclusive; no concurrent transactions permitted.
-  - Nested transactions are not supported.
+  - Nested transactions are not supported; attempting to begin a transaction within an active transaction raises an error.
+
 
 ## 9. AnalysisReport
+
 - Purpose: Deterministic output for dominance/RD/liveness/dependence.
 - Core fields:
   - report_kind: dominance | reaching_defs | liveness | dependence
@@ -148,13 +161,25 @@
 
 ## Relationships
 
-- Module 1..N Function
+- Module 0..N Function (owns)
+- Module 0..N UserDefinedTypeVersion (owns, via type_table)
 - Function 1..N BasicBlock
 - BasicBlock 1..N Instruction
 - Instruction 0..1 ValueDef
 - ValueDef 1..N UseSite
 - BasicBlock 0..N PhiNode
+- PhiNode 1..1 BasicBlock (owned by)
 - PassTransaction 1..1 WorkingCopy
+- PassTransaction 1..1 (Function | Module) (scoped to)
+- Instruction 0..N TypeRef (operand types + result type)
+- Value 1..1 TypeRef (value_type)
+- Function 1..1 SsaIndex (owns all Values in function)
+
+### Ownership semantics
+
+- Composition (owns): Parent lifetime controls child lifetime
+- Reference: Parent references child but doesn't control lifetime  
+- Relationships marked "(owns)" are compositional
 
 ## State Transitions
 
@@ -170,6 +195,7 @@
 - Non-reducible CFG: SSA validation still enforced by RD and dominance checks.
 
 ## 10. Formal Proof & Independence Certification
+
 - Purpose: Document and verify formal proofs that allow exceptions to strict no-reorder on may-alias (FR-030).
 - Core fields (ProofWitness):
   - witness_id: GlobalEntityId
