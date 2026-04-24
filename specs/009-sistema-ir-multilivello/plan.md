@@ -87,6 +87,7 @@ Semantic modular monolith (not microservices), with isolated modules for: IR mod
 - IV. TDD Red-Green + Test Pyramid: PASS - planned constexpr/debug/runtime tests with edge/corner coverage.
 - V. Dependency Management: PASS - exclusive use of approved, version-pinned dependencies.
 - VI. Documentation Standards: PASS - structured plan/research/design artifacts.
+- VI. Documentation Standards: PASS - structured plan/research/design artifacts with explicit glossary deliverable.
 - VII. Algorithmic Design Excellence: PASS - formal choice of iterative RD dataflow + PHI minimization with complexity analysis.
 - VIII. STL Algorithm Exclusivity: PASS - STL preference for traversal/filter/transform where semantically equivalent.
 
@@ -101,18 +102,13 @@ specs/009-sistema-ir-multilivello/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
+├── GLOSSARY.md          # Phase 1 output: canonical terminology for this feature
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
 include/
@@ -180,6 +176,7 @@ Objective: formalize the data model, contracts, and executable quickstart aligne
 Expected outputs:
 
 - `data-model.md`
+- `GLOSSARY.md`
 - `contracts/ir-pass-contract.md`
 - `contracts/cli-contract.md`
 - `quickstart.md`

@@ -33,20 +33,27 @@
 
 **CRITICAL**: No US1/US2/US3 implementation before this phase is complete.
 
-- [ ] T006 Define base IR level/pass kind types and canonical key in include/jsav/ir/IrCommon.hpp
-- [ ] T007 Implement canonical PassResult error type with CompileError batch in include/jsav/passes/PassResult.hpp
-- [ ] T008 Implement IPass contract and PassInvariantReport in include/jsav/passes/Pass.hpp
-- [ ] T009 Implement deterministic PassContext and canonical config in include/jsav/passes/PassContext.hpp
-- [ ] T010 Implement deterministic immutable global ID entities in include/jsav/ir/GlobalEntityId.hpp
-- [ ] T011 Implement ID generator from canonical structural path in src/jsav_Lib/ir/GlobalEntityId.cpp
-- [ ] T012 Implement **PassTransaction** mechanism (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
-- [ ] T013 Implement **PassTransaction** engine in src/jsav_Lib/passes/PassTransaction.cpp
-- [ ] T014 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
-- [ ] T015 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
-- [ ] T016 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
-- [ ] T017 [P] Add foundational runtime tests in test/tests.cpp to verify: (1) commit() success on valid IR, (2) full IR state rollback() on pass failure, (3) persistence of aggregated errors in PassResult.
-- [ ] T018 [P] Add foundational constexpr tests on canonical key/deterministic IDs in test/constexpr_tests.cpp
-- [ ] T019 [P] Add foundational relaxed constexpr tests in test/constexpr_tests.cpp
+**Execution rule (Red-Green)**: complete foundational tests T006-T008 before implementation tasks T009-T019b.
+
+### Tests First (Red)
+
+- [ ] T006 [P] Add foundational runtime tests in test/tests.cpp to verify: (1) commit() success on valid IR, (2) full IR state rollback() on pass failure, (3) persistence of aggregated errors in PassResult.
+- [ ] T007 [P] Add foundational relaxed constexpr tests in test/constexpr_tests.cpp
+- [ ] T008 [P] Add foundational constexpr tests on canonical key/deterministic IDs in test/constexpr_tests.cpp
+
+### Implementation (Green/Refactor)
+
+- [ ] T009 Define base IR level/pass kind types and canonical key in include/jsav/ir/IrCommon.hpp
+- [ ] T010 Implement canonical PassResult error type with CompileError batch in include/jsav/passes/PassResult.hpp
+- [ ] T011 Implement IPass contract and PassInvariantReport in include/jsav/passes/Pass.hpp
+- [ ] T012 Implement deterministic PassContext and canonical config in include/jsav/passes/PassContext.hpp
+- [ ] T013 Implement deterministic immutable global ID entities in include/jsav/ir/GlobalEntityId.hpp
+- [ ] T014 Implement ID generator from canonical structural path in src/jsav_Lib/ir/GlobalEntityId.cpp
+- [ ] T015 Implement **PassTransaction** mechanism (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
+- [ ] T016 Implement **PassTransaction** engine in src/jsav_Lib/passes/PassTransaction.cpp
+- [ ] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
+- [ ] T018 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
+- [ ] T019 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
 - [ ] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)
 - [ ] T019b [P] Implement custom SHA-256 utility for nominal versioning in include/jsavCore/util/Sha256.hpp and src/jsav_Core_lib/util/Sha256.cpp
 
@@ -62,12 +69,12 @@
 
 ### Tests for User Story 1
 
-- [ ] T020 [US1] Add compile-time tests for immutable Value/Type invariants in test/constexpr_tests.cpp
-- [ ] T021 [US1] Add compile-time tests for base CFG rules (single entry, terminator) in test/constexpr_tests.cpp
-- [ ] T022 [US1] Add runtime test for invalid CFG validation (missing terminator, inconsistent edges) in test/tests.cpp
-- [ ] T023 [US1] Add runtime test for use without reachable definition in test/tests.cpp
-- [ ] T024 [US1] Add runtime test for batch-per-pass reporting with annotated skipped checks in test/tests.cpp
-- [ ] T025 [US1] Add relaxed constexpr debug tests for compile-time invariants in test/constexpr_tests.cpp
+- [ ] T020 [US1] Add relaxed constexpr debug tests for compile-time invariants in test/constexpr_tests.cpp
+- [ ] T021 [US1] Add compile-time tests for immutable Value/Type invariants in test/constexpr_tests.cpp
+- [ ] T022 [US1] Add compile-time tests for base CFG rules (single entry, terminator) in test/constexpr_tests.cpp
+- [ ] T023 [US1] Add runtime test for invalid CFG validation (missing terminator, inconsistent edges) in test/tests.cpp
+- [ ] T024 [US1] Add runtime test for use without reachable definition in test/tests.cpp
+- [ ] T025 [US1] Add runtime test for batch-per-pass reporting with annotated skipped checks in test/tests.cpp
 
 ### Implementation for User Story 1
 
@@ -185,6 +192,7 @@
 
 - [ ] T081 [P] Update technical IR/SSA/PHI documentation in README.md
 - [ ] T082 [P] Update quickstart with real pipeline execution commands in specs/009-sistema-ir-multilivello/quickstart.md
+- [ ] T082a [P] Create and maintain canonical terminology glossary in specs/009-sistema-ir-multilivello/GLOSSARY.md
 - [ ] T083 Add lizard target/check in CI workflow in .github/workflows/ci.yml
 - [ ] T084 Add gcovr >=95% target/check in CI workflow in .github/workflows/ci.yml
 - [ ] T085 Execute final quickstart validation and align commands in specs/009-sistema-ir-multilivello/quickstart.md
@@ -223,17 +231,19 @@
 ## Parallel Opportunities
 
 - Setup: T004 and T005 in parallel.
-- Foundational: T017, T018, T019 in parallel after T006-T016.
-- US1: T022 and T025 in parallel; T026-T032 in parallel.
+- Foundational: run test flow T006 -> T007 -> T008 first, then execute implementation tasks T009-T019b.
+- US1: test flow T025 -> (T020, T021) -> (T022, T023, T024); T026-T032 in parallel.
 - US2: T052 and T054 can start in parallel after T046-T051.
 - US3: T066, T068, T070 in parallel.
 - Polish: T076 and T077 in parallel; T078 and T079 in parallel.
 - Scale benchmark: T086 before T087.
+
 ---
 
 ## Parallel Example: User Story 1
 
 ```text
+Task: T025 [US1] test relaxed constexpr invarianti compile-time in test/constexpr_tests.cpp
 Task: T020 [US1] test compile-time invarianti Value/Type in test/constexpr_tests.cpp
 Task: T021 [US1] test compile-time regole CFG in test/constexpr_tests.cpp
 Task: T022 [US1] test runtime CFG invalido in test/tests.cpp
