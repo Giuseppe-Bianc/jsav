@@ -1,0 +1,16 @@
+specs/009-sistema-ir-multilivello/plan.md
+  h_0b496d7e860864 90,105,179
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 36,234
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.2",
+  "base_commit_sha": "6d3a25cbf911da33a361361881de754addd49dee",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
