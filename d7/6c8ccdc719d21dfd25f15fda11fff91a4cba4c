@@ -1,0 +1,14 @@
+test/tests.cpp
+  h_0b496d7e860864 5729-5730
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "d76c8ccdc719d21dfd25f15fda11fff91a4cba4c",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
