@@ -2,12 +2,12 @@
  * Created by gbian on 2 aprile 2026.
  * Copyright (c) 2026 All rights reserved.
  */
-// NOLINTBEGIN(*-include-cleaner, *-identifier-length)
+// NOLINTBEGIN(*-include-cleaner, *-identifier-length, *-uppercase-literal-suffix)
 #include "jsav/typechecker/UnionFind.hpp"
 
 namespace jsv {
 
-    void UnionFind::make_set(TypeVarId var) { nodes_.try_emplace(var, Node{var, 0u}); }
+    void UnionFind::make_set(TypeVarId var) { nodes_.try_emplace(var, Node{.parent = var, .rank = 0u}); }
 
     TypeVarId UnionFind::find(TypeVarId var) {
         // PERF: iterative two-pass path compression replaces the previous recursive
@@ -59,4 +59,4 @@ namespace jsv {
 
 }  // namespace jsv
 
-// NOLINTEND(*-include-cleaner, *-identifier-length)
+// NOLINTEND(*-include-cleaner, *-identifier-length, *-uppercase-literal-suffix)

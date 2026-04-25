@@ -5726,8 +5726,8 @@ TEST_CASE("phase() function coverage", "[error]") {
     }
 
     SECTION("Lexer phase for E3001-E3008 (IR range, not yet implemented)") {
-        REQUIRE(jsv::phase(jsv::ErrorCode::E3001) == jsv::CompilerPhase::Lexer);
-        REQUIRE(jsv::phase(jsv::ErrorCode::E3008) == jsv::CompilerPhase::Lexer);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E3001) == jsv::CompilerPhase::IrGeneration);
+        REQUIRE(jsv::phase(jsv::ErrorCode::E3008) == jsv::CompilerPhase::IrGeneration);
     }
 
     SECTION("Lexer phase for E4001-E4005 (CodeGen range, not yet implemented)") {
