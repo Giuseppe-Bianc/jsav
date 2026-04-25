@@ -3,6 +3,7 @@
 **Feature Branch**: `009-sistema-ir-multilivello`  
 **Created**: 19 April 2026  
 **Status**: Draft  
+**Glossary**: `specs/009-sistema-ir-multilivello/GLOSSARY.md`  
 **Input**: User description: "Design a multi-level intermediate representation system that enables modeling, validation, analysis, and transformation of programs along a compilation pipeline with progressive abstraction reduction, ensuring semantic preservation, data-flow precision, and formal verifiability of transformations.
 
 Goal and success:

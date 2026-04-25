@@ -1,6 +1,7 @@
 # Implementation Plan: Verifiable Multi-Level IR System
 
 **Branch**: `009-sistema-ir-multilivello` | **Date**: 2026-04-21 | **Spec**: `specs/009-sistema-ir-multilivello/spec.md`
+**Glossary**: `specs/009-sistema-ir-multilivello/GLOSSARY.md`
 **Input**: Feature specification from `/specs/009-sistema-ir-multilivello/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.

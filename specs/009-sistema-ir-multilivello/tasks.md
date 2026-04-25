@@ -22,6 +22,7 @@
 - [ ] T003 Add skeleton directories and placeholder CMake include entries in src/jsav_Lib/CMakeLists.txt
 - [ ] T004 [P] Add CI stages section (lint->analysis->build->test->sanitizers->complexity->coverage) in .github/workflows/ci.yml
 - [ ] T005 [P] Update coverage threshold to >=95% in gcovr.cfg
+- [ ] T005a [P] Create initial canonical terminology glossary in specs/009-sistema-ir-multilivello/GLOSSARY.md and reference it from feature docs
 - US3: T075 and T077 in parallel (Alias analysis header/cpp and DerivationMap header).
 - Polish: T081 and T082 in parallel (documentation updates).
 
@@ -192,7 +193,7 @@
 
 - [ ] T081 [P] Update technical IR/SSA/PHI documentation in README.md
 - [ ] T082 [P] Update quickstart with real pipeline execution commands in specs/009-sistema-ir-multilivello/quickstart.md
-- [ ] T082a [P] Create and maintain canonical terminology glossary in specs/009-sistema-ir-multilivello/GLOSSARY.md
+- [ ] T082a [P] Update and maintain canonical terminology glossary in specs/009-sistema-ir-multilivello/GLOSSARY.md
 - [ ] T083 Add lizard target/check in CI workflow in .github/workflows/ci.yml
 - [ ] T084 Add gcovr >=95% target/check in CI workflow in .github/workflows/ci.yml
 - [ ] T085 Execute final quickstart validation and align commands in specs/009-sistema-ir-multilivello/quickstart.md
