@@ -39,3 +39,4 @@ $RECYCLE.BIN/
 ehthumbs.db
 Thumbs.db
 .env*
+run-claude.ps1
