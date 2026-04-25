@@ -40,14 +40,14 @@ namespace jsv {
 
             if(!found) {
                 // No terminator remains — push the final (possibly empty) line and stop.
-                lines_.emplace_back(source_.data() + pos, source_.size() - pos);
+                lines_.emplace_back(source_.substr(pos));
                 break;
             }
 
             // Strip a trailing '\r' for CRLF; only applicable immediately before '\n'.
             const std::size_t line_end = (term.codepoint == U'\n' && scan > pos && source_[scan - 1] == '\r') ? scan - 1 : scan;
 
-            lines_.emplace_back(source_.data() + pos, line_end - pos);
+            lines_.emplace_back(source_.substr(pos, line_end - pos));
             pos = scan + term.byte_length;
         }
     }
@@ -57,7 +57,6 @@ namespace jsv {
     // -------------------------------------------------------------------------
 
     std::string_view LineTracker::get_line(std::size_t line_number) const noexcept {
-        // line_number is 1-based; guard against 0 and out-of-range.
         if(line_number == 0 || line_number > lines_.size()) { return {}; }
         return lines_[line_number - 1];
     }
