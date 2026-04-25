@@ -1,5 +1,7 @@
 # Phase 1 Data Model - Verifiable Multi-Level IR System
 
+Terminology reference: `GLOSSARY.md`.
+
 ## 1. Module
 
 - Purpose: Global IR context and validation boundary.

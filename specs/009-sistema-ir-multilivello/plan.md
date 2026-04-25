@@ -87,7 +87,6 @@ Semantic modular monolith (not microservices), with isolated modules for: IR mod
 - III. C++ Core Guidelines Compliance: PASS - RAII ownership, `std::expected`, no raw ownership, unified `CompileError`.
 - IV. TDD Red-Green + Test Pyramid: PASS - planned constexpr/debug/runtime tests with edge/corner coverage.
 - V. Dependency Management: PASS - exclusive use of approved, version-pinned dependencies.
-- VI. Documentation Standards: PASS - structured plan/research/design artifacts.
 - VI. Documentation Standards: PASS - structured plan/research/design artifacts with explicit glossary deliverable.
 - VII. Algorithmic Design Excellence: PASS - formal choice of iterative RD dataflow + PHI minimization with complexity analysis.
 - VIII. STL Algorithm Exclusivity: PASS - STL preference for traversal/filter/transform where semantically equivalent.
@@ -129,7 +128,13 @@ include/
 │   │   └── Dependence.hpp
 │   ├── passes/
 │   │   ├── Pass.hpp
+│   │   ├── PassResult.hpp
+│   │   ├── PassContext.hpp
+│   │   ├── PassTransaction.hpp
 │   │   ├── PassPipeline.hpp
+│   │   ├── SsaConstructionPass.hpp
+│   │   ├── PhiMaintenancePass.hpp
+│   │   ├── BlockRewritePass.hpp
 │   │   ├── HirToMirLowering.hpp
 │   │   └── MirToLirLowering.hpp
 │   └── validation/
@@ -137,18 +142,52 @@ include/
 │       ├── SsaValidator.hpp
 │       ├── PhiValidator.hpp
 │       ├── TypeValidator.hpp
+│       ├── UseDefValidator.hpp
+│       ├── FormalProofChecker.hpp
 │       └── MemoryValidator.hpp
 
 src/
 ├── jsav_Lib/
 │   ├── ir/
+│   │   ├── IrCommon.cpp
+│   │   ├── Module.cpp
+│   │   ├── Function.cpp
+│   │   ├── BasicBlock.cpp
+│   │   ├── Instruction.cpp
+│   │   ├── Value.cpp
+│   │   ├── Type.cpp
+│   │   └── PhiNode.cpp
 │   ├── analysis/
+│   │   ├── CanonicalOrder.cpp
+│   │   ├── ReachingDefinitions.cpp
+│   │   ├── Dominance.cpp
+│   │   ├── Liveness.cpp
+│   │   ├── Dependence.cpp
+│   │   ├── Alias.cpp
+│   │   ├── InternalProofGenerator.cpp
+│   │   └── DerivationMap.cpp
 │   ├── passes/
+│   │   ├── PassResult.cpp
+│   │   ├── PassContext.cpp
+│   │   ├── PassTransaction.cpp
+│   │   ├── HirToMirLowering.cpp
+│   │   ├── SsaConstructionPass.cpp
+│   │   ├── PhiMaintenancePass.cpp
+│   │   ├── BlockRewritePass.cpp
+│   │   ├── MirToLirLowering.cpp
+│   │   └── PassPipeline.cpp
 │   └── validation/
+│       ├── IrValidator.cpp
+│       ├── SsaValidator.cpp
+│       ├── PhiValidator.cpp
+│       ├── TypeValidator.cpp
+│       ├── UseDefValidator.cpp
+│       ├── FormalProofChecker.cpp
+│       └── MemoryValidator.cpp
 ├── jsav_Core_lib/
 └── jsav/
 
-tests/
+test/
 ├── constexpr_tests.cpp
 └── tests.cpp
 ```

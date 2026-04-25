@@ -1,5 +1,7 @@
 # Phase 0 Research - Verifiable Multi-Level IR System
 
+Terminology reference: `GLOSSARY.md`.
+
 ## Decision 1: Canonical stack and toolchain
 
 - Decision: Use C++23 with MSVC 2026 as baseline, CMake 4.2+, and Ninja.

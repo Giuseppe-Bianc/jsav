@@ -71,6 +71,16 @@ add_library(jsav_lib jsav.cpp
         ../../include/jsav/typechecker/TypeChecker.hpp
         typechecker/TypeVisitor.cpp
         ../../include/jsav/typechecker/TypeVisitor.hpp
+        ir/IrCommon.cpp
+        ../../include/jsav/ir/IrCommon.hpp
+        ir/GlobalEntityId.cpp
+        ../../include/jsav/ir/GlobalEntityId.hpp
+        analysis/CanonicalOrder.cpp
+        ../../include/jsav/analysis/CanonicalOrder.hpp
+        passes/PassTransaction.cpp
+        ../../include/jsav/passes/PassTransaction.hpp
+        validation/IrValidator.cpp
+        ../../include/jsav/validation/IrValidator.hpp
 )
 
 add_library(jsav::jsav_lib ALIAS jsav_lib)

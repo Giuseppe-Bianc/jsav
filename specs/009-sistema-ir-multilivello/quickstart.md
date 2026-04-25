@@ -1,5 +1,7 @@
 # Quickstart - Verifiable Multi-Level IR System
 
+Terminology reference: `GLOSSARY.md`.
+
 ## Prerequisites
 - Visual Studio 2026 with C++23 MSVC toolset.
 - CMake 4.2+, Ninja.

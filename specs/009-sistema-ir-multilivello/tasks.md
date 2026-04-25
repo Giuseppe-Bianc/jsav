@@ -17,12 +17,12 @@
 
 **Purpose**: Align structure, build, and quality gates to the multi-level IR domain.
 
-- [ ] T001 Update IR/analysis/passes/validation source registration in src/jsav_Lib/CMakeLists.txt
-- [ ] T002 Update install/export of new module headers in CMakeLists.txt
-- [ ] T003 Add skeleton directories and placeholder CMake include entries in src/jsav_Lib/CMakeLists.txt
-- [ ] T004 [P] Add CI stages section (lint->analysis->build->test->sanitizers->complexity->coverage) in .github/workflows/ci.yml
-- [ ] T005 [P] Update coverage threshold to >=95% in gcovr.cfg
-- [ ] T005a [P] Create initial canonical terminology glossary in specs/009-sistema-ir-multilivello/GLOSSARY.md and reference it from feature docs
+- [X] T001 Update IR/analysis/passes/validation source registration in src/jsav_Lib/CMakeLists.txt
+- [X] T002 Update install/export of new module headers in CMakeLists.txt
+- [X] T003 Add skeleton directories and placeholder CMake include entries in src/jsav_Lib/CMakeLists.txt
+- [X] T004 [P] Add CI stages section (lint->analysis->build->test->sanitizers->complexity->coverage) in .github/workflows/ci.yml
+- [X] T005 [P] Update coverage threshold to >=95% in gcovr.cfg
+- [X] T005a [P] Create initial canonical terminology glossary in specs/009-sistema-ir-multilivello/GLOSSARY.md and reference it from feature docs
 - US3: T075 and T077 in parallel (Alias analysis header/cpp and DerivationMap header).
 - Polish: T081 and T082 in parallel (documentation updates).
 

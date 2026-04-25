@@ -1,5 +1,7 @@
 # Contract - IR Pass Interface and Validation
 
+Terminology reference: `../GLOSSARY.md`.
+
 ## Scope
 
 Contract for analysis/transformation/optimization/lowering passes on HIR, MIR, and LIR.

@@ -1,9 +1,16 @@
 # Build directories and binary files
 build/
 buildd/
+bin/
+obj/
 out/
 out/coverage/*
 cmake-build-*/
+*.o
+*.so
+*.a
+*.exe
+*.dll
 conan-cache/
 graphify-out/
 .graphify_*.json
@@ -38,6 +45,7 @@ $RECYCLE.BIN/
 .TemporaryItems
 ehthumbs.db
 Thumbs.db
+*.tmp
 .env*
 run-claude.ps1
 OpenWSL-Cubic.ps1

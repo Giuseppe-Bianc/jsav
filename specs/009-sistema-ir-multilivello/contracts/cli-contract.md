@@ -1,5 +1,7 @@
 # Contract - CLI Surface for IR Pipeline
 
+Terminology reference: `../GLOSSARY.md`.
+
 ## Scope
 
 Contract for the CLI interface used for validation, analysis, and multi-level IR transformations.

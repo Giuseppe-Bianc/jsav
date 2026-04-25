@@ -1,5 +1,7 @@
 # Contract: Proof Witness Format for Memory Independence
 
+Terminology reference: `../GLOSSARY.md`.
+
 **Feature**: `009-sistema-ir-multilivello`
 **Artifact Status**: Finalized
 **Reference Requirement**: `FR-030`
