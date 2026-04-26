@@ -3598,3 +3598,8 @@ When updating this document:
 5. **Review Placeholders**: If adding placeholders, ensure they reference specific files to inspect
 
 **Source**: Evidence-First Documentation pattern
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->
