@@ -1,0 +1,30 @@
+.agents/skills/speckit-checklist/SKILL.md
+  h_0b496d7e860864 52-53,63,65-66,79,115-141,143-158,176-204,206-219,338-373,375-399,408,502-503,513,515,522
+.agents/skills/speckit-clarify/SKILL.md
+  h_0b496d7e860864 31-32,42,44-45,54,61,65,69,128-152,154-171,196,219-243,245-262,289-313,315-332,340,346,367-368,378,380-381,388
+.agents/skills/speckit-implement/SKILL.md
+  h_0b496d7e860864 140-183,204-232,234-266,282-324,326
+.agents/skills/speckit-analyze/SKILL.md
+  h_0b496d7e860864 31-32,42,44-45,54,59,65,71,120-124,126-161,173-183,209-211,213-250,267,285-290,295-335,341,343
+.agents/skills/speckit-plan/SKILL.md
+  h_0b496d7e860864 140,144-186
+.agents/skills/speckit-constitution/SKILL.md
+  h_0b496d7e860864 81-143,151-155,157-194,209-251
+.agents/skills/speckit-specify/SKILL.md
+  h_0b496d7e860864 55,101,104,175,233,266-309,370-432
+.agents/skills/speckit-tasks/SKILL.md
+  h_0b496d7e860864 127-171,210-252,286-329
+.agents/skills/speckit-taskstoissues/SKILL.md
+  h_0b496d7e860864 66-109,115-155
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "d274dba6bed5c81504680e13e845ada8fe4e3c05",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
