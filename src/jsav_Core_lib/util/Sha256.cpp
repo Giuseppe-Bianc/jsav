@@ -1,6 +1,3 @@
-/*
- * Created by Codex on 26/04/2026.
- */
 // NOLINTBEGIN(*-include-cleaner, *-avoid-magic-numbers)
 #include "jsavCore/util/Sha256.hpp"
 
@@ -75,17 +72,19 @@ namespace jsv::crypto {
             std::array<std::uint32_t, 64> schedule{};
             for(std::size_t index = 0; index < 16U; ++index) {
                 const std::size_t base = offset + (index * 4U);
-                schedule[index] = (static_cast<std::uint32_t>(padded[base]) << 24U) |
-                                  (static_cast<std::uint32_t>(padded[base + 1U]) << 16U) |
-                                  (static_cast<std::uint32_t>(padded[base + 2U]) << 8U) |
-                                  static_cast<std::uint32_t>(padded[base + 3U]);
+                schedule[index] = (C_UI32T(padded[base]) << 24U) |
+                                  (C_UI32T(padded[base + 1U]) << 16U) |
+                                  (C_UI32T(padded[base + 2U]) << 8U) |
+                                  C_UI32T(padded[base + 3U]);
             }
 
             for(std::size_t index = 16U; index < schedule.size(); ++index) {
-                const std::uint32_t s0 = rotr(schedule[index - 15U], 7U) ^ rotr(schedule[index - 15U], 18U) ^
-                                         (schedule[index - 15U] >> 3U);
-                const std::uint32_t s1 = rotr(schedule[index - 2U], 17U) ^ rotr(schedule[index - 2U], 19U) ^
-                                         (schedule[index - 2U] >> 10U);
+                const auto index_15 = index - 15U;
+                const auto index_2 = index - 2U;
+                const std::uint32_t s0 = rotr(schedule[index_15], 7U) ^ rotr(schedule[index_15], 18U) ^
+                                         (schedule[index_15] >> 3U);
+                const std::uint32_t s1 = rotr(schedule[index_2], 17U) ^ rotr(schedule[index_2], 19U) ^
+                                         (schedule[index_2] >> 10U);
                 schedule[index] = schedule[index - 16U] + s0 + schedule[index - 7U] + s1;
             }
 
@@ -129,10 +128,11 @@ namespace jsv::crypto {
         Sha256Digest digest{};
         for(std::size_t index = 0; index < hash.size(); ++index) {
             const std::uint32_t value = hash[index];
-            digest.bytes[(index * 4U)] = static_cast<std::byte>((value >> 24U) & 0xFFU);
-            digest.bytes[(index * 4U) + 1U] = static_cast<std::byte>((value >> 16U) & 0xFFU);
-            digest.bytes[(index * 4U) + 2U] = static_cast<std::byte>((value >> 8U) & 0xFFU);
-            digest.bytes[(index * 4U) + 3U] = static_cast<std::byte>(value & 0xFFU);
+            const auto byte_index = index * 4U;
+            digest.bytes[byte_index] = C_B((value >> 24U) & 0xFFU);
+            digest.bytes[byte_index + 1U] = C_B((value >> 16U) & 0xFFU);
+            digest.bytes[byte_index + 2U] = C_B((value >> 8U) & 0xFFU);
+            digest.bytes[byte_index + 3U] = C_B(value & 0xFFU);
         }
         return digest;
     }
