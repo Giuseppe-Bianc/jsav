@@ -1,0 +1,28 @@
+.github/agents/speckit.plan.agent.md
+  h_0b496d7e860864 142,144,192
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "85b869ebb94c7f8ed08848d2373e0b900737ca18",
+  "prompts": {
+    "c4a8d72b6a1cd595": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "5da5b5bc-f34a-42d0-abe4-531dd1639391",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 26,
+      "total_deletions": 0,
+      "accepted_lines": 0,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
