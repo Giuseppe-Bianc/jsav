@@ -1,7 +1,10 @@
 include(GenerateExportHeader)
 
 #find_package(glm REQUIRED)
-add_library(jsav_core_lib jsavCore.cpp)
+add_library(jsav_core_lib
+        jsavCore.cpp
+        util/Sha256.cpp
+        ../../include/jsavCore/util/Sha256.hpp)
 
 add_library(jsav::jsav_core_lib ALIAS jsav_core_lib)
 

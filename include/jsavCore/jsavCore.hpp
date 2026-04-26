@@ -7,3 +7,4 @@
 #include "FileReader.hpp"
 #include "Log.hpp"
 #include "headersCore.hpp"
+#include "util/Sha256.hpp"

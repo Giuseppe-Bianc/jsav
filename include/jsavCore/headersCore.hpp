@@ -26,6 +26,7 @@ DISABLE_WARNINGS_PUSH(
 #include <ctime>
 #include <deque>
 #include <execution>
+#include <expected>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -43,6 +44,7 @@ DISABLE_WARNINGS_PUSH(
 #include <random>
 #include <ranges>
 #include <set>
+#include <span>
 #include <source_location>
 #include <sstream>
 //#include <stack>

@@ -5,9 +5,8 @@
 // NOLINTBEGIN(*-include-cleaner)
 #pragma once
 
-#include "PassResult.hpp"
+#include "Pass.hpp"
 #include "PassContext.hpp"
-#include "../ir/IrCommon.hpp"
 
 namespace jsv {
 

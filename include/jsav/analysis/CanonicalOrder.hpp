@@ -8,10 +8,9 @@
 
 #include "../error/CompileError.hpp"
 #include "../ir/GlobalEntityId.hpp"
-#include <vector>
-#include <string_view>
 
 namespace jsv {
+
 
 }  // namespace jsv
 // NOLINTEND(*-include-cleaner)

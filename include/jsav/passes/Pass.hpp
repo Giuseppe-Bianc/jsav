@@ -8,7 +8,6 @@
 #include "PassResult.hpp"
 #include "../ir/IrCommon.hpp"
 
-
 namespace jsv {
 
 }  // namespace jsv

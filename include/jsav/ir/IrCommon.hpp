@@ -5,7 +5,6 @@
 
 #pragma once
 
-
 #include "../headers.hpp"
 
 namespace jsv {
