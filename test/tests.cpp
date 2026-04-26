@@ -21137,21 +21137,21 @@ TEST_CASE("Sha256 NIST Test Vectors", "[crypto][sha256]") {
 
     SECTION("Empty string") {
         const std::string_view input = "";
-        const auto digest = Sha256::hash(std::span(reinterpret_cast<const std::uint8_t *>(input.data()), input.size()));
+        const auto digest = Sha256::hash(std::as_bytes(std::span(input)));
         const auto hex = Sha256::toHexString(digest);
         REQUIRE(hex == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     }
 
     SECTION("'abc'") {
         const std::string_view input = "abc";
-        const auto digest = Sha256::hash(std::span(reinterpret_cast<const std::uint8_t *>(input.data()), input.size()));
+        const auto digest = Sha256::hash(std::as_bytes(std::span(input)));
         const auto hex = Sha256::toHexString(digest);
         REQUIRE(hex == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     }
 
     SECTION("Longer string (multiple blocks)") {
         const std::string_view input = "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
-        const auto digest = Sha256::hash(std::span(reinterpret_cast<const std::uint8_t *>(input.data()), input.size()));
+        const auto digest = Sha256::hash(std::as_bytes(std::span(input)));
         const auto hex = Sha256::toHexString(digest);
         REQUIRE(hex == "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1");
     }
@@ -21164,8 +21164,8 @@ TEST_CASE("Sha256 Incremental Update", "[crypto][sha256]") {
     const std::string_view p1 = "abcdbcdecdefdefgefghfghighijhijkijkljklm";
     const std::string_view p2 = "klmnlmnomnopnopq";
 
-    hasher.update(std::span(reinterpret_cast<const std::uint8_t *>(p1.data()), p1.size()));
-    hasher.update(std::span(reinterpret_cast<const std::uint8_t *>(p2.data()), p2.size()));
+    hasher.update(std::as_bytes(std::span(p1)));
+    hasher.update(std::as_bytes(std::span(p2)));
 
     const auto digest = hasher.finalize();
     const auto hex = Sha256::toHexString(digest);
