@@ -1,0 +1,16 @@
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 47-50
+include/jsav/jsav.hpp
+  h_0b496d7e860864 45-52
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "76793f8a564ef96e92bddcc4c5e99251ac04500f",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
