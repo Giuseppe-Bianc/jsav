@@ -25,85 +25,83 @@ namespace jsv::crypto {
             0x748F82EEU, 0x78A5636FU, 0x84C87814U, 0x8CC70208U, 0x90BEFFFAU, 0xA4506CEBU, 0xBEF9A3F7U, 0xC67178F2U,
         };
 
-        [[nodiscard]] constexpr std::uint32_t rotr(const std::uint32_t value, const std::uint32_t shift) noexcept {
+        [[nodiscard]] constexpr std::uint32_t rotr(std::uint32_t value, std::uint32_t shift) noexcept {
             return (value >> shift) | (value << (32U - shift));
+        }
+
+        // Load big-endian uint32_t from byte array
+        // Optimized for x86-64: compile-time branch eliminated, single byteswap on LE
+        [[nodiscard]] std::uint32_t load_be32(const std::uint8_t *p) noexcept {
+            std::uint32_t word;
+            std::memcpy(&word, p, sizeof(word));
+            if constexpr(std::endian::native == std::endian::little) {
+                return std::byteswap(word);  // C++23: single instruction on x86-64 (bswap)
+            }
+            return word;
+        }
+
+        // Store big-endian uint32_t to byte array
+        // Optimized for x86-64: byteswap before store on LE, zero-cost on BE
+        void store_be32(std::byte *p, std::uint32_t value) noexcept {
+            if constexpr(std::endian::native == std::endian::little) { value = std::byteswap(value); }
+            std::memcpy(p, &value, sizeof(value));
         }
 
         [[nodiscard]] std::vector<std::uint8_t> pad_message(std::span<const std::byte> bytes) {
             std::vector<std::uint8_t> padded;
             padded.reserve(bytes.size() + 72U);
 
-            std::ranges::transform(bytes, std::back_inserter(padded),
-                                   [](const std::byte value) { return std::to_integer<std::uint8_t>(value); });
+            std::ranges::transform(bytes, std::back_inserter(padded), [](std::byte v) { return std::to_integer<std::uint8_t>(v); });
 
             padded.push_back(0x80U);
-            while((padded.size() % 64U) != 56U) {
-                padded.push_back(0U);
-            }
+            while((padded.size() % 64U) != 56U) { padded.push_back(0U); }
 
             const std::uint64_t bit_length = static_cast<std::uint64_t>(bytes.size()) * 8U;
-            for(int shift = 56; shift >= 0; shift -= 8) {
-                padded.push_back(static_cast<std::uint8_t>((bit_length >> shift) & 0xFFU));
-            }
-
+            for(int shift = 56; shift >= 0; shift -= 8) { padded.push_back(static_cast<std::uint8_t>((bit_length >> shift) & 0xFFU)); }
             return padded;
         }
     }  // namespace
 
     std::string Sha256Digest::hex() const {
-        static constexpr std::array<char, 16> digits{'0', '1', '2', '3', '4', '5', '6', '7',
-                                                     '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
-
+        static constexpr std::array<char, 16> digits{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f'};
         std::string output;
         output.reserve(bytes.size() * 2U);
-        for(const std::byte byte : bytes) {
-            const auto value = std::to_integer<std::uint8_t>(byte);
-            output.push_back(digits[(value >> 4U) & 0x0FU]);
-            output.push_back(digits[value & 0x0FU]);
+        for(std::byte byte : bytes) {
+            const auto val = std::to_integer<std::uint8_t>(byte);
+            output.push_back(digits[(val >> 4U) & 0x0FU]);
+            output.push_back(digits[val & 0x0FU]);
         }
         return output;
     }
 
-    Sha256Digest sha256(std::span<const std::byte> bytes) {
+    Sha256Digest sha256(std::span<const std::byte> input) {
         std::array<std::uint32_t, 8> hash = initial_hash;
-        const std::vector<std::uint8_t> padded = pad_message(bytes);
+        const std::vector<std::uint8_t> padded = pad_message(input);
 
         for(std::size_t offset = 0; offset < padded.size(); offset += 64U) {
             std::array<std::uint32_t, 64> schedule{};
-            for(std::size_t index = 0; index < 16U; ++index) {
-                const std::size_t base = offset + (index * 4U);
-                schedule[index] = (C_UI32T(padded[base]) << 24U) |
-                                  (C_UI32T(padded[base + 1U]) << 16U) |
-                                  (C_UI32T(padded[base + 2U]) << 8U) |
-                                  C_UI32T(padded[base + 3U]);
+
+            // Load first 16 words with big-endian interpretation (optimized)
+            for(std::size_t i = 0; i < 16U; ++i) { schedule[i] = load_be32(&padded[offset + i * 4U]); }
+
+            // Extend message schedule
+            for(std::size_t i = 16U; i < 64U; ++i) {
+                const auto s0 = rotr(schedule[i - 15], 7U) ^ rotr(schedule[i - 15], 18U) ^ (schedule[i - 15] >> 3U);
+                const auto s1 = rotr(schedule[i - 2], 17U) ^ rotr(schedule[i - 2], 19U) ^ (schedule[i - 2] >> 10U);
+                schedule[i] = schedule[i - 16U] + s0 + schedule[i - 7U] + s1;
             }
 
-            for(std::size_t index = 16U; index < schedule.size(); ++index) {
-                const auto index_15 = index - 15U;
-                const auto index_2 = index - 2U;
-                const std::uint32_t s0 = rotr(schedule[index_15], 7U) ^ rotr(schedule[index_15], 18U) ^
-                                         (schedule[index_15] >> 3U);
-                const std::uint32_t s1 = rotr(schedule[index_2], 17U) ^ rotr(schedule[index_2], 19U) ^
-                                         (schedule[index_2] >> 10U);
-                schedule[index] = schedule[index - 16U] + s0 + schedule[index - 7U] + s1;
-            }
+            // Initialize working variables
+            auto [a, b, c, d, e, f, g, h] = std::tie(hash[0], hash[1], hash[2], hash[3], hash[4], hash[5], hash[6], hash[7]);
 
-            std::uint32_t a = hash[0];
-            std::uint32_t b = hash[1];
-            std::uint32_t c = hash[2];
-            std::uint32_t d = hash[3];
-            std::uint32_t e = hash[4];
-            std::uint32_t f = hash[5];
-            std::uint32_t g = hash[6];
-            std::uint32_t h = hash[7];
-
-            for(std::size_t index = 0; index < schedule.size(); ++index) {
-                const std::uint32_t sigma1 = rotr(e, 6U) ^ rotr(e, 11U) ^ rotr(e, 25U);
-                const std::uint32_t choice = (e & f) ^ (~e & g);
-                const std::uint32_t temp1 = h + sigma1 + choice + round_constants[index] + schedule[index];
-                const std::uint32_t sigma0 = rotr(a, 2U) ^ rotr(a, 13U) ^ rotr(a, 22U);
-                const std::uint32_t majority = (a & b) ^ (a & c) ^ (b & c);
-                const std::uint32_t temp2 = sigma0 + majority;
+            // Compression function
+            for(std::size_t i = 0; i < 64U; ++i) {
+                const std::uint32_t Sigma1 = rotr(e, 6U) ^ rotr(e, 11U) ^ rotr(e, 25U);
+                const std::uint32_t Ch = (e & f) ^ (~e & g);
+                const std::uint32_t temp1 = h + Sigma1 + Ch + round_constants[i] + schedule[i];
+                const std::uint32_t Sigma0 = rotr(a, 2U) ^ rotr(a, 13U) ^ rotr(a, 22U);
+                const std::uint32_t Maj = (a & b) ^ (a & c) ^ (b & c);
+                const std::uint32_t temp2 = Sigma0 + Maj;
 
                 h = g;
                 g = f;
@@ -115,6 +113,7 @@ namespace jsv::crypto {
                 a = temp1 + temp2;
             }
 
+            // Update hash state
             hash[0] += a;
             hash[1] += b;
             hash[2] += c;
@@ -125,20 +124,14 @@ namespace jsv::crypto {
             hash[7] += h;
         }
 
+        // Serialize final hash in big-endian byte order (optimized)
         Sha256Digest digest{};
-        for(std::size_t index = 0; index < hash.size(); ++index) {
-            const std::uint32_t value = hash[index];
-            const auto byte_index = index * 4U;
-            digest.bytes[byte_index] = C_B((value >> 24U) & 0xFFU);
-            digest.bytes[byte_index + 1U] = C_B((value >> 16U) & 0xFFU);
-            digest.bytes[byte_index + 2U] = C_B((value >> 8U) & 0xFFU);
-            digest.bytes[byte_index + 3U] = C_B(value & 0xFFU);
-        }
+        for(std::size_t i = 0; i < 8U; ++i) { store_be32(&digest.bytes[i * 4U], hash[i]); }
         return digest;
     }
 
-    Sha256Digest sha256(const std::string_view text) {
-        const auto *data = reinterpret_cast<const std::byte *>(text.data());
+    Sha256Digest sha256(std::string_view text) {
+        auto *data = reinterpret_cast<const std::byte *>(text.data());
         return sha256(std::span<const std::byte>{data, text.size()});
     }
 

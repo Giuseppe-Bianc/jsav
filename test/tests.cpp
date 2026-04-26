@@ -212,6 +212,15 @@ namespace {
 
     // Helper to create IntegerLiteral for ArrayType size expressions
     std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
+
+    std::vector<std::byte> to_bytes(std::string_view input) {
+        std::vector<std::byte> result;
+        result.reserve(input.size());
+        for(unsigned char c : input) {
+            result.push_back(C_B(c));
+        }
+        return result;
+    }
 }  // namespace
 
 TEST_CASE("AstPrinter prints literals correctly", "[AstPrinter][literals][unicode]") {
@@ -21130,6 +21139,180 @@ TEST_CASE("TypedAst_NodeTypeVerification_AfterPromotion", "[type_promotion][Type
         REQUIRE(typed->is_typed());
     }
 }
+
+TEST_CASE("sha256 produces correct digest for known test vectors", "[sha256][known][correctness]") {
+    /*
+     * Validates correctness against well-known SHA-256 test vectors.
+     */
+
+    auto [input, expected_hex] = GENERATE(table<std::string_view, std::string>({
+        {"", "e3b0c44298fc1c149afbf4c8996fb924"
+             "27ae41e4649b934ca495991b7852b855"},
+        {"abc", "ba7816bf8f01cfea414140de5dae2223"
+                "b00361a396177a9cb410ff61f20015ad"},
+        {"hello world", "b94d27b9934d3e08a52e52d7da7dabfa"
+                        "c484efe37a5380ee9088f7ace2efcde9"},
+        {"The quick brown fox jumps over the lazy dog",
+         "d7a8fbb307d7809469ca9abcb0082e4f"
+         "8d5651e46d3cdb7625e0cbb7b6e7a3a5"},
+        {"The quick brown fox jumps over the lazy dog.",
+         "ef537f25c895bfa782526529a9b63d97"
+         "aa631564d5d789c2b765448c8635fb6c"}
+    }));
+
+    CAPTURE(input, expected_hex);
+
+    SECTION("string_view overload produces correct hex") {
+        const std::string result = jsv::crypto::sha256_hex(input);
+        CAPTURE(result);
+        REQUIRE(result == expected_hex);
+    }
+
+    SECTION("span<byte> overload produces correct hex") {
+        const auto bytes = to_bytes(input);
+        const std::string result = jsv::crypto::sha256_hex(std::span<const std::byte>{bytes});
+        CAPTURE(result);
+        REQUIRE(result == expected_hex);
+    }
+}
+
+TEST_CASE("Sha256Digest equality operator behaves correctly", "[sha256][digest][equality]") {
+    /*
+     * Verifies that identical inputs produce identical digests and operator== works.
+     */
+
+    const std::string_view input = "consistency test";
+
+    const jsv::crypto::Sha256Digest d1 = jsv::crypto::sha256(input);
+    const jsv::crypto::Sha256Digest d2 = jsv::crypto::sha256(input);
+
+    SECTION("identical inputs yield equal digests") {
+        REQUIRE(d1 == d2);
+    }
+
+    SECTION("different inputs yield different digests") {
+        const jsv::crypto::Sha256Digest d3 = jsv::crypto::sha256("different input");
+        REQUIRE_FALSE(d1 == d3);
+    }
+}
+
+TEST_CASE("Sha256Digest::hex produces valid lowercase hexadecimal string", "[sha256][hex][format]") {
+    /*
+     * Validates formatting rules of hex output.
+     */
+
+    const jsv::crypto::Sha256Digest digest = jsv::crypto::sha256("format test");
+    const std::string hex = digest.hex();
+
+    SECTION("hex string has correct length") {
+        REQUIRE(hex.size() == 64u);
+    }
+
+    SECTION("hex string contains only lowercase hexadecimal characters") {
+        for(char c : hex) {
+            CAPTURE(c);
+            REQUIRE_THAT(std::string(1, c), Catch::Matchers::Matches("[0-9a-f]"));
+        }
+    }
+
+    SECTION("hex() matches sha256_hex()") {
+        REQUIRE(hex == jsv::crypto::sha256_hex("format test"));
+    }
+}
+
+TEST_CASE("sha256 handles boundary input sizes correctly", "[sha256][boundary][size]") {
+    /*
+     * Tests empty, single-byte, and block-boundary inputs.
+     */
+
+    SECTION("empty input produces correct digest") {
+        REQUIRE(jsv::crypto::sha256_hex("") ==
+                "e3b0c44298fc1c149afbf4c8996fb924"
+                "27ae41e4649b934ca495991b7852b855");
+    }
+
+    SECTION("single byte input") {
+        const std::string input = "a";
+        const auto result = jsv::crypto::sha256_hex(input);
+        REQUIRE(result.size() == 64u);
+    }
+
+    SECTION("input exactly one block (64 bytes)") {
+        const std::string input(64, 'x');
+        const auto result = jsv::crypto::sha256_hex(input);
+        REQUIRE(result.size() == 64u);
+    }
+
+    SECTION("input one byte less than block boundary") {
+        const std::string input(63, 'x');
+        const auto result = jsv::crypto::sha256_hex(input);
+        REQUIRE(result.size() == 64u);
+    }
+
+    SECTION("input one byte more than block boundary") {
+        const std::string input(65, 'x');
+        const auto result = jsv::crypto::sha256_hex(input);
+        REQUIRE(result.size() == 64u);
+    }
+}
+
+TEST_CASE("sha256 processes large inputs deterministically", "[sha256][stress][large]") {
+    /*
+     * Verifies stability and determinism for large inputs.
+     */
+
+    std::string large_input(1'000'000, 'a');
+
+    const std::string hash1 = jsv::crypto::sha256_hex(large_input);
+    const std::string hash2 = jsv::crypto::sha256_hex(large_input);
+
+    SECTION("large input produces deterministic result") {
+        REQUIRE(hash1 == hash2);
+    }
+
+    SECTION("output length remains valid") {
+        REQUIRE(hash1.size() == 64u);
+    }
+}
+
+TEST_CASE("Sha256Digest satisfies noexcept and structural guarantees", "[sha256][noexcept][contract]") {
+    /*
+     * Verifies noexcept properties and structural invariants.
+     */
+
+    STATIC_REQUIRE(std::is_nothrow_copy_constructible_v<jsv::crypto::Sha256Digest>);
+    STATIC_REQUIRE(std::is_nothrow_move_constructible_v<jsv::crypto::Sha256Digest>);
+    STATIC_REQUIRE(std::is_nothrow_copy_assignable_v<jsv::crypto::Sha256Digest>);
+    STATIC_REQUIRE(std::is_nothrow_move_assignable_v<jsv::crypto::Sha256Digest>);
+
+    const jsv::crypto::Sha256Digest digest = jsv::crypto::sha256("noexcept test");
+
+    SECTION("operator== does not throw") {
+        REQUIRE_NOTHROW(std::ignore = (digest == digest));
+    }
+
+    SECTION("hex() does not throw") {
+        REQUIRE_NOTHROW(std::ignore = digest.hex());
+    }
+}
+
+TEST_CASE("sha256 span and string_view overloads are equivalent", "[sha256][overload][consistency]") {
+    /*
+     * Ensures both overloads produce identical results.
+     */
+
+    const std::string input = "overload consistency test";
+    const auto bytes = to_bytes(input);
+
+    const std::string hex_from_string = jsv::crypto::sha256_hex(input);
+    const std::string hex_from_span = jsv::crypto::sha256_hex(std::span<const std::byte>{bytes});
+
+    CAPTURE(hex_from_string, hex_from_span);
+
+    REQUIRE(hex_from_string == hex_from_span);
+}
+
+
 
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length, *-pro-bounds-constant-array-index, *-owning-memory, cert-err33-c, *-avoid-c-arrays, *-unsafe-functions, *-pro-bounds-array-to-pointer-decay)
