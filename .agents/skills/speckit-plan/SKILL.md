@@ -137,9 +137,53 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Skip if project is purely internal (build scripts, one-off tools, etc.)
 
 3. **Agent context update**:
-   - Update the plan reference between the `<!-- SPECKIT START -->` and `<!-- SPECKIT END -->` markers in `AGENTS.md` to point to the plan file created in step 1 (the IMPL_PLAN path)
+   - Update the plan reference between the `<!-- SPECKIT START -->` and `<!-- SPECKIT END -->` markers in `.github/copilot-instructions.md` to point to the plan file created in step 1 (the IMPL_PLAN path)
 
 **Output**: data-model.md, /contracts/*, quickstart.md, updated agent context file
+
+#### Patterns for Design Artifact Generation
+
+##### Pattern: Spec-Traced Artifact Derivation
+
+- **Objective:** Ensure that every entity in data-model.md, every contract in contracts/, and every scenario in quickstart.md traces directly to a requirement, user story, or constraint in the feature specification, preventing design artifacts from containing speculative or ungrounded content.
+- **Context of application:** Apply during steps 1, 2, and 3 of Phase 1 when generating each artifact from the feature spec and resolved research decisions.
+- **Key characteristics:** Each entity, field, relationship, and contract element can be justified by pointing to a specific passage in the feature spec. If an element cannot be traced, it is either derived from a research.md decision (which itself traces to a Technical Context unknown) or it does not belong in the artifact. The generator treats the feature spec as the authoritative source and research.md as the supplementary source — no third source of requirements is introduced.
+- **Operational guidance:**
+  1. Before adding an entity to data-model.md, identify the user story or functional requirement in the feature spec that necessitates it. Record this traceability as a comment or annotation in the data model.
+  2. For each field on an entity, verify that it corresponds to a data element mentioned or implied by the spec. If the spec describes "users can set their display name and email," the User entity gets `display_name` and `email` fields — not `phone_number` unless the spec mentions it.
+  3. For each interface contract, identify the user-facing interaction or system integration in the spec that requires it. If no spec requirement calls for an external interface, do not create a contract.
+  4. For quickstart.md scenarios, derive each scenario from the acceptance criteria or user scenarios in the spec. Each scenario should exercise a specific requirement, not a hypothetical use case.
+  5. After generating all artifacts, perform a reverse check: scan the feature spec for requirements that have no corresponding artifact element. If a requirement is unrepresented, add the missing element or document why it is deferred.
+
+##### Pattern: Project-Appropriate Contract Selection
+
+- **Objective:** Match the format, scope, and existence of interface contracts to the actual project type, generating contracts only when the project exposes external interfaces and using the format that matches how those interfaces are consumed.
+- **Context of application:** Apply during step 2 of Phase 1 when deciding whether to create contracts and what format they should take.
+- **Key characteristics:** The generator evaluates the project type (library, CLI tool, web service, desktop application, internal script) before generating any contract. The decision to create or skip contracts is deliberate, not defaulted. When contracts are created, their format reflects the consumption model — OpenAPI for REST services, type signatures for libraries, command schemas for CLI tools, component contracts for UI applications. The contract format is chosen based on how consumers will interact with the interface, not on a universal template.
+- **Operational guidance:**
+  1. Determine the project type from plan.md's Technical Context and the feature spec. Classify it as one of: library, CLI tool, web service, desktop/mobile application, internal tool, or hybrid.
+  2. If the project is purely internal (build scripts, one-off data migrations, internal automation), skip contract generation entirely and document the skip reason in the plan.
+  3. For libraries: generate contracts as type signatures, public API surface documentation, or interface definitions in the language's idiomatic format.
+  4. For CLI tools: generate contracts as command schemas documenting arguments, flags, input formats, and output formats.
+  5. For web services: generate contracts as endpoint definitions with request/response schemas, status codes, and error formats.
+  6. For UI applications: generate contracts as component interface definitions documenting props, events, and state requirements.
+  7. Do not mix contract formats within a single project unless the project genuinely exposes multiple interface types (e.g., a web service with both a REST API and a CLI admin tool).
+
+#### Anti-Patterns for Design Artifact Generation
+
+##### Anti-Pattern: Assumption-Driven Modeling
+
+- **Description:** The generator adds entities, fields, relationships, or contract endpoints to design artifacts based on what "most applications like this would need" rather than on what the feature spec actually requires — for example, adding a `Roles` entity and role-based access control fields to a data model when the spec describes a single-user application, or adding CRUD endpoints for every entity when the spec only requires read access.
+- **Reasons to avoid:** Speculative modeling inflates the design surface area, creating implementation work for functionality that was never specified. It contradicts the feature spec's authority as the single source of requirements. This typically occurs when the generator draws on general domain knowledge ("most web apps need roles and permissions") rather than reading the specific spec, or when it confuses completeness with comprehensiveness — a complete data model covers every spec requirement, not every possible requirement.
+- **Negative consequences:** Downstream agents (speckit.tasks) generate implementation tasks for entities and endpoints that no user story requires, inflating the task count and extending timelines. The implementation includes functionality that was never validated by stakeholders, creating maintenance burden. The data model and contracts diverge from the spec, making consistency analysis (speckit.analyze) produce false positives or miss genuine gaps. Reviewers must distinguish between spec-required and assumption-added elements, increasing review effort.
+- **Correct alternative:** Apply the **Spec-Traced Artifact Derivation** pattern to ensure every artifact element traces to a specific requirement in the feature spec or a resolved decision in research.md.
+
+##### Anti-Pattern: Universal Contract Generation
+
+- **Description:** The generator creates interface contracts for every project regardless of type — producing REST API endpoint definitions for a command-line utility, OpenAPI specifications for an internal build script, or formal contract documents for a project whose only "interface" is a function call within a larger codebase.
+- **Reasons to avoid:** Interface contracts exist to document boundaries between a system and its external consumers. When a project has no external consumers — or when its interface model does not match the contract format being generated — the contracts are at best unused and at worst misleading. This mistake occurs when the generator treats contract generation as a mandatory step rather than a conditional one, or when it defaults to a web-service contract format without assessing the project type. The Phase 1 instructions explicitly state to "skip if project is purely internal."
+- **Negative consequences:** The contracts/ directory contains documents that no consumer will reference, creating a maintenance burden with no corresponding value. Downstream agents generate tasks to implement interfaces described in the contracts, producing code (e.g., REST endpoints) that the project does not need. The mismatch between contract format and actual interface type confuses implementers who expect the contract to match their consumption model. The project accumulates artifacts that signal a different architecture than what is actually being built.
+- **Correct alternative:** Apply the **Project-Appropriate Contract Selection** pattern to evaluate the project type before generating contracts, skip generation for internal projects, and use the format that matches the actual interface consumption model.
 
 ## Key rules
 
