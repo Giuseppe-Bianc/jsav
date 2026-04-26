@@ -97,49 +97,6 @@ You **MUST** consider the user input before proceeding (if not empty).
        EXECUTE_COMMAND: {command}
        ```
    - If no hooks are registered or `.specify/extensions.yml` does not exist, skip silently
-The outline above establishes a multi-phase workflow with gate evaluations, research, and artifact generation. The following patterns and anti-patterns guide the reliable execution of this workflow end-to-end.
-
-## Patterns for the Planning Workflow
-
-### Pattern: Constitution-Gated Progression
-
-- **Objective:** Ensure that constitution gate evaluations are performed thoroughly at each checkpoint — both before and after design — so that violations are caught and addressed rather than carried silently into downstream artifacts.
-- **Context of application:** Apply during step 3 of the Outline when evaluating gates before Phase 0 and when re-evaluating the Constitution Check post-design after Phase 1.
-- **Key characteristics:** Each gate evaluation explicitly lists every constitution rule, states whether the current plan complies or violates it, and provides justification for any deviation. The evaluation is not a pass-through formality — it is a blocking checkpoint. If a violation is identified and no justification is provided, the workflow halts with an ERROR. Post-design re-evaluation checks whether design decisions introduced new violations not present in the initial evaluation.
-- **Operational guidance:**
-  1. After filling the Technical Context and Constitution Check section, enumerate every rule from `constitution.md` and assess compliance individually.
-  2. For each rule, write one of three verdicts: "Compliant," "Violation — justified because [reason]," or "Violation — unjustified." Do not leave any rule unassessed.
-  3. If any rule is marked "Violation — unjustified," emit an ERROR and stop. Do not proceed to Phase 0.
-  4. After Phase 1 is complete, re-run the same enumeration against the now-complete design artifacts. Check specifically whether entity definitions in data-model.md, interface contracts, or technology choices in research.md introduced new violations.
-  5. If post-design evaluation reveals new violations, address them by modifying the offending artifact before reporting completion.
-
-### Pattern: Sequential Phase Completion
-
-- **Objective:** Complete every deliverable and validation within a phase before beginning work on the next phase, ensuring that later phases build on fully resolved foundations rather than tentative or incomplete outputs.
-- **Context of application:** Apply at the boundary between Phase 0 and Phase 1, and at the boundary between Phase 1 and the final report.
-- **Key characteristics:** Phase 0 is considered complete only when research.md exists and contains resolved decisions for every NEEDS CLARIFICATION item from the Technical Context. Phase 1 is considered complete only when all specified artifacts (data-model.md, contracts/ if applicable, quickstart.md) are generated and the agent context script has been executed. No artifact generation in Phase 1 begins while Phase 0 has unresolved items.
-- **Operational guidance:**
-  1. Before transitioning from Phase 0 to Phase 1, verify that research.md contains a "Decision," "Rationale," and "Alternatives considered" entry for every unknown extracted from the Technical Context.
-  2. Search the Technical Context section for any remaining "NEEDS CLARIFICATION" markers. If any remain, Phase 0 is not complete — return to research and resolve them.
-  3. Before transitioning from Phase 1 to the final report, verify that each specified output artifact exists and is non-empty.
-  4. Run the agent context update script (`update-agent-context.ps1`) only after all Phase 1 artifacts are written, not during artifact generation.
-  5. Proceed to the final report (step 4 of the Outline) only after post-design constitution re-evaluation is complete and passing.
-
-## Anti-Patterns for the Planning Workflow
-
-### Anti-Pattern: Rubber-Stamp Gating
-
-- **Description:** The generator treats constitution gate evaluation as a formality — copying the constitution rules into the check section and marking all as "Compliant" without actually assessing the plan's alignment with each rule, or skipping the post-design re-evaluation entirely because the pre-design check passed.
-- **Reasons to avoid:** Constitution rules exist to enforce project-wide constraints (technology choices, architectural boundaries, security requirements). A gate evaluation that does not genuinely assess compliance allows violations to propagate into design artifacts, where they are far more expensive to correct. This typically occurs when the generator treats the constitution check as a template section to fill rather than as an active validation step, or when time pressure encourages a "we already checked this" attitude toward re-evaluation.
-- **Negative consequences:** Violations surface during implementation or review, forcing rework of data-model.md, contracts, or research.md after downstream agents have already consumed them. The constitution loses its authority as a governance mechanism — if gates never block, they serve no purpose. Downstream agents (speckit.tasks, speckit.implement) produce plans and code that violate project constraints, requiring costly corrections.
-- **Correct alternative:** Apply the **Constitution-Gated Progression** pattern to perform genuine, rule-by-rule evaluation at both checkpoints, blocking on unjustified violations.
-
-### Anti-Pattern: Phase Interleaving
-
-- **Description:** The generator begins Phase 1 work (entity extraction, contract definition) before Phase 0 (research) is fully complete — for example, starting data-model.md while some Technical Context unknowns are still marked NEEDS CLARIFICATION, reasoning that the unresolved items "probably won't affect the data model."
-- **Reasons to avoid:** Phase 1 artifacts depend on the decisions made in Phase 0. An entity definition created before a technology decision is resolved may use the wrong data types, assume the wrong storage paradigm, or model relationships that the chosen technology handles differently. This mistake typically occurs when the generator perceives Phase 0 and Phase 1 as independent workstreams rather than as sequential dependencies, or when a seemingly obvious research question tempts the generator to "start on what we can" while that question is being resolved.
-- **Negative consequences:** Design artifacts embed assumptions that contradict later research findings. When the research resolves, the artifacts must be regenerated — but the generator may not revisit them, producing an internally inconsistent plan. The agent context update captures incomplete or contradictory information. Downstream agents receive a plan that appears complete but contains decisions based on pre-research assumptions.
-- **Correct alternative:** Apply the **Sequential Phase Completion** pattern to treat Phase 0 completion as a hard prerequisite for any Phase 1 work.
 
 ## Phases
 
@@ -166,48 +123,6 @@ The outline above establishes a multi-phase workflow with gate evaluations, rese
 
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 
-Phase 0 produces the research foundation that all subsequent design work depends on. The following patterns and anti-patterns guide the scoping and execution of research tasks.
-
-#### Patterns for Research and Unknown Resolution
-
-##### Pattern: Targeted Research Scoping
-
-- **Objective:** Constrain each research task to the specific unknown it was derived from, producing focused findings that directly resolve Technical Context gaps without introducing tangential information or decision fatigue.
-- **Context of application:** Apply during step 1 (Extract unknowns) and step 2 (Generate and dispatch research agents) of Phase 0 when defining research task scope.
-- **Key characteristics:** Each research task maps one-to-one to a specific NEEDS CLARIFICATION marker, dependency, or integration point from the Technical Context. The task prompt includes the feature context to prevent generic results. Research findings are evaluated solely on whether they resolve the originating unknown — additional findings, however interesting, are excluded from research.md unless they directly address another identified unknown.
-- **Operational guidance:**
-  1. For each NEEDS CLARIFICATION marker in the Technical Context, create exactly one research task. The task description must reference both the specific unknown and the feature context (e.g., "Research OAuth2 token storage strategies for a mobile-first e-commerce application," not "Research OAuth2").
-  2. For each dependency, scope the best-practices task to the intersection of that dependency and the feature's domain. Avoid broad tasks like "Find best practices for PostgreSQL" — instead, specify "Find best practices for PostgreSQL JSON column indexing in a product catalog context."
-  3. When consolidating findings, include only the decision, rationale, and alternatives that address the originating unknown. If research surfaces a new unknown not previously identified, add it to the Technical Context as a new NEEDS CLARIFICATION marker and create a separate research task for it.
-  4. After consolidation, verify that every original NEEDS CLARIFICATION marker has a corresponding "Decision" entry in research.md. If any marker lacks a decision, the research is incomplete.
-
-##### Pattern: Decision-Ready Consolidation
-
-- **Objective:** Structure research.md so that every entry provides a clear, actionable decision that Phase 1 can consume directly, rather than presenting raw findings that require further interpretation.
-- **Context of application:** Apply during step 3 (Consolidate findings) of Phase 0 when writing research.md entries.
-- **Key characteristics:** Each entry in research.md follows the three-field format (Decision, Rationale, Alternatives considered) without deviation. The Decision field contains a specific, implementable choice — not a recommendation to "consider" or "evaluate further." The Rationale field explains why this decision is correct for the specific feature context. The Alternatives field lists what was evaluated and why each was rejected, preventing downstream agents from reopening settled questions.
-- **Operational guidance:**
-  1. Write the Decision field as a declarative statement: "Use JWT with short-lived access tokens and refresh token rotation," not "Consider using JWT or session-based authentication."
-  2. In the Rationale field, connect the decision to at least one specific requirement or constraint from the feature spec or constitution.
-  3. In the Alternatives field, list at least two alternatives with one-sentence rejection reasons tied to the feature context (e.g., "Session-based auth rejected: requires sticky sessions, incompatible with the stateless API architecture specified in constitution.md").
-  4. After writing all entries, re-read each Decision field in isolation. If a Phase 1 artifact author could not act on it without reading the Rationale, the Decision is too vague — add specificity.
-
-#### Anti-Patterns for Research and Unknown Resolution
-
-##### Anti-Pattern: Speculative Research Expansion
-
-- **Description:** The generator broadens research tasks beyond the specific unknowns identified in the Technical Context, investigating tangentially related topics, exploring "nice-to-have" technologies, or researching areas that the feature spec does not require — for example, researching GraphQL subscriptions for a feature that only requires REST endpoints, or investigating caching strategies when no performance requirement exists.
-- **Reasons to avoid:** Expanded research produces findings that have no corresponding NEEDS CLARIFICATION marker and no consumer in Phase 1. The additional entries in research.md create the impression that more decisions need to be reflected in design artifacts, leading Phase 1 to produce unnecessarily complex data models or contracts. This typically occurs when the generator conflates "thorough research" with "broad research," or when it anticipates future needs that the current feature spec does not establish.
-- **Negative consequences:** research.md becomes bloated with decisions that no downstream artifact references. Phase 1 may incorporate speculative decisions into data-model.md or contracts, adding complexity that the feature spec never required. The planning workflow takes longer without producing proportional value. Downstream agents (speckit.tasks) generate tasks for functionality that originated in speculative research rather than in the feature specification.
-- **Correct alternative:** Apply the **Targeted Research Scoping** pattern to limit each research task to a specific, identified unknown and exclude findings that do not resolve an existing gap.
-
-##### Anti-Pattern: Inconclusive Research Entries
-
-- **Description:** Research.md entries present findings without reaching a decision — for example, listing three database options with pros and cons but concluding with "further evaluation needed" or "depends on team preference," effectively passing the decision back to Phase 1 or to the user.
-- **Reasons to avoid:** Phase 0's explicit purpose is to resolve all NEEDS CLARIFICATION markers. An inconclusive entry violates the phase completion criterion and forces Phase 1 to make decisions it is not equipped to make — entity extraction and contract definition require settled technology choices, not open questions. This typically occurs when the generator encounters a genuinely difficult tradeoff and avoids committing to a decision, or when it assumes a human reviewer will finalize the choice before Phase 1 begins.
-- **Negative consequences:** Phase 1 proceeds with unresolved unknowns, producing artifacts that may be invalidated when the decision is eventually made. The Sequential Phase Completion pattern is violated in spirit even if the research.md file technically exists. Downstream agents inherit ambiguity and make independent, potentially conflicting choices. The planning workflow fails to deliver its core value — converting unknowns into decisions.
-- **Correct alternative:** Apply the **Decision-Ready Consolidation** pattern to ensure every research.md entry contains a specific, implementable decision with clear rationale.
-
 ### Phase 1: Design & Contracts
 
 **Prerequisites:** `research.md` complete
@@ -224,15 +139,9 @@ Phase 0 produces the research foundation that all subsequent design work depends
    - Skip if project is purely internal (build scripts, one-off tools, etc.)
 
 3. **Agent context update**:
-   - Run `.specify/scripts/powershell/update-agent-context.ps1 -AgentType copilot`
-   - These scripts detect which AI agent is in use
-   - Update the appropriate agent-specific context file
-   - Add only new technology from current plan
-   - Preserve manual additions between markers
+   - Update the plan reference between the `<!-- SPECKIT START -->` and `<!-- SPECKIT END -->` markers in `.github/copilot-instructions.md` to point to the plan file created in step 1 (the IMPL_PLAN path)
 
-**Output**: data-model.md, /contracts/*, quickstart.md, agent-specific file
-
-Phase 1 translates research decisions and feature requirements into concrete design artifacts. The following patterns and anti-patterns guide the generation of data models, contracts, and supporting files.
+**Output**: data-model.md, /contracts/*, quickstart.md, updated agent context file
 
 #### Patterns for Design Artifact Generation
 
@@ -280,5 +189,5 @@ Phase 1 translates research decisions and feature requirements into concrete des
 
 ## Key rules
 
-- Use absolute paths
+- Use absolute paths for filesystem operations; use project-relative paths for references in documentation and agent context files
 - ERROR on gate failures or unresolved clarifications
