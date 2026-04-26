@@ -1,0 +1,33 @@
+include/jsavCore/util/Sha256.hpp
+  c60ca58c334b077f 4,25,36,50,62,64,67
+test/tests.cpp
+  h_0b496d7e860864 21140,21147,21154,21167-21168
+src/jsav_Core_lib/util/Sha256.cpp
+  h_0b496d7e860864 60-62,121-126
+  c60ca58c334b077f 10,42,44-45,50,56,103-106,109-110,113,115-116,133,142
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1da914e2ea938d060bbae93df73bffa518a4f4f3",
+  "prompts": {
+    "c60ca58c334b077f": {
+      "agent_id": {
+        "tool": "gemini",
+        "id": "e2a463af-f2f1-4015-8fd1-875226350863",
+        "model": "unknown"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 35,
+      "total_deletions": 33,
+      "accepted_lines": 24,
+      "overriden_lines": 12
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
