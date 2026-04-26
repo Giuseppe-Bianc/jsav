@@ -63,9 +63,9 @@ namespace jsv::crypto {
          */
         void transform(std::span<const std::byte, BlockSize> block) noexcept;
 
+        std::uint64_t count_;                    ///< Total number of bits processed.
         std::array<std::uint32_t, 8> state_;      ///< Intermediate hash state (H0..H7).
         std::array<std::byte, BlockSize> buffer_; ///< Buffer for data not yet processed.
-        std::uint64_t count_;                    ///< Total number of bits processed.
         std::size_t bufferIdx_;                  ///< Current index in the buffer.
     };
 
