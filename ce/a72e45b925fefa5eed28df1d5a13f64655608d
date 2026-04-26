@@ -1,0 +1,14 @@
+src/jsav_Core_lib/util/Sha256.cpp
+  h_0b496d7e860864 75-78,82-87,131-135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "cea72e45b925fefa5eed28df1d5a13f64655608d",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
