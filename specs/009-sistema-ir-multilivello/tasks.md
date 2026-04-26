@@ -44,15 +44,15 @@
 
 ### Implementation (Green/Refactor)
 
-- [X] T009 Define base IR level/pass kind types and canonical key in include/jsav/ir/IrCommon.hpp
-- [X] T010 Implement canonical PassResult error type with CompileError batch in include/jsav/passes/PassResult.hpp
-- [X] T011 Implement IPass contract and PassInvariantReport in include/jsav/passes/Pass.hpp
-- [X] T012 Implement deterministic PassContext and canonical config in include/jsav/passes/PassContext.hpp
-- [X] T013 Implement deterministic immutable global ID entities in include/jsav/ir/GlobalEntityId.hpp
+- [ ] T009 Define base IR level/pass kind types and canonical key in include/jsav/ir/IrCommon.hpp
+- [ ] T010 Implement canonical PassResult error type with CompileError batch in include/jsav/passes/PassResult.hpp
+- [ ] T011 Implement IPass contract and PassInvariantReport in include/jsav/passes/Pass.hpp
+- [ ] T012 Implement deterministic PassContext and canonical config in include/jsav/passes/PassContext.hpp
+- [ ] T013 Implement deterministic immutable global ID entities in include/jsav/ir/GlobalEntityId.hpp
 - [ ] T014 Implement ID generator from canonical structural path in src/jsav_Lib/ir/GlobalEntityId.cpp
-- [X] T015 Implement **PassTransaction** mechanism (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
+- [ ] T015 Implement **PassTransaction** mechanism (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
 - [ ] T016 Implement **PassTransaction** engine in src/jsav_Lib/passes/PassTransaction.cpp
-- [X] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
+- [ ] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
 - [ ] T018 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
 - [ ] T019 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
 - [ ] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)

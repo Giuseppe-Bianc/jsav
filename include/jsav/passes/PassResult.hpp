@@ -9,15 +9,6 @@
 
 namespace jsv {
 
-    /// Batch error result type for passes
-    using ErrorBatch = std::vector<CompileError>;
-
-    /// Result type for pass operations - success with value or failure with error batch
-    template <typename TResult>
-    using PassResult = std::expected<TResult, ErrorBatch>;
-
-    /// Convenience specialization for void operations
-    using PassResultVoid = PassResult<void>;
 
 }  // namespace jsv
 

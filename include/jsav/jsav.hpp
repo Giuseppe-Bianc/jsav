@@ -42,4 +42,12 @@
 #include "typechecker/TypeChecker.hpp"
 #include "typechecker/TypeVisitor.hpp"
 #include "typechecker/ErrorType.hpp"
+#include "ir/IrCommon.hpp"
+#include "ir/GlobalEntityId.hpp"
+#include "analysis/CanonicalOrder.hpp"
+#include "passes/PassResult.hpp"
+#include "passes/Pass.hpp"
+#include "passes/PassContext.hpp"
+#include "passes/PassTransaction.hpp"
+
 // clang-format on
