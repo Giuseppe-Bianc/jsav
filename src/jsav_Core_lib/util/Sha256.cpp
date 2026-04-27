@@ -4,149 +4,225 @@
 
 namespace jsv::crypto {
 
-    namespace {
-        // SHA-256 Constants (FIPS 180-4, 4.2.2)
-        static constexpr std::array<std::uint32_t, 64> K = {
-            0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01,
-            0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc,
-            0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
-            0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
-            0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08,
-            0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
-            0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+    SHA256::SHA256() noexcept { reset(); }
 
-        static constexpr std::array<std::uint32_t, 8> H_INIT = {
-            0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
-            0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19};
+    void SHA256::reset() noexcept {
+        // Load the eight initial hash words H^(0)  (FIPS 180-4 §5.3.3).
+        state_ = H0;
+        buf_len_ = 0u;
+        bit_count_ = 0u;
+        // Zero the buffer using std::ranges::fill with the typed zero value.
+        // std::byte{0} is an explicit, arithmetic-free zero byte.
+        std::ranges::fill(buffer_, std::byte{0});
+    }
 
-        [[nodiscard]] constexpr std::uint32_t ch(std::uint32_t x, std::uint32_t y, std::uint32_t z) noexcept { return (x & y) ^ (~x & z); }
-        [[nodiscard]] constexpr std::uint32_t maj(std::uint32_t x, std::uint32_t y, std::uint32_t z) noexcept {
-            return (x & y) ^ (x & z) ^ (y & z);
-        }
-        [[nodiscard]] constexpr std::uint32_t Sigma0(std::uint32_t x) noexcept {
-            return std::rotr(x, 2) ^ std::rotr(x, 13) ^ std::rotr(x, 22);
-        }
-        [[nodiscard]] constexpr std::uint32_t Sigma1(std::uint32_t x) noexcept {
-            return std::rotr(x, 6) ^ std::rotr(x, 11) ^ std::rotr(x, 25);
-        }
-        [[nodiscard]] constexpr std::uint32_t sigma0(std::uint32_t x) noexcept {
-            return std::rotr(x, 7) ^ std::rotr(x, 18) ^ (x >> 3);
-        }
-        [[nodiscard]] constexpr std::uint32_t sigma1(std::uint32_t x) noexcept {
-            return std::rotr(x, 17) ^ std::rotr(x, 19) ^ (x >> 10);
-        }
-    } // namespace
+    // =============================================================================
+    // update() – streaming ingestion
+    // =============================================================================
 
-    Sha256::Sha256() noexcept : count_(0), state_(H_INIT), bufferIdx_(0) { buffer_.fill(std::byte{0});}
+    void SHA256::update(std::span<const std::byte> data) noexcept {
+        // Accumulate the bit count for the length field in the padding trailer
+        // (FIPS 180-4 §5.1.1).  data.size() is in bytes; shift left 3 for bits.
+        bit_count_ += static_cast<uint64_t>(data.size()) << 3;
 
-    void Sha256::update(std::span<const std::byte> data) noexcept {
-        auto remaining = data;
-        while (!remaining.empty()) {
-            const std::size_t available = BlockSize - bufferIdx_;
-            const std::size_t to_copy = std::min(available, remaining.size());
+        std::size_t offset = 0u;
 
-            std::ranges::copy(remaining.first(to_copy), buffer_.begin() + bufferIdx_);
+        // ── Step 1: If there is a partial block in the buffer from a previous
+        //    call, try to complete it. ───────────────────────────────────────────
+        if(buf_len_ > 0u) {
+            const std::size_t space = BLOCK_SIZE - buf_len_;
+            const std::size_t take = std::min(data.size(), space);
 
-            bufferIdx_ += to_copy;
-            count_ += C_UI64T(to_copy) * 8;
-            remaining = remaining.subspan(to_copy);
+            // std::ranges::copy – no casts needed because both sides are
+            // std::byte; intent is clear: raw bytes being moved into a buffer.
+            std::ranges::copy(data.first(take), buffer_.begin() + static_cast<std::ptrdiff_t>(buf_len_));
+            buf_len_ += take;
+            offset += take;
 
-            if(bufferIdx_ == BlockSize) {
-                transform(buffer_);
-                bufferIdx_ = 0;
+            if(buf_len_ == BLOCK_SIZE) {
+                compress(buffer_);  // fixed-extent span: BLOCK_SIZE enforced by type
+                buf_len_ = 0u;
             }
+        }
+
+        // ── Step 2: Process all complete blocks directly from the input span ────
+        // Construct a fixed-extent span<const std::byte, BLOCK_SIZE> from a
+        // pointer + compile-time extent.  No copy into buffer_ is needed.
+        while(data.size() - offset >= BLOCK_SIZE) {
+            compress(std::span<const std::byte, BLOCK_SIZE>{data.data() + offset, BLOCK_SIZE});
+            offset += BLOCK_SIZE;
+        }
+
+        // ── Step 3: Buffer any remaining tail bytes ──────────────────────────────
+        const std::size_t tail = data.size() - offset;
+        if(tail > 0u) {
+            std::ranges::copy(data.subspan(offset, tail), buffer_.begin() + static_cast<std::ptrdiff_t>(buf_len_));
+            buf_len_ += tail;
         }
     }
 
-    void Sha256::transform(std::span<const std::byte, BlockSize> block) noexcept {
-        std::array<std::uint32_t, 64> w{};
+    void SHA256::update(std::string_view text) noexcept {
+        // std::as_bytes reinterprets the char storage as const std::byte storage
+        // without a cast.  This is the canonical, defined-behaviour conversion
+        // from "text being hashed" to "raw byte sequence to hash".
+        update(std::as_bytes(std::span{text}));
+    }
 
-        for(std::size_t t = 0; t < 16; ++t) {
-            const auto t4 = t * 4;
-            w.at(t) = (std::to_integer<std::uint32_t>(block[t4 + 0]) << 24) |
-                      (std::to_integer<std::uint32_t>(block[t4 + 1]) << 16) |
-                      (std::to_integer<std::uint32_t>(block[t4 + 2]) << 8)  |
-                      (std::to_integer<std::uint32_t>(block[t4 + 3]));
+    // =============================================================================
+    // finalise() – padding, final compression, digest extraction
+    //
+    // FIPS 180-4 §5.1.1 (Padding for SHA-224 and SHA-256):
+    //
+    //   Let ℓ = message length in bits.  Append:
+    //     1. The bit '1'                          (byte 0x80)
+    //     2. k zero bits, where k is the smallest non-negative integer satisfying
+    //        ℓ + 1 + k ≡ 448 (mod 512)           (zero-fill to byte offset 56)
+    //     3. The 64-bit big-endian representation of ℓ  (bytes 56–63)
+    //
+    //   If the '1' bit and existing data leave fewer than 8 bytes at the end of
+    //   the current block, an extra block of padding is needed.
+    // =============================================================================
+
+    SHA256::Digest SHA256::finalise() noexcept {
+        // ── §5.1.1: Append the '1' bit (represented as byte 0x80) ───────────────
+        buffer_[buf_len_++] = std::byte{0x80};
+
+        // ── §5.1.1: Zero-pad to byte position 56 ─────────────────────────────────
+        if(buf_len_ > 56u) {
+            // The 0x80 byte has pushed us past position 56: we need one extra
+            // block.  Zero-fill the rest of the current block, compress it, then
+            // zero-fill the new block up to byte 56.
+            std::ranges::fill(std::span{buffer_}.subspan(buf_len_, BLOCK_SIZE - buf_len_), std::byte{0});
+            compress(buffer_);
+            std::ranges::fill(std::span{buffer_}.first(56u), std::byte{0});
+        } else {
+            // Enough room in the current block: zero-fill from buf_len_ to 56.
+            std::ranges::fill(std::span{buffer_}.subspan(buf_len_, 56u - buf_len_), std::byte{0});
         }
-        for(std::size_t t = 16; t < 64; ++t) {
-            w.at(t) = sigma1(w.at(t - 2)) + w.at(t - 7) + sigma0(w.at(t - 15)) + w.at(t - 16);
-        }
 
-        std::uint32_t a = state_.at(0);
-        std::uint32_t b = state_.at(1);
-        std::uint32_t c = state_.at(2);
-        std::uint32_t d = state_.at(3);
-        std::uint32_t e = state_.at(4);
-        std::uint32_t f = state_.at(5);
-        std::uint32_t g = state_.at(6);
-        std::uint32_t h = state_.at(7);
+        // ── §5.1.1: Append the 64-bit big-endian message length (bits 56–63) ────
+        store_be64(buffer_.data() + 56u, bit_count_);
 
-        for(std::size_t t = 0; t < 64; ++t) {
-            const std::uint32_t t1 = h + Sigma1(e) + ch(e, f, g) + K.at(t) + w.at(t);
-            const std::uint32_t t2 = Sigma0(a) + maj(a, b, c);
+        // ── §6.2.2: Compress the final padded block ──────────────────────────────
+        compress(buffer_);
+
+        // ── §6.2: Assemble the digest H₀^(N) ∥ H₁^(N) ∥ … ∥ H₇^(N) ─────────
+        // Each 32-bit word is serialised in big-endian byte order (§3.1).
+        Digest out{};
+        for(std::size_t i = 0u; i < 8u; ++i) { store_be32(out.data() + i * 4u, state_[i]); }
+
+        // Reset so the object is immediately reusable (RAII invariant maintained).
+        reset();
+
+        return out;
+    }
+
+    std::string SHA256::finalise_hex() noexcept { return to_hex(finalise()); }
+
+    // =============================================================================
+    // compress() – SHA-256 round function  (FIPS 180-4 §6.2.2)
+    //
+    // Parameter: one 512-bit block as a fixed-extent span<const std::byte, 64>.
+    // The fixed extent is a compile-time guarantee that the correct amount of
+    // data is always passed; no run-time bounds check is needed.
+    //
+    // Effect: updates state_[0..7]  (the intermediate hash value H^(i)).
+    // =============================================================================
+
+    void SHA256::compress(std::span<const std::byte, BLOCK_SIZE> block) noexcept {
+        // ── §6.2.2, Step 1: Prepare the message schedule  W₀ … W₆₃ ─────────────
+        //
+        //   t =  0..15:  Wt = M_t^(i)   (16 words loaded from the block)
+        //   t = 16..63:  Wt = σ₁(W_{t-2}) + W_{t-7} + σ₀(W_{t-15}) + W_{t-16}
+        //
+        // load_be32 takes const std::byte*, converting the buffer bytes to a
+        // uint32_t word via std::to_integer – the only arithmetic gateway.
+        std::array<uint32_t, 64> W{};
+
+        for(std::size_t t = 0u; t < 16u; ++t) { W[t] = load_be32(block.data() + t * 4u); }
+        for(std::size_t t = 16u; t < 64u; ++t) { W[t] = sigma1(W[t - 2]) + W[t - 7] + sigma0(W[t - 15]) + W[t - 16]; }
+
+        // ── §6.2.2, Step 2: Initialise the eight working variables ──────────────
+        //
+        //   a = H₀^(i-1),  b = H₁^(i-1),  …,  h = H₇^(i-1)
+        uint32_t a = state_[0];
+        uint32_t b = state_[1];
+        uint32_t c = state_[2];
+        uint32_t d = state_[3];
+        uint32_t e = state_[4];
+        uint32_t f = state_[5];
+        uint32_t g = state_[6];
+        uint32_t h = state_[7];
+
+        // ── §6.2.2, Step 3: 64 compression rounds ────────────────────────────────
+        //
+        //   T₁ = h + Σ₁(e) + Ch(e,f,g) + Kₜ + Wₜ
+        //   T₂ = Σ₀(a) + Maj(a,b,c)
+        //   h←g, g←f, f←e, e←d+T₁, d←c, c←b, b←a, a←T₁+T₂
+        //
+        // All additions are modulo 2^32 (uint32_t wraps naturally).
+        for(std::size_t t = 0u; t < 64u; ++t) {
+            const uint32_t T1 = h + Sigma1(e) + Ch(e, f, g) + K[t] + W[t];
+            const uint32_t T2 = Sigma0(a) + Maj(a, b, c);
+
             h = g;
             g = f;
             f = e;
-            e = d + t1;
+            e = d + T1;
             d = c;
             c = b;
             b = a;
-            a = t1 + t2;
+            a = T1 + T2;
         }
 
-        state_.at(0) += a;
-        state_.at(1) += b;
-        state_.at(2) += c;
-        state_.at(3) += d;
-        state_.at(4) += e;
-        state_.at(5) += f;
-        state_.at(6) += g;
-        state_.at(7) += h;
+        // ── §6.2.2, Step 4: Compute the new intermediate hash value  H^(i) ──────
+        //
+        //   H₀^(i) = a + H₀^(i-1),  H₁^(i) = b + H₁^(i-1), …
+        state_[0] += a;
+        state_[1] += b;
+        state_[2] += c;
+        state_[3] += d;
+        state_[4] += e;
+        state_[5] += f;
+        state_[6] += g;
+        state_[7] += h;
     }
 
-    Sha256::Digest Sha256::finalize() noexcept {
-        const std::uint64_t bitCount = count_;
-        
-        const std::array<std::byte, 1> pad_start = {std::byte{0x80}};
-        update(pad_start);
+    // =============================================================================
+    // One-shot static helpers – thin wrappers around the streaming interface
+    // =============================================================================
 
-        while(bufferIdx_ != 56) {
-            const std::array<std::byte, 1> zero = {std::byte{0x00}};
-            update(zero);
-        }
-
-        for(int i = 7; i >= 0; --i) {
-            const auto b = C_B((bitCount >> (C_UI64T(i) * 8)) & 0xFF);
-            const std::array<std::byte, 1> len_byte = {b};
-            update(len_byte);
-        }
-
-        Digest digest{};
-        for(std::size_t i = 0; i < 8; ++i) {
-            auto i_4 = i * 4;
-            auto current = state_.at(i);
-            digest.at(i_4 + 0) = C_B((current >> 24) & 0xFF);
-            digest.at(i_4 + 1) = C_B((current >> 16) & 0xFF);
-            digest.at(i_4 + 2) = C_B((current >> 8) & 0xFF);
-            digest.at(i_4 + 3) = C_B(current & 0xFF);
-        }
-
-        *this = Sha256{};
-        return digest;
+    SHA256::Digest SHA256::digest(std::string_view text) noexcept {
+        SHA256 ctx;
+        ctx.update(text);
+        return ctx.finalise();
     }
 
-    Sha256::Digest Sha256::hash(std::span<const std::byte> data) noexcept {
-        Sha256 hasher;
-        hasher.update(data);
-        return hasher.finalize();
+    std::string SHA256::hash(std::string_view text) noexcept { return to_hex(digest(text)); }
+
+    SHA256::Digest SHA256::digest(std::span<const std::byte> data) noexcept {
+        SHA256 ctx;
+        ctx.update(data);
+        return ctx.finalise();
     }
 
-    std::string Sha256::toHexString(const Digest &digest) {
-        std::string res;
-        res.reserve(DigestSize * 2);
-        for(const auto b : digest) { res += FORMAT("{:02x}", std::to_integer<std::uint8_t>(b)); }
-        return res;
-    }
+    std::string SHA256::hash(std::span<const std::byte> data) noexcept { return to_hex(digest(data)); }
 
+    // =============================================================================
+    // to_hex() – raw Digest → lowercase hex string
+    //
+    // std::to_integer<unsigned> is the explicit, type-safe conversion from
+    // std::byte to an integer value.  std::format("{:02x}", …) formats it as
+    // exactly 2 lowercase hex characters.
+    // =============================================================================
+
+    std::string SHA256::to_hex(const Digest &d) noexcept {
+        std::string out;
+        out.reserve(DIGEST_SIZE * 2u);  // 64 hex characters, no reallocations
+
+        for(const std::byte b : d) { out += FORMAT("{:02x}", std::to_integer<unsigned>(b)); }
+
+        return out;
+    }
 } // namespace jsv::crypto
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers)
