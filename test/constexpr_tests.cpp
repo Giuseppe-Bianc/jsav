@@ -1476,6 +1476,20 @@ TEST_CASE("binary_op_symbol returns correct symbols for all binary operators", "
     STATIC_REQUIRE(jsv::binary_op_symbol(jsv::BinaryOp::Shr) == ">>");
 }
 
+TEST_CASE("SHA256 constants and type properties", "[sha256][constants][compile-time]") {
+    STATIC_REQUIRE(jsv::crypto::SHA256::BLOCK_SIZE == 64u);
+    STATIC_REQUIRE(jsv::crypto::SHA256::DIGEST_SIZE == 32u);
+    STATIC_REQUIRE(sizeof(jsv::crypto::SHA256::Digest) == 32u);
+
+    // Ensure the class is trivially copyable / movable (std::array members).
+    STATIC_REQUIRE(std::is_nothrow_constructible_v<jsv::crypto::SHA256>);
+    STATIC_REQUIRE(std::is_nothrow_copy_constructible_v<jsv::crypto::SHA256>);
+    STATIC_REQUIRE(std::is_nothrow_copy_assignable_v<jsv::crypto::SHA256>);
+    STATIC_REQUIRE(std::is_nothrow_move_constructible_v<jsv::crypto::SHA256>);
+    STATIC_REQUIRE(std::is_nothrow_move_assignable_v<jsv::crypto::SHA256>);
+    STATIC_REQUIRE(std::is_nothrow_destructible_v<jsv::crypto::SHA256>);
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on

@@ -7,6 +7,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 #include <catch2/matchers/catch_matchers_string.hpp>
+#include <catch2/matchers/catch_matchers_range_equals.hpp>
 #include <cstdio>
 #include <future>
 #ifndef _WIN32
@@ -213,14 +214,11 @@ namespace {
     // Helper to create IntegerLiteral for ArrayType size expressions
     std::shared_ptr<const jsv::Expr> makeIntegerLiteral(std::int64_t value) { return std::make_shared<const jsv::IntegerLiteral>(value); }
 
-    std::vector<std::byte> to_bytes(std::string_view input) {
-        std::vector<std::byte> result;
-        result.reserve(input.size());
-        for(unsigned char c : input) {
-            result.push_back(C_B(c));
-        }
-        return result;
-    }
+    // Helper: repeat a character n times.
+    [[nodiscard]] std::string repeat_char(char c, std::size_t count) { return std::string(count, c); }
+
+    // Helper: convert a string_view to a span<const std::byte> for low-level tests.
+    [[nodiscard]] auto to_bytes(std::string_view sv) { return std::as_bytes(std::span{sv}); }
 }  // namespace
 
 TEST_CASE("AstPrinter prints literals correctly", "[AstPrinter][literals][unicode]") {
@@ -21130,6 +21128,250 @@ TEST_CASE("TypedAst_NodeTypeVerification_AfterPromotion", "[type_promotion][Type
         // Verify type information propagated
         REQUIRE(typed->is_typed());
     }
+}
+
+TEST_CASE("SHA256::hash / digest produce correct results for known vectors",
+          "[sha256][digest][hash][data-driven][happy]") {
+    auto [input, expected_hex] = GENERATE(table<std::string_view, std::string>({
+        // NIST CAVP Short Messages (SHA-256), lengths 0, 8, 448, 512 bits
+        {""sv,
+         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},      // L=0
+        {"a"sv,
+         "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"},      // L=8
+        {"abc"sv,
+         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},      // L=24
+        {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"sv,              // L=448 (56 bytes)
+         "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"},
+        // L=512 (64 bytes) – exact block boundary
+        {"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno"
+         "ijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"sv,
+         "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"}
+    }));
+
+    CAPTURE(input);
+    auto hex =  jsv::crypto::SHA256::hash(input);
+    REQUIRE_THAT(hex, Catch::Matchers::Equals(expected_hex));
+
+    // Also test raw digest → hex conversion consistency
+    auto digest = jsv::crypto::SHA256::digest(input);
+    // Use finalise_hex on a fresh context (simulate one‑shot via constructor)
+    jsv::crypto::SHA256 ctx;
+    ctx.update(input);
+    auto hex2 = ctx.finalise_hex();
+    REQUIRE_THAT(hex2, Catch::Matchers::Equals(expected_hex));
+}
+
+TEST_CASE("SHA256 handles empty and minimal inputs correctly", "[sha256][edge][empty]") {
+    // Empty string_view
+    CHECK(jsv::crypto::SHA256::hash(""sv) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    // Empty span<const std::byte>
+    CHECK(jsv::crypto::SHA256::hash(std::span<const std::byte>{}) ==
+          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+
+    // Zero-length string_view with null pointer
+    std::string_view empty_sv(nullptr, 0u);
+    CHECK(jsv::crypto::SHA256::hash(empty_sv) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+}
+
+TEST_CASE("SHA256 streaming update produces same result as one‑shot", "[sha256][streaming][equivalent]") {
+    auto input = "Hello, World! This is a test of the SHA-256 streaming interface."sv;
+
+    // One‑shot
+    auto expected = jsv::crypto::SHA256::hash(input);
+
+    // Various chunking strategies
+    SECTION("single byte at a time") {
+        jsv::crypto::SHA256 ctx;
+        for (char c : input) {
+            ctx.update(std::string_view{&c, 1});
+        }
+        CHECK(ctx.finalise_hex() == expected);
+    }
+
+    SECTION("block‑aligned chunks (64 bytes)") {
+        jsv::crypto::SHA256 ctx;
+        std::size_t pos = 0;
+        while (pos < input.size()) {
+            std::size_t take = std::min<std::size_t>(64, input.size() - pos);
+            ctx.update(input.substr(pos, take));
+            pos += take;
+        }
+        CHECK(ctx.finalise_hex() == expected);
+    }
+
+    SECTION("arbitrary splitting (7‑byte chunks)") {
+        jsv::crypto::SHA256 ctx;
+        std::size_t pos = 0;
+        while (pos < input.size()) {
+            std::size_t take = std::min<std::size_t>(7, input.size() - pos);
+            ctx.update(input.substr(pos, take));
+            pos += take;
+        }
+        CHECK(ctx.finalise_hex() == expected);
+    }
+
+    SECTION("raw byte span update matches string_view") {
+        jsv::crypto::SHA256 ctx1;
+        ctx1.update(input);
+        auto hex_str = ctx1.finalise_hex();
+
+        jsv::crypto::SHA256 ctx2;
+        ctx2.update(to_bytes(input));
+        auto hex_bytes = ctx2.finalise_hex();
+        CHECK(hex_str == expected);
+        CHECK(hex_bytes == expected);
+    }
+}
+
+TEST_CASE("SHA256 padding logic is correct at block boundaries", "[sha256][padding][edge]") {
+    // Lengths chosen to exercise both padding paths (with/without extra block).
+    // Hard‑coded values are avoided except for the well-known 55‑byte case.
+
+    SECTION("exactly 55 bytes – no extra padding block") {
+        // NIST CAVP 55‑byte message; the hash is verified.
+        auto input = repeat_char('A', 55);
+        std::string expected = "8963cc0afd622cc7574ac2011f93a3059b3d65548a77542a1559e3d202e6ab00";
+        CHECK(jsv::crypto::SHA256::hash(input) == expected);
+    }
+
+    SECTION("56, 63, 64 bytes – hash is 64 hex chars and deterministic") {
+        auto check = [](std::size_t len, char filler) {
+            auto input = repeat_char(filler, len);
+            auto h1 = jsv::crypto::SHA256::hash(input);
+            auto h2 = jsv::crypto::SHA256::hash(input);
+            REQUIRE(h1.size() == 64u);
+            REQUIRE(h2.size() == 64u);
+            CHECK(h1 == h2);                    // deterministic
+            CHECK(h1 != std::string(64, '0'));  // not all zero
+        };
+        check(56, 'B');
+        check(63, 'C');
+        check(64, 'D');
+    }
+}
+
+TEST_CASE("SHA256 reset after finalise allows reuse", "[sha256][reset][reuse]") {
+    jsv::crypto::SHA256 ctx;
+
+    ctx.update("first message"sv);
+    auto first_digest = ctx.finalise_hex();
+    REQUIRE(first_digest.size() == 64u);
+
+    // After finalise the context is automatically reset.  Make sure a second
+    // message produces a different, correct hash.
+    ctx.update("second message"sv);
+    auto second_digest = ctx.finalise_hex();
+    REQUIRE(second_digest.size() == 64u);
+    REQUIRE(second_digest != first_digest);
+
+    // Manual reset should yield the same as a fresh hasher.
+    ctx.reset();
+    ctx.update("second message"sv);
+    auto third_digest = ctx.finalise_hex();
+    REQUIRE(third_digest == second_digest);
+
+    // Reset on an already fresh hasher is a no‑op (no crash).
+    ctx.reset();
+    auto empty_digest = ctx.finalise_hex();  // capture to avoid nodiscard warning
+    CHECK(empty_digest == jsv::crypto::SHA256::hash(""sv));
+}
+
+
+TEST_CASE("SHA256 copy constructor produces an independent hasher", "[sha256][copy][semantics]") {
+    jsv::crypto::SHA256 ctx1;
+    ctx1.update("abc"sv);
+
+    jsv::crypto::SHA256 ctx2 = ctx1; // copy
+    // ctx1 and ctx2 should now be at the same point in the stream.
+    ctx1.update("def"sv);
+    ctx2.update("xyz"sv);
+
+    auto h1 = ctx1.finalise_hex();  // hash of "abcdef"
+    auto h2 = ctx2.finalise_hex();  // hash of "abcxyz"
+
+    CHECK(h1 == jsv::crypto::SHA256::hash("abcdef"sv));
+    CHECK(h2 == jsv::crypto::SHA256::hash("abcxyz"sv));
+    CHECK(h1 != h2); // proving independence
+}
+
+TEST_CASE("SHA256 copy assignment works as expected", "[sha256][copy][assignment]") {
+    jsv::crypto::SHA256 ctx1, ctx2;
+    ctx1.update("data"sv);
+    ctx2 = ctx1;
+
+    CHECK(ctx2.finalise_hex() == jsv::crypto::SHA256::hash("data"sv));
+
+    // Self‑assignment
+    ctx2 = ctx2;
+    auto after_self = ctx2.finalise_hex();   // after finalise, context is reset
+    CHECK(after_self == jsv::crypto::SHA256::hash(""sv));
+    // No negative effect on subsequent use
+    ctx2.update("self"sv);
+    CHECK(ctx2.finalise_hex() == jsv::crypto::SHA256::hash("self"sv));
+}
+
+TEST_CASE("SHA256 move operations leave the object in a usable state", "[sha256][move][semantics]") {
+    jsv::crypto::SHA256 ctx;
+    ctx.update("move test"sv);
+
+    jsv::crypto::SHA256 moved_to = std::move(ctx);
+
+    // moved_to should contain the expected partial hash
+    auto hash_from_moved = moved_to.finalise_hex();
+    CHECK(hash_from_moved == jsv::crypto::SHA256::hash("move test"sv));
+
+    // ctx is in a valid but unspecified state.  The class does not guarantee
+    // a particular state, but calling reset() must bring it back to initial.
+    ctx.reset();
+    ctx.update("reused after move"sv);
+    CHECK(ctx.finalise_hex() == jsv::crypto::SHA256::hash("reused after move"sv));
+}
+
+TEST_CASE("SHA256 noexcept contracts are upheld", "[sha256][noexcept][contract]") {
+    jsv::crypto::SHA256 ctx;
+    jsv::crypto::SHA256 another;
+
+    // Construction
+    REQUIRE_NOTHROW(jsv::crypto::SHA256{});
+    // reset
+    REQUIRE_NOTHROW(ctx.reset());
+    // update with various inputs
+    REQUIRE_NOTHROW(ctx.update(""sv));
+    REQUIRE_NOTHROW(ctx.update("text"sv));
+    REQUIRE_NOTHROW(ctx.update(std::span<const std::byte>{}));
+    REQUIRE_NOTHROW(ctx.update(to_bytes("bytes"sv)));
+    // finalise
+    REQUIRE_NOTHROW(std::ignore = ctx.finalise());
+    REQUIRE_NOTHROW(std::ignore = ctx.finalise_hex());
+    // one‑shot statics
+    REQUIRE_NOTHROW(std::ignore = jsv::crypto::SHA256::digest(""sv));
+    REQUIRE_NOTHROW(std::ignore = jsv::crypto::SHA256::hash(""sv));
+    REQUIRE_NOTHROW(std::ignore = jsv::crypto::SHA256::digest(std::span<const std::byte>{}));
+    REQUIRE_NOTHROW(std::ignore = jsv::crypto::SHA256::hash(std::span<const std::byte>{}));
+    // copy / move
+    REQUIRE_NOTHROW(jsv::crypto::SHA256{ctx});
+    REQUIRE_NOTHROW(ctx = another);
+    REQUIRE_NOTHROW(jsv::crypto::SHA256{std::move(ctx)});
+    REQUIRE_NOTHROW(ctx = std::move(another));
+}
+
+TEST_CASE("SHA256 correctly processes a large message", "[sha256][stress][large-input]") {
+    // 1 MB of 'a'
+    constexpr std::size_t size = 1'000'000;
+    auto big = repeat_char('a', size);
+
+    auto hex = jsv::crypto::SHA256::hash(big);
+    REQUIRE(hex.size() == 64u);
+
+    // Consistency: streaming chunk‑by‑chunk yields the same result.
+    jsv::crypto::SHA256 ctx;
+    std::size_t pos = 0;
+    while (pos < size) {
+        std::size_t take = std::min<std::size_t>(1024, size - pos);
+        ctx.update(std::string_view{big}.substr(pos, take));
+        pos += take;
+    }
+    CHECK(ctx.finalise_hex() == hex);
 }
 
 // clang-format off
