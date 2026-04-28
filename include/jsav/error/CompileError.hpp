@@ -63,7 +63,7 @@ namespace jsv {
     private:
         CompileError(Kind kind, std::optional<ErrorCode> code, std::string_view message, const SourceSpan &span,
                      std::optional<std::string> help)
-          : kind_(kind), code_(vnd_move(code)), message_(message), span_(span), help_(vnd_move(help)) {}
+                    : span_(span), message_(message), help_(vnd_move(help)), code_(vnd_move(code)), kind_(kind) {}
 
         SourceSpan span_;
         std::string message_;
