@@ -1,0 +1,16 @@
+src/jsav_Lib/location/SourceSpan.cpp
+  h_0b496d7e860864 68-72
+src/jsav_Lib/error/UnicodeColumn.cpp
+  h_0b496d7e860864 115
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "bcb649b4da7a693fab74d89c786b70a98ae4e819",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
