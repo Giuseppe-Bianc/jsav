@@ -40,6 +40,14 @@ namespace jsv {
         return from_canonical_path(canonical_key.to_string());
     }
 
+    std::string GlobalEntityId::path() const {
+        if(!is_valid()) {
+            return {};
+        }
+
+        return to_hex();
+    }
+
     std::string GlobalEntityId::to_hex() const {
         std::string out;
         out.reserve(32);

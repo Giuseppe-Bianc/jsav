@@ -111,7 +111,7 @@ Create internal representations (do not include raw artifacts in output):
 - **Task coverage mapping**: Map each task to one or more requirements or stories (inference by keyword / explicit reference patterns like IDs or key phrases)
 - **Constitution rule set**: Extract principle names and MUST/SHOULD normative statements
 
-The semantic models built in this step are the analytical foundation for all six detection passes. Errors in key derivation, entity normalization, or task-to-requirement mapping propagate silently into false positives, missed coverage gaps, and unreliable metrics downstream. The following guidance ensures model construction is both accurate and reproducible.
+The semantic models built in this step serve as the analytical foundation for each of the six detection passes. These models typically encode entities, their normalized representations, and the mappings that link tasks to their corresponding requirements. Errors in key derivation, entity normalization, or task-to-requirement mapping propagate silently, resulting in false positives, coverage gaps, and unreliable downstream metrics. This propagation occurs because each detection pass depends on the integrity of prior model outputs, causing inaccuracies to accumulate rather than remain isolated. The following guidance is designed to ensure that model construction is both accurate and reproducible. Accuracy requires precise key generation, consistent entity normalization, and verifiable mapping logic. Reproducibility requires that all transformations are deterministic, documented, and traceable across processing stages. The guidance therefore outlines validation procedures, normalization standards, and mapping verification steps necessary to maintain model integrity.
 
 #### Patterns for Semantic Model Construction
 
@@ -155,7 +155,7 @@ The semantic models built in this step are the analytical foundation for all six
 
 ### 4. Detection Passes (Token-Efficient Analysis)
 
-Focus on high-signal findings. Limit to 50 findings total; aggregate remainder in overflow summary.
+Prioritize findings with the highest informational relevance and evidential strength. Limit the output to a maximum of 50 findings. Any additional findings must be consolidated into a clearly labeled overflow summary that preserves their meaning without full elaboration. Define high-signal findings as those that are directly relevant to the analytical objective, supported by evidence, and materially significant to interpretation or decision-making. The overflow summary must contain all excluded findings organized in a structured form that allows later retrieval or review.
 
 #### A. Duplication Detection
 
@@ -217,7 +217,7 @@ The six detection passes above define *what* to look for. The following guidance
 
 ##### Cross-Pass Deduplication
 
-- **Objective:** After completing all six detection passes, merge findings that describe the same underlying issue from different analytical angles, and surface compound issues that span multiple passes.
+- **Objective:** After completing six predefined detection passes, merge findings that refer to the same underlying issue based on defined equivalence criteria and that originate from distinct analytical perspectives. Then identify compound issues as higher-order aggregated patterns that emerge across multiple detection passes, where a single root cause produces linked or repeated findings across different analytical dimensions.
 - **Context of application:** As a consolidation step after all individual passes (A through F) have generated their candidate findings, before applying the 50-finding cap.
 - **Key characteristics:** Findings from different passes that reference the same artifact location or the same requirement key are compared. If they describe the same root issue (e.g., an ambiguous requirement flagged by both Ambiguity Detection and Underspecification), they are merged into a single finding with the higher severity and references to both detection categories. Compound issues that only become visible through cross-pass correlation (e.g., a terminology drift that causes a false coverage gap) are surfaced as new findings.
 - **Operational guidance:**
@@ -246,7 +246,7 @@ The six detection passes above define *what* to look for. The following guidance
 
 Use this heuristic to prioritize findings:
 
-- **CRITICAL**: Violates constitution MUST, missing core spec artifact, or requirement with zero coverage that blocks baseline functionality
+- **CRITICAL**: Violates a mandatory constitution rule (MUST), is missing a core spec artifact, or has a requirement with zero coverage that blocks baseline functionality.
 - **HIGH**: Duplicate or conflicting requirement, ambiguous security/performance attribute, untestable acceptance criterion
 - **MEDIUM**: Terminology drift, missing non-functional task coverage, underspecified edge case
 - **LOW**: Style/wording improvements, minor redundancy not affecting execution order

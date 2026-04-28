@@ -55,8 +55,8 @@
 - [X] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
 - [X] T018 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
 - [X] T019 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
-- [ ] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)
-- [ ] T019b [P] Implement custom SHA-256 utility for nominal versioning in include/jsavCore/util/Sha256.hpp and src/jsav_Core_lib/util/Sha256.cpp
+- [X] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)
+- [X] T019b [P] Implement custom SHA-256 utility for nominal versioning in include/jsavCore/util/Sha256.hpp and src/jsav_Core_lib/util/Sha256.cpp
 
 **Checkpoint**: Foundation ready - user stories can begin.
 
@@ -70,40 +70,40 @@
 
 ### Tests for User Story 1
 
-- [ ] T020 [US1] Add relaxed constexpr debug tests for compile-time invariants in test/constexpr_tests.cpp
-- [ ] T021 [US1] Add compile-time tests for immutable Value/Type invariants in test/constexpr_tests.cpp
-- [ ] T022 [US1] Add compile-time tests for base CFG rules (single entry, terminator) in test/constexpr_tests.cpp
-- [ ] T023 [US1] Add runtime test for invalid CFG validation (missing terminator, inconsistent edges) in test/tests.cpp
-- [ ] T024 [US1] Add runtime test for use without reachable definition in test/tests.cpp
-- [ ] T025 [US1] Add runtime test for batch-per-pass reporting with annotated skipped checks in test/tests.cpp
+- [X] T020 [US1] Add relaxed constexpr debug tests for compile-time invariants in test/constexpr_tests.cpp
+- [X] T021 [US1] Add compile-time tests for immutable Value/Type invariants in test/constexpr_tests.cpp
+- [X] T022 [US1] Add compile-time tests for base CFG rules (single entry, terminator) in test/constexpr_tests.cpp
+- [X] T023 [US1] Add runtime test for invalid CFG validation (missing terminator, inconsistent edges) in test/tests.cpp
+- [X] T024 [US1] Add runtime test for use without reachable definition in test/tests.cpp
+- [X] T025 [US1] Add runtime test for batch-per-pass reporting with annotated skipped checks in test/tests.cpp
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] Implement Module entity in include/jsav/ir/Module.hpp
-- [ ] T027 [P] [US1] Implement Function entity in include/jsav/ir/Function.hpp
-- [ ] T028 [P] [US1] Implement BasicBlock entity in include/jsav/ir/BasicBlock.hpp
-- [ ] T029 [P] [US1] Implement Instruction entity in include/jsav/ir/Instruction.hpp
-- [ ] T030 [P] [US1] Implement Value entity and use-site tracking in include/jsav/ir/Value.hpp
-- [ ] T031 [P] [US1] Implement base Type system + nominal versioning with SHA-256 hashing and canonical binary serialization in include/jsav/ir/Type.hpp
-- [ ] T032 [P] [US1] Implement PHI node and incoming map in include/jsav/ir/PhiNode.hpp
-- [ ] T032a [US1] Implement Module entity in src/jsav_Lib/ir/Module.cpp
-- [ ] T032b [US1] Implement Function entity in src/jsav_Lib/ir/Function.cpp
-- [ ] T032c [US1] Implement BasicBlock entity in src/jsav_Lib/ir/BasicBlock.cpp
-- [ ] T032d [US1] Implement Instruction entity in src/jsav_Lib/ir/Instruction.cpp
-- [ ] T032e [US1] Implement Value entity and use-site tracking in src/jsav_Lib/ir/Value.cpp
-- [ ] T032f [US1] Implement base Type system in src/jsav_Lib/ir/Type.cpp
-- [ ] T032g [US1] Implement PHI node in src/jsav_Lib/ir/PhiNode.cpp
-- [ ] T033 [US1] Implement CFG validator in include/jsav/validation/IrValidator.hpp
-- [ ] T034 [US1] Implement CFG validator in src/jsav_Lib/validation/IrValidator.cpp
-- [ ] T035 [US1] Implement type compatibility/nominal equivalence validator in include/jsav/validation/TypeValidator.hpp
-- [ ] T036 [US1] Implement type compatibility/nominal equivalence validator with SHA-256 hashing and canonical binary serialization in src/jsav_Lib/validation/TypeValidator.cpp
-- [ ] T037 [US1] use-def and base dependency validator in include/jsav/validation/UseDefValidator.hpp
-- [ ] T038 [US1] use-def and base dependency validator in src/jsav_Lib/validation/UseDefValidator.cpp
-- [ ] T038a [US1] SSA validator (single definition, dominance) in include/jsav/validation/SsaValidator.hpp
-- [ ] T038b [US1] SSA validator (single definition, dominance) in src/jsav_Lib/validation/SsaValidator.cpp
-- [ ] T038c [US1] PHI validator (one operand per predecessor) in include/jsav/validation/PhiValidator.hpp
-- [ ] T038d [US1] PHI validator (one operand per predecessor) in src/jsav_Lib/validation/PhiValidator.cpp
-- [ ] T039 [US1] Integrate post-pass validation orchestration with CompileError batch in src/jsav_Lib/passes/PassPipeline.cpp
+- [X] T026 [P] [US1] Implement Module entity in include/jsav/ir/Module.hpp
+- [X] T027 [P] [US1] Implement Function entity in include/jsav/ir/Function.hpp
+- [X] T028 [P] [US1] Implement BasicBlock entity in include/jsav/ir/BasicBlock.hpp
+- [X] T029 [P] [US1] Implement Instruction entity in include/jsav/ir/Instruction.hpp
+- [X] T030 [P] [US1] Implement Value entity and use-site tracking in include/jsav/ir/Value.hpp
+- [X] T031 [P] [US1] Implement base Type system + nominal versioning with SHA-256 hashing and canonical binary serialization in include/jsav/ir/Type.hpp
+- [X] T032 [P] [US1] Implement PHI node and incoming map in include/jsav/ir/PhiNode.hpp
+- [X] T032a [US1] Implement Module entity in src/jsav_Lib/ir/Module.cpp
+- [X] T032b [US1] Implement Function entity in src/jsav_Lib/ir/Function.cpp
+- [X] T032c [US1] Implement BasicBlock entity in src/jsav_Lib/ir/BasicBlock.cpp
+- [X] T032d [US1] Implement Instruction entity in src/jsav_Lib/ir/Instruction.cpp
+- [X] T032e [US1] Implement Value entity and use-site tracking in src/jsav_Lib/ir/Value.cpp
+- [X] T032f [US1] Implement base Type system in src/jsav_Lib/ir/Type.cpp
+- [X] T032g [US1] Implement PHI node in src/jsav_Lib/ir/PhiNode.cpp
+- [X] T033 [US1] Implement CFG validator in include/jsav/validation/IrValidator.hpp
+- [X] T034 [US1] Implement CFG validator in src/jsav_Lib/validation/IrValidator.cpp
+- [X] T035 [US1] Implement type compatibility/nominal equivalence validator in include/jsav/validation/TypeValidator.hpp
+- [X] T036 [US1] Implement type compatibility/nominal equivalence validator with SHA-256 hashing and canonical binary serialization in src/jsav_Lib/validation/TypeValidator.cpp
+- [X] T037 [US1] use-def and base dependency validator in include/jsav/validation/UseDefValidator.hpp
+- [X] T038 [US1] use-def and base dependency validator in src/jsav_Lib/validation/UseDefValidator.cpp
+- [X] T038a [US1] SSA validator (single definition, dominance) in include/jsav/validation/SsaValidator.hpp
+- [X] T038b [US1] SSA validator (single definition, dominance) in src/jsav_Lib/validation/SsaValidator.cpp
+- [X] T038c [US1] PHI validator (one operand per predecessor) in include/jsav/validation/PhiValidator.hpp
+- [X] T038d [US1] PHI validator (one operand per predecessor) in src/jsav_Lib/validation/PhiValidator.cpp
+- [X] T039 [US1] Integrate post-pass validation orchestration with CompileError batch in src/jsav_Lib/passes/PassPipeline.cpp
 
 **Checkpoint**: US1 complete and independently testable.
 

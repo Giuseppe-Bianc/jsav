@@ -16,8 +16,21 @@ namespace jsv {
 
         [[nodiscard]] static GlobalEntityId from_canonical_path(std::string_view canonical_path) noexcept;
         [[nodiscard]] static GlobalEntityId from_canonical_key(const CanonicalKey &canonical_key) noexcept;
+        [[nodiscard]] static GlobalEntityId from_structural_path(std::string_view structural_path) noexcept {
+            return from_canonical_path(structural_path);
+        }
 
         [[nodiscard]] constexpr const std::array<std::uint8_t, 16> &bytes() const noexcept { return bytes_; }
+        [[nodiscard]] constexpr bool is_valid() const noexcept {
+            for(const auto byte : bytes_) {
+                if(byte != 0U) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        [[nodiscard]] std::string path() const;
 
         [[nodiscard]] std::string to_hex() const;
 

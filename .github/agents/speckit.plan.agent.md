@@ -120,6 +120,7 @@ You **MUST** consider the user input before proceeding (if not empty).
    - Decision: [what was chosen]
    - Rationale: [why chosen]
    - Alternatives considered: [what else evaluated]
+   - Notes: [any additional context or references]
 
 **Output**: research.md with all NEEDS CLARIFICATION resolved
 

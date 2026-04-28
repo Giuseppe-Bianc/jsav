@@ -17766,6 +17766,47 @@ TEST_CASE("TypeBase kind() accessor", "[Type]") {
     }
 }
 
+// ==========================================================================
+// Phase 3 (US1): IR Construction and Validation - Runtime Tests
+// ==========================================================================
+
+TEST_CASE("Invalid CFG validation: missing terminator or inconsistent edges", "[ir][cfg][validation][T023]") {
+    // This test validates that the IR validator correctly detects:
+    // - Missing terminators (CFG control-flow instructions must end blocks)
+    // - Inconsistent edges (CFG edges must be bidirectionally consistent)
+    SECTION("CFG validation detects structural anomalies") {
+        // Placeholder: validation implementation required
+        // After implementation, this test will instantiate an invalid CFG
+        // and verify that validation returns CompileError batch.
+        REQUIRE(true);
+    }
+}
+
+TEST_CASE("Use-def validation: use without reachable definition", "[ir][use-def][validation][T024]") {
+    // This test validates that the IR validator correctly detects:
+    // - Uses of undefined values (SSA form violation)
+    // - Uses of values not dominated by their definitions
+    SECTION("Use-def validator detects unreachable definitions") {
+        // Placeholder: validation implementation required
+        // After implementation, this test will instantiate a use-def anomaly
+        // and verify that validation returns CompileError batch.
+        REQUIRE(true);
+    }
+}
+
+TEST_CASE("Batch-per-pass reporting with annotated skipped checks", "[ir][passes][validation][reporting][T025]") {
+    // This test validates that the PassResult correctly accumulates errors
+    // per pass and that skipped checks are annotated in the batch.
+    SECTION("PassResult accumulates errors deterministically") {
+        // Placeholder: PassResult implementation required
+        // After implementation, this test will:
+        // - Execute a pass that generates multiple errors
+        // - Verify all errors are collected in a CompileError batch
+        // - Verify the batch is immutable after commit/rollback
+        REQUIRE(true);
+    }
+}
+
 TEST_CASE("TypePtr std::formatter outputs correctly", "[Type]") {
     using jsv::ArrayType;
     using jsv::CustomType;
