@@ -1,0 +1,105 @@
+include/jsav/validation/UseDefValidator.hpp
+  h_0b496d7e860864 1-16
+src/jsav_Lib/validation/SsaValidator.cpp
+  h_0b496d7e860864 1-191
+src/jsav_Lib/ir/GlobalEntityId.cpp
+  h_0b496d7e860864 43-50
+include/jsav/ir/Module.hpp
+  h_0b496d7e860864 1-109
+include/jsav/ir/Type.hpp
+  h_0b496d7e860864 1-171
+src/jsav_Lib/validation/IrValidator.cpp
+  h_0b496d7e860864 5,10-165,167
+include/jsav/validation/TypeValidator.hpp
+  h_0b496d7e860864 1-18
+src/jsav_Lib/validation/UseDefValidator.cpp
+  h_0b496d7e860864 1-98
+src/jsav_Lib/passes/PassPipeline.cpp
+  h_0b496d7e860864 1-58
+src/jsav_Lib/ir/PhiNode.cpp
+  h_0b496d7e860864 1-102
+include/jsav/validation/SsaValidator.hpp
+  h_0b496d7e860864 1-20
+include/jsav/ir/Value.hpp
+  h_0b496d7e860864 1-90
+src/jsav_Lib/ir/Module.cpp
+  9311fdfd97d15ad8 1-117
+include/jsav/passes/PassPipeline.hpp
+  h_0b496d7e860864 1-16
+include/jsav/ir/Function.hpp
+  h_0b496d7e860864 1-115
+test/constexpr_tests.cpp
+  h_0b496d7e860864 1521-1543
+include/jsav/validation/PhiValidator.hpp
+  h_0b496d7e860864 1-16
+.github/agents/speckit.plan.agent.md
+  h_0b496d7e860864 123
+src/jsav_Lib/validation/PhiValidator.cpp
+  h_0b496d7e860864 1-58
+include/jsav/ir/BasicBlock.hpp
+  h_0b496d7e860864 1-87
+src/jsav_Lib/validation/TypeValidator.cpp
+  h_0b496d7e860864 1-35
+src/jsav_Lib/ir/BasicBlock.cpp
+  h_0b496d7e860864 1-118
+include/jsav/validation/IrValidator.hpp
+  h_0b496d7e860864 8-13,16-41
+src/jsav_Lib/ir/Instruction.cpp
+  h_0b496d7e860864 1-55
+include/jsav/ir/PhiNode.hpp
+  h_0b496d7e860864 1-79
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 58-59,73-78,82-106
+src/jsav_Lib/ir/Value.cpp
+  h_0b496d7e860864 1-49
+.github/agents/speckit.analyze.agent.md
+  h_0b496d7e860864 114,158,220,249
+src/jsav_Lib/ir/Function.cpp
+  h_0b496d7e860864 1-131
+include/jsav/ir/GlobalEntityId.hpp
+  h_0b496d7e860864 19-21,24-33
+test/tests.cpp
+  h_0b496d7e860864 17769-17809
+include/jsav/ir/Instruction.hpp
+  h_0b496d7e860864 1-104
+src/jsav_Lib/ir/Type.cpp
+  h_0b496d7e860864 1-149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "419adcfd30995c6203b47c338cae543621aa9a69",
+  "prompts": {
+    "9311fdfd97d15ad8": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "b3eed3f3-0eeb-40f9-b7a1-3690b9edae46",
+        "model": "copilot/auto"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 117,
+      "total_deletions": 0,
+      "accepted_lines": 117,
+      "overriden_lines": 0
+    },
+    "e26804d1b7ecfcbc": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "b1f3c0f3-ef60-4890-8831-b91b34400661",
+        "model": "copilot/auto"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 390,
+      "total_deletions": 0,
+      "accepted_lines": 403,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
