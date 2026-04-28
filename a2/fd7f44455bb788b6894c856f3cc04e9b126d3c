@@ -1,0 +1,16 @@
+.github/workflows/ci.yml
+  h_0b496d7e860864 13,38-39,54,61-62,65,79,82
+.github/workflows/codeql-analysis.yml
+  h_0b496d7e860864 45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "a2fd7f44455bb788b6894c856f3cc04e9b126d3c",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
