@@ -65,7 +65,11 @@ namespace jsv {
             result = std::ranges::fold_left(components, fs::path{}, std::divides{});
         } else {
             result = "..";
-            for(std::size_t i = len - depth; i < len; ++i) { result /= components[i]; }
+            result = std::ranges::fold_left(
+                components | std::views::drop(len - depth),
+                result,
+                [](fs::path acc, const auto& comp) { return acc / comp; }
+            );
         }
 
         return result.string();

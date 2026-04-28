@@ -112,7 +112,7 @@ namespace jsv {
             if(res.codepoint == U'\t') {
                 // Formula: next_tab_stop = ((col - 1) / tab_stop_width + 1) * tab_stop_width + 1
                 // Note: Integer division truncates toward zero (C++23 standard)
-                col = ((col - 1) / tab_stop_width + 1) * tab_stop_width + 1;
+                col = (((col - 1) / tab_stop_width + 1) * tab_stop_width) + 1;
             } else {
                 // FR-003, FR-004: Each code point = 1 column unit
                 col += 1;
