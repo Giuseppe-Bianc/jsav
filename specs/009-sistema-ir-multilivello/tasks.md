@@ -38,22 +38,22 @@
 
 ### Tests First (Red)
 
-- [ ] T006 [P] Add foundational runtime tests in test/tests.cpp to verify: (1) commit() success on valid IR, (2) full IR state rollback() on pass failure, (3) persistence of aggregated errors in PassResult.
-- [ ] T007 [P] Add foundational relaxed constexpr tests in test/constexpr_tests.cpp
-- [ ] T008 [P] Add foundational constexpr tests on canonical key/deterministic IDs in test/constexpr_tests.cpp
+- [X] T006 [P] Add foundational runtime tests in test/tests.cpp to verify: (1) commit() success on valid IR, (2) full IR state rollback() on pass failure, (3) persistence of aggregated errors in PassResult.
+- [X] T007 [P] Add foundational relaxed constexpr tests in test/constexpr_tests.cpp
+- [X] T008 [P] Add foundational constexpr tests on canonical key/deterministic IDs in test/constexpr_tests.cpp
 
 ### Implementation (Green/Refactor)
 
-- [ ] T009 Define base IR level/pass kind types and canonical key in include/jsav/ir/IrCommon.hpp
-- [ ] T010 Implement canonical PassResult error type with CompileError batch in include/jsav/passes/PassResult.hpp
-- [ ] T011 Implement IPass contract and PassInvariantReport in include/jsav/passes/Pass.hpp
-- [ ] T012 Implement deterministic PassContext and canonical config in include/jsav/passes/PassContext.hpp
-- [ ] T013 Implement deterministic immutable global ID entities in include/jsav/ir/GlobalEntityId.hpp
-- [ ] T014 Implement ID generator from canonical structural path in src/jsav_Lib/ir/GlobalEntityId.cpp
-- [ ] T015 Implement **PassTransaction** mechanism (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
-- [ ] T016 Implement **PassTransaction** engine in src/jsav_Lib/passes/PassTransaction.cpp
-- [ ] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
-- [ ] T018 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
+- [X] T009 Define base IR level/pass kind types and canonical key in include/jsav/ir/IrCommon.hpp
+- [X] T010 Implement canonical PassResult error type with CompileError batch in include/jsav/passes/PassResult.hpp
+- [X] T011 Implement IPass contract and PassInvariantReport in include/jsav/passes/Pass.hpp
+- [X] T012 Implement deterministic PassContext and canonical config in include/jsav/passes/PassContext.hpp
+- [X] T013 Implement deterministic immutable global ID entities in include/jsav/ir/GlobalEntityId.hpp
+- [X] T014 Implement ID generator from canonical structural path in src/jsav_Lib/ir/GlobalEntityId.cpp
+- [X] T015 Implement **PassTransaction** mechanism (working-copy/commit/rollback) in include/jsav/passes/PassTransaction.hpp
+- [X] T016 Implement **PassTransaction** engine in src/jsav_Lib/passes/PassTransaction.cpp
+- [X] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
+- [X] T018 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
 - [ ] T019 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
 - [ ] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)
 - [ ] T019b [P] Implement custom SHA-256 utility for nominal versioning in include/jsavCore/util/Sha256.hpp and src/jsav_Core_lib/util/Sha256.cpp

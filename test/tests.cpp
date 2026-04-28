@@ -6,8 +6,8 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
-#include <catch2/matchers/catch_matchers_string.hpp>
 #include <catch2/matchers/catch_matchers_range_equals.hpp>
+#include <catch2/matchers/catch_matchers_string.hpp>
 #include <cstdio>
 #include <future>
 #ifndef _WIN32
@@ -21130,26 +21130,21 @@ TEST_CASE("TypedAst_NodeTypeVerification_AfterPromotion", "[type_promotion][Type
     }
 }
 
-TEST_CASE("SHA256::hash / digest produce correct results for known vectors",
-          "[sha256][digest][hash][data-driven][happy]") {
-    auto [input, expected_hex] = GENERATE(table<std::string_view, std::string>({
-        // NIST CAVP Short Messages (SHA-256), lengths 0, 8, 448, 512 bits
-        {""sv,
-         "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},      // L=0
-        {"a"sv,
-         "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"},      // L=8
-        {"abc"sv,
-         "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},      // L=24
-        {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"sv,              // L=448 (56 bytes)
-         "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"},
-        // L=512 (64 bytes) – exact block boundary
-        {"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno"
-         "ijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"sv,
-         "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"}
-    }));
+TEST_CASE("SHA256::hash / digest produce correct results for known vectors", "[sha256][digest][hash][data-driven][happy]") {
+    auto [input, expected_hex] = GENERATE(
+        table<std::string_view, std::string>({// NIST CAVP Short Messages (SHA-256), lengths 0, 8, 448, 512 bits
+                                              {""sv, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},     // L=0
+                                              {"a"sv, "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"},    // L=8
+                                              {"abc"sv, "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"},  // L=24
+                                              {"abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq"sv,  // L=448 (56 bytes)
+                                               "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1"},
+                                              // L=512 (64 bytes) – exact block boundary
+                                              {"abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmno"
+                                               "ijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu"sv,
+                                               "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1"}}));
 
     CAPTURE(input);
-    auto hex =  jsv::crypto::SHA256::hash(input);
+    auto hex = jsv::crypto::SHA256::hash(input);
     REQUIRE_THAT(hex, Catch::Matchers::Equals(expected_hex));
 
     // Also test raw digest → hex conversion consistency
@@ -21165,8 +21160,7 @@ TEST_CASE("SHA256 handles empty and minimal inputs correctly", "[sha256][edge][e
     // Empty string_view
     CHECK(jsv::crypto::SHA256::hash(""sv) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
     // Empty span<const std::byte>
-    CHECK(jsv::crypto::SHA256::hash(std::span<const std::byte>{}) ==
-          "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+    CHECK(jsv::crypto::SHA256::hash(std::span<const std::byte>{}) == "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
 
     // Zero-length string_view with null pointer
     std::string_view empty_sv(nullptr, 0u);
@@ -21182,16 +21176,14 @@ TEST_CASE("SHA256 streaming update produces same result as one‑shot", "[sha256
     // Various chunking strategies
     SECTION("single byte at a time") {
         jsv::crypto::SHA256 ctx;
-        for (char c : input) {
-            ctx.update(std::string_view{&c, 1});
-        }
+        for(char c : input) { ctx.update(std::string_view{&c, 1}); }
         CHECK(ctx.finalise_hex() == expected);
     }
 
     SECTION("block‑aligned chunks (64 bytes)") {
         jsv::crypto::SHA256 ctx;
         std::size_t pos = 0;
-        while (pos < input.size()) {
+        while(pos < input.size()) {
             std::size_t take = std::min<std::size_t>(64, input.size() - pos);
             ctx.update(input.substr(pos, take));
             pos += take;
@@ -21202,7 +21194,7 @@ TEST_CASE("SHA256 streaming update produces same result as one‑shot", "[sha256
     SECTION("arbitrary splitting (7‑byte chunks)") {
         jsv::crypto::SHA256 ctx;
         std::size_t pos = 0;
-        while (pos < input.size()) {
+        while(pos < input.size()) {
             std::size_t take = std::min<std::size_t>(7, input.size() - pos);
             ctx.update(input.substr(pos, take));
             pos += take;
@@ -21276,12 +21268,11 @@ TEST_CASE("SHA256 reset after finalise allows reuse", "[sha256][reset][reuse]") 
     CHECK(empty_digest == jsv::crypto::SHA256::hash(""sv));
 }
 
-
 TEST_CASE("SHA256 copy constructor produces an independent hasher", "[sha256][copy][semantics]") {
     jsv::crypto::SHA256 ctx1;
     ctx1.update("abc"sv);
 
-    jsv::crypto::SHA256 ctx2 = ctx1; // copy
+    jsv::crypto::SHA256 ctx2 = ctx1;  // copy
     // ctx1 and ctx2 should now be at the same point in the stream.
     ctx1.update("def"sv);
     ctx2.update("xyz"sv);
@@ -21291,7 +21282,7 @@ TEST_CASE("SHA256 copy constructor produces an independent hasher", "[sha256][co
 
     CHECK(h1 == jsv::crypto::SHA256::hash("abcdef"sv));
     CHECK(h2 == jsv::crypto::SHA256::hash("abcxyz"sv));
-    CHECK(h1 != h2); // proving independence
+    CHECK(h1 != h2);  // proving independence
 }
 
 TEST_CASE("SHA256 copy assignment works as expected", "[sha256][copy][assignment]") {
@@ -21303,7 +21294,7 @@ TEST_CASE("SHA256 copy assignment works as expected", "[sha256][copy][assignment
 
     // Self‑assignment
     ctx2 = ctx2;
-    auto after_self = ctx2.finalise_hex();   // after finalise, context is reset
+    auto after_self = ctx2.finalise_hex();  // after finalise, context is reset
     CHECK(after_self == jsv::crypto::SHA256::hash(""sv));
     // No negative effect on subsequent use
     ctx2.update("self"sv);
@@ -21366,12 +21357,51 @@ TEST_CASE("SHA256 correctly processes a large message", "[sha256][stress][large-
     // Consistency: streaming chunk‑by‑chunk yields the same result.
     jsv::crypto::SHA256 ctx;
     std::size_t pos = 0;
-    while (pos < size) {
+    while(pos < size) {
         std::size_t take = std::min<std::size_t>(1024, size - pos);
         ctx.update(std::string_view{big}.substr(pos, take));
         pos += take;
     }
     CHECK(ctx.finalise_hex() == hex);
+}
+
+TEST_CASE("PassTransaction commit succeeds on valid postconditions", "[ir][passes][T006]") {
+    jsv::IrUnit unit{.module_name = "module", .operations = {"op1", "op2"}};
+    jsv::PassTransaction txn(unit);
+
+    txn.working_copy().operations.push_back("op3");
+
+    const jsv::PassResult<jsv::PassInvariantReport> validation = jsv::PassInvariantReport::all_passed();
+    const auto status = txn.commit(validation);
+
+    REQUIRE(status.succeeded());
+    REQUIRE(txn.is_committed());
+    REQUIRE_FALSE(txn.is_rolled_back());
+    REQUIRE(txn.current().operations.size() == 3);
+}
+
+TEST_CASE("PassTransaction rolls back and preserves error batch on failure", "[ir][passes][T006]") {
+    jsv::IrUnit unit{.module_name = "module", .operations = {"op1", "op2"}};
+    jsv::PassTransaction txn(unit);
+    txn.working_copy().operations.push_back("broken-op");
+
+    const jsv::SourceLocation start(1, 1, 0);
+    const jsv::SourceLocation end(1, 5, 4);
+    const jsv::SourceSpan span(filename, start, end);
+    jsv::ErrorBatch errors;
+    errors.push_back(jsv::CompileError::IrGeneratorError(std::nullopt, "failed-pass", span, std::nullopt));
+    errors.push_back(jsv::CompileError::IrGeneratorError(std::nullopt, "failed-pass-2", span, std::nullopt));
+
+    const jsv::PassResult<jsv::PassInvariantReport> failed = std::unexpected(errors);
+    const auto status = txn.commit(failed);
+
+    REQUIRE_FALSE(status.succeeded());
+    REQUIRE_FALSE(txn.is_committed());
+    REQUIRE(txn.is_rolled_back());
+    REQUIRE(txn.current().operations.size() == 2);
+    REQUIRE(status.errors.size() == 2);
+    REQUIRE(status.errors[0].message() == "failed-pass");
+    REQUIRE(status.errors[1].message() == "failed-pass-2");
 }
 
 // clang-format off

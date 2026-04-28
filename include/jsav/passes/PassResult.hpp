@@ -9,6 +9,17 @@
 
 namespace jsv {
 
+    using ErrorBatch = std::vector<CompileError>;
+
+    template <typename TResult> using PassResult = std::expected<TResult, ErrorBatch>;
+
+    struct PassExecutionStatus {
+        bool committed{false};
+        bool rolled_back{false};
+        ErrorBatch errors{};
+
+        [[nodiscard]] bool succeeded() const noexcept { return committed && !rolled_back && errors.empty(); }
+    };
 
 }  // namespace jsv
 

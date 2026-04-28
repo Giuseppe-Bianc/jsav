@@ -1490,6 +1490,34 @@ TEST_CASE("SHA256 constants and type properties", "[sha256][constants][compile-t
     STATIC_REQUIRE(std::is_nothrow_destructible_v<jsv::crypto::SHA256>);
 }
 
+TEST_CASE("PassContext canonical key is deterministic", "[ir][passes][T007]") {
+    const jsv::PassContext left{
+        .level = jsv::IrLevel::Mir,
+        .config = {.deterministic_mode = true, .pipeline_name = "pipeline", .pass_order = {"a", "b"}},
+        .deterministic_seed = 42,
+    };
+
+    const jsv::PassContext right{
+        .level = jsv::IrLevel::Mir,
+        .config = {.deterministic_mode = true, .pipeline_name = "pipeline", .pass_order = {"a", "b"}},
+        .deterministic_seed = 42,
+    };
+
+    REQUIRE(left.canonical_config_key() == right.canonical_config_key());
+}
+
+TEST_CASE("Canonical key and deterministic id compile-time contracts", "[ir][passes][T008]") {
+    STATIC_REQUIRE(jsv::to_string(jsv::IrLevel::Hir) == "HIR");
+    STATIC_REQUIRE(jsv::to_string(jsv::IrLevel::Mir) == "MIR");
+    STATIC_REQUIRE(jsv::to_string(jsv::IrLevel::Lir) == "LIR");
+
+    STATIC_REQUIRE(jsv::GlobalEntityId::compile_time_hash("module/function/block#1:0") ==
+                   jsv::GlobalEntityId::compile_time_hash("module/function/block#1:0"));
+
+    STATIC_REQUIRE(jsv::GlobalEntityId::compile_time_hash("module/function/block#1:0") !=
+                   jsv::GlobalEntityId::compile_time_hash("module/function/block#1:1"));
+}
+
 // clang-format off
 // NOLINTEND(*-include-cleaner, *-avoid-magic-numbers, *-magic-numbers, *-unchecked-optional-access, *-avoid-do-while, *-use-anonymous-namespace, *-qualified-auto, *-suspicious-stringview-data-usage, *-err58-cpp, *-function-cognitive-complexity, *-macro-usage, *-unnecessary-copy-initialization, *-uppercase-literal-suffix, *-uppercase-literal-suffix, *-container-size-empty, *-move-const-arg, *-move-const-arg, *-pass-by-value, *-diagnostic-self-assign-overloaded, *-unused-using-decls, *-identifier-length)
 // clang-format on
