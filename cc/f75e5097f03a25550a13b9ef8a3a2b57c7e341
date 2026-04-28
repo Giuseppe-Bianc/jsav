@@ -1,0 +1,55 @@
+include/jsav/analysis/CanonicalOrder.hpp
+  h_0b496d7e860864 14-19
+test/constexpr_tests.cpp
+  h_0b496d7e860864 1493-1520
+include/jsav/ir/GlobalEntityId.hpp
+  h_0b496d7e860864 12-15,17-41
+include/jsav/passes/PassContext.hpp
+  h_0b496d7e860864 12-28
+include/jsav/passes/Pass.hpp
+  h_0b496d7e860864 13-41
+include/jsav/ir/IrCommon.hpp
+  h_0b496d7e860864 12-70
+src/jsav_Lib/ir/GlobalEntityId.cpp
+  h_0b496d7e860864 10-48
+src/jsav_Lib/analysis/CanonicalOrder.cpp
+  h_0b496d7e860864 11-27
+src/jsav_Lib/passes/PassTransaction.cpp
+  h_0b496d7e860864 9-59
+include/jsav/passes/PassTransaction.hpp
+  h_0b496d7e860864 13-35
+include/jsav/passes/PassResult.hpp
+  h_0b496d7e860864 12-22
+src/jsav_Lib/ir/IrCommon.cpp
+  h_0b496d7e860864 9-15
+test/tests.cpp
+  h_0b496d7e860864 21368-21406
+  e5a8cf4cc3c69381 10,21133-21144,21147,21163,21179,21186,21197,21275,21285,21297,21360
+specs/009-sistema-ir-multilivello/tasks.md
+  h_0b496d7e860864 41-43,47-56
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "ccf75e5097f03a25550a13b9ef8a3a2b57c7e341",
+  "prompts": {
+    "e5a8cf4cc3c69381": {
+      "agent_id": {
+        "tool": "github-copilot",
+        "id": "80c04a90-2834-42af-923d-3833cf03f0b1",
+        "model": "copilot/auto"
+      },
+      "human_author": "GIUSEPPE BIANCONI",
+      "messages": [],
+      "total_additions": 276,
+      "total_deletions": 310,
+      "accepted_lines": 276,
+      "overriden_lines": 0
+    }
+  },
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
