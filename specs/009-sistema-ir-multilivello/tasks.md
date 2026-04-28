@@ -54,7 +54,7 @@
 - [X] T016 Implement **PassTransaction** engine in src/jsav_Lib/passes/PassTransaction.cpp
 - [X] T017 Implement canonical ordering utilities for reports/errors in include/jsav/analysis/CanonicalOrder.hpp
 - [X] T018 Implement canonical ordering utilities for reports/errors in src/jsav_Lib/analysis/CanonicalOrder.cpp
-- [ ] T019 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
+- [X] T019 Integrate unified error policy (CompileError only) including hierarchical canonical key support in include/jsav/error/CompileError.hpp
 - [ ] T019a [P] Security and Performance Review of Custom SHA-256 Implementation (aligned with Principle III and VIII)
 - [ ] T019b [P] Implement custom SHA-256 utility for nominal versioning in include/jsavCore/util/Sha256.hpp and src/jsav_Core_lib/util/Sha256.cpp
 
