@@ -1,4 +1,3 @@
-include(cmake/SystemLink.cmake)
 include(cmake/LibFuzzer.cmake)
 include(CMakeDependentOption)
 include(CheckCXXCompilerFlag)
@@ -59,6 +58,13 @@ macro(jsav_supports_sanitizers)
 endmacro()
 
 macro(jsav_setup_options)
+    if(DEFINED ENABLE_DEVELOPER_MODE)
+      message(FATAL_ERROR
+        "ENABLE_DEVELOPER_MODE is not a valid option. "
+        "This project does not use aminya/project_options. "
+        "Developer mode is enabled when PROJECT_IS_TOP_LEVEL is set "
+        "and myproject_PACKAGING_MAINTAINER_MODE is not set.")
+    endif()
     option(jsav_ENABLE_HARDENING "Enable hardening" ON)
     option(jsav_ENABLE_COVERAGE "Enable coverage reporting" OFF)
     cmake_dependent_option(
