@@ -48,8 +48,8 @@ namespace jsv {
         // Multi-variable declaration (e.g., var a, b: i64 = 10, 20;)
         VarDecl(std::vector<std::string> names, std::optional<std::string> type_annotation, std::vector<ExprPtr> initializers,
                 bool is_const = false, SourceSpan loc = {})
-                    : Stmt(NodeKind::VarDecl, loc), initializers_{std::move(initializers)}, names_{std::move(names)},
-                        type_annotation_{std::move(type_annotation)}, is_const_{is_const} {}
+          : Stmt(NodeKind::VarDecl, loc), initializers_{std::move(initializers)}, names_{std::move(names)},
+            type_annotation_{std::move(type_annotation)}, is_const_{is_const} {}
 
         [[nodiscard]] const std::vector<std::string> &names() const noexcept { return names_; }
         [[nodiscard]] const std::string &name() const noexcept { return names_.front(); }  // For backward compatibility
