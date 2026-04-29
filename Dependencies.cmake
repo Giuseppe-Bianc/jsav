@@ -64,7 +64,7 @@ function(jsav_setup_dependencies)
       NAME
       CLI11
       VERSION
-      2.6.1
+      2.6.2
       GITHUB_REPOSITORY
       "CLIUtils/CLI11"
       SYSTEM

@@ -13,7 +13,7 @@ Implement a multi-level IR system (HIR/MIR/LIR) in C++23 with MSVC 2026, without
 ## Technical Context
 
 **Language/Version**: C++23 (MSVC Visual Studio 2026 toolset; GCC13+/Clang16+ compatibility target)  
-**Primary Dependencies**: fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 (already approved)  
+**Primary Dependencies**: fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.2, Catch2 3.14.0 (already approved)  
 **Storage**: In-memory graph model (HIR/MIR/LIR + analysis artifacts) with persistence only through existing input/output files  
 **Testing**: Catch2 3.14.0; `STATIC_REQUIRE` compile-time, runtime debug constexpr, runtime functional + integration  
 **Target Platform**: Windows 11 (MSVC 2026) as baseline; Linux/macOS as portable target
@@ -25,7 +25,7 @@ Implement a multi-level IR system (HIR/MIR/LIR) in C++23 with MSVC 2026, without
 ### Technology Stack
 
 - Core language/toolchain: C++23 + CMake 4.2+ + Ninja + MSVC 2026
-- Logging/formatting/CLI/test: `spdlog 1.17.0`, `fmtlib 12.1.0`, `CLI11 2.6.1`, `Catch2 3.14.0`
+- Logging/formatting/CLI/test: `spdlog 1.17.0`, `fmtlib 12.1.0`, `CLI11 2.6.2`, `Catch2 3.14.0`
 - Quality tools: `clang-tidy`, `cppcheck`, `AddressSanitizer`, `UndefinedBehaviorSanitizer`, `lizard`, `gcovr`
 - Version lock strategy: explicit pinning in `Dependencies.cmake` + `cpm-package-lock.cmake`
 
@@ -39,7 +39,7 @@ Semantic modular monolith (not microservices), with isolated modules for: IR mod
 
   - `fmtlib 12.1.0`: robust and portable formatting; `std::format` alternative is not fully uniform on target toolchains.
   - `spdlog 1.17.0`: structured multi-sink logging for pass/analysis auditing; custom logger alternative rejected due to maintenance cost.
-  - `CLI11 2.6.1`: stable CLI parsing for pipeline/pass execution; manual parser alternative rejected due to lower robustness on edge inputs.
+  - `CLI11 2.6.2`: stable CLI parsing for pipeline/pass execution; manual parser alternative rejected due to lower robustness on edge inputs.
 - Dev/Test:
   - `Catch2 3.14.0`: unified framework for the compile-time/runtime test pyramid; multi-framework alternative rejected due to complexity.
 - Optional: none (project constraint: no additional external dependencies).

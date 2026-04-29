@@ -16,7 +16,7 @@ Terminology reference: `GLOSSARY.md`.
 
 ## Decision 3: Allowed dependencies and pinning
 
-- Decision: Use only fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.1, Catch2 3.14.0 with the existing version lock.
+- Decision: Use only fmtlib 12.1.0, spdlog 1.17.0, CLI11 2.6.2, Catch2 3.14.0 with the existing version lock.
 - Rationale: Explicit project constraint (no new dependencies), stability, and auditability.
 - Alternatives considered: Adding external dataflow/graph libraries (rejected: constraint violation + integration cost).
 

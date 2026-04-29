@@ -176,7 +176,7 @@ The project utilizes a minimal, carefully curated set of external dependencies, 
 
 **Source**: `Dependencies.cmake`, `ProjectOptions.cmake`
 
-#### CLI11 (v2.6.1)
+#### CLI11 (v2.6.2)
 
 **Purpose**: Command-line argument parsing with support for complex option structures
 **Integration**: Linked as `CLI11::CLI11` target
@@ -490,7 +490,7 @@ The build process follows a well-defined sequence of stages, each with specific 
 - `fmt` (v12.1.0) → `fmtlib::fmt` target
 - `spdlog` (v1.17.0) → `spdlog::spdlog` target
 - `Catch2` (v3.14.0) → `Catch2::Catch2WithMain` target
-- `CLI11` (v2.6.1) → `CLI11::CLI11` target
+- `CLI11` (v2.6.2) → `CLI11::CLI11` target
 
 **Output Location**: `build/_deps/<name>-src/`
 
@@ -3365,7 +3365,7 @@ This section introduces a comprehensive framework of autonomous AI agents for au
 - **cmake/Hardening.cmake:** FORTIFY_SOURCE, RELRO, and related hardening flags
 - **AddressSanitizer:** Mandatory for security validation — zero leaks policy enforced
 - **Static analysis (clang-tidy, cppcheck):** Taint analysis and unsafe pattern detection
-- **Dependency auditing:** CVE lookups for fmtlib/fmt v12.1.0, spdlog v1.17.0, CLI11 v2.6.1, Catch2 v3.14.0
+- **Dependency auditing:** CVE lookups for fmtlib/fmt v12.1.0, spdlog v1.17.0, CLI11 v2.6.2, Catch2 v3.14.0
 
 **Key Constraint:** Per Section 4.3 and 4.4, any introduction of `reinterpret_cast` or manual memory management requires explicit justification and Security Agent approval. All raw pointer usage must be reviewed against the Non-Owning Reference policy.
 
