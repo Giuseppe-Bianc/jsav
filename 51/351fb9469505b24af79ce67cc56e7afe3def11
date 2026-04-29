@@ -1,0 +1,16 @@
+src/jsav_Lib/parser/Parser.cpp
+  h_0b496d7e860864 13
+test/tests.cpp
+  h_0b496d7e860864 2,21135
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "51351fb9469505b24af79ce67cc56e7afe3def11",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
