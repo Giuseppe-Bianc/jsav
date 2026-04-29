@@ -291,7 +291,7 @@ namespace jsv {
         friend std::ostream &operator<<(std::ostream &os, const Token &token);
 
     private:
-        TokenKind m_kind;
+        TokenKind m_kind{TokenKind::Eof};  // sensible sentinel for a default-constructed token
         std::string_view m_text;  // testo originale del token (senza modifiche)
         SourceSpan m_span;        // posizione del token nel codice sorgente
     };
