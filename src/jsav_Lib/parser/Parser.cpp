@@ -10,10 +10,7 @@ namespace jsv {
     constexpr std::size_t kInitialErrorCapacity = 8;
 
     static bool all_digits_from(std::string_view text, std::size_t start_index) noexcept {
-        for(std::size_t j = start_index; j < text.size(); ++j) {
-            if(std::isdigit(C_UC(text[j])) == 0) { return false; }
-        }
-        return true;
+        return std::ranges::all_of(text.substr(start_index), [](const char c) noexcept { return std::isdigit(C_UC(c)) != 0; });
     }
 
     static std::size_t find_suffix_start(std::string_view text) noexcept {
