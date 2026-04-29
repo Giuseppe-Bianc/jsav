@@ -27,7 +27,7 @@ namespace jsv {
         Node &operator=(Node &&) noexcept = default;  // PERF: noexcept enables vector move optimization
 
         [[nodiscard]] constexpr NodeKind kind() const noexcept { return kind_; }
-        [[nodiscard]] constexpr const SourceSpan& location() const noexcept { return loc_; }
+        [[nodiscard]] constexpr const SourceSpan &location() const noexcept { return loc_; }
         void set_location(const SourceSpan &loc) noexcept { loc_ = loc; }
 
         [[nodiscard]] std::string_view kind_name() const noexcept;
