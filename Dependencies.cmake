@@ -5,6 +5,8 @@ function(AddSpdlogPackage WcharSupport WcharFilenames)
             NAME spdlog
             VERSION 1.17.0
             GITHUB_REPOSITORY "gabime/spdlog"
+            SYSTEM
+            YES
             OPTIONS
             "SPDLOG_FMT_EXTERNAL ON"
             "SPDLOG_ENABLE_PCH ON"
@@ -21,14 +23,21 @@ endfunction()
 # targets
 function(jsav_setup_dependencies)
 
-    # For each dependency, see if it's
-    # already been provided to us by a parent project
+  # For each dependency, see if it's
+  # already been provided to us by a parent project
 
-    if (NOT TARGET fmtlib::fmtlib)
-        cpmaddpackage("gh:fmtlib/fmt#12.1.0")
-        # Suppress C4834 ([[nodiscard]] discarded) for fmt library - known issue in fmt source
-        target_compile_options(fmt PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/wd4834>)
-    endif ()
+  if(NOT TARGET fmtlib::fmtlib)
+    cpmaddpackage(
+      NAME
+      fmt
+      GITHUB_REPOSITORY
+      "fmtlib/fmt"
+      GIT_TAG
+      "12.1.0"
+      SYSTEM
+      YES)
+    target_compile_options(fmt PRIVATE $<$<COMPILE_LANG_AND_ID:CXX,MSVC>:/wd4834>)
+  endif()
 
     if (NOT TARGET spdlog::spdlog)
         if (WIN32)
@@ -38,13 +47,28 @@ function(jsav_setup_dependencies)
         endif ()
     endif ()
 
-    if (NOT TARGET Catch2::Catch2WithMain)
-        cpmaddpackage("gh:catchorg/Catch2@3.14.0")
-    endif ()
+  if(NOT TARGET Catch2::Catch2WithMain)
+    cpmaddpackage(
+      NAME
+      Catch2
+      VERSION
+      3.14.0
+      GITHUB_REPOSITORY
+      "catchorg/Catch2"
+      SYSTEM
+      YES)
+  endif()
 
-    if (NOT TARGET CLI11::CLI11)
-        cpmaddpackage("gh:CLIUtils/CLI11@2.6.1")
-    endif ()
-
+  if(NOT TARGET CLI11::CLI11)
+    cpmaddpackage(
+      NAME
+      CLI11
+      VERSION
+      2.6.1
+      GITHUB_REPOSITORY
+      "CLIUtils/CLI11"
+      SYSTEM
+      YES)
+  endif()
 
 endfunction()

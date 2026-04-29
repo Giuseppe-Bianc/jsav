@@ -10,11 +10,7 @@ set_simd_instructions(${target_name})
 target_link_libraries(
         jsav
         PRIVATE jsav::jsav_options
-        jsav::jsav_warnings)
-
-target_link_system_libraries(
-        jsav
-        PRIVATE
+        jsav::jsav_warnings
         CLI11::CLI11
         jsav::jsav_lib
 )
