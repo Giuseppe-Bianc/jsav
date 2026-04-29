@@ -1,0 +1,18 @@
+include/jsav/ast/Statements.hpp
+  h_0b496d7e860864 51-52
+test/tests.cpp
+  h_0b496d7e860864 2,21449
+include/jsav/error/CompileError.hpp
+  h_0b496d7e860864 62
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "13343b870259a68d60250206da4bc3ffe778b16b",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
