@@ -99,6 +99,7 @@ namespace jsv {
         // ── Miscellaneous ──
         Semicolon,
         Eof,
+        Error,  ///< Invalid / unrecognized token (malformed UTF-8, illegal codepoint, etc.)
     };
 
     /// Convert a TokenKind to its string representation.
@@ -264,6 +265,8 @@ namespace jsv {
             return "SEMICOLON";
         case TokenKind::Eof:
             return "EOF";
+        case TokenKind::Error:
+            return "ERROR";
         default:
             return "UNKNOWN";
         }
@@ -291,7 +294,7 @@ namespace jsv {
         friend std::ostream &operator<<(std::ostream &os, const Token &token);
 
     private:
-        TokenKind m_kind{TokenKind::Eof};  // sensible sentinel for a default-constructed token
+        TokenKind m_kind{TokenKind::Error};  // sensible sentinel for a default-constructed token
         std::string_view m_text;           // testo originale del token (senza modifiche)
         SourceSpan m_span;                 // posizione del token nel codice sorgente
     };
