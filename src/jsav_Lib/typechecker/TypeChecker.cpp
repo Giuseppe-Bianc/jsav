@@ -402,7 +402,9 @@ namespace jsv {
                 const auto *call = static_cast<const TypedCallExpr *>(&expr);
                 auto zonked_callee = zonk_expr_full(subst, call->callee());
                 std::vector<TypedExprPtr> zonked_args;
-                for(const auto &arg : call->args()) { zonked_args.push_back(arg ? zonk_expr_full(subst, *arg) : nullptr); }
+                zonked_args.reserve(call->args().size());
+                std::transform(call->args().begin(), call->args().end(), std::back_inserter(zonked_args),
+                               [&](const auto &arg) -> TypedExprPtr { return arg ? zonk_expr_full(subst, *arg) : nullptr; });
                 return std::make_unique<TypedCallExpr>(std::move(zonked_callee), std::move(zonked_args), std::move(resolved_type),
                                                        expr.location());
             }
@@ -440,7 +442,9 @@ namespace jsv {
             {
                 const auto *arr = static_cast<const TypedArrayLiteral *>(&expr);
                 std::vector<TypedExprPtr> zonked_elements;
-                for(const auto &elem : arr->elements()) { zonked_elements.push_back(elem ? zonk_expr_full(subst, *elem) : nullptr); }
+                zonked_elements.reserve(arr->elements().size());
+                std::transform(arr->elements().begin(), arr->elements().end(), std::back_inserter(zonked_elements),
+                               [&](const auto &elem) -> TypedExprPtr { return elem ? zonk_expr_full(subst, *elem) : nullptr; });
                 return std::make_unique<TypedArrayLiteral>(std::move(zonked_elements), std::move(resolved_type), expr.location());
             }
         case NodeKind::GroupingExpr:
