@@ -1,0 +1,14 @@
+src/jsav_Lib/typechecker/TypeChecker.cpp
+  h_0b496d7e860864 405-407,445-447
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "29b83558072b095a40697aee927be063277e8c70",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
