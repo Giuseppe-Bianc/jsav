@@ -1,0 +1,14 @@
+src/jsav/main.cpp
+  h_0b496d7e860864 20-29,31-34,64-66,70
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.3.4",
+  "base_commit_sha": "1edf181314cf393dbdf3537126f0811b81c7cf6d",
+  "prompts": {},
+  "humans": {
+    "h_0b496d7e860864": {
+      "author": "GIUSEPPE BIANCONI"
+    }
+  }
+}
