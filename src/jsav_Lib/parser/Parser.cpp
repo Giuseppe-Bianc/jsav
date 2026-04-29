@@ -54,7 +54,8 @@ namespace jsv {
         const std::size_t suffix_start = find_suffix_start(text);
 
         std::int64_t value = 0;
-        std::from_chars(text.data(), text.data() + suffix_start, value);
+        const std::string_view numeric_text = text.substr(0, suffix_start);
+        std::from_chars(numeric_text.data(), std::to_address(numeric_text.end()), value);
 
         std::optional<std::string> type_suffix;
         if(suffix_start < text.size()) { type_suffix = std::string(text.substr(suffix_start)); }
@@ -68,7 +69,8 @@ namespace jsv {
         const std::size_t suffix_start = find_suffix_start(text);
 
         double value = 0.0;
-        const auto result = std::from_chars(text.data(), text.data() + suffix_start, value);
+        const std::string_view numeric_text = text.substr(0, suffix_start);
+        const auto result = std::from_chars(numeric_text.data(), std::to_address(numeric_text.end()), value);
         if(result.ec != std::errc{}) {
             // Fallback for parsing errors
             value = 0.0;
