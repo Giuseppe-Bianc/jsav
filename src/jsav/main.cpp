@@ -17,12 +17,21 @@ DISABLE_WARNINGS_PUSH(
 
 DISABLE_WARNINGS_POP()
 
-std::string toLower(std::string str) {
-    std::ranges::transform(str, str.begin(), [](unsigned char chr) -> char { return C_C(std::tolower(C_UC(chr))); });
-    return str;
-}
+struct VnFileValidator : public CLI::Validator {
+    VnFileValidator() : Validator("") {
+        func_ = [](const std::string &str) -> std::string {
+            const fs::path p{str};
+            auto ext = p.extension().string();
+            std::ranges::transform(ext, ext.begin(), [](unsigned char chr) -> char { return C_C(std::tolower(C_UC(chr))); });
+            if(ext != ".vn") { return FORMAT("File '{}' does not have the required .vn extension", str); }
+        
+            if(!fs::exists(p)) { return FORMAT("File '{}' does not exist", str); }
+            if(!fs::is_regular_file(p)) { return FORMAT("File '{}' is not a regular file", str); }
 
-bool hasExtensionVN(const fs::path &pth) { return toLower(pth.extension().string()) == ".vn"; }
+            return {};
+        };
+    }
+};
 
 DISABLE_WARNINGS_PUSH(26461 26821)
 // static inline constexpr auto sequence = std::views::iota(0, 9999);
@@ -52,32 +61,23 @@ auto main(int argc, const char *const argv[]) -> int {
     LINFO("{}", winConsoleTimer);
 #endif
     try {
-        CLI::App app{FORMAT("{} version {}", jsav::cmake::project_name, jsav::cmake::project_version)};  // NOLINT(*-include-cleaner)
+        const auto version = FORMAT("{} version {} git sha {}", jsav::cmake::project_name, jsav::cmake::project_version, jsav::cmake::git_short_sha);
+        CLI::App app{version};  // NOLINT(*-include-cleaner)
+        app.set_version_flag("--version, -v", version);
         // std::optional<std::string> message;  // NOLINT(*-include-cleaner)
         std::optional<std::string> path;
         // app.add_option("-m,--message", message, "A message to print back out");
-        app.add_option("-i,--input", path, "The input file");
-        bool show_version = false;
+        app.add_option("-i,--input", path, "The input file")->type_name("VN_FILE")->check(VnFileValidator{});
         bool compile = false;
         // bool run = false;
         // bool clean = false;
         // bool create_cmake = false;
-        app.add_flag("--version, -v", show_version, "Show version information");
         app.add_flag("--compile, -c", compile, "Compile the resulting code");
         // app.add_flag("--run, -r", run, "Compile the resulting code and execute it");
         // app.add_flag("--clean, -x", clean, "Clean before building");
         // app.add_flag("--cmake, -m", create_cmake, "Create a CMakeLists.txt file");
         CLI11_PARSE(app, argc, argv)
-        if(show_version) {
-            LINFO("{}", jsav::cmake::project_version);
-            return EXIT_SUCCESS;
-        }
         const auto porfilename = fs::canonical(fs::path(path.value_or(filename.data())).lexically_normal()).string();
-
-        if(!hasExtensionVN(fs::path(porfilename))) {
-            LERROR("File {} does not have the expected .vn extension", porfilename);
-            return EXIT_FAILURE;
-        }
 
         const vnd::Timer timer(FORMAT("Processing file {}", porfilename));
         const auto str = vnd::readFromFile(porfilename);
